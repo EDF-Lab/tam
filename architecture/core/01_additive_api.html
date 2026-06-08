@@ -1,0 +1,849 @@
+<!doctype html>
+<html class="no-js" lang="en" data-content_root="../../">
+  <head><meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="index" title="Index" href="../../genindex.html"><link rel="search" title="Search" href="../../search.html"><link rel="next" title="The Engineering of Normalization and Padding" href="02_data_pipeline.html"><link rel="prev" title="Empirical Evaluation and MLOps Diagnostics" href="../../math/meta/10_mlops_evaluation.html">
+        <link rel="prefetch" href="../../_static/logo.png" as="image">
+
+    <!-- Generated with Sphinx 9.1.0 and Furo 2025.12.19 -->
+        <title>The Additive API and Object-Oriented Architecture - TAM 1.2.3 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=d111a655" />
+    <link rel="stylesheet" type="text/css" href="../../_static/styles/furo.css?v=7bdb33bb" />
+    <link rel="stylesheet" type="text/css" href="../../_static/styles/furo-extensions.css?v=8dab3a3b" />
+    
+    
+
+
+<style>
+  body {
+    --color-code-background: #f2f2f2;
+  --color-code-foreground: #1e1e1e;
+  
+  }
+  @media not print {
+    body[data-theme="dark"] {
+      --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+    }
+    @media (prefers-color-scheme: dark) {
+      body:not([data-theme="light"]) {
+        --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+      }
+    }
+  }
+</style></head>
+  <body>
+    
+    <script>
+      document.body.dataset.theme = localStorage.getItem("theme") || "auto";
+    </script>
+    
+
+<svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
+  <symbol id="svg-toc" viewBox="0 0 24 24">
+    <title>Contents</title>
+    <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 1024 1024">
+      <path d="M408 442h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8zm-8 204c0 4.4 3.6 8 8 8h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56zm504-486H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zm0 632H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zM115.4 518.9L271.7 642c5.8 4.6 14.4.5 14.4-6.9V388.9c0-7.4-8.5-11.5-14.4-6.9L115.4 505.1a8.74 8.74 0 0 0 0 13.8z"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-menu" viewBox="0 0 24 24">
+    <title>Menu</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-menu">
+      <line x1="3" y1="12" x2="21" y2="12"></line>
+      <line x1="3" y1="6" x2="21" y2="6"></line>
+      <line x1="3" y1="18" x2="21" y2="18"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-arrow-right" viewBox="0 0 24 24">
+    <title>Expand</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-chevron-right">
+      <polyline points="9 18 15 12 9 6"></polyline>
+    </svg>
+  </symbol>
+  <symbol id="svg-sun" viewBox="0 0 24 24">
+    <title>Light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="feather-sun">
+      <circle cx="12" cy="12" r="5"></circle>
+      <line x1="12" y1="1" x2="12" y2="3"></line>
+      <line x1="12" y1="21" x2="12" y2="23"></line>
+      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+      <line x1="1" y1="12" x2="3" y2="12"></line>
+      <line x1="21" y1="12" x2="23" y2="12"></line>
+      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+      <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon" viewBox="0 0 24 24">
+    <title>Dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-moon">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454z" />
+    </svg>
+  </symbol>
+  <symbol id="svg-sun-with-moon" viewBox="0 0 24 24">
+    <title>Auto light/dark, in light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path style="opacity: 50%" d="M 5.411 14.504 C 5.471 14.504 5.532 14.504 5.591 14.504 C 3.639 16.319 4.383 19.569 6.931 20.352 C 7.693 20.586 8.512 20.551 9.25 20.252 C 8.023 23.207 4.056 23.725 2.11 21.184 C 0.166 18.642 1.702 14.949 4.874 14.536 C 5.051 14.512 5.231 14.5 5.411 14.5 L 5.411 14.504 Z"/>
+      <line x1="14.5" y1="3.25" x2="14.5" y2="1.25"/>
+      <line x1="14.5" y1="15.85" x2="14.5" y2="17.85"/>
+      <line x1="10.044" y1="5.094" x2="8.63" y2="3.68"/>
+      <line x1="19" y1="14.05" x2="20.414" y2="15.464"/>
+      <line x1="8.2" y1="9.55" x2="6.2" y2="9.55"/>
+      <line x1="20.8" y1="9.55" x2="22.8" y2="9.55"/>
+      <line x1="10.044" y1="14.006" x2="8.63" y2="15.42"/>
+      <line x1="19" y1="5.05" x2="20.414" y2="3.636"/>
+      <circle cx="14.5" cy="9.55" r="3.6"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon-with-sun" viewBox="0 0 24 24">
+    <title>Auto light/dark, in dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path d="M 8.282 7.007 C 8.385 7.007 8.494 7.007 8.595 7.007 C 5.18 10.184 6.481 15.869 10.942 17.24 C 12.275 17.648 13.706 17.589 15 17.066 C 12.851 22.236 5.91 23.143 2.505 18.696 C -0.897 14.249 1.791 7.786 7.342 7.063 C 7.652 7.021 7.965 7 8.282 7 L 8.282 7.007 Z"/>
+      <line style="opacity: 50%" x1="18" y1="3.705" x2="18" y2="2.5"/>
+      <line style="opacity: 50%" x1="18" y1="11.295" x2="18" y2="12.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="4.816" x2="14.464" y2="3.964"/>
+      <line style="opacity: 50%" x1="20.711" y1="10.212" x2="21.563" y2="11.063"/>
+      <line style="opacity: 50%" x1="14.205" y1="7.5" x2="13.001" y2="7.5"/>
+      <line style="opacity: 50%" x1="21.795" y1="7.5" x2="23" y2="7.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="10.184" x2="14.464" y2="11.036"/>
+      <line style="opacity: 50%" x1="20.711" y1="4.789" x2="21.563" y2="3.937"/>
+      <circle style="opacity: 50%" cx="18" cy="7.5" r="2.169"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-pencil" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-pencil-code">
+      <path d="M4 20h4l10.5 -10.5a2.828 2.828 0 1 0 -4 -4l-10.5 10.5v4" />
+      <path d="M13.5 6.5l4 4" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+  <symbol id="svg-eye" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-eye-code">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M10 12a2 2 0 1 0 4 0a2 2 0 0 0 -4 0" />
+      <path
+        d="M11.11 17.958c-3.209 -.307 -5.91 -2.293 -8.11 -5.958c2.4 -4 5.4 -6 9 -6c3.6 0 6.6 2 9 6c-.21 .352 -.427 .688 -.647 1.008" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+</svg>
+
+<input type="checkbox" class="sidebar-toggle" name="__navigation" id="__navigation" aria-label="Toggle site navigation sidebar">
+<input type="checkbox" class="sidebar-toggle" name="__toc" id="__toc" aria-label="Toggle table of contents sidebar">
+<label class="overlay sidebar-overlay" for="__navigation"></label>
+<label class="overlay toc-overlay" for="__toc"></label>
+
+<a class="skip-to-content muted-link" href="#furo-main-content">Skip to content</a>
+
+
+
+<div class="page">
+  <header class="mobile-header">
+    <div class="header-left">
+      <label class="nav-overlay-icon" for="__navigation">
+        <span class="icon"><svg><use href="#svg-menu"></use></svg></span>
+      </label>
+    </div>
+    <div class="header-center">
+      <a href="../../index.html"><div class="brand">TAM 1.2.3 documentation</div></a>
+    </div>
+    <div class="header-right">
+      <div class="theme-toggle-container theme-toggle-header">
+        <button class="theme-toggle" aria-label="Toggle Light / Dark / Auto color theme">
+          <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+          <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+          <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+          <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+        </button>
+      </div>
+      <label class="toc-overlay-icon toc-header-icon" for="__toc">
+        <span class="icon"><svg><use href="#svg-toc"></use></svg></span>
+      </label>
+    </div>
+  </header>
+  <aside class="sidebar-drawer">
+    <div class="sidebar-container">
+      
+      <div class="sidebar-sticky"><a class="sidebar-brand" href="../../index.html">
+  <div class="sidebar-logo-container">
+    <img class="sidebar-logo" src="../../_static/logo.png" alt="Logo"/>
+  </div>
+  
+  <span class="sidebar-brand-text">TAM 1.2.3 documentation</span>
+  
+</a><form class="sidebar-search-container" method="get" action="../../search.html" role="search">
+  <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
+  <input type="hidden" name="check_keywords" value="yes">
+  <input type="hidden" name="area" value="default">
+</form>
+<div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
+  <p class="caption" role="heading"><span class="caption-text">🚀 Getting Started</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../README.html">TAM (Time series Additive Model)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../THEORY.html">📚 Theory Introduction of TAM and Cheatsheet</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">🧠 Theory: The Core Engine</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../math/core/01_primal_model.html">The Exact Primal Resolution</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../math/core/02_tensorization.html">The Theory of N-Dim Broadcasting and Normalization</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../math/core/03_linear_system.html">Linear Algebra: Direct vs. Iterative Solvers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../math/core/04_complexity.html">Computational Complexity (<span class="math notranslate nohighlight">\(\mathcal{O}(D^3+T D^2)\)</span> vs <span class="math notranslate nohighlight">\(\mathcal{O}(T^3)\)</span>)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../math/core/05_gcv_theory.html">Hyperparameter Optimization: Generalized Cross-Validation (GCV)</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">🌈 Theory: The Spectrum Library</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../math/spectrum/LINEAR.html">The Linear Effect (Ridge Regression)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../math/spectrum/SPLINES.html">The Spline Effect (P-Splines)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../math/spectrum/FOURIER.html">The Fourier Effect (Sobolev Spectral Basis)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../math/spectrum/WAVELETS.html">The Wavelet Effect (Ricker)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../math/spectrum/CHEBYSHEV.html">The Chebyshev Effect (Polynomial Minimax Basis)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../math/spectrum/TREE.html">The Tree Effect (Random Forests &amp; Binning Features)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../math/spectrum/NEURAL.html">The Neural Effect (NEPT)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../math/spectrum/RBF.html">The Radial Basis Function (RBF) Effect</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../math/spectrum/CATEGORICAL.html">The Categorical Effect (Discrete Topologies)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../math/spectrum/CROSS_TENSOR.html">The Tensor Product Effect (Interactions)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../math/spectrum/PHYSICS_PIKL.html">Physics-Informed Kernel Learning (PIKL)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../math/spectrum/PID.html">The PID Effect (Autoregressive Control Dynamics)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../math/spectrum/LINEAR_TREE.html">The Linear Tree Effect (Varying-Coefficient Models)</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">⚙️ Theory: Meta-Learners &amp; Inference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../math/meta/01_adaptive_online.html">Adaptive Online Learning (AdaptiveTAM)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../math/meta/02_kalman_filter.html">Dynamic Tracking via Extended Kalman Filtering [BETA]</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../math/meta/03_hierarchical_joint.html">Hierarchical Joint Optimization [BETA]</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../math/meta/04_conformal_safety.html">Uncertainty Quantification via Conformal Prediction [EXP]</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../math/meta/05_opera_aggregation.html">Online Prediction by Expert Aggregation (OPERA)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../math/meta/06_deep_gam_backfitting.html">Deep-GAM Hybridization and Orthogonal Backfitting [EXP]</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../math/meta/07_statistical_diagnostics.html">Statistical Inference and Diagnostics (Glass-Box) [EXP]</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../math/meta/08_auto_orchestrator.html">Evolutionary Orchestration and Multi-Fidelity AutoML</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../math/meta/09_auto_data_topology.html">AutoTAM Data Topology and Structural Safeguards [EXP]</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../math/meta/10_mlops_evaluation.html">Empirical Evaluation and MLOps Diagnostics</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">💻 Architecture: Core Implementation</span></p>
+<ul class="current">
+<li class="toctree-l1 current current-page"><a class="current reference internal" href="#">The Additive API and Object-Oriented Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="02_data_pipeline.html">The Engineering of Normalization and Padding</a></li>
+<li class="toctree-l1"><a class="reference internal" href="03_math_dispatcher.html">PyTorch Math Dispatcher &amp; Matrix-Free Solvers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="04_hardware_memory.html">Hardware Memory Dispatch &amp; Anti-OOM Systems</a></li>
+<li class="toctree-l1"><a class="reference internal" href="05_gcv_implementation.html">Auto-ML via Generalized Cross-Validation (GCV)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="06_the_spectrum_api.html">The Spectral Dictionary: PyTorch Implementations &amp; Factory Assembly</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">🛠️ Architecture: Advanced Orchestration</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../meta/01_adaptive_code.html">Online Error Correction (AdaptiveTAM)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../meta/02_kalman_torchscript.html">Kalman TorchScript Optimizations &amp; Block Updates [BETA]</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../meta/03_hierarchical_code.html">Hierarchical Engineering &amp; Memory Assembly  [BETA]</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../meta/04_safety_code.html">Diagnostics, Visualization &amp; Utilities Engineering [EXP]</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../meta/05_opera_gpu.html">OPERA GPU Tensor Batching</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../meta/06_neural_hybrid.html">DeepGAM Engineering &amp; Sequential Encapsulation [EXP]</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../meta/07_diagnostics_utils.html">Diagnostics, Visualization &amp; Utilities Engineering  [EXP]</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../meta/08_auto_orchestrator_code.html">Orchestrator Pipeline and Evolutionary Hub-and-Spoke Engine [EXP]</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../meta/09_auto_data_topology_code.html">AutoTAM Data Topology: Stateful Architecture &amp; Pandas Vectorization [EXP]</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../meta/10_mlops_tracking_code.html">MLOps Tracking and Empirical Benchmarking (Engineering)</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">🧪 Gallery of Examples &amp; Use Cases</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../EXAMPLES.html">🧪 Gallery of Examples &amp; Use Cases</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">📚 References &amp; Changelog</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../AUTHORS.html">👥 Authors and Contributions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../ACKNOWLEDGEMENTS.html">🔬 Scientific Background &amp; Acknowledgments</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../CHANGELOG.html">Changelog</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../CONTRIBUTING.html">🤝 Contributing to Time series Additive Model (TAM)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../README_DOC.html">📘 Documentation Generation Guide (TAM)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../bibliography.html">References</a></li>
+</ul>
+
+</div>
+</div>
+
+      </div>
+      
+    </div>
+  </aside>
+  <div class="main">
+    <div class="content">
+      <div class="article-container">
+        <a href="#" class="back-to-top muted-link">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+            <path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8v12z"></path>
+          </svg>
+          <span>Back to top</span>
+        </a>
+        <div class="content-icon-container">
+          <div class="view-this-page">
+  <a class="muted-link" href="../../_sources/architecture/core/01_additive_api.md.txt" title="View this page">
+    <svg><use href="#svg-eye"></use></svg>
+    <span class="visually-hidden">View this page</span>
+  </a>
+</div>
+<div class="theme-toggle-container theme-toggle-content">
+            <button class="theme-toggle" aria-label="Toggle Light / Dark / Auto color theme">
+              <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+              <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+              <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+              <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+            </button>
+          </div>
+          <label class="toc-overlay-icon toc-content-icon" for="__toc">
+            <span class="icon"><svg><use href="#svg-toc"></use></svg></span>
+          </label>
+        </div>
+        <article role="main" id="furo-main-content">
+          <section class="tex2jax_ignore mathjax_ignore" id="the-additive-api-and-object-oriented-architecture">
+<h1>The Additive API and Object-Oriented Architecture<a class="headerlink" href="#the-additive-api-and-object-oriented-architecture" title="Link to this heading">¶</a></h1>
+<p><strong>Navigation:</strong></p>
+<ul class="simple">
+<li><p><strong>Theory introduction:</strong> <a class="reference internal" href="../../THEORY.html"><span class="std std-doc">See the Intro</span></a></p></li>
+<li><p><strong>Related mathematical theory:</strong> <a class="reference internal" href="../../math/core/01_primal_model.html"><span class="std std-doc">See the Mathematical Theory</span></a></p></li>
+</ul>
+<p>This chapter details the overarching software engineering pipeline of the TAM framework. It explains how high-level user formulas are parsed, routed, and translated into robust linear algebra operations across the primary orchestration scripts (<code class="docutils literal notranslate"><span class="pre">utils.py</span></code>, <code class="docutils literal notranslate"><span class="pre">_base.py</span></code>, <code class="docutils literal notranslate"><span class="pre">_factory.py</span></code>, and <code class="docutils literal notranslate"><span class="pre">additive.py</span></code>), structurally grounded in the Primal resolution theory <span class="bibtex-citation" id="id1">[<a class="reference internal" href="../../bibliography.html#id24" title="Nathan Doumèche, Francis Bach, Éloi Bedek, Gérard Biau, Claire Boyer, and Yannig Goude. Forecasting time series with constraints. arXiv preprint arXiv:2502.10485, 2025.">Doumèche <em>et al.</em>, 2025</a>]</span>.</p>
+<p>To avoid redundancy, low-level data padding, hardware dispatching, and specific effect implementations are delegated to their respective documentation files.</p>
+<section id="global-configurations-utils-py">
+<h2>1. Global Configurations (<code class="docutils literal notranslate"><span class="pre">utils.py</span></code>)<a class="headerlink" href="#global-configurations-utils-py" title="Link to this heading">¶</a></h2>
+<p>Before any model is instantiated, the framework establishes a unified global configuration via <code class="docutils literal notranslate"><span class="pre">utils.py</span></code>.</p>
+<p>To maintain mathematical determinism in the exact Primal inversion and guarantee convergence <span class="bibtex-citation" id="id2">[<a class="reference internal" href="../../bibliography.html#id24" title="Nathan Doumèche, Francis Bach, Éloi Bedek, Gérard Biau, Claire Boyer, and Yannig Goude. Forecasting time series with constraints. arXiv preprint arXiv:2502.10485, 2025.">Doumèche <em>et al.</em>, 2025</a>]</span>, the framework dynamically forces PyTorch and NumPy to utilize 64-bit precision (<code class="docutils literal notranslate"><span class="pre">float64</span></code>) where the hardware supports it. This initialization acts as the absolute source of truth for the device (<code class="docutils literal notranslate"><span class="pre">TORCH_DEVICE</span></code>) and the precision target (<code class="docutils literal notranslate"><span class="pre">NUMPY_DTYPE</span></code>) across the entire architecture.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">.hardware</span><span class="w"> </span><span class="kn">import</span> <span class="n">hw</span>
+<span class="n">TORCH_DEVICE</span> <span class="o">=</span> <span class="n">hw</span><span class="o">.</span><span class="n">device</span>
+
+<span class="k">if</span> <span class="n">hw</span><span class="o">.</span><span class="n">supports_float64</span><span class="p">:</span>
+    <span class="n">torch</span><span class="o">.</span><span class="n">set_default_dtype</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span>
+    <span class="n">NUMPY_DTYPE</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">float64</span>
+<span class="k">else</span><span class="p">:</span>
+    <span class="n">torch</span><span class="o">.</span><span class="n">set_default_dtype</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+    <span class="n">NUMPY_DTYPE</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">float32</span>
+</pre></div>
+</div>
+</section>
+<section id="the-foundation-base-py">
+<h2>2. The Foundation: <code class="docutils literal notranslate"><span class="pre">_base.py</span></code><a class="headerlink" href="#the-foundation-base-py" title="Link to this heading">¶</a></h2>
+<p>The <code class="docutils literal notranslate"><span class="pre">_base.py</span></code> script acts as the structural foundation for all models in the framework. It defines the abstract class <code class="docutils literal notranslate"><span class="pre">BaseTAM</span></code>, which orchestrates the standardized control flow.</p>
+<p>To ensure a consistent API without duplicating boilerplate tensor operations across advanced Meta-Learners, <code class="docutils literal notranslate"><span class="pre">BaseTAM</span></code> utilizes the Object-Oriented Template Method Pattern.</p>
+<ul class="simple">
+<li><p>It explicitly manages state definitions (<code class="docutils literal notranslate"><span class="pre">coefficients_</span></code>, <code class="docutils literal notranslate"><span class="pre">norm_params_</span></code>).</p></li>
+<li><p>It standardizes the temporal alignment and handling of missing groups. <em>(For exact tensor padding logic, refer to the <a class="reference internal" href="02_data_pipeline.html"><span class="std std-doc">Data Pipeline</span></a>).</em></p></li>
+<li><p>It defines the continuous optimization problem logically, forcing child classes to implement the specific construction of the design matrix <span class="math notranslate nohighlight">\(\Phi\)</span> and the penalty matrix <span class="math notranslate nohighlight">\(P\)</span> required to stabilize the regularized normal equations <span class="bibtex-citation" id="id3">[<a class="reference internal" href="../../bibliography.html#id42" title="Arthur E Hoerl and Robert W Kennard. Ridge regression: biased estimation for nonorthogonal problems. Technometrics, 12(1):55–67, 1970.">Hoerl and Kennard, 1970</a>]</span>.</p></li>
+</ul>
+<!-- end list -->
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">BaseTAM</span><span class="p">(</span><span class="n">ABC</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Abstract Base Class for TAM models.</span>
+
+<span class="sd">    Defines the skeleton for training and prediction. Subclasses (e.g., `StaticTAM`)</span>
+<span class="sd">    must implement the abstract methods to define how design matrices (Phi),</span>
+<span class="sd">    penalty matrices (P), and loss matrices (L) are constructed.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="c1"># --- Fitted Model Attributes ---</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">coefficients_</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">norm_params_</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">unique_groups_</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">effects_list_</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="c1"># --- Configuration Attributes ---</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">features_config_</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">group_col_</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">target_col_</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">date_col_</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+
+    <span class="nd">@abstractmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_prepare_data</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> 
+        <span class="n">data</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span> 
+        <span class="n">target_col</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">],</span> <span class="n">List</span><span class="p">]:</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Transforms the raw DataFrame into normalized, 3D-stacked tensors.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            data: Input DataFrame (must be pre-balanced).</span>
+<span class="sd">            target_col: Name of the target column (None for inference).</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            Tuple containing:</span>
+<span class="sd">            - Feature tensor (x_stacked)</span>
+<span class="sd">            - Target tensor (y_stacked) or None</span>
+<span class="sd">            - List of unique groups processed</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span>
+
+    <span class="nd">@abstractmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_build_design_matrix</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x_data</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Constructs the design matrix Phi from input features.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            x_data: Input feature tensor (n_groups, n_samples, n_features).</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            Design matrix (n_groups, n_samples, n_total_coeffs).</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span>
+
+    <span class="nd">@abstractmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_build_penalty_matrix</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Constructs the global regularization matrix P (or M*M).</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            Penalty matrix (n_total_coeffs, n_total_coeffs).</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span>
+
+    <span class="nd">@abstractmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_build_loss_matrix</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Constructs the loss weighting matrix L*L.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            Loss matrix (n_samples, n_samples).</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span>
+</pre></div>
+</div>
+</section>
+<section id="the-factory-orchestration-factory-py-base-effects-py">
+<h2>3. The Factory Orchestration (<code class="docutils literal notranslate"><span class="pre">_factory.py</span></code> &amp; <code class="docutils literal notranslate"><span class="pre">_base_effects.py</span></code>)<a class="headerlink" href="#the-factory-orchestration-factory-py-base-effects-py" title="Link to this heading">¶</a></h2>
+<p>Instead of hardcoding basis functions into the solver, <code class="docutils literal notranslate"><span class="pre">StaticTAM</span></code> relies on an explicit Dependency Injection architecture. It expects components that conform strictly to the <code class="docutils literal notranslate"><span class="pre">BaseEffect</span></code> interface (<code class="docutils literal notranslate"><span class="pre">_base_effects.py</span></code>).</p>
+<p>To bridge the user’s R-style formula string to these concrete interface objects, the framework uses the <code class="docutils literal notranslate"><span class="pre">create_effects_from_parsed_terms</span></code> factory. This function is engineered specifically to support architectural Grid Searches. By passing a <code class="docutils literal notranslate"><span class="pre">token_values</span></code> dictionary, the factory dynamically substitutes string variables with concrete hyperparameters (e.g., swapping <code class="docutils literal notranslate"><span class="pre">'gk_la'</span></code> for <code class="docutils literal notranslate"><span class="pre">10</span></code>), allowing the solver to rebuild massive architectures on the fly without re-parsing the original regex structure.</p>
+<p><em>(For the specific mapping of every individual effect, refer to <a class="reference internal" href="06_the_spectrum_api.html"><span class="std std-doc">The Spectral Dictionary</span></a>).</em></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">def</span><span class="w"> </span><span class="nf">create_effects_from_parsed_terms</span><span class="p">(</span>
+    <span class="n">parsed_terms</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">],</span>
+    <span class="n">token_values</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
+    <span class="n">default_alpha_p</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+    <span class="n">include_offset</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+    <span class="n">data_info</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span> 
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">BaseEffect</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Instantiates a list of Effect objects based on parsed formula terms.</span>
+
+<span class="sd">    This function handles:</span>
+<span class="sd">    - Token substitution for hyperparameters (Dependency Injection from Grid Search).</span>
+<span class="sd">    - Parsing of specific arguments for each effect type (Splines, Fourier, etc.).</span>
+<span class="sd">    - Recursive creation of sub-effects for Tensor Products.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        parsed_terms: List of term dictionaries returned by the formula parser.</span>
+<span class="sd">        token_values: Dictionary of concrete values for hyperparameter tokens</span>
+<span class="sd">                      (e.g., {&#39;gk_la&#39;: 10}).</span>
+<span class="sd">        default_alpha_p: Default log10(lambda_p) if not specified.</span>
+<span class="sd">        include_offset: Whether to prepend an OffsetEffect (Intercept). </span>
+<span class="sd">                        False for recursive calls (e.g., inside &#39;te()&#39;).</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        List of instantiated BaseEffect objects.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">effects_list</span> <span class="o">=</span> <span class="p">[]</span>
+    
+    <span class="n">token_name_regex</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;([a-zA-Z_][a-zA-Z0-9_]*)&#39;</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">include_offset</span><span class="p">:</span>
+        <span class="n">offset_ap</span> <span class="o">=</span> <span class="n">token_values</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;ap_offset&#39;</span><span class="p">,</span> <span class="n">default_alpha_p</span><span class="p">)</span>
+        <span class="n">lambda_p</span><span class="o">=</span><span class="mi">10</span><span class="o">**</span><span class="nb">float</span><span class="p">(</span><span class="n">offset_ap</span><span class="p">)</span>
+        <span class="n">effects_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">OffsetEffect</span><span class="p">(</span><span class="n">lambda_p</span><span class="p">,</span> <span class="s1">&#39;continue&#39;</span><span class="p">))</span>
+    
+    <span class="k">for</span> <span class="n">term</span> <span class="ow">in</span> <span class="n">parsed_terms</span><span class="p">:</span>
+        <span class="n">feature_name</span> <span class="o">=</span> <span class="n">term</span><span class="p">[</span><span class="s1">&#39;feature&#39;</span><span class="p">]</span>
+        <span class="n">ttype</span> <span class="o">=</span> <span class="n">term</span><span class="p">[</span><span class="s1">&#39;type&#39;</span><span class="p">]</span>
+        <span class="n">params</span> <span class="o">=</span> <span class="n">term</span><span class="p">[</span><span class="s1">&#39;params&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+
+        <span class="n">params_resolved</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">val</span> <span class="ow">in</span> <span class="n">params</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="n">resolved_val</span> <span class="o">=</span> <span class="n">val</span>
+            
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">val</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+                <span class="k">if</span> <span class="n">val</span> <span class="ow">in</span> <span class="n">token_values</span><span class="p">:</span>
+                    <span class="n">resolved_val</span> <span class="o">=</span> <span class="n">token_values</span><span class="p">[</span><span class="n">val</span><span class="p">]</span>
+            
+            <span class="n">params_resolved</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">resolved_val</span>
+        
+        <span class="n">ap_val</span> <span class="o">=</span> <span class="n">params_resolved</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;ap&#39;</span><span class="p">,</span> <span class="n">default_alpha_p</span><span class="p">)</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">lambda_p</span> <span class="o">=</span> <span class="mi">10</span><span class="o">**</span><span class="nb">float</span><span class="p">(</span><span class="n">ap_val</span><span class="p">)</span>
+        <span class="k">except</span> <span class="p">(</span><span class="ne">ValueError</span><span class="p">,</span> <span class="ne">TypeError</span><span class="p">):</span>
+             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Invalid value for &#39;ap&#39; in term &#39;</span><span class="si">{</span><span class="n">feature_name</span><span class="si">}</span><span class="s2">&#39;: </span><span class="si">{</span><span class="n">ap_val</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+</pre></div>
+</div>
+</section>
+<section id="the-core-solver-additive-py">
+<h2>4. The Core Solver (<code class="docutils literal notranslate"><span class="pre">additive.py</span></code>)<a class="headerlink" href="#the-core-solver-additive-py" title="Link to this heading">¶</a></h2>
+<p>The <code class="docutils literal notranslate"><span class="pre">StaticTAM</span></code> class is the primary engine of the framework. It inherits from <code class="docutils literal notranslate"><span class="pre">BaseTAM</span></code> and acts as the grand orchestrator. Once the mathematical blocks are assembled via the Factory, <code class="docutils literal notranslate"><span class="pre">StaticTAM</span></code> delegates the actual matrix inversions to the underlying <a class="reference internal" href="03_math_dispatcher.html"><span class="std std-doc">Math Dispatcher</span></a>.</p>
+<section id="initialization-and-dependency-routing">
+<h3>Initialization and Dependency Routing<a class="headerlink" href="#initialization-and-dependency-routing" title="Link to this heading">¶</a></h3>
+<p>When initialized, <code class="docutils literal notranslate"><span class="pre">StaticTAM</span></code> parses the formula. A critical engineering choice is the detection of Grid Search tokens. If the parsed parameters contain unresolved strings, it flags the model as a template (<code class="docutils literal notranslate"><span class="pre">is_grid_search_template_</span> <span class="pre">=</span> <span class="pre">True</span></code>), intentionally halting the instantiation of the effects to defer to the Multi-Start Coordinate Descent engine.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span>    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">formula</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="n">group_col</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">date_col</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">default_alpha_p</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="o">-</span><span class="mf">9.0</span><span class="p">,</span>
+        <span class="n">_internal_effects_list</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="n">BaseEffect</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">_internal_features_config</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">dict</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span> 
+    <span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Initializes the StaticTAM model.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            formula: R-style formula defining the model structure </span>
+<span class="sd">                     (e.g., &quot;Y ~ s(x) + l(t)&quot;).</span>
+<span class="sd">            group_col: Column name used for grouping data (e.g., &#39;ID&#39;).</span>
+<span class="sd">            date_col: Column name for time indexing.</span>
+<span class="sd">            default_alpha_p: Default log10(lambda_p) regularization strength.</span>
+<span class="sd">            _internal_effects_list: (Internal) Used for restoring state during grid search.</span>
+<span class="sd">            _internal_features_config: (Internal) Used for restoring state during grid search.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">effects_list_</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">formula_</span> <span class="o">=</span> <span class="n">formula</span> 
+        <span class="bp">self</span><span class="o">.</span><span class="n">default_alpha_p_</span> <span class="o">=</span> <span class="n">default_alpha_p</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">group_col_</span> <span class="o">=</span> <span class="n">group_col</span> <span class="ow">or</span> <span class="s2">&quot;__dummy_group__&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">date_col_</span> <span class="o">=</span> <span class="n">date_col</span> <span class="ow">or</span> <span class="s2">&quot;__dummy_date__&quot;</span>
+        
+        <span class="k">if</span> <span class="n">_internal_effects_list</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">effects_list_</span> <span class="o">=</span> <span class="n">_internal_effects_list</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">features_config_</span> <span class="o">=</span> <span class="n">_internal_features_config</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">is_grid_search_template_</span> <span class="o">=</span> <span class="kc">False</span>
+
+        <span class="k">elif</span> <span class="n">formula</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">target_col_</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">parsed_terms_</span> <span class="o">=</span> <span class="n">parse_formula_to_terms</span><span class="p">(</span><span class="n">formula</span><span class="p">)</span>
+            <span class="n">real_features</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_extract_recursive_features</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">parsed_terms_</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">features_config_</span> <span class="o">=</span> <span class="p">{</span> <span class="s2">&quot;features&quot;</span><span class="p">:</span> <span class="n">real_features</span> <span class="p">}</span>
+            
+            <span class="bp">self</span><span class="o">.</span><span class="n">is_grid_search_template_</span> <span class="o">=</span> <span class="kc">False</span>
+            
+            <span class="k">try</span><span class="p">:</span>
+                <span class="c1"># Attempt standard instantiation; valid string hyperparams will pass.</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">effects_list_</span> <span class="o">=</span> <span class="n">create_effects_from_parsed_terms</span><span class="p">(</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">parsed_terms_</span><span class="p">,</span> 
+                    <span class="n">token_values</span><span class="o">=</span><span class="p">{},</span> 
+                    <span class="n">default_alpha_p</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">default_alpha_p_</span>
+                <span class="p">)</span>
+            <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                <span class="c1"># Missing categorical counts are filled later in _prepare_data</span>
+                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">e</span><span class="p">,</span> <span class="ne">ValueError</span><span class="p">)</span> <span class="ow">and</span> <span class="s2">&quot;requires &#39;n_cat&#39;&quot;</span> <span class="ow">in</span> <span class="nb">str</span><span class="p">(</span><span class="n">e</span><span class="p">):</span>
+                    <span class="k">pass</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="c1"># If instantiation structurally fails and strings are present, it implies grid tokens are actively blocking the types.</span>
+                    <span class="n">has_str_vals</span> <span class="o">=</span> <span class="nb">any</span><span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">parsed_terms_</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">t</span><span class="p">[</span><span class="s1">&#39;params&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">values</span><span class="p">())</span>
+                    <span class="k">if</span> <span class="n">has_str_vals</span><span class="p">:</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">is_grid_search_template_</span> <span class="o">=</span> <span class="kc">True</span>
+                        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Model initialized with Grid Search tokens. Use &#39;grid_search_fit()&#39;.&quot;</span><span class="p">)</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="k">raise</span> <span class="n">e</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;`formula` must be provided to initialize StaticTAM.&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+</section>
+<section id="component-decomposition">
+<h3>Component Decomposition<a class="headerlink" href="#component-decomposition" title="Link to this heading">¶</a></h3>
+<p>Because the Primal space concatenates independent topological blocks, the framework can mathematically isolate the contribution of each effect. The <code class="docutils literal notranslate"><span class="pre">decompose_prediction</span></code> method vectors this operation, multiplying the partitioned design matrix by its corresponding isolated coefficients to return a structural breakdown of the forecast.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span>    <span class="k">def</span><span class="w"> </span><span class="nf">decompose_prediction</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Decomposes the prediction into additive components per feature.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            data: DataFrame containing input features.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            DataFrame with original data and additional &#39;effect_feature&#39; columns.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="n">_ensure_dummies</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">group_col_</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">date_col_</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">coefficients_</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s2">&quot;Model must be fitted first.&quot;</span><span class="p">)</span>
+
+        <span class="n">required_cols</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">features_config_</span><span class="p">[</span><span class="s1">&#39;features&#39;</span><span class="p">]</span> <span class="o">+</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">group_col_</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">target_col_</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">date_col_</span><span class="p">]</span>
+        <span class="n">_check_features</span><span class="p">(</span><span class="n">dataset</span><span class="o">=</span><span class="n">data</span><span class="p">,</span> <span class="n">required_features</span><span class="o">=</span><span class="n">required_cols</span><span class="p">)</span>
+        
+        <span class="n">mask</span><span class="p">,</span> <span class="n">balanced_data</span> <span class="o">=</span> <span class="n">_balance_groups</span><span class="p">(</span>
+            <span class="n">dataset</span><span class="o">=</span><span class="n">data</span><span class="p">,</span> <span class="n">group_col</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">group_col_</span><span class="p">,</span> <span class="n">date_col</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">date_col_</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="s2">&quot;fill&quot;</span>
+        <span class="p">)</span>
+
+        <span class="n">x_predict</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_prepare_data</span><span class="p">(</span><span class="n">balanced_data</span><span class="p">,</span> <span class="n">target_col</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">target_col_</span><span class="p">)</span>
+        
+        <span class="n">final_decomposed_effects</span> <span class="o">=</span> <span class="n">smart_decompose</span><span class="p">(</span><span class="n">x_predict</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">coefficients_</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">effects_list_</span><span class="p">)</span>
+
+        <span class="n">decomposed_df</span> <span class="o">=</span> <span class="n">_reassemble_decomposed_predictions</span><span class="p">(</span>
+            <span class="n">balanced_data</span><span class="p">,</span> <span class="n">final_decomposed_effects</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">group_col_</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">unique_groups_</span>
+        <span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">_cleanup_dummies</span><span class="p">(</span><span class="n">decomposed_df</span><span class="p">[</span><span class="n">mask</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">group_col_</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">date_col_</span><span class="p">)</span>
+</pre></div>
+</div>
+</section>
+</section>
+<section id="hyperparameter-routing-continuous-vs-discrete">
+<h2>5. Hyperparameter Routing: Continuous vs. Discrete<a class="headerlink" href="#hyperparameter-routing-continuous-vs-discrete" title="Link to this heading">¶</a></h2>
+<p>To safely scale to Gigadata without exhausting computational time, <code class="docutils literal notranslate"><span class="pre">StaticTAM</span></code> divides hyperparameter tuning into two distinct structural methods.</p>
+<section id="the-continuous-algebraic-solver-gcv">
+<h3>The Continuous Algebraic Solver (GCV)<a class="headerlink" href="#the-continuous-algebraic-solver-gcv" title="Link to this heading">¶</a></h3>
+<p>For continuous structural penalties (the <span class="math notranslate nohighlight">\(\lambda\)</span> regularization weights), iterative searching is mathematically obsolete. The <code class="docutils literal notranslate"><span class="pre">auto_fit</span></code> method routes the training data to the Generalized Cross-Validation (GCV) dispatcher. This computes the optimal Multiple Smoothing Parameters analytically via the cyclic trace trick <span class="bibtex-citation" id="id4">[<a class="reference internal" href="../../bibliography.html#id35" title="Gene H Golub, Michael Heath, and Grace Wahba. Generalized cross-validation as a method for choosing a good ridge parameter. Technometrics, 21(2):215–223, 1979.">Golub <em>et al.</em>, 1979</a>]</span>.</p>
+<p><em>(For the implementation details and block-diagonal routing logic of this solver, see the <a class="reference internal" href="05_gcv_implementation.html"><span class="std std-doc">GCV Implementation Guide</span></a>).</em></p>
+</section>
+<section id="the-discrete-architectural-solver-coordinate-descent">
+<h3>The Discrete Architectural Solver (Coordinate Descent)<a class="headerlink" href="#the-discrete-architectural-solver-coordinate-descent" title="Link to this heading">¶</a></h3>
+<p>While regularization is continuous, topological choices-such as the number of knots in a Spline or the maximum depth of a Tree-are strictly discrete. The <code class="docutils literal notranslate"><span class="pre">grid_search_fit</span></code> method employs a Multi-Start Coordinate Descent algorithm to resolve these non-differentiable tokens. It tests structural mutations by iteratively cycling through the parameter axes, executing rapid trial evaluations to find the optimal global architecture.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span>    <span class="k">def</span><span class="w"> </span><span class="nf">grid_search_fit</span><span class="p">(</span>
+            <span class="bp">self</span><span class="p">,</span> 
+            <span class="n">data_train</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span> 
+            <span class="n">data_val</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span> 
+            <span class="n">grid_search_config</span><span class="p">:</span> <span class="nb">dict</span>
+        <span class="p">):</span>
+<span class="w">            </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">            Finds optimal hyperparameters via Multi-Start Coordinate Descent.</span>
+
+<span class="sd">            Args:</span>
+<span class="sd">                data_train (pd.DataFrame): Training data.</span>
+<span class="sd">                data_val (pd.DataFrame): Validation data for scoring.</span>
+<span class="sd">                grid_search_config (dict): Dictionary mapping tokens to lists of values.</span>
+
+<span class="sd">            Returns:</span>
+<span class="sd">                StaticTAM: A new fitted model with optimal parameters.</span>
+<span class="sd">            &quot;&quot;&quot;</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;--- Starting Grid Search (Multi-Start Coordinate Descent) ---&quot;</span><span class="p">)</span>
+            
+            <span class="n">data_train</span> <span class="o">=</span> <span class="n">_ensure_dummies</span><span class="p">(</span><span class="n">data_train</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">group_col_</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">date_col_</span><span class="p">)</span>
+            <span class="n">data_val</span> <span class="o">=</span> <span class="n">_ensure_dummies</span><span class="p">(</span><span class="n">data_val</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">group_col_</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">date_col_</span><span class="p">)</span>
+            
+            <span class="n">temp_model</span> <span class="o">=</span> <span class="n">StaticTAM</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">formula_</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">group_col_</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">date_col_</span><span class="p">)</span>
+            <span class="n">temp_model</span><span class="o">.</span><span class="n">features_config_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">features_config_</span>
+            <span class="n">temp_model</span><span class="o">.</span><span class="n">target_col_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">target_col_</span>
+            
+            <span class="n">required_cols_tr</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">features_config_</span><span class="p">[</span><span class="s1">&#39;features&#39;</span><span class="p">]</span> <span class="o">+</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">group_col_</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">target_col_</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">date_col_</span><span class="p">]</span>
+            <span class="n">_check_features</span><span class="p">(</span><span class="n">dataset</span><span class="o">=</span><span class="n">data_train</span><span class="p">,</span> <span class="n">required_features</span><span class="o">=</span><span class="n">required_cols_tr</span><span class="p">)</span>
+            <span class="n">_</span><span class="p">,</span> <span class="n">balanced_data_train</span> <span class="o">=</span> <span class="n">_balance_groups</span><span class="p">(</span><span class="n">dataset</span><span class="o">=</span><span class="n">data_train</span><span class="p">,</span> <span class="n">group_col</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">group_col_</span><span class="p">,</span> <span class="n">date_col</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">date_col_</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="s2">&quot;drop&quot;</span><span class="p">)</span>
+            
+            <span class="n">required_cols_val</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">features_config_</span><span class="p">[</span><span class="s1">&#39;features&#39;</span><span class="p">]</span> <span class="o">+</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">group_col_</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">target_col_</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">date_col_</span><span class="p">]</span>
+            <span class="n">_check_features</span><span class="p">(</span><span class="n">dataset</span><span class="o">=</span><span class="n">data_val</span><span class="p">,</span> <span class="n">required_features</span><span class="o">=</span><span class="n">required_cols_val</span><span class="p">)</span>
+            <span class="n">_</span><span class="p">,</span> <span class="n">balanced_data_val</span> <span class="o">=</span> <span class="n">_balance_groups</span><span class="p">(</span><span class="n">dataset</span><span class="o">=</span><span class="n">data_val</span><span class="p">,</span> <span class="n">group_col</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">group_col_</span><span class="p">,</span> <span class="n">date_col</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">date_col_</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="s2">&quot;drop&quot;</span><span class="p">)</span>
+            
+            <span class="n">x_train</span><span class="p">,</span> <span class="n">y_train</span><span class="p">,</span> <span class="n">unique_groups</span> <span class="o">=</span> <span class="n">temp_model</span><span class="o">.</span><span class="n">_prepare_data</span><span class="p">(</span><span class="n">balanced_data_train</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">target_col_</span><span class="p">,</span> <span class="n">ignore_template_check</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="n">x_val</span><span class="p">,</span> <span class="n">y_val</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">temp_model</span><span class="o">.</span><span class="n">_prepare_data</span><span class="p">(</span><span class="n">balanced_data_val</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">target_col_</span><span class="p">,</span> <span class="n">ignore_template_check</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            
+            <span class="n">num_samples_train</span> <span class="o">=</span> <span class="n">x_train</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+            <span class="n">loss_L_star_L</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">TORCH_DEVICE</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">get_default_dtype</span><span class="p">())</span> 
+
+            <span class="n">search_axes</span><span class="p">,</span> <span class="n">token_names</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_parse_grid_axes</span><span class="p">(</span><span class="n">grid_search_config</span><span class="p">)</span>
+            <span class="n">data_info</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_data_info</span><span class="p">(</span><span class="n">balanced_data_train</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">token_names</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;No grid tokens found. Fitting single configuration.&quot;</span><span class="p">)</span>
+                <span class="n">combo</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_build_combo_from_tokens</span><span class="p">({},</span> <span class="n">data_info</span><span class="o">=</span><span class="n">data_info</span><span class="p">)</span>
+                <span class="n">rmse</span><span class="p">,</span> <span class="n">coeffs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_evaluate_combination</span><span class="p">(</span>
+                    <span class="n">combo</span><span class="p">,</span> <span class="n">x_train</span><span class="p">,</span> <span class="n">y_train</span><span class="p">,</span> <span class="n">x_val</span><span class="p">,</span> <span class="n">y_val</span><span class="p">,</span> <span class="n">num_samples_train</span><span class="p">,</span> <span class="n">loss_L_star_L</span>
+                <span class="p">)</span>
+                <span class="n">optimal_params_combo</span><span class="p">,</span> <span class="n">optimal_coeffs</span><span class="p">,</span> <span class="n">min_global_rmse</span> <span class="o">=</span> <span class="n">combo</span><span class="p">,</span> <span class="n">coeffs</span><span class="p">,</span> <span class="n">rmse</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">start_points</span> <span class="o">=</span> <span class="p">[</span>
+                    <span class="p">{</span><span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="s2">&quot;Conservative&quot;</span><span class="p">,</span> <span class="s2">&quot;tokens&quot;</span><span class="p">:</span> <span class="p">{</span><span class="n">t</span><span class="p">:</span> <span class="nb">max</span><span class="p">(</span><span class="n">vals</span><span class="p">)</span> <span class="k">if</span> <span class="p">(</span><span class="s1">&#39;ap&#39;</span> <span class="ow">in</span> <span class="n">t</span> <span class="ow">or</span> <span class="s1">&#39;lambda_p&#39;</span> <span class="ow">in</span> <span class="n">t</span><span class="p">)</span> <span class="k">else</span> <span class="nb">min</span><span class="p">(</span><span class="n">vals</span><span class="p">)</span> <span class="k">for</span> <span class="n">t</span><span class="p">,</span> <span class="n">vals</span> <span class="ow">in</span> <span class="n">search_axes</span><span class="o">.</span><span class="n">items</span><span class="p">()}},</span>
+                    <span class="p">{</span><span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="s2">&quot;Median&quot;</span><span class="p">,</span> <span class="s2">&quot;tokens&quot;</span><span class="p">:</span> <span class="p">{</span><span class="n">t</span><span class="p">:</span> <span class="n">vals</span><span class="p">[</span><span class="nb">len</span><span class="p">(</span><span class="n">vals</span><span class="p">)</span><span class="o">//</span><span class="mi">2</span><span class="p">]</span> <span class="k">for</span> <span class="n">t</span><span class="p">,</span> <span class="n">vals</span> <span class="ow">in</span> <span class="n">search_axes</span><span class="o">.</span><span class="n">items</span><span class="p">()}},</span>
+                    <span class="p">{</span><span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="s2">&quot;Aggressive&quot;</span><span class="p">,</span> <span class="s2">&quot;tokens&quot;</span><span class="p">:</span> <span class="p">{</span><span class="n">t</span><span class="p">:</span> <span class="nb">min</span><span class="p">(</span><span class="n">vals</span><span class="p">)</span> <span class="k">if</span> <span class="p">(</span><span class="s1">&#39;ap&#39;</span> <span class="ow">in</span> <span class="n">t</span> <span class="ow">or</span> <span class="s1">&#39;lambda_p&#39;</span> <span class="ow">in</span> <span class="n">t</span><span class="p">)</span> <span class="k">else</span> <span class="nb">max</span><span class="p">(</span><span class="n">vals</span><span class="p">)</span> <span class="k">for</span> <span class="n">t</span><span class="p">,</span> <span class="n">vals</span> <span class="ow">in</span> <span class="n">search_axes</span><span class="o">.</span><span class="n">items</span><span class="p">()}}</span>
+                <span class="p">]</span>
+
+                <span class="n">global_best_rmse</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="s1">&#39;inf&#39;</span><span class="p">)</span>
+                <span class="n">global_best_combo</span> <span class="o">=</span> <span class="kc">None</span>
+                <span class="n">global_best_coeffs</span> <span class="o">=</span> <span class="kc">None</span>
+
+                <span class="k">for</span> <span class="n">strategy</span> <span class="ow">in</span> <span class="n">start_points</span><span class="p">:</span>
+                    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">=== Strategy: </span><span class="si">{</span><span class="n">strategy</span><span class="p">[</span><span class="s1">&#39;name&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2"> Start ===&quot;</span><span class="p">)</span>
+                    <span class="n">current_best_tokens</span> <span class="o">=</span> <span class="n">strategy</span><span class="p">[</span><span class="s2">&quot;tokens&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+                    
+                    <span class="n">complete_token_map</span> <span class="o">=</span> <span class="p">{}</span>
+                    <span class="k">for</span> <span class="n">tname</span><span class="p">,</span> <span class="n">tvals</span> <span class="ow">in</span> <span class="n">search_axes</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                        <span class="k">if</span> <span class="n">tname</span> <span class="ow">in</span> <span class="n">current_best_tokens</span><span class="p">:</span>
+                            <span class="n">complete_token_map</span><span class="p">[</span><span class="n">tname</span><span class="p">]</span> <span class="o">=</span> <span class="n">current_best_tokens</span><span class="p">[</span><span class="n">tname</span><span class="p">]</span>
+                        <span class="k">else</span><span class="p">:</span>
+                            <span class="n">complete_token_map</span><span class="p">[</span><span class="n">tname</span><span class="p">]</span> <span class="o">=</span> <span class="n">tvals</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+                    
+                    <span class="n">current_best_tokens</span> <span class="o">=</span> <span class="n">complete_token_map</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+
+                    <span class="n">start_combo</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_build_combo_from_tokens</span><span class="p">(</span><span class="n">current_best_tokens</span><span class="p">,</span> <span class="n">data_info</span><span class="o">=</span><span class="n">data_info</span><span class="p">)</span>
+                    <span class="n">current_rmse</span><span class="p">,</span> <span class="n">current_coeffs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_evaluate_combination</span><span class="p">(</span>
+                        <span class="n">start_combo</span><span class="p">,</span> <span class="n">x_train</span><span class="p">,</span> <span class="n">y_train</span><span class="p">,</span> <span class="n">x_val</span><span class="p">,</span> <span class="n">y_val</span><span class="p">,</span> <span class="n">num_samples_train</span><span class="p">,</span> <span class="n">loss_L_star_L</span>
+                    <span class="p">)</span>
+                    <span class="n">current_optimal_combo</span> <span class="o">=</span> <span class="n">start_combo</span>
+
+                    <span class="k">if</span> <span class="n">current_rmse</span> <span class="o">&gt;=</span> <span class="nb">float</span><span class="p">(</span><span class="s1">&#39;inf&#39;</span><span class="p">):</span>
+                        <span class="k">continue</span>
+
+                    <span class="n">cycle</span> <span class="o">=</span> <span class="mi">0</span>
+                    <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+                        <span class="n">cycle</span> <span class="o">+=</span> <span class="mi">1</span>
+                        <span class="n">has_improved_in_cycle</span> <span class="o">=</span> <span class="kc">False</span>
+                        
+                        <span class="k">for</span> <span class="n">token_name</span> <span class="ow">in</span> <span class="n">token_names</span><span class="p">:</span>
+                            <span class="n">best_val_for_axis</span> <span class="o">=</span> <span class="n">current_best_tokens</span><span class="p">[</span><span class="n">token_name</span><span class="p">]</span>
+                            <span class="n">original_val</span> <span class="o">=</span> <span class="n">best_val_for_axis</span>
+                            <span class="n">possible_values</span> <span class="o">=</span> <span class="n">search_axes</span><span class="p">[</span><span class="n">token_name</span><span class="p">]</span>
+                            
+                            <span class="k">for</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">possible_values</span><span class="p">:</span>
+                                <span class="k">if</span> <span class="n">value</span> <span class="o">==</span> <span class="n">original_val</span><span class="p">:</span> <span class="k">continue</span> 
+                                <span class="n">tokens_to_test</span> <span class="o">=</span> <span class="n">current_best_tokens</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+                                <span class="n">tokens_to_test</span><span class="p">[</span><span class="n">token_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span>
+                                
+                                <span class="n">combo</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_build_combo_from_tokens</span><span class="p">(</span><span class="n">tokens_to_test</span><span class="p">,</span> <span class="n">data_info</span><span class="o">=</span><span class="n">data_info</span><span class="p">)</span>
+                                <span class="n">rmse</span><span class="p">,</span> <span class="n">coeffs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_evaluate_combination</span><span class="p">(</span>
+                                    <span class="n">combo</span><span class="p">,</span> <span class="n">x_train</span><span class="p">,</span> <span class="n">y_train</span><span class="p">,</span> <span class="n">x_val</span><span class="p">,</span> <span class="n">y_val</span><span class="p">,</span> <span class="n">num_samples_train</span><span class="p">,</span> <span class="n">loss_L_star_L</span>
+                                <span class="p">)</span>
+
+                                <span class="k">if</span> <span class="n">rmse</span> <span class="o">&lt;</span> <span class="n">current_rmse</span><span class="p">:</span>
+                                    <span class="n">current_rmse</span> <span class="o">=</span> <span class="n">rmse</span>
+                                    <span class="n">current_optimal_combo</span> <span class="o">=</span> <span class="n">combo</span>
+                                    <span class="n">current_coeffs</span> <span class="o">=</span> <span class="n">coeffs</span>
+                                    <span class="n">best_val_for_axis</span> <span class="o">=</span> <span class="n">value</span>
+                                    <span class="n">has_improved_in_cycle</span> <span class="o">=</span> <span class="kc">True</span>
+                            
+                            <span class="n">current_best_tokens</span><span class="p">[</span><span class="n">token_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">best_val_for_axis</span>
+                        
+                        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;  Cycle </span><span class="si">{</span><span class="n">cycle</span><span class="si">}</span><span class="s2"> | Current RMSE: </span><span class="si">{</span><span class="n">current_rmse</span><span class="si">:</span><span class="s2">.4f</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                        <span class="k">if</span> <span class="ow">not</span> <span class="n">has_improved_in_cycle</span> <span class="ow">or</span> <span class="n">cycle</span> <span class="o">&gt;=</span> <span class="mi">5</span><span class="p">:</span> <span class="k">break</span>
+                    
+                    <span class="k">if</span> <span class="n">current_rmse</span> <span class="o">&lt;</span> <span class="n">global_best_rmse</span><span class="p">:</span>
+                        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;  &gt;&gt;&gt; New Global Best found by </span><span class="si">{</span><span class="n">strategy</span><span class="p">[</span><span class="s1">&#39;name&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">! (</span><span class="si">{</span><span class="n">current_rmse</span><span class="si">:</span><span class="s2">.4f</span><span class="si">}</span><span class="s2">)&quot;</span><span class="p">)</span>
+                        <span class="n">global_best_rmse</span> <span class="o">=</span> <span class="n">current_rmse</span>
+                        <span class="n">global_best_combo</span> <span class="o">=</span> <span class="n">current_optimal_combo</span>
+                        <span class="n">global_best_coeffs</span> <span class="o">=</span> <span class="n">current_coeffs</span>
+
+                <span class="n">optimal_params_combo</span> <span class="o">=</span> <span class="n">global_best_combo</span>
+                <span class="n">optimal_coeffs</span> <span class="o">=</span> <span class="n">global_best_coeffs</span>
+                <span class="n">min_global_rmse</span> <span class="o">=</span> <span class="n">global_best_rmse</span>
+
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;-&quot;</span> <span class="o">*</span> <span class="mi">30</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Grid search complete. Optimal Validation RMSE found: </span><span class="si">{</span><span class="n">min_global_rmse</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            
+            <span class="k">if</span> <span class="n">optimal_params_combo</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s2">&quot;Grid search failed to find any valid configuration.&quot;</span><span class="p">)</span>
+
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Best tokens: </span><span class="si">{</span><span class="n">optimal_params_combo</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;token_values&#39;</span><span class="p">,</span><span class="w"> </span><span class="s1">&#39;N/A&#39;</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+            <span class="n">model</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="p">(</span>
+                <span class="n">formula</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">formula_</span><span class="p">,</span> 
+                <span class="n">group_col</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">group_col_</span><span class="p">,</span>
+                <span class="n">date_col</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">date_col_</span><span class="p">,</span>
+                <span class="n">_internal_effects_list</span><span class="o">=</span><span class="n">optimal_params_combo</span><span class="p">[</span><span class="s1">&#39;effects_list&#39;</span><span class="p">],</span>
+                <span class="n">_internal_features_config</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">features_config_</span> 
+            <span class="p">)</span>
+            
+            <span class="n">model</span><span class="o">.</span><span class="n">coefficients_</span> <span class="o">=</span> <span class="n">optimal_coeffs</span>
+            <span class="n">model</span><span class="o">.</span><span class="n">target_col_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">target_col_</span> 
+            <span class="n">model</span><span class="o">.</span><span class="n">norm_params_</span> <span class="o">=</span> <span class="n">temp_model</span><span class="o">.</span><span class="n">norm_params_</span>
+            <span class="n">model</span><span class="o">.</span><span class="n">unique_groups_</span> <span class="o">=</span> <span class="n">unique_groups</span>
+
+            <span class="k">return</span> <span class="n">model</span>
+</pre></div>
+</div>
+</section>
+</section>
+</section>
+
+        </article>
+      </div>
+      <footer>
+        
+        <div class="related-pages">
+          <a class="next-page" href="02_data_pipeline.html">
+              <div class="page-info">
+                <div class="context">
+                  <span>Next</span>
+                </div>
+                <div class="title">The Engineering of Normalization and Padding</div>
+              </div>
+              <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
+            </a>
+          <a class="prev-page" href="../../math/meta/10_mlops_evaluation.html">
+              <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
+              <div class="page-info">
+                <div class="context">
+                  <span>Previous</span>
+                </div>
+                
+                <div class="title">Empirical Evaluation and MLOps Diagnostics</div>
+                
+              </div>
+            </a>
+        </div>
+        <div class="bottom-of-page">
+          <div class="left-details">
+            <div class="copyright">
+                Copyright &#169; 2026, Yann Allioux, Nathan Doumèche, Éloi Bedek
+            </div>
+            Made with <a href="https://www.sphinx-doc.org/">Sphinx</a> and <a class="muted-link" href="https://pradyunsg.me">@pradyunsg</a>'s
+            
+            <a href="https://github.com/pradyunsg/furo">Furo</a>
+            
+          </div>
+          <div class="right-details">
+            
+          </div>
+        </div>
+        
+      </footer>
+    </div>
+    <aside class="toc-drawer">
+      
+      
+      <div class="toc-sticky toc-scroll">
+        <div class="toc-title-container">
+          <span class="toc-title">
+            On this page
+          </span>
+        </div>
+        <div class="toc-tree-container">
+          <div class="toc-tree">
+            <ul>
+<li><a class="reference internal" href="#">The Additive API and Object-Oriented Architecture</a><ul>
+<li><a class="reference internal" href="#global-configurations-utils-py">1. Global Configurations (<code class="docutils literal notranslate"><span class="pre">utils.py</span></code>)</a></li>
+<li><a class="reference internal" href="#the-foundation-base-py">2. The Foundation: <code class="docutils literal notranslate"><span class="pre">_base.py</span></code></a></li>
+<li><a class="reference internal" href="#the-factory-orchestration-factory-py-base-effects-py">3. The Factory Orchestration (<code class="docutils literal notranslate"><span class="pre">_factory.py</span></code> &amp; <code class="docutils literal notranslate"><span class="pre">_base_effects.py</span></code>)</a></li>
+<li><a class="reference internal" href="#the-core-solver-additive-py">4. The Core Solver (<code class="docutils literal notranslate"><span class="pre">additive.py</span></code>)</a><ul>
+<li><a class="reference internal" href="#initialization-and-dependency-routing">Initialization and Dependency Routing</a></li>
+<li><a class="reference internal" href="#component-decomposition">Component Decomposition</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#hyperparameter-routing-continuous-vs-discrete">5. Hyperparameter Routing: Continuous vs. Discrete</a><ul>
+<li><a class="reference internal" href="#the-continuous-algebraic-solver-gcv">The Continuous Algebraic Solver (GCV)</a></li>
+<li><a class="reference internal" href="#the-discrete-architectural-solver-coordinate-descent">The Discrete Architectural Solver (Coordinate Descent)</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+          </div>
+        </div>
+      </div>
+      
+      
+    </aside>
+  </div>
+</div><script src="../../_static/documentation_options.js?v=590429e0"></script>
+    <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="../../_static/scripts/furo.js?v=46bd48cc"></script>
+    <script>window.MathJax = {"options": {"processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+    <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@4/tex-mml-chtml.js"></script>
+    </body>
+</html>

@@ -1,0 +1,566 @@
+<!doctype html>
+<html class="no-js" lang="en" data-content_root="../../">
+  <head><meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="index" title="Index" href="../../genindex.html"><link rel="search" title="Search" href="../../search.html"><link rel="next" title="The Theory of N-Dim Broadcasting and Normalization" href="02_tensorization.html"><link rel="prev" title="📚 Theory Introduction of TAM and Cheatsheet" href="../../THEORY.html">
+        <link rel="prefetch" href="../../_static/logo.png" as="image">
+
+    <!-- Generated with Sphinx 9.1.0 and Furo 2025.12.19 -->
+        <title>The Exact Primal Resolution - TAM 1.2.3 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=d111a655" />
+    <link rel="stylesheet" type="text/css" href="../../_static/styles/furo.css?v=7bdb33bb" />
+    <link rel="stylesheet" type="text/css" href="../../_static/styles/furo-extensions.css?v=8dab3a3b" />
+    
+    
+
+
+<style>
+  body {
+    --color-code-background: #f2f2f2;
+  --color-code-foreground: #1e1e1e;
+  
+  }
+  @media not print {
+    body[data-theme="dark"] {
+      --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+    }
+    @media (prefers-color-scheme: dark) {
+      body:not([data-theme="light"]) {
+        --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+      }
+    }
+  }
+</style></head>
+  <body>
+    
+    <script>
+      document.body.dataset.theme = localStorage.getItem("theme") || "auto";
+    </script>
+    
+
+<svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
+  <symbol id="svg-toc" viewBox="0 0 24 24">
+    <title>Contents</title>
+    <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 1024 1024">
+      <path d="M408 442h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8zm-8 204c0 4.4 3.6 8 8 8h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56zm504-486H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zm0 632H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zM115.4 518.9L271.7 642c5.8 4.6 14.4.5 14.4-6.9V388.9c0-7.4-8.5-11.5-14.4-6.9L115.4 505.1a8.74 8.74 0 0 0 0 13.8z"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-menu" viewBox="0 0 24 24">
+    <title>Menu</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-menu">
+      <line x1="3" y1="12" x2="21" y2="12"></line>
+      <line x1="3" y1="6" x2="21" y2="6"></line>
+      <line x1="3" y1="18" x2="21" y2="18"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-arrow-right" viewBox="0 0 24 24">
+    <title>Expand</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-chevron-right">
+      <polyline points="9 18 15 12 9 6"></polyline>
+    </svg>
+  </symbol>
+  <symbol id="svg-sun" viewBox="0 0 24 24">
+    <title>Light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="feather-sun">
+      <circle cx="12" cy="12" r="5"></circle>
+      <line x1="12" y1="1" x2="12" y2="3"></line>
+      <line x1="12" y1="21" x2="12" y2="23"></line>
+      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+      <line x1="1" y1="12" x2="3" y2="12"></line>
+      <line x1="21" y1="12" x2="23" y2="12"></line>
+      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+      <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon" viewBox="0 0 24 24">
+    <title>Dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-moon">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454z" />
+    </svg>
+  </symbol>
+  <symbol id="svg-sun-with-moon" viewBox="0 0 24 24">
+    <title>Auto light/dark, in light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path style="opacity: 50%" d="M 5.411 14.504 C 5.471 14.504 5.532 14.504 5.591 14.504 C 3.639 16.319 4.383 19.569 6.931 20.352 C 7.693 20.586 8.512 20.551 9.25 20.252 C 8.023 23.207 4.056 23.725 2.11 21.184 C 0.166 18.642 1.702 14.949 4.874 14.536 C 5.051 14.512 5.231 14.5 5.411 14.5 L 5.411 14.504 Z"/>
+      <line x1="14.5" y1="3.25" x2="14.5" y2="1.25"/>
+      <line x1="14.5" y1="15.85" x2="14.5" y2="17.85"/>
+      <line x1="10.044" y1="5.094" x2="8.63" y2="3.68"/>
+      <line x1="19" y1="14.05" x2="20.414" y2="15.464"/>
+      <line x1="8.2" y1="9.55" x2="6.2" y2="9.55"/>
+      <line x1="20.8" y1="9.55" x2="22.8" y2="9.55"/>
+      <line x1="10.044" y1="14.006" x2="8.63" y2="15.42"/>
+      <line x1="19" y1="5.05" x2="20.414" y2="3.636"/>
+      <circle cx="14.5" cy="9.55" r="3.6"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon-with-sun" viewBox="0 0 24 24">
+    <title>Auto light/dark, in dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path d="M 8.282 7.007 C 8.385 7.007 8.494 7.007 8.595 7.007 C 5.18 10.184 6.481 15.869 10.942 17.24 C 12.275 17.648 13.706 17.589 15 17.066 C 12.851 22.236 5.91 23.143 2.505 18.696 C -0.897 14.249 1.791 7.786 7.342 7.063 C 7.652 7.021 7.965 7 8.282 7 L 8.282 7.007 Z"/>
+      <line style="opacity: 50%" x1="18" y1="3.705" x2="18" y2="2.5"/>
+      <line style="opacity: 50%" x1="18" y1="11.295" x2="18" y2="12.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="4.816" x2="14.464" y2="3.964"/>
+      <line style="opacity: 50%" x1="20.711" y1="10.212" x2="21.563" y2="11.063"/>
+      <line style="opacity: 50%" x1="14.205" y1="7.5" x2="13.001" y2="7.5"/>
+      <line style="opacity: 50%" x1="21.795" y1="7.5" x2="23" y2="7.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="10.184" x2="14.464" y2="11.036"/>
+      <line style="opacity: 50%" x1="20.711" y1="4.789" x2="21.563" y2="3.937"/>
+      <circle style="opacity: 50%" cx="18" cy="7.5" r="2.169"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-pencil" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-pencil-code">
+      <path d="M4 20h4l10.5 -10.5a2.828 2.828 0 1 0 -4 -4l-10.5 10.5v4" />
+      <path d="M13.5 6.5l4 4" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+  <symbol id="svg-eye" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-eye-code">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M10 12a2 2 0 1 0 4 0a2 2 0 0 0 -4 0" />
+      <path
+        d="M11.11 17.958c-3.209 -.307 -5.91 -2.293 -8.11 -5.958c2.4 -4 5.4 -6 9 -6c3.6 0 6.6 2 9 6c-.21 .352 -.427 .688 -.647 1.008" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+</svg>
+
+<input type="checkbox" class="sidebar-toggle" name="__navigation" id="__navigation" aria-label="Toggle site navigation sidebar">
+<input type="checkbox" class="sidebar-toggle" name="__toc" id="__toc" aria-label="Toggle table of contents sidebar">
+<label class="overlay sidebar-overlay" for="__navigation"></label>
+<label class="overlay toc-overlay" for="__toc"></label>
+
+<a class="skip-to-content muted-link" href="#furo-main-content">Skip to content</a>
+
+
+
+<div class="page">
+  <header class="mobile-header">
+    <div class="header-left">
+      <label class="nav-overlay-icon" for="__navigation">
+        <span class="icon"><svg><use href="#svg-menu"></use></svg></span>
+      </label>
+    </div>
+    <div class="header-center">
+      <a href="../../index.html"><div class="brand">TAM 1.2.3 documentation</div></a>
+    </div>
+    <div class="header-right">
+      <div class="theme-toggle-container theme-toggle-header">
+        <button class="theme-toggle" aria-label="Toggle Light / Dark / Auto color theme">
+          <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+          <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+          <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+          <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+        </button>
+      </div>
+      <label class="toc-overlay-icon toc-header-icon" for="__toc">
+        <span class="icon"><svg><use href="#svg-toc"></use></svg></span>
+      </label>
+    </div>
+  </header>
+  <aside class="sidebar-drawer">
+    <div class="sidebar-container">
+      
+      <div class="sidebar-sticky"><a class="sidebar-brand" href="../../index.html">
+  <div class="sidebar-logo-container">
+    <img class="sidebar-logo" src="../../_static/logo.png" alt="Logo"/>
+  </div>
+  
+  <span class="sidebar-brand-text">TAM 1.2.3 documentation</span>
+  
+</a><form class="sidebar-search-container" method="get" action="../../search.html" role="search">
+  <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
+  <input type="hidden" name="check_keywords" value="yes">
+  <input type="hidden" name="area" value="default">
+</form>
+<div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
+  <p class="caption" role="heading"><span class="caption-text">🚀 Getting Started</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../README.html">TAM (Time series Additive Model)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../THEORY.html">📚 Theory Introduction of TAM and Cheatsheet</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">🧠 Theory: The Core Engine</span></p>
+<ul class="current">
+<li class="toctree-l1 current current-page"><a class="current reference internal" href="#">The Exact Primal Resolution</a></li>
+<li class="toctree-l1"><a class="reference internal" href="02_tensorization.html">The Theory of N-Dim Broadcasting and Normalization</a></li>
+<li class="toctree-l1"><a class="reference internal" href="03_linear_system.html">Linear Algebra: Direct vs. Iterative Solvers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="04_complexity.html">Computational Complexity (<span class="math notranslate nohighlight">\(\mathcal{O}(D^3+T D^2)\)</span> vs <span class="math notranslate nohighlight">\(\mathcal{O}(T^3)\)</span>)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="05_gcv_theory.html">Hyperparameter Optimization: Generalized Cross-Validation (GCV)</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">🌈 Theory: The Spectrum Library</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../spectrum/LINEAR.html">The Linear Effect (Ridge Regression)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../spectrum/SPLINES.html">The Spline Effect (P-Splines)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../spectrum/FOURIER.html">The Fourier Effect (Sobolev Spectral Basis)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../spectrum/WAVELETS.html">The Wavelet Effect (Ricker)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../spectrum/CHEBYSHEV.html">The Chebyshev Effect (Polynomial Minimax Basis)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../spectrum/TREE.html">The Tree Effect (Random Forests &amp; Binning Features)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../spectrum/NEURAL.html">The Neural Effect (NEPT)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../spectrum/RBF.html">The Radial Basis Function (RBF) Effect</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../spectrum/CATEGORICAL.html">The Categorical Effect (Discrete Topologies)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../spectrum/CROSS_TENSOR.html">The Tensor Product Effect (Interactions)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../spectrum/PHYSICS_PIKL.html">Physics-Informed Kernel Learning (PIKL)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../spectrum/PID.html">The PID Effect (Autoregressive Control Dynamics)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../spectrum/LINEAR_TREE.html">The Linear Tree Effect (Varying-Coefficient Models)</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">⚙️ Theory: Meta-Learners &amp; Inference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../meta/01_adaptive_online.html">Adaptive Online Learning (AdaptiveTAM)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../meta/02_kalman_filter.html">Dynamic Tracking via Extended Kalman Filtering [BETA]</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../meta/03_hierarchical_joint.html">Hierarchical Joint Optimization [BETA]</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../meta/04_conformal_safety.html">Uncertainty Quantification via Conformal Prediction [EXP]</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../meta/05_opera_aggregation.html">Online Prediction by Expert Aggregation (OPERA)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../meta/06_deep_gam_backfitting.html">Deep-GAM Hybridization and Orthogonal Backfitting [EXP]</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../meta/07_statistical_diagnostics.html">Statistical Inference and Diagnostics (Glass-Box) [EXP]</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../meta/08_auto_orchestrator.html">Evolutionary Orchestration and Multi-Fidelity AutoML</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../meta/09_auto_data_topology.html">AutoTAM Data Topology and Structural Safeguards [EXP]</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../meta/10_mlops_evaluation.html">Empirical Evaluation and MLOps Diagnostics</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">💻 Architecture: Core Implementation</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/core/01_additive_api.html">The Additive API and Object-Oriented Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/core/02_data_pipeline.html">The Engineering of Normalization and Padding</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/core/03_math_dispatcher.html">PyTorch Math Dispatcher &amp; Matrix-Free Solvers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/core/04_hardware_memory.html">Hardware Memory Dispatch &amp; Anti-OOM Systems</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/core/05_gcv_implementation.html">Auto-ML via Generalized Cross-Validation (GCV)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/core/06_the_spectrum_api.html">The Spectral Dictionary: PyTorch Implementations &amp; Factory Assembly</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">🛠️ Architecture: Advanced Orchestration</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/meta/01_adaptive_code.html">Online Error Correction (AdaptiveTAM)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/meta/02_kalman_torchscript.html">Kalman TorchScript Optimizations &amp; Block Updates [BETA]</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/meta/03_hierarchical_code.html">Hierarchical Engineering &amp; Memory Assembly  [BETA]</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/meta/04_safety_code.html">Diagnostics, Visualization &amp; Utilities Engineering [EXP]</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/meta/05_opera_gpu.html">OPERA GPU Tensor Batching</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/meta/06_neural_hybrid.html">DeepGAM Engineering &amp; Sequential Encapsulation [EXP]</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/meta/07_diagnostics_utils.html">Diagnostics, Visualization &amp; Utilities Engineering  [EXP]</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/meta/08_auto_orchestrator_code.html">Orchestrator Pipeline and Evolutionary Hub-and-Spoke Engine [EXP]</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/meta/09_auto_data_topology_code.html">AutoTAM Data Topology: Stateful Architecture &amp; Pandas Vectorization [EXP]</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/meta/10_mlops_tracking_code.html">MLOps Tracking and Empirical Benchmarking (Engineering)</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">🧪 Gallery of Examples &amp; Use Cases</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../EXAMPLES.html">🧪 Gallery of Examples &amp; Use Cases</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">📚 References &amp; Changelog</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../AUTHORS.html">👥 Authors and Contributions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../ACKNOWLEDGEMENTS.html">🔬 Scientific Background &amp; Acknowledgments</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../CHANGELOG.html">Changelog</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../CONTRIBUTING.html">🤝 Contributing to Time series Additive Model (TAM)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../README_DOC.html">📘 Documentation Generation Guide (TAM)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../bibliography.html">References</a></li>
+</ul>
+
+</div>
+</div>
+
+      </div>
+      
+    </div>
+  </aside>
+  <div class="main">
+    <div class="content">
+      <div class="article-container">
+        <a href="#" class="back-to-top muted-link">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+            <path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8v12z"></path>
+          </svg>
+          <span>Back to top</span>
+        </a>
+        <div class="content-icon-container">
+          <div class="view-this-page">
+  <a class="muted-link" href="../../_sources/math/core/01_primal_model.md.txt" title="View this page">
+    <svg><use href="#svg-eye"></use></svg>
+    <span class="visually-hidden">View this page</span>
+  </a>
+</div>
+<div class="theme-toggle-container theme-toggle-content">
+            <button class="theme-toggle" aria-label="Toggle Light / Dark / Auto color theme">
+              <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+              <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+              <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+              <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+            </button>
+          </div>
+          <label class="toc-overlay-icon toc-content-icon" for="__toc">
+            <span class="icon"><svg><use href="#svg-toc"></use></svg></span>
+          </label>
+        </div>
+        <article role="main" id="furo-main-content">
+          <section class="tex2jax_ignore mathjax_ignore" id="the-exact-primal-resolution">
+<h1>The Exact Primal Resolution<a class="headerlink" href="#the-exact-primal-resolution" title="Link to this heading">¶</a></h1>
+<p><strong>Navigation:</strong></p>
+<ul class="simple">
+<li><p><strong>Theory introduction:</strong> <a class="reference internal" href="../../THEORY.html"><span class="std std-doc">See the Intro</span></a></p></li>
+<li><p><strong>Related code architecture:</strong> <a class="reference internal" href="../../architecture/core/01_additive_api.html"><span class="std std-doc">See the Code Architecture</span></a></p></li>
+<li><p><strong>Related topic:</strong> <a class="reference internal" href="02_tensorization.html"><span class="std std-doc">Tensorization &amp; Broadcasting</span></a></p></li>
+</ul>
+<section id="defining-the-problem-from-cpu-bottlenecks-to-gpu-scale">
+<h2>Defining the Problem: From CPU Bottlenecks to GPU Scale<a class="headerlink" href="#defining-the-problem-from-cpu-bottlenecks-to-gpu-scale" title="Link to this heading">¶</a></h2>
+<p>Modern statistical learning is often fractured across disparate paradigms. While Deep Learning scales massively on GPUs, it relies on strictly non-convex, stochastic gradient descent heuristics. Conversely, traditional Generalized Additive Models (GAMs) offer mathematical exactness and interpretability. For instance, robust GAM solvers (like those utilizing PIRLS, as in <span class="bibtex-citation" id="id1">[<a class="reference internal" href="../../bibliography.html#id77" title="Simon Wood. Package ‘mgcv’ v 1.9-4 - mixed gam computation vehicle with automatic smoothness estimation. 2025.">Wood, 2025</a>]</span>) can resolve Gaussian problems exactly in a single step. However, these traditional exact solvers are inherently CPU-bound. When faced with massive industrial datasets (<span class="math notranslate nohighlight">\(N_{total} &gt; 10^6\)</span>) or highly complex tensor-product topologies (<span class="math notranslate nohighlight">\(D &gt; 10^4\)</span>), the classical computation of the covariance matrix becomes an intractable hardware bottleneck.</p>
+<p>The Time series Additive Model (TAM) framework bridges this gap. It proposes a rigorous algebraic unification that maintains the globally exact, closed-form resolution of standard GAMs, but re-architects the underlying linear algebra for massive, Matrix-Free GPU parallelization.</p>
+<p>At the core of this framework lies the fundamental equation for a given group <span class="math notranslate nohighlight">\(g\)</span>:</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[Y_g = \mu(X_g) + \epsilon_g\]</div>
+</div>
+<p>Where:</p>
+<ul class="simple">
+<li><p><span class="math notranslate nohighlight">\(Y_g\)</span> represents the target variable we aim to predict for group <span class="math notranslate nohighlight">\(g\)</span>.</p></li>
+<li><p><span class="math notranslate nohighlight">\(X_g\)</span> represents the matrix of input covariates.</p></li>
+<li><p><span class="math notranslate nohighlight">\(\mu(X_g)\)</span> is the underlying true function (conditional expectation) mapping the inputs to the target.</p></li>
+<li><p><span class="math notranslate nohighlight">\(\epsilon_g\)</span> is the irreducible stochastic noise.</p></li>
+</ul>
+<p>Estimating <span class="math notranslate nohighlight">\(\mu(X_g)\)</span> as a single monolithic block is often intractable and lacks interpretability. To address this, the framework relies on a Generalized Additive formulation, decomposing the global function into a sum of independent functional operators.</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[\mu(X_g) = \sum_{l=1}^{L} h_l(X_g)\]</div>
+</div>
+<p>To resolve this continuous formulation computationally, each sub-function <span class="math notranslate nohighlight">\(h_l(X_g)\)</span> is projected into a discrete feature space. Specifically, each effect <span class="math notranslate nohighlight">\(l\)</span> is decomposed into a sum of <span class="math notranslate nohighlight">\(I_l\)</span> explicitly evaluated basis functions multiplied by their respective coefficients:</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[h_l(X_g) = \sum_{i=1}^{I_l} \phi_{l,i}(X_g) \theta_{g, l,i}\]</div>
+</div>
+<p>The evaluation of this basis expansion over all <span class="math notranslate nohighlight">\(T\)</span> temporal data steps for a specific independent group <span class="math notranslate nohighlight">\(g\)</span> is then captured globally using a specific topological dictionary, known as the group Design Matrix, <span class="math notranslate nohighlight">\(\Phi_{g, l}\)</span>. The full model is evaluated as the sum of the dot products of these matrices and their corresponding coefficient vectors <span class="math notranslate nohighlight">\(\theta_{g, l}\)</span>:</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[Y_g = \sum_{l=1}^{L} (\Phi_{g, l} \theta_{g, l}) + \epsilon_g\]</div>
+</div>
+</section>
+<hr class="docutils" />
+<section id="rkhs-theory-and-the-exact-primal-equations">
+<h2>RKHS Theory and The Exact Primal Equations<a class="headerlink" href="#rkhs-theory-and-the-exact-primal-equations" title="Link to this heading">¶</a></h2>
+<p>To stabilize the estimation of these coefficients, the framework employs biased estimation via Ridge Regression <span class="bibtex-citation" id="id2">[<a class="reference internal" href="../../bibliography.html#id42" title="Arthur E Hoerl and Robert W Kennard. Ridge regression: biased estimation for nonorthogonal problems. Technometrics, 12(1):55–67, 1970.">Hoerl and Kennard, 1970</a>]</span>. Following the foundational classical Representer Theorem of Kimeldorf and Wahba <span class="bibtex-citation" id="id3">[<a class="reference internal" href="../../bibliography.html#id48" title="George S Kimeldorf and Grace Wahba. A correspondence between bayesian estimation on stochastic processes and smoothing by splines. The Annals of Mathematical Statistics, 41(2):495–502, 1970.">Kimeldorf and Wahba, 1970</a>]</span>, minimizing a loss function weighted by observation reliability alongside a roughness penalty guarantees a globally optimal continuous function. Furthermore, modern generalizations of the representer theorem by <span class="bibtex-citation" id="id4">[<a class="reference internal" href="../../bibliography.html#id13" title="Claire Boyer, Antonin Chambolle, Yohann De Castro, Vincent Duval, Frédéric De Gournay, and Pierre Weiss. On representer theorems and convex regularization. SIAM Journal on Optimization, 29(2):1260–1281, 2019.">Boyer <em>et al.</em>, 2019</a>]</span> rigorously establish that regularizing these inverse problems with a strictly convex function guarantees that the solution inherently collapses into a combination of a finite number of fundamental atoms. Relying on this structural guarantee, TAM bypasses the infinite-dimensional Dual space solvers used by standard kernel machines <span class="bibtex-citation" id="id5">[<a class="reference internal" href="../../bibliography.html#id17" title="Corinna Cortes and Vladimir Vapnik. Support-vector networks. Machine learning, 20(3):273–297, 1995.">Cortes and Vapnik, 1995</a>, <a class="reference internal" href="../../bibliography.html#id73" title="Vladimir Vapnik. The nature of statistical learning theory. Springer science &amp; business media, 2013.">Vapnik, 2013</a>]</span> and explicitly parameterizes the problem directly within a truncated, finite-dimensional Primal space <span class="bibtex-citation" id="id6">[<a class="reference internal" href="../../bibliography.html#id8" title="Francis Bach. Learning theory from first principles. MIT press, 2024.">Bach, 2024</a>]</span>. Consequently, relying on the unified algebraic framework proposed by <span class="bibtex-citation" id="id7">[<a class="reference internal" href="../../bibliography.html#id24" title="Nathan Doumèche, Francis Bach, Éloi Bedek, Gérard Biau, Claire Boyer, and Yannig Goude. Forecasting time series with constraints. arXiv preprint arXiv:2502.10485, 2025.">Doumèche <em>et al.</em>, 2025</a>]</span>, the exact primal resolution yields the globally optimal coefficients for our chosen finite basis in a single highly efficient algebraic step.</p>
+<p>The exact primal minimization problem for group <span class="math notranslate nohighlight">\(g\)</span> is defined as:</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[\min_{\theta_g} \frac{1}{T} \sum_{j=1}^T \|\Lambda_g ( \Phi_{g, j} \theta_g - Y_{g, j} )\|_2^2 + \|M\theta_g\|_2^2\]</div>
+</div>
+<p>To find the optimal exact coefficients <span class="math notranslate nohighlight">\(\hat{\theta}_g\)</span>, the system minimizes a penalized empirical risk function. This requires defining specific matrices:</p>
+<ol class="arabic simple">
+<li><p><strong>The Target Vector (<span class="math notranslate nohighlight">\(Y_g\)</span>)</strong></p></li>
+<li><p><strong>The Group Design Matrix (<span class="math notranslate nohighlight">\(\Phi_g\)</span>)</strong></p></li>
+<li><p><strong>The Loss Weighting Matrix (<span class="math notranslate nohighlight">\(\Lambda_g\)</span>)</strong>: A diagonal matrix encoding the relative importance of each observation (represented computationally as <span class="math notranslate nohighlight">\(L_g^\top L_g\)</span>).</p></li>
+<li><p><strong>The Global Penalty Matrix (<span class="math notranslate nohighlight">\(P\)</span> or <span class="math notranslate nohighlight">\(M^*M\)</span>)</strong>: A regularization matrix that acts as a structural constraint, restricting the solution to a compact mathematical set to guarantee stability <span class="bibtex-citation" id="id8">[<a class="reference internal" href="../../bibliography.html#id70" title="Andrey Nikolayevich Tikhonov and others. On the stability of inverse problems. Dokl. Akad. Nauk SSSR, 39(5):195–198, 1943.">Tikhonov and others, 1943</a>]</span>.</p></li>
+</ol>
+<blockquote>
+<div><p><strong>Implementation:</strong> While the theoretical framework uses <span class="math notranslate nohighlight">\(\Lambda_g \in \mathbb{R}^{T \times T}\)</span> to handle both observation weighting and the masking of padded asynchronous sequences (where <span class="math notranslate nohighlight">\(\Lambda_{g, t,t} = 0\)</span>), constructing a dense temporal diagonal matrix is inefficient on GPUs. In practice, the top-level API defaults to unweighted Ordinary Least Squares (<span class="math notranslate nohighlight">\(\Lambda_g = I\)</span>), and the temporal <code class="docutils literal notranslate"><span class="pre">NaN</span></code> masking is achieved purely via memory-efficient boolean indexing prior to the matrix multiplications. The underlying mathematical engines remain pre-architected to accept custom target-weight matrices to support future Weighted Least Squares features.</p>
+</div></blockquote>
+<blockquote>
+<div><p><strong>Historical Context:</strong> The framework’s deliberate shift away from the Dual space is a direct response to the classical bottleneck of Support Vector Machines and traditional kernel methods <span class="bibtex-citation" id="id9">[<a class="reference internal" href="../../bibliography.html#id17" title="Corinna Cortes and Vladimir Vapnik. Support-vector networks. Machine learning, 20(3):273–297, 1995.">Cortes and Vapnik, 1995</a>, <a class="reference internal" href="../../bibliography.html#id73" title="Vladimir Vapnik. The nature of statistical learning theory. Springer science &amp; business media, 2013.">Vapnik, 2013</a>]</span>. Furthermore, while <span class="bibtex-citation" id="id10">[<a class="reference internal" href="../../bibliography.html#id48" title="George S Kimeldorf and Grace Wahba. A correspondence between bayesian estimation on stochastic processes and smoothing by splines. The Annals of Mathematical Statistics, 41(2):495–502, 1970.">Kimeldorf and Wahba, 1970</a>]</span> established the Representer Theorem for splines, it is the Generalized Representer Theorem <span class="bibtex-citation" id="id11">[<a class="reference internal" href="../../bibliography.html#id65" title="Bernhard Schölkopf, Ralf Herbrich, and Alex J Smola. A generalized representer theorem. In International conference on computational learning theory, 416–426. Springer, 2001.">Schölkopf <em>et al.</em>, 2001</a>]</span> that mathematically licenses the application of these empirical risk minimizations across our wider spectrum of topological penalties.</p>
+</div></blockquote>
+<section id="deriving-the-closed-form-solution">
+<h3>Deriving the Closed-Form Solution<a class="headerlink" href="#deriving-the-closed-form-solution" title="Link to this heading">¶</a></h3>
+<p>We formulate the global convex loss function <span class="math notranslate nohighlight">\(\mathcal{L}(\theta_g)\)</span> using the Design Matrix (<span class="math notranslate nohighlight">\(\Phi_g\)</span>), the observation weighting matrix (<span class="math notranslate nohighlight">\(\Lambda_g\)</span>, computed as <span class="math notranslate nohighlight">\(L_g^\top L_g\)</span>), and the block-diagonal structural penalty matrix (<span class="math notranslate nohighlight">\(P\)</span>):</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[\mathcal{L}(\theta_g) = (\Phi_g \theta_g - Y_g)^\top \Lambda_g^\top \Lambda_g (\Phi_g \theta_g - Y_g) + T \theta_g^\top P \theta_g\]</div>
+</div>
+<p>Because this formulation is strictly convex, we can find the global minimum analytically by taking the gradient with respect to <span class="math notranslate nohighlight">\(\theta_g\)</span> and setting it to zero:</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[\nabla_{\theta_g} \mathcal{L} = 2 \Phi_g^\top \Lambda_g^\top \Lambda_g (\Phi_g \theta_g - Y_g) + 2 T P \theta_g = 0\]</div>
+</div>
+<p>Expanding and isolating <span class="math notranslate nohighlight">\(\theta_g\)</span>:</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[\Phi_g^\top \Lambda_g^\top \Lambda_g \Phi_g \theta_g + T P \theta_g = \Phi_g^\top \Lambda_g^\top \Lambda_g Y_g\]</div>
+</div>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[(\Phi_g^\top \Lambda_g^\top \Lambda_g \Phi_g + T P) \theta_g = \Phi_g^\top \Lambda_g^\top \Lambda_g Y_g\]</div>
+</div>
+<p>Multiplying by the inverse of the regularized covariance matrix yields the exact TAM core equation:</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[\hat{\theta}_g = \left( \Phi_g^\top \Lambda_g^\top \Lambda_g \Phi_g + T P \right)^{-1} \Phi_g^\top \Lambda_g^\top \Lambda_g Y_g\]</div>
+</div>
+<blockquote>
+<div><p><strong>Implementation:</strong> See how this continuous mathematical theory is translated into OOM-safe, PyTorch tensor operations in <a class="reference internal" href="../../architecture/core/01_additive_api.html"><span class="std std-doc">The Additive API &amp; Object-Oriented Architecture</span></a>.</p>
+</div></blockquote>
+</section>
+</section>
+<hr class="docutils" />
+<section id="safe-concatenation-aronszajns-direct-sum">
+<h2>Safe Concatenation: Aronszajn’s Direct Sum<a class="headerlink" href="#safe-concatenation-aronszajns-direct-sum" title="Link to this heading">¶</a></h2>
+<p>When building a complex model with multiple additive effects, the sub-spaces must not mathematically corrupt one another. How do we ensure that a discrete difference penalty applied to a Spline does not accidentally penalize a Fourier series?</p>
+<p>The abstract RKHS norm <span class="math notranslate nohighlight">\(\|h_l\|_{\mathcal{H}_l}^2\)</span> penalizes the complexity of a specific function. By defining our mapping <span class="math notranslate nohighlight">\(\Phi_l\)</span>, we algebraically reduce this continuous norm to a discrete quadratic form on the coefficients:</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[\|h_l\|_{\mathcal{H}_l}^2 = \theta_l^\top P_l \theta_l\]</div>
+</div>
+<p>Aronszajn’s Direct Sum Theorem <span class="bibtex-citation" id="id12">[<a class="reference internal" href="../../bibliography.html#id7" title="Nachman Aronszajn. Theory of reproducing kernels. Transactions of the American mathematical society, 68(3):337–404, 1950.">Aronszajn, 1950</a>]</span> proves that if a global Hilbert space is the orthogonal direct sum of independent sub-spaces (<span class="math notranslate nohighlight">\(\mathcal{H} = \bigoplus_{l=1}^L \mathcal{H}_l\)</span>), the cross-terms in the inner product vanish. Therefore, the global penalty is strictly the sum of the individual spatial penalties.</p>
+<section id="example-mixing-effects-in-the-global-matrices">
+<h3>Example: Mixing Effects in the Global Matrices<a class="headerlink" href="#example-mixing-effects-in-the-global-matrices" title="Link to this heading">¶</a></h3>
+<p>To understand how the global matrices <span class="math notranslate nohighlight">\(\Phi_g\)</span> and <span class="math notranslate nohighlight">\(P\)</span> are structurally assembled in practice, consider a model mixing three distinct effects: a Linear (<code class="docutils literal notranslate"><span class="pre">l(x1)</span></code>), a P-Spline (<code class="docutils literal notranslate"><span class="pre">s(x2)</span></code>), and a Fourier series (<code class="docutils literal notranslate"><span class="pre">f(x3)</span></code>).</p>
+<p><strong>The Global Design Matrix (<span class="math notranslate nohighlight">\(\Phi_g\)</span>):</strong>
+The individual design matrices are concatenated horizontally. If we have <span class="math notranslate nohighlight">\(T\)</span> rows of temporal data for group <span class="math notranslate nohighlight">\(g\)</span>, <span class="math notranslate nohighlight">\(\Phi_{g, lin}\)</span> has 1 column, <span class="math notranslate nohighlight">\(\Phi_{g, spl}\)</span> has <span class="math notranslate nohighlight">\(I_{spl}\)</span> columns (knots), and <span class="math notranslate nohighlight">\(\Phi_{g, four}\)</span> has <span class="math notranslate nohighlight">\(I_{four}\)</span> columns (harmonics). The global <span class="math notranslate nohighlight">\(\Phi_g\)</span> has dimension <span class="math notranslate nohighlight">\(T \times (1 + I_{spl} + I_{four})\)</span>:</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[\begin{split}\Phi_g = \begin{bmatrix} \vert &amp; \vert &amp; \vert \\ \Phi_{g, lin} &amp; \Phi_{g, spl} &amp; \Phi_{g, four} \\ \vert &amp; \vert &amp; \vert \end{bmatrix}\end{split}\]</div>
+</div>
+<p><strong>The Global Penalty Matrix (<span class="math notranslate nohighlight">\(P\)</span>):</strong>
+The structural priors are assembled into a block-diagonal matrix based on Aronszajn’s Direct Sum Theorem <span class="bibtex-citation" id="id13">[<a class="reference internal" href="../../bibliography.html#id8" title="Francis Bach. Learning theory from first principles. MIT press, 2024.">Bach, 2024</a>, <a class="reference internal" href="../../bibliography.html#id7" title="Nachman Aronszajn. Theory of reproducing kernels. Transactions of the American mathematical society, 68(3):337–404, 1950.">Aronszajn, 1950</a>]</span>. The Linear effect uses a standard Ridge penalty (<span class="math notranslate nohighlight">\(P_{lin} = I\)</span>), the Spline uses a discrete difference penalty (<span class="math notranslate nohighlight">\(P_{spl} = D^\top D\)</span>), and the Fourier effect uses a diagonal Sobolev penalty (<span class="math notranslate nohighlight">\(P_{four} = S\)</span>). The global <span class="math notranslate nohighlight">\(P\)</span> is:</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[\begin{split}P = \begin{bmatrix} \lambda_{lin} P_{lin} &amp; 0 &amp; 0 \\ 0 &amp; \lambda_{spl} P_{spl} &amp; 0 \\ 0 &amp; 0 &amp; \lambda_{four} P_{four} \end{bmatrix}\end{split}\]</div>
+</div>
+<p><strong>The Global Coefficient Vector (<span class="math notranslate nohighlight">\(\theta_g\)</span>):</strong>
+Because these effects are structurally isolated within the penalty matrix, the solver calculates the exact global coefficients in a single algebraic operation without them mathematically corrupting one another, yielding a vertically concatenated vector:</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[\begin{split}\hat{\theta}_g = \begin{bmatrix} \hat{\theta}_{g, lin} \\ \hat{\theta}_{g, spl} \\ \hat{\theta}_{g, four} \end{bmatrix}\end{split}\]</div>
+</div>
+</section>
+</section>
+<hr class="docutils" />
+<section id="computational-evolution-the-matrix-free-cg-solver">
+<h2>Computational Evolution: The Matrix-Free CG Solver<a class="headerlink" href="#computational-evolution-the-matrix-free-cg-solver" title="Link to this heading">¶</a></h2>
+<p>While the exact Primal shift reduces complexity from the intractable <span class="math notranslate nohighlight">\(\mathcal{O}(N_{total}^3)\)</span> of Dual kernel methods to <span class="math notranslate nohighlight">\(\mathcal{O}(G \times T \times D^2 + G \times D^3)\)</span>, explicitly forming the dense global covariance matrix <span class="math notranslate nohighlight">\(A_g = (\Phi_g^\top \Lambda_g^\top \Lambda_g \Phi_g + T P)\)</span> can still cause fatal Out-Of-Memory (OOM) errors on GPUs when <span class="math notranslate nohighlight">\(D\)</span> becomes massive (e.g., interacting deep neural features).</p>
+<p>To bypass this final physical VRAM limit, the framework deploys a <strong>Matrix-Free Sparse Conjugate Gradient (CG)</strong> solver.</p>
+<p>Krylov subspace methods like CG do not require the explicit matrix <span class="math notranslate nohighlight">\(A_g\)</span>; they only require a function capable of computing the matrix-vector product <span class="math notranslate nohighlight">\(A_g v\)</span> for a given vector <span class="math notranslate nohighlight">\(v\)</span> <span class="bibtex-citation" id="id14">[<a class="reference internal" href="../../bibliography.html#id34" title="Gene H Golub and Charles F Van Loan. Matrix computations. The Johns Hopkins University Press, 1996.">Golub and Van Loan, 1996</a>]</span>. By exploiting the associative property of matrix multiplication, TAM evaluates the sequence strictly from right to left:</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[A_g v = \Phi_g^\top \Big( \Lambda_g^\top \Lambda_g \big( \Phi_g v \big) \Big) + T P v\]</div>
+</div>
+<ol class="arabic simple">
+<li><p>Compute <span class="math notranslate nohighlight">\(u_1 = \Phi_g v\)</span> (Shape: <span class="math notranslate nohighlight">\(T \times 1\)</span>)</p></li>
+<li><p>Compute <span class="math notranslate nohighlight">\(u_2 = \Lambda_g^\top \Lambda_g u_1\)</span> (Shape: <span class="math notranslate nohighlight">\(T \times 1\)</span>)</p></li>
+<li><p>Compute <span class="math notranslate nohighlight">\(u_3 = \Phi_g^\top u_2\)</span> (Shape: <span class="math notranslate nohighlight">\(D \times 1\)</span>)</p></li>
+<li><p>Add the penalty <span class="math notranslate nohighlight">\(u_3 + T P v\)</span></p></li>
+</ol>
+<hr class="docutils" />
+<section id="the-three-tier-optimization-strategy">
+<h3>The Three-Tier Optimization Strategy<a class="headerlink" href="#the-three-tier-optimization-strategy" title="Link to this heading">¶</a></h3>
+<p>Rather than relying solely on a separate validation set, the framework replaces standard black-box hyperparameter tuning with a direct three-speed resolution:</p>
+<ol class="arabic simple">
+<li><p><strong>Business Priors (Instantaneous Resolution):</strong> Hyperparameters fixed by domain expertise are parsed directly to compute the analytic solution instantly without iterative searches.</p></li>
+<li><p><strong>Algebraic GCV Solver (Continuous Optimization):</strong> Exact minimization of the Generalized Cross-Validation score using the cyclic trace trick to automatically find the ideal regularization penalty <span class="math notranslate nohighlight">\(\lambda\)</span> without a hold-out set <span class="bibtex-citation" id="id15">[<a class="reference internal" href="../../bibliography.html#id35" title="Gene H Golub, Michael Heath, and Grace Wahba. Generalized cross-validation as a method for choosing a good ridge parameter. Technometrics, 21(2):215–223, 1979.">Golub <em>et al.</em>, 1979</a>]</span>. <a class="reference internal" href="05_gcv_theory.html"><span class="std std-doc">Follow the link for the GCV Solver mathematics.</span></a>.</p></li>
+<li><p><strong>Grid Search (Discrete Optimization):</strong> Multi-Start Coordinate Descent optimization for architectural hyperparameters. By cycling through one parameter axis at a time, the solver reliably navigates non-convex topological search spaces <span class="bibtex-citation" id="id16">[<a class="reference internal" href="../../bibliography.html#id82" title="Stephen J Wright. Coordinate descent algorithms. Mathematical programming, 151(1):3–34, 2015.">Wright, 2015</a>]</span>.</p></li>
+</ol>
+</section>
+</section>
+<hr class="docutils" />
+<section id="the-spectrum-of-functional-topologies">
+<h2>The Spectrum of Functional Topologies<a class="headerlink" href="#the-spectrum-of-functional-topologies" title="Link to this heading">¶</a></h2>
+<p>To be eligible for the global design matrix, every effect must define its Primal map <span class="math notranslate nohighlight">\(\phi(x)\)</span>, an optimal penalty <span class="math notranslate nohighlight">\(P_i\)</span>, and prove its valid RKHS embedding. The framework achieves this across a highly diverse spectrum of mathematical domains.</p>
+<p>To have a quick look at the hyperparameters and the formulas for <span class="math notranslate nohighlight">\(\Phi\)</span> (mapping function) and <span class="math notranslate nohighlight">\(P\)</span> (penalty), look at the summary table in the <a class="reference internal" href="#THEORY.md"><span class="xref myst"><code class="docutils literal notranslate"><span class="pre">THEORY</span></code></span></a> chapter.</p>
+<p>Check the mathematical definition of the different effects at the following chapters: <strong><a class="reference internal" href="../spectrum/LINEAR.html"><span class="std std-doc">Linear</span></a></strong> / <strong><a class="reference internal" href="../spectrum/FOURIER.html"><span class="std std-doc">Fourier</span></a></strong> / <strong><a class="reference internal" href="../spectrum/SPLINES.html"><span class="std std-doc">Spline</span></a></strong> / <strong><a class="reference internal" href="../spectrum/CHEBYSHEV.html"><span class="std std-doc">Chebyshev</span></a></strong> / <strong><a class="reference internal" href="../spectrum/CATEGORICAL.html"><span class="std std-doc">Categorical</span></a></strong> / <strong><a class="reference internal" href="../spectrum/CROSS_TENSOR.html"><span class="std std-doc">Interaction</span></a></strong> / <strong><a class="reference internal" href="../spectrum/RBF.html"><span class="std std-doc">RBF</span></a></strong> / <strong><a class="reference internal" href="../spectrum/NEURAL.html"><span class="std std-doc">Neural</span></a></strong> / <strong><a class="reference internal" href="../spectrum/TREE.html"><span class="std std-doc">Tree</span></a></strong> / <strong><a class="reference internal" href="../spectrum/LINEAR_TREE.html"><span class="std std-doc">Linear Tree</span></a></strong> / <strong><a class="reference internal" href="../spectrum/WAVELETS.html"><span class="std std-doc">Wavelet</span></a></strong> / <strong><a class="reference internal" href="../spectrum/PHYSICS_PIKL.html"><span class="std std-doc">Physics</span></a></strong> / <strong><a class="reference internal" href="../spectrum/PID.html"><span class="std std-doc">PID</span></a></strong></p>
+</section>
+<section id="conclusion">
+<h2>Conclusion<a class="headerlink" href="#conclusion" title="Link to this heading">¶</a></h2>
+<p>The ultimate theoretical breakthrough of TAM is the rigid structural flattening of these bases. By formally establishing that spectral waves, algorithmic tree partitions, deep compositional features, and physical PDEs can all be simultaneously expressed as strictly penalized, finite-dimensional RKHS blocks, the framework transforms the most complex, pathologically non-convex challenges in modern machine learning into a single, perfectly exact linear algebra resolution.</p>
+</section>
+</section>
+
+        </article>
+      </div>
+      <footer>
+        
+        <div class="related-pages">
+          <a class="next-page" href="02_tensorization.html">
+              <div class="page-info">
+                <div class="context">
+                  <span>Next</span>
+                </div>
+                <div class="title">The Theory of N-Dim Broadcasting and Normalization</div>
+              </div>
+              <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
+            </a>
+          <a class="prev-page" href="../../THEORY.html">
+              <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
+              <div class="page-info">
+                <div class="context">
+                  <span>Previous</span>
+                </div>
+                
+                <div class="title">📚 Theory Introduction of TAM and Cheatsheet</div>
+                
+              </div>
+            </a>
+        </div>
+        <div class="bottom-of-page">
+          <div class="left-details">
+            <div class="copyright">
+                Copyright &#169; 2026, Yann Allioux, Nathan Doumèche, Éloi Bedek
+            </div>
+            Made with <a href="https://www.sphinx-doc.org/">Sphinx</a> and <a class="muted-link" href="https://pradyunsg.me">@pradyunsg</a>'s
+            
+            <a href="https://github.com/pradyunsg/furo">Furo</a>
+            
+          </div>
+          <div class="right-details">
+            
+          </div>
+        </div>
+        
+      </footer>
+    </div>
+    <aside class="toc-drawer">
+      
+      
+      <div class="toc-sticky toc-scroll">
+        <div class="toc-title-container">
+          <span class="toc-title">
+            On this page
+          </span>
+        </div>
+        <div class="toc-tree-container">
+          <div class="toc-tree">
+            <ul>
+<li><a class="reference internal" href="#">The Exact Primal Resolution</a><ul>
+<li><a class="reference internal" href="#defining-the-problem-from-cpu-bottlenecks-to-gpu-scale">Defining the Problem: From CPU Bottlenecks to GPU Scale</a></li>
+<li><a class="reference internal" href="#rkhs-theory-and-the-exact-primal-equations">RKHS Theory and The Exact Primal Equations</a><ul>
+<li><a class="reference internal" href="#deriving-the-closed-form-solution">Deriving the Closed-Form Solution</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#safe-concatenation-aronszajns-direct-sum">Safe Concatenation: Aronszajn’s Direct Sum</a><ul>
+<li><a class="reference internal" href="#example-mixing-effects-in-the-global-matrices">Example: Mixing Effects in the Global Matrices</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#computational-evolution-the-matrix-free-cg-solver">Computational Evolution: The Matrix-Free CG Solver</a><ul>
+<li><a class="reference internal" href="#the-three-tier-optimization-strategy">The Three-Tier Optimization Strategy</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#the-spectrum-of-functional-topologies">The Spectrum of Functional Topologies</a></li>
+<li><a class="reference internal" href="#conclusion">Conclusion</a></li>
+</ul>
+</li>
+</ul>
+
+          </div>
+        </div>
+      </div>
+      
+      
+    </aside>
+  </div>
+</div><script src="../../_static/documentation_options.js?v=590429e0"></script>
+    <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="../../_static/scripts/furo.js?v=46bd48cc"></script>
+    <script>window.MathJax = {"options": {"processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+    <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@4/tex-mml-chtml.js"></script>
+    </body>
+</html>

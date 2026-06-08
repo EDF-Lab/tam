@@ -1,0 +1,516 @@
+<!doctype html>
+<html class="no-js" lang="en" data-content_root="../../">
+  <head><meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="index" title="Index" href="../../genindex.html"><link rel="search" title="Search" href="../../search.html"><link rel="next" title="Physics-Informed Kernel Learning (PIKL)" href="PHYSICS_PIKL.html"><link rel="prev" title="The Categorical Effect (Discrete Topologies)" href="CATEGORICAL.html">
+        <link rel="prefetch" href="../../_static/logo.png" as="image">
+
+    <!-- Generated with Sphinx 9.1.0 and Furo 2025.12.19 -->
+        <title>The Tensor Product Effect (Interactions) - TAM 1.2.3 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=d111a655" />
+    <link rel="stylesheet" type="text/css" href="../../_static/styles/furo.css?v=7bdb33bb" />
+    <link rel="stylesheet" type="text/css" href="../../_static/styles/furo-extensions.css?v=8dab3a3b" />
+    
+    
+
+
+<style>
+  body {
+    --color-code-background: #f2f2f2;
+  --color-code-foreground: #1e1e1e;
+  
+  }
+  @media not print {
+    body[data-theme="dark"] {
+      --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+    }
+    @media (prefers-color-scheme: dark) {
+      body:not([data-theme="light"]) {
+        --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+      }
+    }
+  }
+</style></head>
+  <body>
+    
+    <script>
+      document.body.dataset.theme = localStorage.getItem("theme") || "auto";
+    </script>
+    
+
+<svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
+  <symbol id="svg-toc" viewBox="0 0 24 24">
+    <title>Contents</title>
+    <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 1024 1024">
+      <path d="M408 442h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8zm-8 204c0 4.4 3.6 8 8 8h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56zm504-486H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zm0 632H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zM115.4 518.9L271.7 642c5.8 4.6 14.4.5 14.4-6.9V388.9c0-7.4-8.5-11.5-14.4-6.9L115.4 505.1a8.74 8.74 0 0 0 0 13.8z"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-menu" viewBox="0 0 24 24">
+    <title>Menu</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-menu">
+      <line x1="3" y1="12" x2="21" y2="12"></line>
+      <line x1="3" y1="6" x2="21" y2="6"></line>
+      <line x1="3" y1="18" x2="21" y2="18"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-arrow-right" viewBox="0 0 24 24">
+    <title>Expand</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-chevron-right">
+      <polyline points="9 18 15 12 9 6"></polyline>
+    </svg>
+  </symbol>
+  <symbol id="svg-sun" viewBox="0 0 24 24">
+    <title>Light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="feather-sun">
+      <circle cx="12" cy="12" r="5"></circle>
+      <line x1="12" y1="1" x2="12" y2="3"></line>
+      <line x1="12" y1="21" x2="12" y2="23"></line>
+      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+      <line x1="1" y1="12" x2="3" y2="12"></line>
+      <line x1="21" y1="12" x2="23" y2="12"></line>
+      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+      <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon" viewBox="0 0 24 24">
+    <title>Dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-moon">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454z" />
+    </svg>
+  </symbol>
+  <symbol id="svg-sun-with-moon" viewBox="0 0 24 24">
+    <title>Auto light/dark, in light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path style="opacity: 50%" d="M 5.411 14.504 C 5.471 14.504 5.532 14.504 5.591 14.504 C 3.639 16.319 4.383 19.569 6.931 20.352 C 7.693 20.586 8.512 20.551 9.25 20.252 C 8.023 23.207 4.056 23.725 2.11 21.184 C 0.166 18.642 1.702 14.949 4.874 14.536 C 5.051 14.512 5.231 14.5 5.411 14.5 L 5.411 14.504 Z"/>
+      <line x1="14.5" y1="3.25" x2="14.5" y2="1.25"/>
+      <line x1="14.5" y1="15.85" x2="14.5" y2="17.85"/>
+      <line x1="10.044" y1="5.094" x2="8.63" y2="3.68"/>
+      <line x1="19" y1="14.05" x2="20.414" y2="15.464"/>
+      <line x1="8.2" y1="9.55" x2="6.2" y2="9.55"/>
+      <line x1="20.8" y1="9.55" x2="22.8" y2="9.55"/>
+      <line x1="10.044" y1="14.006" x2="8.63" y2="15.42"/>
+      <line x1="19" y1="5.05" x2="20.414" y2="3.636"/>
+      <circle cx="14.5" cy="9.55" r="3.6"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon-with-sun" viewBox="0 0 24 24">
+    <title>Auto light/dark, in dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path d="M 8.282 7.007 C 8.385 7.007 8.494 7.007 8.595 7.007 C 5.18 10.184 6.481 15.869 10.942 17.24 C 12.275 17.648 13.706 17.589 15 17.066 C 12.851 22.236 5.91 23.143 2.505 18.696 C -0.897 14.249 1.791 7.786 7.342 7.063 C 7.652 7.021 7.965 7 8.282 7 L 8.282 7.007 Z"/>
+      <line style="opacity: 50%" x1="18" y1="3.705" x2="18" y2="2.5"/>
+      <line style="opacity: 50%" x1="18" y1="11.295" x2="18" y2="12.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="4.816" x2="14.464" y2="3.964"/>
+      <line style="opacity: 50%" x1="20.711" y1="10.212" x2="21.563" y2="11.063"/>
+      <line style="opacity: 50%" x1="14.205" y1="7.5" x2="13.001" y2="7.5"/>
+      <line style="opacity: 50%" x1="21.795" y1="7.5" x2="23" y2="7.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="10.184" x2="14.464" y2="11.036"/>
+      <line style="opacity: 50%" x1="20.711" y1="4.789" x2="21.563" y2="3.937"/>
+      <circle style="opacity: 50%" cx="18" cy="7.5" r="2.169"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-pencil" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-pencil-code">
+      <path d="M4 20h4l10.5 -10.5a2.828 2.828 0 1 0 -4 -4l-10.5 10.5v4" />
+      <path d="M13.5 6.5l4 4" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+  <symbol id="svg-eye" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-eye-code">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M10 12a2 2 0 1 0 4 0a2 2 0 0 0 -4 0" />
+      <path
+        d="M11.11 17.958c-3.209 -.307 -5.91 -2.293 -8.11 -5.958c2.4 -4 5.4 -6 9 -6c3.6 0 6.6 2 9 6c-.21 .352 -.427 .688 -.647 1.008" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+</svg>
+
+<input type="checkbox" class="sidebar-toggle" name="__navigation" id="__navigation" aria-label="Toggle site navigation sidebar">
+<input type="checkbox" class="sidebar-toggle" name="__toc" id="__toc" aria-label="Toggle table of contents sidebar">
+<label class="overlay sidebar-overlay" for="__navigation"></label>
+<label class="overlay toc-overlay" for="__toc"></label>
+
+<a class="skip-to-content muted-link" href="#furo-main-content">Skip to content</a>
+
+
+
+<div class="page">
+  <header class="mobile-header">
+    <div class="header-left">
+      <label class="nav-overlay-icon" for="__navigation">
+        <span class="icon"><svg><use href="#svg-menu"></use></svg></span>
+      </label>
+    </div>
+    <div class="header-center">
+      <a href="../../index.html"><div class="brand">TAM 1.2.3 documentation</div></a>
+    </div>
+    <div class="header-right">
+      <div class="theme-toggle-container theme-toggle-header">
+        <button class="theme-toggle" aria-label="Toggle Light / Dark / Auto color theme">
+          <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+          <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+          <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+          <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+        </button>
+      </div>
+      <label class="toc-overlay-icon toc-header-icon" for="__toc">
+        <span class="icon"><svg><use href="#svg-toc"></use></svg></span>
+      </label>
+    </div>
+  </header>
+  <aside class="sidebar-drawer">
+    <div class="sidebar-container">
+      
+      <div class="sidebar-sticky"><a class="sidebar-brand" href="../../index.html">
+  <div class="sidebar-logo-container">
+    <img class="sidebar-logo" src="../../_static/logo.png" alt="Logo"/>
+  </div>
+  
+  <span class="sidebar-brand-text">TAM 1.2.3 documentation</span>
+  
+</a><form class="sidebar-search-container" method="get" action="../../search.html" role="search">
+  <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
+  <input type="hidden" name="check_keywords" value="yes">
+  <input type="hidden" name="area" value="default">
+</form>
+<div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
+  <p class="caption" role="heading"><span class="caption-text">🚀 Getting Started</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../README.html">TAM (Time series Additive Model)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../THEORY.html">📚 Theory Introduction of TAM and Cheatsheet</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">🧠 Theory: The Core Engine</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../core/01_primal_model.html">The Exact Primal Resolution</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../core/02_tensorization.html">The Theory of N-Dim Broadcasting and Normalization</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../core/03_linear_system.html">Linear Algebra: Direct vs. Iterative Solvers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../core/04_complexity.html">Computational Complexity (<span class="math notranslate nohighlight">\(\mathcal{O}(D^3+T D^2)\)</span> vs <span class="math notranslate nohighlight">\(\mathcal{O}(T^3)\)</span>)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../core/05_gcv_theory.html">Hyperparameter Optimization: Generalized Cross-Validation (GCV)</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">🌈 Theory: The Spectrum Library</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="LINEAR.html">The Linear Effect (Ridge Regression)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="SPLINES.html">The Spline Effect (P-Splines)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="FOURIER.html">The Fourier Effect (Sobolev Spectral Basis)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="WAVELETS.html">The Wavelet Effect (Ricker)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="CHEBYSHEV.html">The Chebyshev Effect (Polynomial Minimax Basis)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="TREE.html">The Tree Effect (Random Forests &amp; Binning Features)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="NEURAL.html">The Neural Effect (NEPT)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="RBF.html">The Radial Basis Function (RBF) Effect</a></li>
+<li class="toctree-l1"><a class="reference internal" href="CATEGORICAL.html">The Categorical Effect (Discrete Topologies)</a></li>
+<li class="toctree-l1 current current-page"><a class="current reference internal" href="#">The Tensor Product Effect (Interactions)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="PHYSICS_PIKL.html">Physics-Informed Kernel Learning (PIKL)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="PID.html">The PID Effect (Autoregressive Control Dynamics)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="LINEAR_TREE.html">The Linear Tree Effect (Varying-Coefficient Models)</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">⚙️ Theory: Meta-Learners &amp; Inference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../meta/01_adaptive_online.html">Adaptive Online Learning (AdaptiveTAM)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../meta/02_kalman_filter.html">Dynamic Tracking via Extended Kalman Filtering [BETA]</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../meta/03_hierarchical_joint.html">Hierarchical Joint Optimization [BETA]</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../meta/04_conformal_safety.html">Uncertainty Quantification via Conformal Prediction [EXP]</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../meta/05_opera_aggregation.html">Online Prediction by Expert Aggregation (OPERA)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../meta/06_deep_gam_backfitting.html">Deep-GAM Hybridization and Orthogonal Backfitting [EXP]</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../meta/07_statistical_diagnostics.html">Statistical Inference and Diagnostics (Glass-Box) [EXP]</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../meta/08_auto_orchestrator.html">Evolutionary Orchestration and Multi-Fidelity AutoML</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../meta/09_auto_data_topology.html">AutoTAM Data Topology and Structural Safeguards [EXP]</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../meta/10_mlops_evaluation.html">Empirical Evaluation and MLOps Diagnostics</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">💻 Architecture: Core Implementation</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/core/01_additive_api.html">The Additive API and Object-Oriented Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/core/02_data_pipeline.html">The Engineering of Normalization and Padding</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/core/03_math_dispatcher.html">PyTorch Math Dispatcher &amp; Matrix-Free Solvers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/core/04_hardware_memory.html">Hardware Memory Dispatch &amp; Anti-OOM Systems</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/core/05_gcv_implementation.html">Auto-ML via Generalized Cross-Validation (GCV)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/core/06_the_spectrum_api.html">The Spectral Dictionary: PyTorch Implementations &amp; Factory Assembly</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">🛠️ Architecture: Advanced Orchestration</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/meta/01_adaptive_code.html">Online Error Correction (AdaptiveTAM)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/meta/02_kalman_torchscript.html">Kalman TorchScript Optimizations &amp; Block Updates [BETA]</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/meta/03_hierarchical_code.html">Hierarchical Engineering &amp; Memory Assembly  [BETA]</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/meta/04_safety_code.html">Diagnostics, Visualization &amp; Utilities Engineering [EXP]</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/meta/05_opera_gpu.html">OPERA GPU Tensor Batching</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/meta/06_neural_hybrid.html">DeepGAM Engineering &amp; Sequential Encapsulation [EXP]</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/meta/07_diagnostics_utils.html">Diagnostics, Visualization &amp; Utilities Engineering  [EXP]</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/meta/08_auto_orchestrator_code.html">Orchestrator Pipeline and Evolutionary Hub-and-Spoke Engine [EXP]</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/meta/09_auto_data_topology_code.html">AutoTAM Data Topology: Stateful Architecture &amp; Pandas Vectorization [EXP]</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/meta/10_mlops_tracking_code.html">MLOps Tracking and Empirical Benchmarking (Engineering)</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">🧪 Gallery of Examples &amp; Use Cases</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../EXAMPLES.html">🧪 Gallery of Examples &amp; Use Cases</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">📚 References &amp; Changelog</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../AUTHORS.html">👥 Authors and Contributions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../ACKNOWLEDGEMENTS.html">🔬 Scientific Background &amp; Acknowledgments</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../CHANGELOG.html">Changelog</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../CONTRIBUTING.html">🤝 Contributing to Time series Additive Model (TAM)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../README_DOC.html">📘 Documentation Generation Guide (TAM)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../bibliography.html">References</a></li>
+</ul>
+
+</div>
+</div>
+
+      </div>
+      
+    </div>
+  </aside>
+  <div class="main">
+    <div class="content">
+      <div class="article-container">
+        <a href="#" class="back-to-top muted-link">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+            <path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8v12z"></path>
+          </svg>
+          <span>Back to top</span>
+        </a>
+        <div class="content-icon-container">
+          <div class="view-this-page">
+  <a class="muted-link" href="../../_sources/math/spectrum/CROSS_TENSOR.md.txt" title="View this page">
+    <svg><use href="#svg-eye"></use></svg>
+    <span class="visually-hidden">View this page</span>
+  </a>
+</div>
+<div class="theme-toggle-container theme-toggle-content">
+            <button class="theme-toggle" aria-label="Toggle Light / Dark / Auto color theme">
+              <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+              <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+              <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+              <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+            </button>
+          </div>
+          <label class="toc-overlay-icon toc-content-icon" for="__toc">
+            <span class="icon"><svg><use href="#svg-toc"></use></svg></span>
+          </label>
+        </div>
+        <article role="main" id="furo-main-content">
+          <section class="tex2jax_ignore mathjax_ignore" id="the-tensor-product-effect-interactions">
+<h1>The Tensor Product Effect (Interactions)<a class="headerlink" href="#the-tensor-product-effect-interactions" title="Link to this heading">¶</a></h1>
+<p><strong>Navigation:</strong></p>
+<ul class="simple">
+<li><p><strong>Theory introduction:</strong> <a class="reference internal" href="../../THEORY.html"><span class="std std-doc">See the Intro</span></a></p></li>
+<li><p><strong>Related code architecture:</strong> <a class="reference internal" href="../../architecture/core/06_the_spectrum_api.html"><span class="std std-doc">See the Code Architecture</span></a></p></li>
+</ul>
+<section id="formula-definition">
+<h2>Formula Definition<a class="headerlink" href="#formula-definition" title="Link to this heading">¶</a></h2>
+<p>Additive models traditionally assume structural independence between features (<span class="math notranslate nohighlight">\(f(x_1, x_2) = f_1(x_1) + f_2(x_2)\)</span>). To rigorously model multi-dimensional interactions and complex multivariate response surfaces, the framework constructs a joint hypothesis space by fusing multiple independent marginal spaces.</p>
+<p>To understand the interaction mathematically, we evaluate the feature map for a single observation across <span class="math notranslate nohighlight">\(K_{te}\)</span> interacting dimensions. Let the explicit Primal feature mapping for an observation in the <span class="math notranslate nohighlight">\(k\)</span>-th marginal space with <span class="math notranslate nohighlight">\(D_k\)</span> degrees of freedom be:</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[\phi_k(x_k) = \left[ h_{k,1}(x_k), h_{k,2}(x_k), \dots, h_{k,D_k}(x_k) \right]\]</div>
+</div>
+<p>The explicit multi-dimensional feature mapping for the joint observation <span class="math notranslate nohighlight">\((x_1, \dots, x_{K_{te}})\)</span> is defined by the recursive Kronecker product of these <span class="math notranslate nohighlight">\(K_{te}\)</span> basis vectors <span class="bibtex-citation" id="id1">[<a class="reference internal" href="../../bibliography.html#id53" title="Brian D Marx and Paul HC Eilers. Multidimensional penalized signal regression. Technometrics, 47(1):13–22, 2005.">Marx and Eilers, 2005</a>]</span>:</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[\phi_{cross}(x_1, \dots, x_{K_{te}}) = \phi_1(x_1) \otimes \dots \otimes \phi_{K_{te}}(x_{K_{te}})\]</div>
+</div>
+<p>For the standard two-dimensional case (<span class="math notranslate nohighlight">\(K_{te}=2\)</span>) between a space with <span class="math notranslate nohighlight">\(D_1\)</span> degrees of freedom and a space with <span class="math notranslate nohighlight">\(D_2\)</span> degrees of freedom, the expanded algebraic vector contains every possible pairwise combination of the individual marginal basis functions:</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[\phi_{cross}(x_1, x_2) = \left[ h_{1,1}(x_1)h_{2,1}(x_2), \dots, h_{1,1}(x_1)h_{2,D_2}(x_2), \dots, h_{1,D_1}(x_1)h_{2,D_2}(x_2) \right]\]</div>
+</div>
+<p>Or written more compactly:</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[\phi_{cross}(x_1, x_2) = \left[ h_{1,i}(x_1) h_{2,j}(x_2) \right]_{i=1, \dots, D_1}^{j=1, \dots, D_2}\]</div>
+</div>
+<p>At the global dataset level, evaluating this vector for all <span class="math notranslate nohighlight">\(N_{total}\)</span> temporal observations constructs the complete joint design matrix <span class="math notranslate nohighlight">\(\Phi_{cross} = \Phi_1 \otimes \dots \otimes \Phi_{K_{te}}\)</span>.</p>
+</section>
+<section id="optimal-penalization-scale-invariance">
+<h2>Optimal Penalization (Scale-Invariance)<a class="headerlink" href="#optimal-penalization-scale-invariance" title="Link to this heading">¶</a></h2>
+<p>Standard multivariate smoothers, such as isotropic Thin Plate Splines, enforce a uniform, rotationally invariant penalty across all dimensions. However, this geometric assumption mathematically fails when the interacting variables operate on radically heterogeneous physical units (e.g., time versus temperature or geographic coordinates versus financial prices). In these cases, a standard Euclidean distance metric becomes arbitrary and meaningless <span class="bibtex-citation" id="id2">[<a class="reference internal" href="../../bibliography.html#id79" title="Simon N Wood. Low-rank scale-invariant tensor product smooths for generalized additive mixed models. Biometrics, 62(4):1025–1036, 2006.">Wood, 2006</a>]</span>.</p>
+<p>To achieve optimal, scale-invariant smoothing, the framework applies an <strong>anisotropic penalty</strong>. The global structural penalty sub-matrix <span class="math notranslate nohighlight">\(P_{cross}\)</span> is constructed by taking the Kronecker product of each marginal penalty matrix <span class="math notranslate nohighlight">\(P_i\)</span> with the identity matrix <span class="math notranslate nohighlight">\(I\)</span> of the opposing passive spaces, all regulated by a global interaction hyperparameter <span class="math notranslate nohighlight">\(\lambda\)</span>:</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[P_{cross} = \lambda \sum_{i=1}^{K_{te}} \left( I_1 \otimes \dots \otimes P_i \otimes \dots \otimes I_{K_{te}} \right)\]</div>
+</div>
+<p>Crucially, <span class="math notranslate nohighlight">\(P_i = \lambda_i P_{\text{effect}_i}\)</span>, meaning each marginal penalty matrix is natively pre-scaled by its own specific structural regularization parameter (<span class="math notranslate nohighlight">\(\lambda_i\)</span>), consistent with the primal definition of all TAM base effects.</p>
+<p>For the standard two-dimensional case (<span class="math notranslate nohighlight">\(K_{te}=2\)</span>), this evaluates directly to:</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[P_{cross} = \lambda (P_1 \otimes I_2 + I_1 \otimes P_2)\]</div>
+</div>
+<p>This explicit formulation reveals how the first term isolates structural roughness strictly along the <span class="math notranslate nohighlight">\(x_1\)</span> axis (mathematically bypassing <span class="math notranslate nohighlight">\(x_2\)</span> via the Identity matrix <span class="math notranslate nohighlight">\(I_2\)</span>), while the second term strictly penalizes <span class="math notranslate nohighlight">\(x_2\)</span>. Summing these orthogonal matrices generates a geometrically complete, scale-invariant regularization surface driven by the singular, dynamically optimized global parameter <span class="math notranslate nohighlight">\(\lambda\)</span> <span class="bibtex-citation" id="id3">[<a class="reference internal" href="../../bibliography.html#id79" title="Simon N Wood. Low-rank scale-invariant tensor product smooths for generalized additive mixed models. Biometrics, 62(4):1025–1036, 2006.">Wood, 2006</a>]</span>.</p>
+</section>
+<section id="the-geometric-scale-of-the-kronecker-product">
+<h2>The Geometric Scale of the Kronecker Product<a class="headerlink" href="#the-geometric-scale-of-the-kronecker-product" title="Link to this heading">¶</a></h2>
+<p>Understanding the precise linear algebra of the tensor product is critical to understanding the hardware limitations of classical solvers. The dimension of the resulting feature space scales strictly multiplicatively, the covariance and penalty matrices <span class="math notranslate nohighlight">\(P_{cross}\)</span> expand as the product of their squared marginal dimensions (yielding a <span class="math notranslate nohighlight">\((D_A \times D_B) \times (D_A \times D_B)\)</span> matrix)..</p>
+<p>Assume an interaction between a Spline space <span class="math notranslate nohighlight">\(\Phi_A\)</span> with <span class="math notranslate nohighlight">\(D_A = 2\)</span> degrees of freedom and a Fourier space <span class="math notranslate nohighlight">\(\Phi_B\)</span> with <span class="math notranslate nohighlight">\(D_B = 3\)</span> degrees of freedom. For a single observation, the marginal row vectors are:</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[\phi_A(x_A) = \begin{bmatrix} a_1 &amp; a_2 \end{bmatrix}\]</div>
+</div>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[\phi_B(x_B) = \begin{bmatrix} b_1 &amp; b_2 &amp; b_3 \end{bmatrix}\]</div>
+</div>
+<p>The row-wise Kronecker product computes every pairwise multiplication:</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[\phi_{cross}(x_A, x_B) = \phi_A(x_A) \otimes \phi_B(x_B) = \begin{bmatrix} a_1 b_1 &amp; a_1 b_2 &amp; a_1 b_3 &amp; a_2 b_1 &amp; a_2 b_2 &amp; a_2 b_3 \end{bmatrix}\]</div>
+</div>
+<p>While the feature vector expands multiplicatively from <span class="math notranslate nohighlight">\((2)\)</span> and <span class="math notranslate nohighlight">\((3)\)</span> to <span class="math notranslate nohighlight">\(1 \times 6\)</span>, the covariance and penalty matrices <span class="math notranslate nohighlight">\(P_{cross}\)</span> expand <strong>quadratically</strong>. To evaluate the first term of the anisotropic penalty (<span class="math notranslate nohighlight">\(P_A \otimes I_B\)</span>), where <span class="math notranslate nohighlight">\(P_A \in \mathbb{R}^{2 \times 2}\)</span> and <span class="math notranslate nohighlight">\(I_B \in \mathbb{R}^{3 \times 3}\)</span>:</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[\begin{split}P_A \otimes I_B = \begin{bmatrix}
+p_{11} &amp; 0 &amp; 0 &amp; p_{12} &amp; 0 &amp; 0 \\
+0 &amp; p_{11} &amp; 0 &amp; 0 &amp; p_{12} &amp; 0 \\
+0 &amp; 0 &amp; p_{11} &amp; 0 &amp; 0 &amp; p_{12} \\
+p_{21} &amp; 0 &amp; 0 &amp; p_{22} &amp; 0 &amp; 0 \\
+0 &amp; p_{21} &amp; 0 &amp; 0 &amp; p_{22} &amp; 0 \\
+0 &amp; 0 &amp; p_{21} &amp; 0 &amp; 0 &amp; p_{22}
+\end{bmatrix}\end{split}\]</div>
+</div>
+<p>The final structural penalty matrix <span class="math notranslate nohighlight">\(P_{cross}\)</span> fundamentally scales to <span class="math notranslate nohighlight">\((D_A \times D_B) \times (D_A \times D_B)\)</span>.</p>
+</section>
+<section id="rkhs-eligibility-and-the-representer-theorem">
+<h2>RKHS Eligibility and The Representer Theorem<a class="headerlink" href="#rkhs-eligibility-and-the-representer-theorem" title="Link to this heading">¶</a></h2>
+<p>The theoretical validity of this construction relies on the fundamental closure properties of kernels. Aronszajn formally proved that the class of positive definite reproducing kernels is strictly closed under pointwise multiplication <span class="bibtex-citation" id="id4">[<a class="reference internal" href="../../bibliography.html#id7" title="Nachman Aronszajn. Theory of reproducing kernels. Transactions of the American mathematical society, 68(3):337–404, 1950.">Aronszajn, 1950</a>]</span>. Therefore, the direct tensor product of multiple valid marginal Hilbert spaces, <span class="math notranslate nohighlight">\(\mathcal{H}_{cross} = \mathcal{H}_1 \otimes \dots \otimes \mathcal{H}_N\)</span>, rigorously generates a valid, finite-dimensional product RKHS.</p>
+<p>However, existence alone is insufficient for scalable computation. The Generalized Representer Theorem bridges this gap, proving that any regularized risk functional evaluated over this infinite-dimensional product space possesses a globally optimal solution that lies exactly within the span of the empirical finite-dimensional Primal mappings <span class="bibtex-citation" id="id5">[<a class="reference internal" href="../../bibliography.html#id65" title="Bernhard Schölkopf, Ralf Herbrich, and Alex J Smola. A generalized representer theorem. In International conference on computational learning theory, 416–426. Springer, 2001.">Schölkopf <em>et al.</em>, 2001</a>, <a class="reference internal" href="../../bibliography.html#id43" title="Thomas Hofmann, Bernhard Schölkopf, and Alexander J Smola. Kernel methods in machine learning. 2008.">Hofmann <em>et al.</em>, 2008</a>]</span>. This guarantees that TAM’s truncated matrix formulations do not merely approximate the interaction, but solve it mathematically optimally.</p>
+</section>
+<section id="neural-interactions-and-marginal-clarity-critique">
+<h2>Neural Interactions and Marginal Clarity (Critique)<a class="headerlink" href="#neural-interactions-and-marginal-clarity-critique" title="Link to this heading">¶</a></h2>
+<p>While the tensor product seamlessly fuses classical bases like splines and polynomials, applying it naively to deep neural embeddings (<code class="docutils literal notranslate"><span class="pre">NeuralEffect</span></code>) introduces severe interpretability pathologies.</p>
+<p>If a model interacts two unconstrained neural feature maps without including their independent main effects, the resulting response surface entangles the main effect variance with pure interaction variance. To preserve strict structural auditability, we must respect the principle of <strong>Marginal Clarity</strong> <span class="bibtex-citation" id="id6">[<a class="reference internal" href="../../bibliography.html#id84" title="Zebin Yang, Aijun Zhang, and Agus Sudjianto. Gami-net: an explainable neural network based on generalized additive models with structured interactions. Pattern Recognition, 120:108192, 2021.">Yang <em>et al.</em>, 2021</a>]</span>.</p>
+<p>GAMI-Net highlights that to prevent this entanglement, interaction components must be structurally orthogonalized against their main effects <span class="bibtex-citation" id="id7">[<a class="reference internal" href="../../bibliography.html#id84" title="Zebin Yang, Aijun Zhang, and Agus Sudjianto. Gami-net: an explainable neural network based on generalized additive models with structured interactions. Pattern Recognition, 120:108192, 2021.">Yang <em>et al.</em>, 2021</a>]</span>. Within the TAM Primal resolution, this means that whenever a <code class="docutils literal notranslate"><span class="pre">TensorProductEffect</span></code> involving neural networks is declared, the underlying main effects must either be explicitly defined as separate additive terms in the formula, or the interaction penalty <span class="math notranslate nohighlight">\(\lambda\)</span> must be heavily regularized to ensure it only captures the residual joint variance that the marginal main effects fail to explain.</p>
+</section>
+<section id="theoretical-integration-hardware-translation">
+<h2>Theoretical Integration &amp; Hardware Translation<a class="headerlink" href="#theoretical-integration-hardware-translation" title="Link to this heading">¶</a></h2>
+<p>If a model interacts a Spline (<span class="math notranslate nohighlight">\(D_A = 100\)</span>) with a spatial Fourier grid (<span class="math notranslate nohighlight">\(D_B = 100\)</span>), the resulting interaction generates <span class="math notranslate nohighlight">\(10,000\)</span> unique features. The dense Primal covariance matrix (<span class="math notranslate nohighlight">\(\Phi_{cross}^\top \Phi_{cross}\)</span>) and the penalty matrix (<span class="math notranslate nohighlight">\(P_{cross}\)</span>) will scale to <span class="math notranslate nohighlight">\(10,000 \times 10,000\)</span>. Adding a third interaction term pushes this to <span class="math notranslate nohighlight">\(1,000,000 \times 1,000,000\)</span>.</p>
+<p>In classical statistical computing environments, resolving these high-dimensional tensor product smooths creates rank-deficient design matrices that exhaust physical RAM and require complex iterative orthogonalization routines.</p>
+<p>By natively embedding the recursive Kronecker basis expansion <span class="math notranslate nohighlight">\(\Phi_{cross}\)</span> and the anisotropic block penalty <span class="math notranslate nohighlight">\(P_{cross}\)</span> directly into the global Primal architecture using highly parallelized GPU tensor algebra (<code class="docutils literal notranslate"><span class="pre">torch.kron</span></code>, <code class="docutils literal notranslate"><span class="pre">einsum</span></code>), the TAM framework bypasses these numerical bottlenecks entirely. This forces models with extreme dimensionality into the matrix-free Sparse Conjugate Gradient solver, allowing multidimensional interactions to be solved simultaneously with the rest of the GAM without triggering memory faults.</p>
+</section>
+<section id="theoretical-extension-piecewise-continuous-regressions-linear-trees">
+<h2>Theoretical Extension: Piecewise Continuous Regressions (Linear Trees)<a class="headerlink" href="#theoretical-extension-piecewise-continuous-regressions-linear-trees" title="Link to this heading">¶</a></h2>
+<p>In traditional statistical learning, piecewise linear regressions (or “Linear Model Trees”) require complex algorithmic overrides to handle singular covariance matrices when local partitions (leaves) contain too few temporal observations (<span class="math notranslate nohighlight">\(T\)</span>).</p>
+<p>In the TAM Primal RKHS framework, this is resolved analytically. Let <span class="math notranslate nohighlight">\(\phi_{tree}(x_A)\)</span> be the highly sparse, mutually exclusive indicator vector generated by a Random Binning Feature ensemble (see the Tree Effect), and let <span class="math notranslate nohighlight">\(\phi_{lin}(x_B)\)</span> be a globally supported continuous linear projection. Their Kronecker product yields:</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[\phi_{cross}(x_A, x_B) = \phi_{tree}(x_A) \otimes \phi_{lin}(x_B)\]</div>
+</div>
+<p>Geometrically, this operation projects the continuous linear gradient strictly into the disjoint spatial support of the tree’s terminal leaves. By Aronszajn’s theorem, because both marginal spaces are valid Hilbert spaces, their product rigorously generates a valid piecewise-continuous RKHS.</p>
+<section id="structural-safety-via-the-global-primal-equation">
+<h3>Structural Safety via the Global Primal Equation<a class="headerlink" href="#structural-safety-via-the-global-primal-equation" title="Link to this heading">¶</a></h3>
+<p>Because the tensor product creates a massive number of coefficients (e.g., Total Leaves <span class="math notranslate nohighlight">\(\times\)</span> Linear Features), standard local regressions would suffer catastrophic matrix singularity. However, because TAM solves the system globally, the resulting tensor dimension <span class="math notranslate nohighlight">\(D\)</span> is analytically safeguarded by the core group equation:</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[\hat{\theta}_g = \left( \Phi_g^\top \Lambda_g^\top \Lambda_g \Phi_g + T \cdot P_{cross} \right)^{-1} \Phi_g^\top \Lambda_g^\top \Lambda_g Y_g\]</div>
+</div>
+<p>The anisotropic penalty <span class="math notranslate nohighlight">\(P_{cross}\)</span> ensures absolute structural safety. If a specific spatial partition <span class="math notranslate nohighlight">\(R_{b,m}\)</span> experiences an absence of temporal data (i.e., the corresponding rows in the masking matrix <span class="math notranslate nohighlight">\(\Lambda_g\)</span> evaluate to zero), the explicit structural penalty matrix <span class="math notranslate nohighlight">\(P_{cross}\)</span> strictly dominates that empty subspace. It smoothly shrinks the unstable local slope <span class="math notranslate nohighlight">\(\theta_{g, i}\)</span> to exactly <strong>zero</strong>.</p>
+<p>Consequently, the local prediction does not revert to an arbitrary localized constant; the interaction term perfectly zeroes itself out, causing the model to gracefully fall back exclusively on the <strong>global marginal main effects</strong> (e.g., the global intercept and global linear trend) fitted concurrently in the broader equation.</p>
+<blockquote>
+<div><p>Note: To successfully compute these local slopes without triggering matrix singularities, the underlying tree must either rely on massive overlapping ensembles (<span class="math notranslate nohighlight">\(B \gg 1\)</span>) or explicitly trigger the 1D Flat Histogram architecture using the <code class="docutils literal notranslate"><span class="pre">max_leaves</span></code> hyperparameter.</p>
+</div></blockquote>
+</section>
+</section>
+</section>
+
+        </article>
+      </div>
+      <footer>
+        
+        <div class="related-pages">
+          <a class="next-page" href="PHYSICS_PIKL.html">
+              <div class="page-info">
+                <div class="context">
+                  <span>Next</span>
+                </div>
+                <div class="title">Physics-Informed Kernel Learning (PIKL)</div>
+              </div>
+              <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
+            </a>
+          <a class="prev-page" href="CATEGORICAL.html">
+              <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
+              <div class="page-info">
+                <div class="context">
+                  <span>Previous</span>
+                </div>
+                
+                <div class="title">The Categorical Effect (Discrete Topologies)</div>
+                
+              </div>
+            </a>
+        </div>
+        <div class="bottom-of-page">
+          <div class="left-details">
+            <div class="copyright">
+                Copyright &#169; 2026, Yann Allioux, Nathan Doumèche, Éloi Bedek
+            </div>
+            Made with <a href="https://www.sphinx-doc.org/">Sphinx</a> and <a class="muted-link" href="https://pradyunsg.me">@pradyunsg</a>'s
+            
+            <a href="https://github.com/pradyunsg/furo">Furo</a>
+            
+          </div>
+          <div class="right-details">
+            
+          </div>
+        </div>
+        
+      </footer>
+    </div>
+    <aside class="toc-drawer">
+      
+      
+      <div class="toc-sticky toc-scroll">
+        <div class="toc-title-container">
+          <span class="toc-title">
+            On this page
+          </span>
+        </div>
+        <div class="toc-tree-container">
+          <div class="toc-tree">
+            <ul>
+<li><a class="reference internal" href="#">The Tensor Product Effect (Interactions)</a><ul>
+<li><a class="reference internal" href="#formula-definition">Formula Definition</a></li>
+<li><a class="reference internal" href="#optimal-penalization-scale-invariance">Optimal Penalization (Scale-Invariance)</a></li>
+<li><a class="reference internal" href="#the-geometric-scale-of-the-kronecker-product">The Geometric Scale of the Kronecker Product</a></li>
+<li><a class="reference internal" href="#rkhs-eligibility-and-the-representer-theorem">RKHS Eligibility and The Representer Theorem</a></li>
+<li><a class="reference internal" href="#neural-interactions-and-marginal-clarity-critique">Neural Interactions and Marginal Clarity (Critique)</a></li>
+<li><a class="reference internal" href="#theoretical-integration-hardware-translation">Theoretical Integration &amp; Hardware Translation</a></li>
+<li><a class="reference internal" href="#theoretical-extension-piecewise-continuous-regressions-linear-trees">Theoretical Extension: Piecewise Continuous Regressions (Linear Trees)</a><ul>
+<li><a class="reference internal" href="#structural-safety-via-the-global-primal-equation">Structural Safety via the Global Primal Equation</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+          </div>
+        </div>
+      </div>
+      
+      
+    </aside>
+  </div>
+</div><script src="../../_static/documentation_options.js?v=590429e0"></script>
+    <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="../../_static/scripts/furo.js?v=46bd48cc"></script>
+    <script>window.MathJax = {"options": {"processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+    <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@4/tex-mml-chtml.js"></script>
+    </body>
+</html>

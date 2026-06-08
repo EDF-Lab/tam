@@ -1,0 +1,654 @@
+<!doctype html>
+<html class="no-js" lang="en" data-content_root="./">
+  <head><meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="index" title="Index" href="genindex.html"><link rel="search" title="Search" href="search.html"><link rel="next" title="References" href="bibliography.html"><link rel="prev" title="🤝 Contributing to Time series Additive Model (TAM)" href="CONTRIBUTING.html">
+        <link rel="prefetch" href="_static/logo.png" as="image">
+
+    <!-- Generated with Sphinx 9.1.0 and Furo 2025.12.19 -->
+        <title>📘 Documentation Generation Guide (TAM) - TAM 1.2.3 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=d111a655" />
+    <link rel="stylesheet" type="text/css" href="_static/styles/furo.css?v=7bdb33bb" />
+    <link rel="stylesheet" type="text/css" href="_static/styles/furo-extensions.css?v=8dab3a3b" />
+    
+    
+
+
+<style>
+  body {
+    --color-code-background: #f2f2f2;
+  --color-code-foreground: #1e1e1e;
+  
+  }
+  @media not print {
+    body[data-theme="dark"] {
+      --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+    }
+    @media (prefers-color-scheme: dark) {
+      body:not([data-theme="light"]) {
+        --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+      }
+    }
+  }
+</style></head>
+  <body>
+    
+    <script>
+      document.body.dataset.theme = localStorage.getItem("theme") || "auto";
+    </script>
+    
+
+<svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
+  <symbol id="svg-toc" viewBox="0 0 24 24">
+    <title>Contents</title>
+    <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 1024 1024">
+      <path d="M408 442h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8zm-8 204c0 4.4 3.6 8 8 8h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56zm504-486H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zm0 632H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zM115.4 518.9L271.7 642c5.8 4.6 14.4.5 14.4-6.9V388.9c0-7.4-8.5-11.5-14.4-6.9L115.4 505.1a8.74 8.74 0 0 0 0 13.8z"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-menu" viewBox="0 0 24 24">
+    <title>Menu</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-menu">
+      <line x1="3" y1="12" x2="21" y2="12"></line>
+      <line x1="3" y1="6" x2="21" y2="6"></line>
+      <line x1="3" y1="18" x2="21" y2="18"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-arrow-right" viewBox="0 0 24 24">
+    <title>Expand</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-chevron-right">
+      <polyline points="9 18 15 12 9 6"></polyline>
+    </svg>
+  </symbol>
+  <symbol id="svg-sun" viewBox="0 0 24 24">
+    <title>Light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="feather-sun">
+      <circle cx="12" cy="12" r="5"></circle>
+      <line x1="12" y1="1" x2="12" y2="3"></line>
+      <line x1="12" y1="21" x2="12" y2="23"></line>
+      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+      <line x1="1" y1="12" x2="3" y2="12"></line>
+      <line x1="21" y1="12" x2="23" y2="12"></line>
+      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+      <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon" viewBox="0 0 24 24">
+    <title>Dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-moon">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454z" />
+    </svg>
+  </symbol>
+  <symbol id="svg-sun-with-moon" viewBox="0 0 24 24">
+    <title>Auto light/dark, in light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path style="opacity: 50%" d="M 5.411 14.504 C 5.471 14.504 5.532 14.504 5.591 14.504 C 3.639 16.319 4.383 19.569 6.931 20.352 C 7.693 20.586 8.512 20.551 9.25 20.252 C 8.023 23.207 4.056 23.725 2.11 21.184 C 0.166 18.642 1.702 14.949 4.874 14.536 C 5.051 14.512 5.231 14.5 5.411 14.5 L 5.411 14.504 Z"/>
+      <line x1="14.5" y1="3.25" x2="14.5" y2="1.25"/>
+      <line x1="14.5" y1="15.85" x2="14.5" y2="17.85"/>
+      <line x1="10.044" y1="5.094" x2="8.63" y2="3.68"/>
+      <line x1="19" y1="14.05" x2="20.414" y2="15.464"/>
+      <line x1="8.2" y1="9.55" x2="6.2" y2="9.55"/>
+      <line x1="20.8" y1="9.55" x2="22.8" y2="9.55"/>
+      <line x1="10.044" y1="14.006" x2="8.63" y2="15.42"/>
+      <line x1="19" y1="5.05" x2="20.414" y2="3.636"/>
+      <circle cx="14.5" cy="9.55" r="3.6"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon-with-sun" viewBox="0 0 24 24">
+    <title>Auto light/dark, in dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path d="M 8.282 7.007 C 8.385 7.007 8.494 7.007 8.595 7.007 C 5.18 10.184 6.481 15.869 10.942 17.24 C 12.275 17.648 13.706 17.589 15 17.066 C 12.851 22.236 5.91 23.143 2.505 18.696 C -0.897 14.249 1.791 7.786 7.342 7.063 C 7.652 7.021 7.965 7 8.282 7 L 8.282 7.007 Z"/>
+      <line style="opacity: 50%" x1="18" y1="3.705" x2="18" y2="2.5"/>
+      <line style="opacity: 50%" x1="18" y1="11.295" x2="18" y2="12.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="4.816" x2="14.464" y2="3.964"/>
+      <line style="opacity: 50%" x1="20.711" y1="10.212" x2="21.563" y2="11.063"/>
+      <line style="opacity: 50%" x1="14.205" y1="7.5" x2="13.001" y2="7.5"/>
+      <line style="opacity: 50%" x1="21.795" y1="7.5" x2="23" y2="7.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="10.184" x2="14.464" y2="11.036"/>
+      <line style="opacity: 50%" x1="20.711" y1="4.789" x2="21.563" y2="3.937"/>
+      <circle style="opacity: 50%" cx="18" cy="7.5" r="2.169"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-pencil" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-pencil-code">
+      <path d="M4 20h4l10.5 -10.5a2.828 2.828 0 1 0 -4 -4l-10.5 10.5v4" />
+      <path d="M13.5 6.5l4 4" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+  <symbol id="svg-eye" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-eye-code">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M10 12a2 2 0 1 0 4 0a2 2 0 0 0 -4 0" />
+      <path
+        d="M11.11 17.958c-3.209 -.307 -5.91 -2.293 -8.11 -5.958c2.4 -4 5.4 -6 9 -6c3.6 0 6.6 2 9 6c-.21 .352 -.427 .688 -.647 1.008" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+</svg>
+
+<input type="checkbox" class="sidebar-toggle" name="__navigation" id="__navigation" aria-label="Toggle site navigation sidebar">
+<input type="checkbox" class="sidebar-toggle" name="__toc" id="__toc" aria-label="Toggle table of contents sidebar">
+<label class="overlay sidebar-overlay" for="__navigation"></label>
+<label class="overlay toc-overlay" for="__toc"></label>
+
+<a class="skip-to-content muted-link" href="#furo-main-content">Skip to content</a>
+
+
+
+<div class="page">
+  <header class="mobile-header">
+    <div class="header-left">
+      <label class="nav-overlay-icon" for="__navigation">
+        <span class="icon"><svg><use href="#svg-menu"></use></svg></span>
+      </label>
+    </div>
+    <div class="header-center">
+      <a href="index.html"><div class="brand">TAM 1.2.3 documentation</div></a>
+    </div>
+    <div class="header-right">
+      <div class="theme-toggle-container theme-toggle-header">
+        <button class="theme-toggle" aria-label="Toggle Light / Dark / Auto color theme">
+          <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+          <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+          <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+          <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+        </button>
+      </div>
+      <label class="toc-overlay-icon toc-header-icon" for="__toc">
+        <span class="icon"><svg><use href="#svg-toc"></use></svg></span>
+      </label>
+    </div>
+  </header>
+  <aside class="sidebar-drawer">
+    <div class="sidebar-container">
+      
+      <div class="sidebar-sticky"><a class="sidebar-brand" href="index.html">
+  <div class="sidebar-logo-container">
+    <img class="sidebar-logo" src="_static/logo.png" alt="Logo"/>
+  </div>
+  
+  <span class="sidebar-brand-text">TAM 1.2.3 documentation</span>
+  
+</a><form class="sidebar-search-container" method="get" action="search.html" role="search">
+  <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
+  <input type="hidden" name="check_keywords" value="yes">
+  <input type="hidden" name="area" value="default">
+</form>
+<div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
+  <p class="caption" role="heading"><span class="caption-text">🚀 Getting Started</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="README.html">TAM (Time series Additive Model)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="THEORY.html">📚 Theory Introduction of TAM and Cheatsheet</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">🧠 Theory: The Core Engine</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="math/core/01_primal_model.html">The Exact Primal Resolution</a></li>
+<li class="toctree-l1"><a class="reference internal" href="math/core/02_tensorization.html">The Theory of N-Dim Broadcasting and Normalization</a></li>
+<li class="toctree-l1"><a class="reference internal" href="math/core/03_linear_system.html">Linear Algebra: Direct vs. Iterative Solvers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="math/core/04_complexity.html">Computational Complexity (<span class="math notranslate nohighlight">\(\mathcal{O}(D^3+T D^2)\)</span> vs <span class="math notranslate nohighlight">\(\mathcal{O}(T^3)\)</span>)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="math/core/05_gcv_theory.html">Hyperparameter Optimization: Generalized Cross-Validation (GCV)</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">🌈 Theory: The Spectrum Library</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="math/spectrum/LINEAR.html">The Linear Effect (Ridge Regression)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="math/spectrum/SPLINES.html">The Spline Effect (P-Splines)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="math/spectrum/FOURIER.html">The Fourier Effect (Sobolev Spectral Basis)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="math/spectrum/WAVELETS.html">The Wavelet Effect (Ricker)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="math/spectrum/CHEBYSHEV.html">The Chebyshev Effect (Polynomial Minimax Basis)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="math/spectrum/TREE.html">The Tree Effect (Random Forests &amp; Binning Features)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="math/spectrum/NEURAL.html">The Neural Effect (NEPT)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="math/spectrum/RBF.html">The Radial Basis Function (RBF) Effect</a></li>
+<li class="toctree-l1"><a class="reference internal" href="math/spectrum/CATEGORICAL.html">The Categorical Effect (Discrete Topologies)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="math/spectrum/CROSS_TENSOR.html">The Tensor Product Effect (Interactions)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="math/spectrum/PHYSICS_PIKL.html">Physics-Informed Kernel Learning (PIKL)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="math/spectrum/PID.html">The PID Effect (Autoregressive Control Dynamics)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="math/spectrum/LINEAR_TREE.html">The Linear Tree Effect (Varying-Coefficient Models)</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">⚙️ Theory: Meta-Learners &amp; Inference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="math/meta/01_adaptive_online.html">Adaptive Online Learning (AdaptiveTAM)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="math/meta/02_kalman_filter.html">Dynamic Tracking via Extended Kalman Filtering [BETA]</a></li>
+<li class="toctree-l1"><a class="reference internal" href="math/meta/03_hierarchical_joint.html">Hierarchical Joint Optimization [BETA]</a></li>
+<li class="toctree-l1"><a class="reference internal" href="math/meta/04_conformal_safety.html">Uncertainty Quantification via Conformal Prediction [EXP]</a></li>
+<li class="toctree-l1"><a class="reference internal" href="math/meta/05_opera_aggregation.html">Online Prediction by Expert Aggregation (OPERA)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="math/meta/06_deep_gam_backfitting.html">Deep-GAM Hybridization and Orthogonal Backfitting [EXP]</a></li>
+<li class="toctree-l1"><a class="reference internal" href="math/meta/07_statistical_diagnostics.html">Statistical Inference and Diagnostics (Glass-Box) [EXP]</a></li>
+<li class="toctree-l1"><a class="reference internal" href="math/meta/08_auto_orchestrator.html">Evolutionary Orchestration and Multi-Fidelity AutoML</a></li>
+<li class="toctree-l1"><a class="reference internal" href="math/meta/09_auto_data_topology.html">AutoTAM Data Topology and Structural Safeguards [EXP]</a></li>
+<li class="toctree-l1"><a class="reference internal" href="math/meta/10_mlops_evaluation.html">Empirical Evaluation and MLOps Diagnostics</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">💻 Architecture: Core Implementation</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="architecture/core/01_additive_api.html">The Additive API and Object-Oriented Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="architecture/core/02_data_pipeline.html">The Engineering of Normalization and Padding</a></li>
+<li class="toctree-l1"><a class="reference internal" href="architecture/core/03_math_dispatcher.html">PyTorch Math Dispatcher &amp; Matrix-Free Solvers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="architecture/core/04_hardware_memory.html">Hardware Memory Dispatch &amp; Anti-OOM Systems</a></li>
+<li class="toctree-l1"><a class="reference internal" href="architecture/core/05_gcv_implementation.html">Auto-ML via Generalized Cross-Validation (GCV)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="architecture/core/06_the_spectrum_api.html">The Spectral Dictionary: PyTorch Implementations &amp; Factory Assembly</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">🛠️ Architecture: Advanced Orchestration</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="architecture/meta/01_adaptive_code.html">Online Error Correction (AdaptiveTAM)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="architecture/meta/02_kalman_torchscript.html">Kalman TorchScript Optimizations &amp; Block Updates [BETA]</a></li>
+<li class="toctree-l1"><a class="reference internal" href="architecture/meta/03_hierarchical_code.html">Hierarchical Engineering &amp; Memory Assembly  [BETA]</a></li>
+<li class="toctree-l1"><a class="reference internal" href="architecture/meta/04_safety_code.html">Diagnostics, Visualization &amp; Utilities Engineering [EXP]</a></li>
+<li class="toctree-l1"><a class="reference internal" href="architecture/meta/05_opera_gpu.html">OPERA GPU Tensor Batching</a></li>
+<li class="toctree-l1"><a class="reference internal" href="architecture/meta/06_neural_hybrid.html">DeepGAM Engineering &amp; Sequential Encapsulation [EXP]</a></li>
+<li class="toctree-l1"><a class="reference internal" href="architecture/meta/07_diagnostics_utils.html">Diagnostics, Visualization &amp; Utilities Engineering  [EXP]</a></li>
+<li class="toctree-l1"><a class="reference internal" href="architecture/meta/08_auto_orchestrator_code.html">Orchestrator Pipeline and Evolutionary Hub-and-Spoke Engine [EXP]</a></li>
+<li class="toctree-l1"><a class="reference internal" href="architecture/meta/09_auto_data_topology_code.html">AutoTAM Data Topology: Stateful Architecture &amp; Pandas Vectorization [EXP]</a></li>
+<li class="toctree-l1"><a class="reference internal" href="architecture/meta/10_mlops_tracking_code.html">MLOps Tracking and Empirical Benchmarking (Engineering)</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">🧪 Gallery of Examples &amp; Use Cases</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="EXAMPLES.html">🧪 Gallery of Examples &amp; Use Cases</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">📚 References &amp; Changelog</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="AUTHORS.html">👥 Authors and Contributions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="ACKNOWLEDGEMENTS.html">🔬 Scientific Background &amp; Acknowledgments</a></li>
+<li class="toctree-l1"><a class="reference internal" href="CHANGELOG.html">Changelog</a></li>
+<li class="toctree-l1"><a class="reference internal" href="CONTRIBUTING.html">🤝 Contributing to Time series Additive Model (TAM)</a></li>
+<li class="toctree-l1 current current-page"><a class="current reference internal" href="#">📘 Documentation Generation Guide (TAM)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="bibliography.html">References</a></li>
+</ul>
+
+</div>
+</div>
+
+      </div>
+      
+    </div>
+  </aside>
+  <div class="main">
+    <div class="content">
+      <div class="article-container">
+        <a href="#" class="back-to-top muted-link">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+            <path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8v12z"></path>
+          </svg>
+          <span>Back to top</span>
+        </a>
+        <div class="content-icon-container">
+          <div class="view-this-page">
+  <a class="muted-link" href="_sources/README_DOC.md.txt" title="View this page">
+    <svg><use href="#svg-eye"></use></svg>
+    <span class="visually-hidden">View this page</span>
+  </a>
+</div>
+<div class="theme-toggle-container theme-toggle-content">
+            <button class="theme-toggle" aria-label="Toggle Light / Dark / Auto color theme">
+              <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+              <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+              <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+              <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+            </button>
+          </div>
+          <label class="toc-overlay-icon toc-content-icon" for="__toc">
+            <span class="icon"><svg><use href="#svg-toc"></use></svg></span>
+          </label>
+        </div>
+        <article role="main" id="furo-main-content">
+          <section class="tex2jax_ignore mathjax_ignore" id="documentation-generation-guide-tam">
+<h1>📘 Documentation Generation Guide (TAM)<a class="headerlink" href="#documentation-generation-guide-tam" title="Link to this heading">¶</a></h1>
+<p><a class="reference internal" href="README.html"><span class="std std-doc">⬅️ <code class="docutils literal notranslate"><span class="pre">README</span></code></span></a></p>
+<p>This guide explains how to build the Time series Additive Model (TAM) technical documentation from scratch on a local machine.</p>
+<p>Our “Docs as Code” pipeline generates three distinct products from a single source of truth:</p>
+<ol class="arabic simple">
+<li><p>🌐 <strong>A Comprehensive HTML Website</strong> (Includes everything: API, Theory, and Code).</p></li>
+<li><p>🧠 <strong>A Mathematical Theory PDF</strong> (Tailored for researchers and academic publications).</p></li>
+<li><p>💻 <strong>An Architecture &amp; Code PDF</strong> (Tailored for software engineers and auditors).</p></li>
+</ol>
+<hr class="docutils" />
+<section id="prerequisites">
+<h2>Prerequisites<a class="headerlink" href="#prerequisites" title="Link to this heading">¶</a></h2>
+<p>Before generating the documentation, ensure you have the following installed:</p>
+<ol class="arabic simple">
+<li><p><strong>Python 3.10+</strong></p></li>
+<li><p><strong>A LaTeX Distribution (Required for PDFs):</strong></p>
+<ul class="simple">
+<li><p><strong>Windows:</strong> Download and install <a class="reference external" href="https://miktex.org/download">MiKTeX for Windows</a>.</p>
+<ul>
+<li><p><em>Important:</em> During MiKTeX installation, ensure the option <strong>“Install missing packages on-the-fly”</strong> is set to <strong>“Yes”</strong>. Sphinx will automatically attempt to download the LaTeX packages it needs during the build.</p></li>
+</ul>
+</li>
+<li><p><strong>Mac/Linux:</strong> Install <a class="reference external" href="https://tug.org/mactex/">MacTeX</a> (macOS) or <a class="reference external" href="https://tug.org/texlive/">TeX Live</a> (Linux).</p></li>
+</ul>
+</li>
+</ol>
+</section>
+<hr class="docutils" />
+<section id="creating-the-workspace">
+<h2>Creating the Workspace<a class="headerlink" href="#creating-the-workspace" title="Link to this heading">¶</a></h2>
+<p>To avoid conflicts with other Python projects, we will create an isolated virtual environment.
+Open a terminal (Command Prompt <code class="docutils literal notranslate"><span class="pre">cmd</span></code>, PowerShell, or your OS equivalent) at the root of the project and run:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python<span class="w"> </span>-m<span class="w"> </span>venv<span class="w"> </span>.venv
+</pre></div>
+</div>
+<p><em>(Note: If <code class="docutils literal notranslate"><span class="pre">python</span></code> is not in your PATH, provide the full path to your Python executable, e.g., <code class="docutils literal notranslate"><span class="pre">C:/Users/USER/AppData/Local/Programs/Python/Python312/python.exe</span> <span class="pre">-m</span> <span class="pre">venv</span> <span class="pre">.venv</span></code>)</em></p>
+<p>This creates a <code class="docutils literal notranslate"><span class="pre">.venv/</span></code> folder containing a clean Python installation.</p>
+</section>
+<hr class="docutils" />
+<section id="activating-the-environment">
+<h2>Activating the Environment<a class="headerlink" href="#activating-the-environment" title="Link to this heading">¶</a></h2>
+<p>Activate the environment to work inside it.</p>
+<p><strong>On Windows (CMD):</strong></p>
+<div class="highlight-bat notranslate"><div class="highlight"><pre><span></span>.venv\Scripts\activate.bat
+</pre></div>
+</div>
+<p><strong>On Windows (PowerShell):</strong></p>
+<div class="highlight-powershell notranslate"><div class="highlight"><pre><span></span><span class="p">.\.</span><span class="n">venv</span><span class="p">\</span><span class="n">Scripts</span><span class="p">\</span><span class="n">Activate</span><span class="p">.</span><span class="n">ps1</span>
+</pre></div>
+</div>
+<p><strong>On Mac/Linux:</strong></p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">source</span><span class="w"> </span>.venv/bin/activate
+</pre></div>
+</div>
+<blockquote>
+<div><p>✅ Once activated, you should see <code class="docutils literal notranslate"><span class="pre">(.venv)</span></code> displayed at the beginning of your command line prompt.</p>
+</div></blockquote>
+</section>
+<hr class="docutils" />
+<section id="installing-dependencies">
+<h2>Installing Dependencies<a class="headerlink" href="#installing-dependencies" title="Link to this heading">¶</a></h2>
+<p>We need to install <strong>Sphinx</strong> (the documentation generator), the <strong>MyST Parser</strong> (for Markdown support), <strong>BibTeX</strong> (for academic citations), and the TAM package itself (so Sphinx can read the Python docstrings).</p>
+<p>Run this command at the root of the project:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>pip<span class="w"> </span>install<span class="w"> </span>-r<span class="w"> </span>requirements.txt
+</pre></div>
+</div>
+<p><em>(Note: The repository’s <code class="docutils literal notranslate"><span class="pre">requirements.txt</span></code> is already configured with <code class="docutils literal notranslate"><span class="pre">sphinx</span></code>, <code class="docutils literal notranslate"><span class="pre">myst-parser</span></code>, <code class="docutils literal notranslate"><span class="pre">sphinxcontrib-bibtex</span></code>, <code class="docutils literal notranslate"><span class="pre">sphinx-autodoc-typehints</span></code> and all necessary TAM dependencies.)</em></p>
+</section>
+<hr class="docutils" />
+<section id="building-the-documentation">
+<h2>Building the Documentation<a class="headerlink" href="#building-the-documentation" title="Link to this heading">¶</a></h2>
+<p>Once the installation is complete, run the automation script located in your working directory:</p>
+<p><strong>On Windows:</strong></p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>.<span class="se">\b</span>uild_docs.bat
+</pre></div>
+</div>
+<p><strong>On Mac/Linux:</strong> <em>(Assuming you have an equivalent shell script)</em></p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>./build_docs.sh
+</pre></div>
+</div>
+<p>This script will automatically:</p>
+<ol class="arabic simple">
+<li><p><strong>Clean</strong> previous builds to prevent caching issues.</p></li>
+<li><p><strong>Scan</strong> the Python source code (<code class="docutils literal notranslate"><span class="pre">src/tam</span></code>) to auto-generate the API reference.</p></li>
+<li><p><strong>Build</strong> the global HTML website.</p></li>
+<li><p><strong>Build</strong> the Mathematical Theory LaTeX files and compile them into a PDF.</p></li>
+<li><p><strong>Build</strong> the Architecture &amp; Code LaTeX files and compile them into a PDF.</p></li>
+</ol>
+</section>
+<hr class="docutils" />
+<section id="viewing-the-results">
+<h2>Viewing the Results<a class="headerlink" href="#viewing-the-results" title="Link to this heading">¶</a></h2>
+<p>If the generation is successful, you will find your two distinct documentation formats in the <code class="docutils literal notranslate"><span class="pre">docs/build/</span></code> directory. You can open them directly:</p>
+<ul class="simple">
+<li><p>HTML 🌐 <strong>Interactive Website:</strong> <code class="docutils literal notranslate"><span class="pre">docs/build/html/index.html</span></code></p></li>
+<li><p>PDF 🧠 <strong>Theory (Researchers)</strong> &amp; 💻 <strong>Architecture (Engineers):</strong> <code class="docutils literal notranslate"><span class="pre">docs/build/latex_theory/TAM_documentation.pdf</span></code></p></li>
+</ul>
+</section>
+<hr class="docutils" />
+<section id="troubleshooting-pdf-generation-corporate-environments">
+<h2>6. Troubleshooting PDF Generation (Corporate Environments)<a class="headerlink" href="#troubleshooting-pdf-generation-corporate-environments" title="Link to this heading">¶</a></h2>
+<p>Building the interactive HTML website is entirely handled by Python and Sphinx. However, generating the academic and architectural PDFs involves a more complex pipeline relying on a LaTeX engine (like MiKTeX).</p>
+<p>In a corporate IT environment, strict network firewalls and restricted user privileges can disrupt this pipeline. To successfully generate the PDFs, your system requires three key elements:</p>
+<p><strong>1. System PATH Recognition</strong>
+The terminal running the build script must be able to locate the LaTeX compiler. If you just installed your LaTeX distribution, you must completely restart your terminal or IDE (like VSCode) so it can recognize commands like <code class="docutils literal notranslate"><span class="pre">pdflatex</span></code>.</p>
+<p><strong>2. Dynamic Package Downloading (“On-the-fly”)</strong>
+To format the PDFs correctly, Sphinx relies on specific LaTeX styling packages (such as <code class="docutils literal notranslate"><span class="pre">cmap.sty</span></code>, <code class="docutils literal notranslate"><span class="pre">times</span></code>, <code class="docutils literal notranslate"><span class="pre">fncychap</span></code>, <code class="docutils literal notranslate"><span class="pre">tabulary</span></code>, etc.). Your LaTeX distribution must be configured to download and install missing packages automatically in the background during the build process.</p>
+<p><strong>3. Network Access and User Permissions</strong>
+This is the most common bottleneck in enterprise environments. Automatic background downloads often fail because:</p>
+<ul class="simple">
+<li><p><strong>Admin Rights:</strong> Background installations might be blocked if you lack administrator privileges. You can bypass this by ensuring your LaTeX package manager (e.g., MiKTeX Console) is set to operate strictly in <strong>“User mode”</strong>, which installs packages locally in your <code class="docutils literal notranslate"><span class="pre">AppData</span></code> folder.</p></li>
+<li><p><strong>Firewalls &amp; Proxies:</strong> Corporate firewalls may block connections to default LaTeX servers, resulting in “Timeout” errors. If this happens, you will need to open your LaTeX console, change the remote package repository to an alternative mirror (e.g., an HTTPS server in your country), or configure your company’s proxy settings directly within the LaTeX console to allow manual package installations.</p></li>
+</ul>
+</section>
+<hr class="docutils" />
+<section id="quick-guide-how-to-contribute">
+<h2>🏗️ Quick Guide: How to Contribute<a class="headerlink" href="#quick-guide-how-to-contribute" title="Link to this heading">¶</a></h2>
+<p>To maintain crystalline clarity and respond to two very different audiences (researchers/mathematicians vs. software engineers), TAM uses a strict <strong>Mirror Architecture</strong> for its documentation.</p>
+<p>We divide the documentation into two sealed worlds. When you add a new feature, you must write a pair of files:</p>
+<ol class="arabic simple">
+<li><p>🧠 <strong><code class="docutils literal notranslate"><span class="pre">math/</span></code> (The Brain):</strong> Explains <em>why</em> the formula is exact. Contains theory, LaTeX equations, theorems, and academic citations.</p></li>
+<li><p>💻 <strong><code class="docutils literal notranslate"><span class="pre">architecture/</span></code> (The Hands):</strong> Explains <em>how</em> the Python script calculates the formula without crashing. Contains PyTorch implementation details, OOP structure, VRAM management, and <code class="docutils literal notranslate"><span class="pre">{literalinclude}</span></code> code extraction.</p></li>
+</ol>
+<section id="the-golden-rules-of-writing-sphinx-myst">
+<h3>🏛️ The Golden Rules of Writing (Sphinx/MyST)<a class="headerlink" href="#the-golden-rules-of-writing-sphinx-myst" title="Link to this heading">¶</a></h3>
+<p>To ensure the pipelines compile our PDFs and HTML flawlessly, all contributors must adhere to these strict writing rules:</p>
+<ul class="simple">
+<li><p><strong>Separation of Code Comments vs. Markdown Theory:</strong> Because the <code class="docutils literal notranslate"><span class="pre">architecture/</span></code> Markdown files dynamically pull source code via <code class="docutils literal notranslate"><span class="pre">{literalinclude}</span></code>, your Python docstrings (<code class="docutils literal notranslate"><span class="pre">r&quot;&quot;&quot;...&quot;&quot;&quot;</span></code>) and inline comments must focus <em>strictly</em> on software engineering (e.g., tensor shapes, VRAM allocation, OOM prevention, PyTorch workarounds). Do <strong>not</strong> write LaTeX mathematical proofs or academic citations inside the <code class="docutils literal notranslate"><span class="pre">.py</span></code> files. Let the <code class="docutils literal notranslate"><span class="pre">math/</span></code> Markdown files carry that burden.</p></li>
+<li><p><strong>Zero Redundancy:</strong> The <code class="docutils literal notranslate"><span class="pre">architecture/</span></code> files must <em>never</em> re-demonstrate the math. Instead, use clean relative links to point to the theory (e.g., <code class="docutils literal notranslate"><span class="pre">[See</span> <span class="pre">the</span> <span class="pre">theory](../../math/core/01_primal_model.md)</span></code>).</p></li>
+<li><p><strong>Code Extraction:</strong> <strong>Do not</strong> hard-copy and paste PyTorch code into Markdown files. Exclusively use the Sphinx <code class="docutils literal notranslate"><span class="pre">{literalinclude}</span></code> directive with exact relative paths (e.g., <code class="docutils literal notranslate"><span class="pre">../../../../src/tam/...</span></code>) and Python comment tags (<code class="docutils literal notranslate"><span class="pre">#:</span> <span class="pre">&lt;tag&gt;</span></code> and <code class="docutils literal notranslate"><span class="pre">#:</span> <span class="pre">&lt;/tag&gt;</span></code>) to pull code dynamically.</p></li>
+<li><p><strong>Academic Citations:</strong> Any bibliographic reference to justify scientific work must use the MyST formalism <code class="docutils literal notranslate"><span class="pre">{cite:p}\</span></code>bibtex_key`<code class="docutils literal notranslate"><span class="pre">.</span> <span class="pre">Ensure</span> <span class="pre">you</span> <span class="pre">add</span> <span class="pre">the</span> <span class="pre">corresponding</span> <span class="pre">entry</span> <span class="pre">to</span> </code>references.bib` at the root of the project so it compiles in the PDFs.</p></li>
+<li><p><strong>No Emojis in PDFs:</strong> Ban emojis in titles and the body of text intended for the PDFs (<code class="docutils literal notranslate"><span class="pre">math/</span></code> and <code class="docutils literal notranslate"><span class="pre">architecture/</span></code> folders) to avoid fatal <code class="docutils literal notranslate"><span class="pre">pdflatex</span></code> compilation errors. Emojis are only permitted in the global <code class="docutils literal notranslate"><span class="pre">README.md</span></code>.</p></li>
+</ul>
+</section>
+<section id="annotated-directory-structure-mapping-md-py">
+<h3>📂 Annotated Directory Structure (Mapping <code class="docutils literal notranslate"><span class="pre">.md</span></code> ↔ <code class="docutils literal notranslate"><span class="pre">.py</span></code>)<a class="headerlink" href="#annotated-directory-structure-mapping-md-py" title="Link to this heading">¶</a></h3>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>TAM/
+│
+├── README.md                # Home (Auto-copied by Sphinx)
+├── paper.md                 # JOSS Paper (Independent from Sphinx)
+│
+├── src/tam/                 # 🐍 SOURCE CODE 
+│
+└───                         # 📚 DOCUMENTATION (Sphinx)
+    │
+    ├── math/                # 🧠 THE &quot;WHY&quot; (Theory &amp; Equations)
+    │   │
+    │   ├── core/            # -&gt; Fundamental equations of the solver
+    │   │   ├── 01_primal_model.md       # Representer Theorem, Aronszajn. 
+    │   │   │                            # Scope scripts: _base.py, additive.py
+    │   │   ├── 02_tensorization.md      # N-Dim Broadcasting, temporal/group independence. 
+    │   │   │                            # Scope scripts: _data.py, _math.py
+    │   │   ├── 03_linear_system.md      # Linear algebra (Cholesky vs Conjugate Gradient). 
+    │   │   │                            # Scope scripts: _math.py, _dispatcher.py
+    │   │   ├── 04_complexity.md         # Proof of O(N D²) vs O(N³) complexity. 
+    │   │   │                            # Scope scripts: _math.py, _dispatcher.py
+    │   │   └── 05_gcv_theory.md         # Golub&#39;s trace, Tikhonov regularization. 
+    │   │                                # Scope scripts: _dispatcher_gcv.py
+    │   │
+    │   ├── spectrum/        # -&gt; Mathematical definition of Bases (Formulas for Φ and P)
+    │   │   ├── LINEAR.md                # Scope scripts: _linear.py
+    │   │   ├── SPLINES.md               # Scope scripts: _spline.py
+    │   │   ├── FOURIER.md               # Scope scripts: _fourier.py
+    │   │   ├── WAVELETS.md              # Scope scripts: _wavelet.py
+    │   │   ├── NEURAL.md                # Scope scripts: _neural.py
+    │   │   ├── PHYSICS_PIKL.md          # Scope scripts: _physics.py
+    │   │   ├── RBF.md                   # Scope scripts: _rbf.py
+    │   │   ├── CATEGORICAL.md           # Scope scripts: _categorical.py
+    │   │   ├── CHEBYSHEV.md             # Scope scripts: _chebyshev.py
+    │   │   ├── TREE.md                  # Scope scripts: _tree.py
+    │   │   ├── LINEAR_TREE.md           # Scope scripts: _linear_tree.py
+    │   │   ├── PID.md                   # Scope scripts: _pid.py and model/bode.py  
+    │   │   └── CROSS_TENSOR.md          # Scope scripts: _tensor.py 
+    │   │
+    │   └── meta/            # -&gt; Theory of Meta-Learning algorithms
+    │       ├── 01_adaptive_online.md         # Sliding windows theory and concept drift. 
+    │       │                                 # Scope scripts: adaptive.py
+    │       ├── 02_kalman_filter.md           # Extended Kalman Filtering, Woodbury matrix identity. 
+    │       │                                 # Scope scripts: kalman.py
+    │       ├── 03_hierarchical_joint.md      # Joint optimization under constraints (Parent = Sum). 
+    │       │                                 # Scope scripts: hierarchical.py
+    │       ├── 04_conformal_safety.md        # Conformal prediction (Split, ACI by Gibbs &amp; Candès). 
+    │       │                                 # Scope scripts: safety.py
+    │       ├── 05_opera_aggregation.md       # Expert aggregation, regret bounds, Cesa-Bianchi. 
+    │       │                                 # Scope scripts: opera.py
+    │       ├── 06_deep_gam_backfitting.md    # Orthogonal backfitting per group (Hybridization). 
+    │       │                                 # Scope scripts: neural.py (DeepGAM)
+    │       ├── 07_statistical_diagnostics.md # T-tests, Bootstrap, Degrees of freedom. 
+    │       │                                 # Scope scripts: diagnostics.py
+    │       ├── 08_auto_orchestrator.md       # Evolutionary AutoML, EDA, Hub-and-Spoke, Parsimony.
+    │       │                                   # Scope: auto_tam.py, drag_tam.py, knowledge_graph.py, population_nodes.py, evolution_reporter.py
+    │       │                                   # Pipeline Scope: context.py, data_manager.py, base_discoverer.py, expert_expander.py, ensemble_selector.py
+    │       ├── 09_auto_data_topology.md      # Data topology, Krylov stability, Covariate Lock, Panel Data bounds.
+    │       │                                   # Scope: data_profiler.py, feature_engineer.py, effect_selector.py, parser.py
+    │       └── 10_mlops_evaluation.md          # Theory of empirical metrics, SMAPE, and Temporal Degradation.
+    │                                           # Scope scripts: metrics.py, performance_analyzer.py
+    │
+    └── architecture/        # 💻 THE &quot;HOW&quot; (Code, PyTorch &amp; API)
+        │
+        ├── core/            # -&gt; Implementation of the core engine
+        │   ├── 01_additive_api.md       # Main class and OOP construction.
+        │   │                            # Scope scripts: additive.py, _base.py, _factory.py, _base_effects.py, utils.py
+        │   ├── 02_data_pipeline.md      # Normalization, Padding, transformations. 
+        │   │                            # Scope scripts: _data.py
+        │   ├── 03_math_dispatcher.md    # PyTorch routing (Direct Cholesky vs Sparse CG). 
+        │   │                            # Scope scripts: _dispatcher.py, _math.py
+        │   ├── 04_hardware_memory.md    # Anti-OOM systems, RAM/VRAM estimation. 
+        │   │                            # Scope scripts: hardware.py, _memory.py, _dispatcher.py (catch OOM), _tree.py (sparse COO), utils.py
+        │   ├── 05_gcv_implementation.md # Discrete coordinate descent and block matrices.
+        │   │                            # Scope scripts: _dispatcher_gcv.py
+        │   └── 06_the_spectrum_api.md   # Spectrum of core mathematic projection basis. 
+        │                                # Scope scripts contained in model/spectrum folder
+        │
+        └── meta/            # -&gt; Implementation of Wrappers / Meta-Models
+            ├── 01_adaptive_code.md      # Vectorized sliding windows. 
+            │                            # Scope scripts: adaptive.py, _data.py (_transform_data_adaptive)
+            ├── 02_kalman_torchscript.md # @torch.jit.script optimization and block updates. 
+            │                            # Scope scripts: kalman.py
+            ├── 03_hierarchical_code.md  # Creation of global sparse L^T L loss matrices. 
+            │                            # Scope scripts: hierarchical.py
+            ├── 04_safety_code.md        # Tensor calculation of quantiles and residual tracker. 
+            │                            # Scope scripts: safety.py
+            ├── 05_opera_gpu.md          # 3D Tensor Batching (Groups, Time, Experts) on GPU. 
+            │                            # Scope scripts: opera.py
+            ├── 06_neural_hybrid.md      # Integration of nn.Sequential in the backfitting loop. 
+            │                            # Scope scripts: neural.py (DeepGAM)
+            ├── 07_diagnostics_utils.md  # Effect plots, statistical tests, and Pandas formatting. 
+            │                            # Scope scripts: diagnostics.py, plotting.py, utils.py
+            ├── 08_auto_orchestrator_code.md  # 7-Step Pipeline, Knowledge Graph, Dynamic Annealing, OPERA.
+            │                                   # Scope: auto_tam.py, drag_tam.py, knowledge_graph.py, population_nodes.py, evolution_reporter.py, autotam_report_generator.py
+            │                                   # Pipeline Scope: context.py, data_manager.py, base_discoverer.py, expert_expander.py, ensemble_selector.py
+            ├── 09_auto_data_topology_code.md # Stateful Bounds, Collinearity Filter, Regex Parser.
+            │                                   # Scope: data_profiler.py, feature_engineer.py, effect_selector.py, parser.py
+            └── 10_mlops_tracking_code.md       # BenchmarkTracker OOP, NaN-safe metrics, Matplotlib dashboards.
+                                                # Scope scripts: tracker.py, metrics.py, plotting.py (evaluation)
+</pre></div>
+</div>
+</section>
+<section id="practical-example-adding-the-kalman-filter">
+<h3>Practical Example: Adding the Kalman Filter<a class="headerlink" href="#practical-example-adding-the-kalman-filter" title="Link to this heading">¶</a></h3>
+<p>If you are tasked with adding documentation for the Extended Kalman Filter meta-learner, your contribution must be split exactly like this:</p>
+<p><strong>1. The Math File (<code class="docutils literal notranslate"><span class="pre">docs/source/math/meta/02_kalman_filter.md</span></code>)</strong></p>
+<ul class="simple">
+<li><p><strong>Target Audience:</strong> Researchers.</p></li>
+<li><p><strong>Scope:</strong> Focus entirely on the Markov equations and the Woodbury matrix identity.</p></li>
+<li><p><strong>Requirements:</strong> Use standard LaTeX blocks for formulas (<code class="docutils literal notranslate"><span class="pre">$$...$$</span></code>). Cite academic papers justifying the Extended Kalman Filter approach using <code class="docutils literal notranslate"><span class="pre">{cite:p}</span></code>.</p></li>
+</ul>
+<p><strong>2. The Architecture File (<code class="docutils literal notranslate"><span class="pre">docs/source/architecture/meta/02_kalman_torchscript.md</span></code>)</strong></p>
+<ul class="simple">
+<li><p><strong>Target Audience:</strong> Engineers.</p></li>
+<li><p><strong>Scope:</strong> Focus entirely on GPU optimization and block updates.</p></li>
+<li><p><strong>Requirements:</strong> Explain how the <code class="docutils literal notranslate"><span class="pre">&#64;torch.jit.script</span></code> decorator is used to compile the inference loop into native C++ to avoid Python GIL bottlenecks. Use <code class="docutils literal notranslate"><span class="pre">{literalinclude}</span></code> to extract the specific decorated function from <code class="docutils literal notranslate"><span class="pre">src/tam/model/kalman.py</span></code> (which should only contain engineering-focused comments). Link back to the Math file for the theory.</p></li>
+</ul>
+</section>
+</section>
+</section>
+
+        </article>
+      </div>
+      <footer>
+        
+        <div class="related-pages">
+          <a class="next-page" href="bibliography.html">
+              <div class="page-info">
+                <div class="context">
+                  <span>Next</span>
+                </div>
+                <div class="title">References</div>
+              </div>
+              <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
+            </a>
+          <a class="prev-page" href="CONTRIBUTING.html">
+              <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
+              <div class="page-info">
+                <div class="context">
+                  <span>Previous</span>
+                </div>
+                
+                <div class="title">🤝 Contributing to Time series Additive Model (TAM)</div>
+                
+              </div>
+            </a>
+        </div>
+        <div class="bottom-of-page">
+          <div class="left-details">
+            <div class="copyright">
+                Copyright &#169; 2026, Yann Allioux, Nathan Doumèche, Éloi Bedek
+            </div>
+            Made with <a href="https://www.sphinx-doc.org/">Sphinx</a> and <a class="muted-link" href="https://pradyunsg.me">@pradyunsg</a>'s
+            
+            <a href="https://github.com/pradyunsg/furo">Furo</a>
+            
+          </div>
+          <div class="right-details">
+            
+          </div>
+        </div>
+        
+      </footer>
+    </div>
+    <aside class="toc-drawer">
+      
+      
+      <div class="toc-sticky toc-scroll">
+        <div class="toc-title-container">
+          <span class="toc-title">
+            On this page
+          </span>
+        </div>
+        <div class="toc-tree-container">
+          <div class="toc-tree">
+            <ul>
+<li><a class="reference internal" href="#">📘 Documentation Generation Guide (TAM)</a><ul>
+<li><a class="reference internal" href="#prerequisites">Prerequisites</a></li>
+<li><a class="reference internal" href="#creating-the-workspace">Creating the Workspace</a></li>
+<li><a class="reference internal" href="#activating-the-environment">Activating the Environment</a></li>
+<li><a class="reference internal" href="#installing-dependencies">Installing Dependencies</a></li>
+<li><a class="reference internal" href="#building-the-documentation">Building the Documentation</a></li>
+<li><a class="reference internal" href="#viewing-the-results">Viewing the Results</a></li>
+<li><a class="reference internal" href="#troubleshooting-pdf-generation-corporate-environments">6. Troubleshooting PDF Generation (Corporate Environments)</a></li>
+<li><a class="reference internal" href="#quick-guide-how-to-contribute">🏗️ Quick Guide: How to Contribute</a><ul>
+<li><a class="reference internal" href="#the-golden-rules-of-writing-sphinx-myst">🏛️ The Golden Rules of Writing (Sphinx/MyST)</a></li>
+<li><a class="reference internal" href="#annotated-directory-structure-mapping-md-py">📂 Annotated Directory Structure (Mapping <code class="docutils literal notranslate"><span class="pre">.md</span></code> ↔ <code class="docutils literal notranslate"><span class="pre">.py</span></code>)</a></li>
+<li><a class="reference internal" href="#practical-example-adding-the-kalman-filter">Practical Example: Adding the Kalman Filter</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+          </div>
+        </div>
+      </div>
+      
+      
+    </aside>
+  </div>
+</div><script src="_static/documentation_options.js?v=590429e0"></script>
+    <script src="_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="_static/scripts/furo.js?v=46bd48cc"></script>
+    </body>
+</html>

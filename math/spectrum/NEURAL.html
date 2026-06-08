@@ -1,0 +1,487 @@
+<!doctype html>
+<html class="no-js" lang="en" data-content_root="../../">
+  <head><meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="index" title="Index" href="../../genindex.html"><link rel="search" title="Search" href="../../search.html"><link rel="next" title="The Radial Basis Function (RBF) Effect" href="RBF.html"><link rel="prev" title="The Tree Effect (Random Forests &amp; Binning Features)" href="TREE.html">
+        <link rel="prefetch" href="../../_static/logo.png" as="image">
+
+    <!-- Generated with Sphinx 9.1.0 and Furo 2025.12.19 -->
+        <title>The Neural Effect (NEPT) - TAM 1.2.3 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=d111a655" />
+    <link rel="stylesheet" type="text/css" href="../../_static/styles/furo.css?v=7bdb33bb" />
+    <link rel="stylesheet" type="text/css" href="../../_static/styles/furo-extensions.css?v=8dab3a3b" />
+    
+    
+
+
+<style>
+  body {
+    --color-code-background: #f2f2f2;
+  --color-code-foreground: #1e1e1e;
+  
+  }
+  @media not print {
+    body[data-theme="dark"] {
+      --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+    }
+    @media (prefers-color-scheme: dark) {
+      body:not([data-theme="light"]) {
+        --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+      }
+    }
+  }
+</style></head>
+  <body>
+    
+    <script>
+      document.body.dataset.theme = localStorage.getItem("theme") || "auto";
+    </script>
+    
+
+<svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
+  <symbol id="svg-toc" viewBox="0 0 24 24">
+    <title>Contents</title>
+    <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 1024 1024">
+      <path d="M408 442h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8zm-8 204c0 4.4 3.6 8 8 8h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56zm504-486H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zm0 632H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zM115.4 518.9L271.7 642c5.8 4.6 14.4.5 14.4-6.9V388.9c0-7.4-8.5-11.5-14.4-6.9L115.4 505.1a8.74 8.74 0 0 0 0 13.8z"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-menu" viewBox="0 0 24 24">
+    <title>Menu</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-menu">
+      <line x1="3" y1="12" x2="21" y2="12"></line>
+      <line x1="3" y1="6" x2="21" y2="6"></line>
+      <line x1="3" y1="18" x2="21" y2="18"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-arrow-right" viewBox="0 0 24 24">
+    <title>Expand</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-chevron-right">
+      <polyline points="9 18 15 12 9 6"></polyline>
+    </svg>
+  </symbol>
+  <symbol id="svg-sun" viewBox="0 0 24 24">
+    <title>Light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="feather-sun">
+      <circle cx="12" cy="12" r="5"></circle>
+      <line x1="12" y1="1" x2="12" y2="3"></line>
+      <line x1="12" y1="21" x2="12" y2="23"></line>
+      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+      <line x1="1" y1="12" x2="3" y2="12"></line>
+      <line x1="21" y1="12" x2="23" y2="12"></line>
+      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+      <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon" viewBox="0 0 24 24">
+    <title>Dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-moon">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454z" />
+    </svg>
+  </symbol>
+  <symbol id="svg-sun-with-moon" viewBox="0 0 24 24">
+    <title>Auto light/dark, in light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path style="opacity: 50%" d="M 5.411 14.504 C 5.471 14.504 5.532 14.504 5.591 14.504 C 3.639 16.319 4.383 19.569 6.931 20.352 C 7.693 20.586 8.512 20.551 9.25 20.252 C 8.023 23.207 4.056 23.725 2.11 21.184 C 0.166 18.642 1.702 14.949 4.874 14.536 C 5.051 14.512 5.231 14.5 5.411 14.5 L 5.411 14.504 Z"/>
+      <line x1="14.5" y1="3.25" x2="14.5" y2="1.25"/>
+      <line x1="14.5" y1="15.85" x2="14.5" y2="17.85"/>
+      <line x1="10.044" y1="5.094" x2="8.63" y2="3.68"/>
+      <line x1="19" y1="14.05" x2="20.414" y2="15.464"/>
+      <line x1="8.2" y1="9.55" x2="6.2" y2="9.55"/>
+      <line x1="20.8" y1="9.55" x2="22.8" y2="9.55"/>
+      <line x1="10.044" y1="14.006" x2="8.63" y2="15.42"/>
+      <line x1="19" y1="5.05" x2="20.414" y2="3.636"/>
+      <circle cx="14.5" cy="9.55" r="3.6"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon-with-sun" viewBox="0 0 24 24">
+    <title>Auto light/dark, in dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path d="M 8.282 7.007 C 8.385 7.007 8.494 7.007 8.595 7.007 C 5.18 10.184 6.481 15.869 10.942 17.24 C 12.275 17.648 13.706 17.589 15 17.066 C 12.851 22.236 5.91 23.143 2.505 18.696 C -0.897 14.249 1.791 7.786 7.342 7.063 C 7.652 7.021 7.965 7 8.282 7 L 8.282 7.007 Z"/>
+      <line style="opacity: 50%" x1="18" y1="3.705" x2="18" y2="2.5"/>
+      <line style="opacity: 50%" x1="18" y1="11.295" x2="18" y2="12.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="4.816" x2="14.464" y2="3.964"/>
+      <line style="opacity: 50%" x1="20.711" y1="10.212" x2="21.563" y2="11.063"/>
+      <line style="opacity: 50%" x1="14.205" y1="7.5" x2="13.001" y2="7.5"/>
+      <line style="opacity: 50%" x1="21.795" y1="7.5" x2="23" y2="7.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="10.184" x2="14.464" y2="11.036"/>
+      <line style="opacity: 50%" x1="20.711" y1="4.789" x2="21.563" y2="3.937"/>
+      <circle style="opacity: 50%" cx="18" cy="7.5" r="2.169"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-pencil" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-pencil-code">
+      <path d="M4 20h4l10.5 -10.5a2.828 2.828 0 1 0 -4 -4l-10.5 10.5v4" />
+      <path d="M13.5 6.5l4 4" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+  <symbol id="svg-eye" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-eye-code">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M10 12a2 2 0 1 0 4 0a2 2 0 0 0 -4 0" />
+      <path
+        d="M11.11 17.958c-3.209 -.307 -5.91 -2.293 -8.11 -5.958c2.4 -4 5.4 -6 9 -6c3.6 0 6.6 2 9 6c-.21 .352 -.427 .688 -.647 1.008" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+</svg>
+
+<input type="checkbox" class="sidebar-toggle" name="__navigation" id="__navigation" aria-label="Toggle site navigation sidebar">
+<input type="checkbox" class="sidebar-toggle" name="__toc" id="__toc" aria-label="Toggle table of contents sidebar">
+<label class="overlay sidebar-overlay" for="__navigation"></label>
+<label class="overlay toc-overlay" for="__toc"></label>
+
+<a class="skip-to-content muted-link" href="#furo-main-content">Skip to content</a>
+
+
+
+<div class="page">
+  <header class="mobile-header">
+    <div class="header-left">
+      <label class="nav-overlay-icon" for="__navigation">
+        <span class="icon"><svg><use href="#svg-menu"></use></svg></span>
+      </label>
+    </div>
+    <div class="header-center">
+      <a href="../../index.html"><div class="brand">TAM 1.2.3 documentation</div></a>
+    </div>
+    <div class="header-right">
+      <div class="theme-toggle-container theme-toggle-header">
+        <button class="theme-toggle" aria-label="Toggle Light / Dark / Auto color theme">
+          <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+          <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+          <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+          <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+        </button>
+      </div>
+      <label class="toc-overlay-icon toc-header-icon" for="__toc">
+        <span class="icon"><svg><use href="#svg-toc"></use></svg></span>
+      </label>
+    </div>
+  </header>
+  <aside class="sidebar-drawer">
+    <div class="sidebar-container">
+      
+      <div class="sidebar-sticky"><a class="sidebar-brand" href="../../index.html">
+  <div class="sidebar-logo-container">
+    <img class="sidebar-logo" src="../../_static/logo.png" alt="Logo"/>
+  </div>
+  
+  <span class="sidebar-brand-text">TAM 1.2.3 documentation</span>
+  
+</a><form class="sidebar-search-container" method="get" action="../../search.html" role="search">
+  <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
+  <input type="hidden" name="check_keywords" value="yes">
+  <input type="hidden" name="area" value="default">
+</form>
+<div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
+  <p class="caption" role="heading"><span class="caption-text">🚀 Getting Started</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../README.html">TAM (Time series Additive Model)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../THEORY.html">📚 Theory Introduction of TAM and Cheatsheet</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">🧠 Theory: The Core Engine</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../core/01_primal_model.html">The Exact Primal Resolution</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../core/02_tensorization.html">The Theory of N-Dim Broadcasting and Normalization</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../core/03_linear_system.html">Linear Algebra: Direct vs. Iterative Solvers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../core/04_complexity.html">Computational Complexity (<span class="math notranslate nohighlight">\(\mathcal{O}(D^3+T D^2)\)</span> vs <span class="math notranslate nohighlight">\(\mathcal{O}(T^3)\)</span>)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../core/05_gcv_theory.html">Hyperparameter Optimization: Generalized Cross-Validation (GCV)</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">🌈 Theory: The Spectrum Library</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="LINEAR.html">The Linear Effect (Ridge Regression)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="SPLINES.html">The Spline Effect (P-Splines)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="FOURIER.html">The Fourier Effect (Sobolev Spectral Basis)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="WAVELETS.html">The Wavelet Effect (Ricker)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="CHEBYSHEV.html">The Chebyshev Effect (Polynomial Minimax Basis)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="TREE.html">The Tree Effect (Random Forests &amp; Binning Features)</a></li>
+<li class="toctree-l1 current current-page"><a class="current reference internal" href="#">The Neural Effect (NEPT)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="RBF.html">The Radial Basis Function (RBF) Effect</a></li>
+<li class="toctree-l1"><a class="reference internal" href="CATEGORICAL.html">The Categorical Effect (Discrete Topologies)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="CROSS_TENSOR.html">The Tensor Product Effect (Interactions)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="PHYSICS_PIKL.html">Physics-Informed Kernel Learning (PIKL)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="PID.html">The PID Effect (Autoregressive Control Dynamics)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="LINEAR_TREE.html">The Linear Tree Effect (Varying-Coefficient Models)</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">⚙️ Theory: Meta-Learners &amp; Inference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../meta/01_adaptive_online.html">Adaptive Online Learning (AdaptiveTAM)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../meta/02_kalman_filter.html">Dynamic Tracking via Extended Kalman Filtering [BETA]</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../meta/03_hierarchical_joint.html">Hierarchical Joint Optimization [BETA]</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../meta/04_conformal_safety.html">Uncertainty Quantification via Conformal Prediction [EXP]</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../meta/05_opera_aggregation.html">Online Prediction by Expert Aggregation (OPERA)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../meta/06_deep_gam_backfitting.html">Deep-GAM Hybridization and Orthogonal Backfitting [EXP]</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../meta/07_statistical_diagnostics.html">Statistical Inference and Diagnostics (Glass-Box) [EXP]</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../meta/08_auto_orchestrator.html">Evolutionary Orchestration and Multi-Fidelity AutoML</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../meta/09_auto_data_topology.html">AutoTAM Data Topology and Structural Safeguards [EXP]</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../meta/10_mlops_evaluation.html">Empirical Evaluation and MLOps Diagnostics</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">💻 Architecture: Core Implementation</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/core/01_additive_api.html">The Additive API and Object-Oriented Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/core/02_data_pipeline.html">The Engineering of Normalization and Padding</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/core/03_math_dispatcher.html">PyTorch Math Dispatcher &amp; Matrix-Free Solvers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/core/04_hardware_memory.html">Hardware Memory Dispatch &amp; Anti-OOM Systems</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/core/05_gcv_implementation.html">Auto-ML via Generalized Cross-Validation (GCV)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/core/06_the_spectrum_api.html">The Spectral Dictionary: PyTorch Implementations &amp; Factory Assembly</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">🛠️ Architecture: Advanced Orchestration</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/meta/01_adaptive_code.html">Online Error Correction (AdaptiveTAM)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/meta/02_kalman_torchscript.html">Kalman TorchScript Optimizations &amp; Block Updates [BETA]</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/meta/03_hierarchical_code.html">Hierarchical Engineering &amp; Memory Assembly  [BETA]</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/meta/04_safety_code.html">Diagnostics, Visualization &amp; Utilities Engineering [EXP]</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/meta/05_opera_gpu.html">OPERA GPU Tensor Batching</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/meta/06_neural_hybrid.html">DeepGAM Engineering &amp; Sequential Encapsulation [EXP]</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/meta/07_diagnostics_utils.html">Diagnostics, Visualization &amp; Utilities Engineering  [EXP]</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/meta/08_auto_orchestrator_code.html">Orchestrator Pipeline and Evolutionary Hub-and-Spoke Engine [EXP]</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/meta/09_auto_data_topology_code.html">AutoTAM Data Topology: Stateful Architecture &amp; Pandas Vectorization [EXP]</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/meta/10_mlops_tracking_code.html">MLOps Tracking and Empirical Benchmarking (Engineering)</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">🧪 Gallery of Examples &amp; Use Cases</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../EXAMPLES.html">🧪 Gallery of Examples &amp; Use Cases</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">📚 References &amp; Changelog</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../AUTHORS.html">👥 Authors and Contributions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../ACKNOWLEDGEMENTS.html">🔬 Scientific Background &amp; Acknowledgments</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../CHANGELOG.html">Changelog</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../CONTRIBUTING.html">🤝 Contributing to Time series Additive Model (TAM)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../README_DOC.html">📘 Documentation Generation Guide (TAM)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../bibliography.html">References</a></li>
+</ul>
+
+</div>
+</div>
+
+      </div>
+      
+    </div>
+  </aside>
+  <div class="main">
+    <div class="content">
+      <div class="article-container">
+        <a href="#" class="back-to-top muted-link">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+            <path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8v12z"></path>
+          </svg>
+          <span>Back to top</span>
+        </a>
+        <div class="content-icon-container">
+          <div class="view-this-page">
+  <a class="muted-link" href="../../_sources/math/spectrum/NEURAL.md.txt" title="View this page">
+    <svg><use href="#svg-eye"></use></svg>
+    <span class="visually-hidden">View this page</span>
+  </a>
+</div>
+<div class="theme-toggle-container theme-toggle-content">
+            <button class="theme-toggle" aria-label="Toggle Light / Dark / Auto color theme">
+              <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+              <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+              <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+              <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+            </button>
+          </div>
+          <label class="toc-overlay-icon toc-content-icon" for="__toc">
+            <span class="icon"><svg><use href="#svg-toc"></use></svg></span>
+          </label>
+        </div>
+        <article role="main" id="furo-main-content">
+          <section class="tex2jax_ignore mathjax_ignore" id="the-neural-effect-nept">
+<h1>The Neural Effect (NEPT)<a class="headerlink" href="#the-neural-effect-nept" title="Link to this heading">¶</a></h1>
+<p><strong>Navigation:</strong></p>
+<ul class="simple">
+<li><p><strong>Theory introduction:</strong> <a class="reference internal" href="../../THEORY.html"><span class="std std-doc">See the Intro</span></a></p></li>
+<li><p><strong>Related code architecture:</strong> <a class="reference internal" href="../../architecture/core/06_the_spectrum_api.html"><span class="std std-doc">See the Code Architecture</span></a></p></li>
+</ul>
+<section id="the-nept-concept-neural-explicit-primal-tensorization">
+<h2>The NEPT Concept (Neural Explicit Primal Tensorization)<a class="headerlink" href="#the-nept-concept-neural-explicit-primal-tensorization" title="Link to this heading">¶</a></h2>
+<p>The Neural effect is a globally exact, backpropagation-free generalized additive module. It resolves the computational intractability of deep kernel theories by translating them into a <strong>Neural Explicit Primal Tensorization (NEPT)</strong>, allowing deep neural representations to be hybridized simultaneously with classical topological effects (like splines and wavelets).</p>
+<p>Instead of tracking continuous network evolution in an intractable Dual function space, NEPT aggressively normalizes a deep, frozen network and extracts it as a finite-dimensional Primal tensor block <span class="math notranslate nohighlight">\(\Phi_{neural} \in \mathbb{R}^{N_{total} \times D_{neural}}\)</span>. This computationally operationalizes the continuous neural network theory, which proved that an infinite-width network with an <span class="math notranslate nohighlight">\(L_2\)</span>-norm penalty on the output weights functions as an exact kernel machine <span class="bibtex-citation" id="id1">[<a class="reference internal" href="../../bibliography.html#id51" title="Nicolas Le Roux and Yoshua Bengio. Continuous neural networks. In Artificial Intelligence and Statistics, 404–411. PMLR, 2007.">Le Roux and Bengio, 2007</a>]</span>.</p>
+</section>
+<section id="formula-definition-neural-explicit-primal-tensorization">
+<h2>Formula Definition: Neural Explicit Primal Tensorization<a class="headerlink" href="#formula-definition-neural-explicit-primal-tensorization" title="Link to this heading">¶</a></h2>
+<p>To endow the framework with the deep, compositional abstraction capabilities of modern neural architectures without inheriting their optimization instabilities, NEPT projects the input data through a randomized, multi-layer feed-forward neural network.</p>
+<p>Let <span class="math notranslate nohighlight">\(L\)</span> denote the total number of hidden layers (<code class="docutils literal notranslate"><span class="pre">n_hidden_layers</span></code>), and <span class="math notranslate nohighlight">\(N_l\)</span> denote the width of the layer (<code class="docutils literal notranslate"><span class="pre">n_neurons</span></code>). The sequence of hidden weight matrices <span class="math notranslate nohighlight">\(W^{(l)}\)</span> and biases <span class="math notranslate nohighlight">\(b^{(l)}\)</span> are stochastically sampled and permanently frozen without backpropagation. To guarantee convergence to the Gaussian Process prior and prevent variance explosion across deep layers, the initial projection layer is drawn from a standard normal <span class="math notranslate nohighlight">\(W^{(1)} \sim \mathcal{N}(0, 1)\)</span>, while all subsequent hidden layers are rigorously scaled by the width of the preceding layer: <span class="math notranslate nohighlight">\(W^{(l)} \sim \mathcal{N}(0, 1/N_{l-1})\)</span> for <span class="math notranslate nohighlight">\(l \ge 2\)</span>. Biases <span class="math notranslate nohighlight">\(b^{(l)}\)</span> are assigned based on activation-specific theoretical priors: <span class="math notranslate nohighlight">\(b^{(l)} \sim \mathcal{U}[0, 2\pi]\)</span> for the <code class="docutils literal notranslate"><span class="pre">cos</span></code> activation to instantiate exact Random Fourier Features, and <span class="math notranslate nohighlight">\(b^{(l)} \sim \mathcal{N}(0, 1)\)</span> for the <code class="docutils literal notranslate"><span class="pre">relu</span></code> and <code class="docutils literal notranslate"><span class="pre">tanh</span></code> activations.</p>
+<p>The explicit Primal feature mapping iteratively applies a non-linear continuous activation <span class="math notranslate nohighlight">\(\sigma(\cdot)\)</span> across the frozen hidden layers, where <span class="math notranslate nohighlight">\(\sigma(v)\)</span> applies one of the following element-wise transformations based on the chosen hyperparameter (<span class="math notranslate nohighlight">\(\max(0, v)\)</span> for <code class="docutils literal notranslate"><span class="pre">relu</span></code>, <span class="math notranslate nohighlight">\(\cos(v)\)</span> for <code class="docutils literal notranslate"><span class="pre">cos</span></code>, or <span class="math notranslate nohighlight">\(\frac{e^v - e^{-v}}{e^v + e^{-v}}\)</span> for <code class="docutils literal notranslate"><span class="pre">tanh</span></code>):</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[z^{(0)} = x\]</div>
+</div>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[z^{(l)} = \sigma\left( z^{(l-1)} W^{(l)} + b^{(l)} \right) \quad \text{for } l = 1, \dots, L\]</div>
+</div>
+<p>The final hidden layer is extracted as the finite-dimensional Primal block, aggressively scaled by <span class="math notranslate nohighlight">\(1/\sqrt{N_L}\)</span> to normalize the final output variance across the arbitrarily wide random feature space:</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[\phi_{neural}(x) = \frac{1}{\sqrt{N_L}} z^{(L)}\]</div>
+</div>
+<p>Because the entirety of the deep internal representations are frozen, only the final linear readout coefficients <span class="math notranslate nohighlight">\(\theta_{neural}\)</span> mapping <span class="math notranslate nohighlight">\(z^{(L)}\)</span> to the target are actively learned by the global estimator.</p>
+</section>
+<section id="rkhs-eligibility-optimal-penalization">
+<h2>RKHS Eligibility &amp; Optimal Penalization<a class="headerlink" href="#rkhs-eligibility-optimal-penalization" title="Link to this heading">¶</a></h2>
+<p>By restricting the learning process exclusively to the final readout layer <span class="math notranslate nohighlight">\(\theta \in \mathbb{R}^D\)</span>, the notoriously highly non-convex deep neural optimization problem strictly collapses into a convex quadratic form.</p>
+<p>The mathematically optimal penalization is an isotropic Ridge penalty applied to the readout coefficients, structurally defined by an identity block:</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[P_{neural} = \lambda I\]</div>
+</div>
+<p>By equipping the finite-width neural projection with this strictly positive isotropic penalty and the <span class="math notranslate nohighlight">\(1/\sqrt{N_L}\)</span> variance scaling, NEPT guarantees its operation within a valid Reproducing Kernel Hilbert Space (RKHS). This seamlessly integrates the deep representations into the globally exact primal solver alongside classical structural effects without disrupting the global convexity of the regularized normal equations.</p>
+</section>
+<section id="structural-novelty-the-8-paradigm-synthesis">
+<h2>Structural Novelty: The 8-Paradigm Synthesis<a class="headerlink" href="#structural-novelty-the-8-paradigm-synthesis" title="Link to this heading">¶</a></h2>
+<p>Because NEPT rigorously flattens the deep kernel projection into the deterministic block-diagonal matrix <span class="math notranslate nohighlight">\(\Phi\)</span>, it fundamentally redefines how deep learning interacts with additive modeling. Below is the precise structural differentiation between NEPT and the 8 foundational paradigms it synthesizes:</p>
+<ol class="arabic simple">
+<li><p><strong>Compositional Kernels</strong> <span class="bibtex-citation" id="id2">[<a class="reference internal" href="../../bibliography.html#id18" title="Amit Daniely, Roy Frostig, and Yoram Singer. Toward deeper understanding of neural networks: the power of initialization and a dual view on expressivity. In D. Lee, M. Sugiyama, U. Luxburg, I. Guyon, and R. Garnett, editors, Advances in Neural Information Processing Systems, volume 29. Curran Associates, Inc., 2016. URL: https://proceedings.neurips.cc/paper_files/paper/2016/file/abea47ba24142ed16b7d8fbf2c740e0d-Paper.pdf.">Daniely <em>et al.</em>, 2016</a>]</span></p>
+<ul class="simple">
+<li><p><strong>Common Point:</strong> Both recognize that the topological architecture of a randomly initialized deep network inherently defines a highly expressive compositional basis.</p></li>
+<li><p><strong>The NEPT Novelty:</strong> While theoretical literature evaluates this expressivity within the abstract Dual kernel space, NEPT explicitly extracts it into a finite Primal tensor. This allows the compositional neural kernel to be algebraically concatenated alongside non-neural structural priors (like exact localized <span class="math notranslate nohighlight">\(\Phi_{wavelet}\)</span> or <span class="math notranslate nohighlight">\(\Phi_{spline}\)</span>), an operation impossible in pure Dual theory.</p></li>
+</ul>
+</li>
+<li><p><strong>Neural Network Gaussian Processes (NNGP)</strong> <span class="bibtex-citation" id="id3">[<a class="reference internal" href="../../bibliography.html#id50" title="Jaehoon Lee, Yasaman Bahri, Roman Novak, Samuel S Schoenholz, Jeffrey Pennington, and Jascha Sohl-Dickstein. Deep neural networks as gaussian processes. arXiv preprint arXiv:1711.00165, 2017.">Lee <em>et al.</em>, 2017</a>]</span></p>
+<ul class="simple">
+<li><p><strong>Common Point:</strong> Both exploit the theoretical guarantee that infinitely wide, randomly initialized frozen networks converge to a valid Gaussian Process prior.</p></li>
+<li><p><strong>The NEPT Novelty:</strong> Exact NNGP inference requires evaluating the dense Dual covariance matrix, creating an <span class="math notranslate nohighlight">\(\mathcal{O}(N_{total}^3)\)</span> bottleneck that paralyzes hardware on Gigadata (<span class="math notranslate nohighlight">\(N_{total} &gt; 10^6\)</span>). NEPT systematically truncates this GP prior into the <span class="math notranslate nohighlight">\(D\)</span>-dimensional Primal space, collapsing the complexity to <span class="math notranslate nohighlight">\(\mathcal{O}(N_{total} D^2)\)</span> and solving it instantly on GPUs via Sparse Conjugate Gradients.</p></li>
+</ul>
+</li>
+<li><p><strong>Neural Tangent Kernel (NTK)</strong> <span class="bibtex-citation" id="id4">[<a class="reference internal" href="../../bibliography.html#id45" title="Arthur Jacot, Franck Gabriel, and Clément Hongler. Neural tangent kernel: convergence and generalization in neural networks. Advances in neural information processing systems, 2018.">Jacot <em>et al.</em>, 2018</a>]</span></p>
+<ul class="simple">
+<li><p><strong>Common Point:</strong> Both acknowledge the continuous kernel dynamics governing modern neural networks.</p></li>
+<li><p><strong>The NEPT Novelty:</strong> Exact NTK tracks the continuous gradient descent of <em>all</em> weights in function space. NEPT entirely rejects continuous weight updates. By freezing the internal layers and optimizing only the global readout <span class="math notranslate nohighlight">\(\theta\)</span>, the continuous differential flow collapses into a single-step, closed-form quadratic equation.</p></li>
+</ul>
+</li>
+<li><p><strong>Neural Additive Models (NAMs)</strong> <span class="bibtex-citation" id="id5">[<a class="reference internal" href="../../bibliography.html#id3" title="Rishabh Agarwal, Levi Melnick, Nicholas Frosst, Xuezhou Zhang, Ben Lengerich, Rich Caruana, and Geoffrey E Hinton. Neural additive models: interpretable machine learning with neural nets. Advances in neural information processing systems, 34:4699–4711, 2021.">Agarwal <em>et al.</em>, 2021</a>]</span></p>
+<ul class="simple">
+<li><p><strong>Common Point:</strong> Both structurally isolate individual input features into independent neural sub-networks to guarantee strict interpretability.</p></li>
+<li><p><strong>The NEPT Novelty:</strong> NAMs attempt to optimize these sub-networks jointly using non-convex backpropagation. NEPT bypasses backpropagation completely. By flattening the features into static Primal blocks, NEPT solves the additive network exactly alongside classical statistical bases (e.g., GAM Splines), ensuring absolute mathematical convexity.</p></li>
+</ul>
+</li>
+<li><p><strong>N-BEATS</strong> <span class="bibtex-citation" id="id6">[<a class="reference internal" href="../../bibliography.html#id55" title="Boris N. Oreshkin, Dmitri Carpov, Nicolas Chapados, and Yoshua Bengio. N-beats: neural basis expansion analysis for interpretable time series forecasting. In International Conference on Learning Representations. 2020.">Oreshkin <em>et al.</em>, 2020</a>]</span></p>
+<ul class="simple">
+<li><p><strong>Common Point:</strong> Both leverage deep hierarchical topologies to discover complex basis expansions specifically optimized for time-series forecasting.</p></li>
+<li><p><strong>The NEPT Novelty:</strong> N-BEATS relies on a deep sequential residual bottleneck (layer <span class="math notranslate nohighlight">\(k\)</span> fits the error leftover by layer <span class="math notranslate nohighlight">\(k-1\)</span>). NEPT rejects sequential error fitting. By flattening all effects into a single block-diagonal global matrix <span class="math notranslate nohighlight">\(\Phi\)</span>, NEPT resolves the interactions of all bases simultaneously, preventing cascading error propagation.</p></li>
+</ul>
+</li>
+<li><p><strong>Efficient BackProp</strong> <span class="bibtex-citation" id="id7">[<a class="reference internal" href="../../bibliography.html#id49" title="Yann LeCun, Léon Bottou, Genevieve B Orr, and Klaus-Robert Müller. Efficient backprop. In Neural Networks: Tricks of the Trade, pages 9–50. Springer, 1998.">LeCun <em>et al.</em>, 1998</a>]</span></p>
+<ul class="simple">
+<li><p><strong>Common Point:</strong> Both works target the pathological optimization landscapes inherent in deep neural architectures (ill-conditioning, saddle points, vanishing gradients).</p></li>
+<li><p><strong>The NEPT Novelty:</strong> Classical deep learning mitigates these pathologies through stochastic heuristics (initialization, learning rate schedules). NEPT <em>eradicates the problem entirely</em>. The exact global Ridge penalty <span class="math notranslate nohighlight">\(P = \lambda I\)</span> mathematically guarantees a globally optimal loss surface with zero saddle points, transforming deep learning optimization into an exact linear algebra certainty.</p></li>
+</ul>
+</li>
+<li><p><strong>Extreme Learning Machines (ELMs) &amp; Random Vector Functional Links (RVFLs)</strong> <span class="bibtex-citation" id="id8">[<a class="reference internal" href="../../bibliography.html#id56" title="Yoh-Han Pao, Gwang-Hoon Park, and Dejan J Sobajic. Learning and generalization characteristics of the random vector functional-link net. Neurocomputing, 6(2):163–180, 1994.">Pao <em>et al.</em>, 1994</a>, <a class="reference internal" href="../../bibliography.html#id44" title="Guang-Bin Huang, Qin-Yu Zhu, and Chee-Kheong Siew. Extreme learning machine: theory and applications. Neurocomputing, 70(1-3):489–501, 2006.">Huang <em>et al.</em>, 2006</a>]</span></p>
+<ul class="simple">
+<li><p><strong>Common Point:</strong> Both architectures project inputs through randomly initialized hidden layers, freeze those internal weights, and exclusively optimize the final linear readout layer using least squares or Ridge regression.</p></li>
+<li><p><strong>The NEPT Novelty:</strong> Classical ELMs and RVFLs are historically viewed as standalone, heuristic randomized architectures. NEPT explicitly re-contextualizes this frozen mechanism through the rigorous lens of modern NNGP theory. By enforcing the <span class="math notranslate nohighlight">\(1/\sqrt{N_L}\)</span> variance scaling and projecting the readout strictly as an isotropic Ridge penalty (<span class="math notranslate nohighlight">\(P = \lambda I\)</span>) within the global block-diagonal design matrix <span class="math notranslate nohighlight">\(\Phi\)</span>, NEPT elevates the ELM from a stochastic heuristic into a mathematically guaranteed RKHS topology embedded safely within a continuous generalized additive framework.</p></li>
+</ul>
+</li>
+<li><p><strong>Continuous Neural Networks &amp; Exact Kernel Machines</strong> <span class="bibtex-citation" id="id9">[<a class="reference internal" href="../../bibliography.html#id51" title="Nicolas Le Roux and Yoshua Bengio. Continuous neural networks. In Artificial Intelligence and Statistics, 404–411. PMLR, 2007.">Le Roux and Bengio, 2007</a>]</span></p>
+<ul class="simple">
+<li><p><strong>Common Point:</strong> Both frameworks mathematically establish that freezing an infinite-width neural network and applying an <span class="math notranslate nohighlight">\(L_2\)</span>-norm regularization penalty to the output weights creates an exact kernel machine.</p></li>
+<li><p><strong>The NEPT Novelty:</strong> Analytical proofs for continuous neural networks fundamentally relied on uniform priors across a single hidden layer to maintain tractability in the uncountably infinite Dual space. NEPT abandons these single-layer uniform bounds in favor of deep Gaussian representations (<span class="math notranslate nohighlight">\(W^{(l)} \sim \mathcal{N}(0, 1/N_{l-1})\)</span>) and terminal variance scaling. Furthermore, NEPT explicitly truncates this theoretical guarantee into a highly optimized, finite-dimensional Primal block, completely bypassing the <span class="math notranslate nohighlight">\(\mathcal{O}(N_{total}^3)\)</span> bottleneck of Dual space evaluation.</p></li>
+</ul>
+</li>
+</ol>
+</section>
+</section>
+
+        </article>
+      </div>
+      <footer>
+        
+        <div class="related-pages">
+          <a class="next-page" href="RBF.html">
+              <div class="page-info">
+                <div class="context">
+                  <span>Next</span>
+                </div>
+                <div class="title">The Radial Basis Function (RBF) Effect</div>
+              </div>
+              <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
+            </a>
+          <a class="prev-page" href="TREE.html">
+              <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
+              <div class="page-info">
+                <div class="context">
+                  <span>Previous</span>
+                </div>
+                
+                <div class="title">The Tree Effect (Random Forests &amp; Binning Features)</div>
+                
+              </div>
+            </a>
+        </div>
+        <div class="bottom-of-page">
+          <div class="left-details">
+            <div class="copyright">
+                Copyright &#169; 2026, Yann Allioux, Nathan Doumèche, Éloi Bedek
+            </div>
+            Made with <a href="https://www.sphinx-doc.org/">Sphinx</a> and <a class="muted-link" href="https://pradyunsg.me">@pradyunsg</a>'s
+            
+            <a href="https://github.com/pradyunsg/furo">Furo</a>
+            
+          </div>
+          <div class="right-details">
+            
+          </div>
+        </div>
+        
+      </footer>
+    </div>
+    <aside class="toc-drawer">
+      
+      
+      <div class="toc-sticky toc-scroll">
+        <div class="toc-title-container">
+          <span class="toc-title">
+            On this page
+          </span>
+        </div>
+        <div class="toc-tree-container">
+          <div class="toc-tree">
+            <ul>
+<li><a class="reference internal" href="#">The Neural Effect (NEPT)</a><ul>
+<li><a class="reference internal" href="#the-nept-concept-neural-explicit-primal-tensorization">The NEPT Concept (Neural Explicit Primal Tensorization)</a></li>
+<li><a class="reference internal" href="#formula-definition-neural-explicit-primal-tensorization">Formula Definition: Neural Explicit Primal Tensorization</a></li>
+<li><a class="reference internal" href="#rkhs-eligibility-optimal-penalization">RKHS Eligibility &amp; Optimal Penalization</a></li>
+<li><a class="reference internal" href="#structural-novelty-the-8-paradigm-synthesis">Structural Novelty: The 8-Paradigm Synthesis</a></li>
+</ul>
+</li>
+</ul>
+
+          </div>
+        </div>
+      </div>
+      
+      
+    </aside>
+  </div>
+</div><script src="../../_static/documentation_options.js?v=590429e0"></script>
+    <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="../../_static/scripts/furo.js?v=46bd48cc"></script>
+    <script>window.MathJax = {"options": {"processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+    <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@4/tex-mml-chtml.js"></script>
+    </body>
+</html>

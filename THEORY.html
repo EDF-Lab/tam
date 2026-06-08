@@ -1,0 +1,792 @@
+<!doctype html>
+<html class="no-js" lang="en" data-content_root="./">
+  <head><meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="index" title="Index" href="genindex.html"><link rel="search" title="Search" href="search.html"><link rel="next" title="The Exact Primal Resolution" href="math/core/01_primal_model.html"><link rel="prev" title="TAM (Time series Additive Model)" href="README.html">
+        <link rel="prefetch" href="_static/logo.png" as="image">
+
+    <!-- Generated with Sphinx 9.1.0 and Furo 2025.12.19 -->
+        <title>📚 Theory Introduction of TAM and Cheatsheet - TAM 1.2.3 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=d111a655" />
+    <link rel="stylesheet" type="text/css" href="_static/styles/furo.css?v=7bdb33bb" />
+    <link rel="stylesheet" type="text/css" href="_static/styles/furo-extensions.css?v=8dab3a3b" />
+    
+    
+
+
+<style>
+  body {
+    --color-code-background: #f2f2f2;
+  --color-code-foreground: #1e1e1e;
+  
+  }
+  @media not print {
+    body[data-theme="dark"] {
+      --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+    }
+    @media (prefers-color-scheme: dark) {
+      body:not([data-theme="light"]) {
+        --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+      }
+    }
+  }
+</style></head>
+  <body>
+    
+    <script>
+      document.body.dataset.theme = localStorage.getItem("theme") || "auto";
+    </script>
+    
+
+<svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
+  <symbol id="svg-toc" viewBox="0 0 24 24">
+    <title>Contents</title>
+    <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 1024 1024">
+      <path d="M408 442h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8zm-8 204c0 4.4 3.6 8 8 8h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56zm504-486H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zm0 632H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zM115.4 518.9L271.7 642c5.8 4.6 14.4.5 14.4-6.9V388.9c0-7.4-8.5-11.5-14.4-6.9L115.4 505.1a8.74 8.74 0 0 0 0 13.8z"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-menu" viewBox="0 0 24 24">
+    <title>Menu</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-menu">
+      <line x1="3" y1="12" x2="21" y2="12"></line>
+      <line x1="3" y1="6" x2="21" y2="6"></line>
+      <line x1="3" y1="18" x2="21" y2="18"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-arrow-right" viewBox="0 0 24 24">
+    <title>Expand</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-chevron-right">
+      <polyline points="9 18 15 12 9 6"></polyline>
+    </svg>
+  </symbol>
+  <symbol id="svg-sun" viewBox="0 0 24 24">
+    <title>Light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="feather-sun">
+      <circle cx="12" cy="12" r="5"></circle>
+      <line x1="12" y1="1" x2="12" y2="3"></line>
+      <line x1="12" y1="21" x2="12" y2="23"></line>
+      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+      <line x1="1" y1="12" x2="3" y2="12"></line>
+      <line x1="21" y1="12" x2="23" y2="12"></line>
+      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+      <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon" viewBox="0 0 24 24">
+    <title>Dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-moon">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454z" />
+    </svg>
+  </symbol>
+  <symbol id="svg-sun-with-moon" viewBox="0 0 24 24">
+    <title>Auto light/dark, in light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path style="opacity: 50%" d="M 5.411 14.504 C 5.471 14.504 5.532 14.504 5.591 14.504 C 3.639 16.319 4.383 19.569 6.931 20.352 C 7.693 20.586 8.512 20.551 9.25 20.252 C 8.023 23.207 4.056 23.725 2.11 21.184 C 0.166 18.642 1.702 14.949 4.874 14.536 C 5.051 14.512 5.231 14.5 5.411 14.5 L 5.411 14.504 Z"/>
+      <line x1="14.5" y1="3.25" x2="14.5" y2="1.25"/>
+      <line x1="14.5" y1="15.85" x2="14.5" y2="17.85"/>
+      <line x1="10.044" y1="5.094" x2="8.63" y2="3.68"/>
+      <line x1="19" y1="14.05" x2="20.414" y2="15.464"/>
+      <line x1="8.2" y1="9.55" x2="6.2" y2="9.55"/>
+      <line x1="20.8" y1="9.55" x2="22.8" y2="9.55"/>
+      <line x1="10.044" y1="14.006" x2="8.63" y2="15.42"/>
+      <line x1="19" y1="5.05" x2="20.414" y2="3.636"/>
+      <circle cx="14.5" cy="9.55" r="3.6"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon-with-sun" viewBox="0 0 24 24">
+    <title>Auto light/dark, in dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path d="M 8.282 7.007 C 8.385 7.007 8.494 7.007 8.595 7.007 C 5.18 10.184 6.481 15.869 10.942 17.24 C 12.275 17.648 13.706 17.589 15 17.066 C 12.851 22.236 5.91 23.143 2.505 18.696 C -0.897 14.249 1.791 7.786 7.342 7.063 C 7.652 7.021 7.965 7 8.282 7 L 8.282 7.007 Z"/>
+      <line style="opacity: 50%" x1="18" y1="3.705" x2="18" y2="2.5"/>
+      <line style="opacity: 50%" x1="18" y1="11.295" x2="18" y2="12.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="4.816" x2="14.464" y2="3.964"/>
+      <line style="opacity: 50%" x1="20.711" y1="10.212" x2="21.563" y2="11.063"/>
+      <line style="opacity: 50%" x1="14.205" y1="7.5" x2="13.001" y2="7.5"/>
+      <line style="opacity: 50%" x1="21.795" y1="7.5" x2="23" y2="7.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="10.184" x2="14.464" y2="11.036"/>
+      <line style="opacity: 50%" x1="20.711" y1="4.789" x2="21.563" y2="3.937"/>
+      <circle style="opacity: 50%" cx="18" cy="7.5" r="2.169"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-pencil" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-pencil-code">
+      <path d="M4 20h4l10.5 -10.5a2.828 2.828 0 1 0 -4 -4l-10.5 10.5v4" />
+      <path d="M13.5 6.5l4 4" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+  <symbol id="svg-eye" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-eye-code">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M10 12a2 2 0 1 0 4 0a2 2 0 0 0 -4 0" />
+      <path
+        d="M11.11 17.958c-3.209 -.307 -5.91 -2.293 -8.11 -5.958c2.4 -4 5.4 -6 9 -6c3.6 0 6.6 2 9 6c-.21 .352 -.427 .688 -.647 1.008" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+</svg>
+
+<input type="checkbox" class="sidebar-toggle" name="__navigation" id="__navigation" aria-label="Toggle site navigation sidebar">
+<input type="checkbox" class="sidebar-toggle" name="__toc" id="__toc" aria-label="Toggle table of contents sidebar">
+<label class="overlay sidebar-overlay" for="__navigation"></label>
+<label class="overlay toc-overlay" for="__toc"></label>
+
+<a class="skip-to-content muted-link" href="#furo-main-content">Skip to content</a>
+
+
+
+<div class="page">
+  <header class="mobile-header">
+    <div class="header-left">
+      <label class="nav-overlay-icon" for="__navigation">
+        <span class="icon"><svg><use href="#svg-menu"></use></svg></span>
+      </label>
+    </div>
+    <div class="header-center">
+      <a href="index.html"><div class="brand">TAM 1.2.3 documentation</div></a>
+    </div>
+    <div class="header-right">
+      <div class="theme-toggle-container theme-toggle-header">
+        <button class="theme-toggle" aria-label="Toggle Light / Dark / Auto color theme">
+          <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+          <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+          <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+          <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+        </button>
+      </div>
+      <label class="toc-overlay-icon toc-header-icon" for="__toc">
+        <span class="icon"><svg><use href="#svg-toc"></use></svg></span>
+      </label>
+    </div>
+  </header>
+  <aside class="sidebar-drawer">
+    <div class="sidebar-container">
+      
+      <div class="sidebar-sticky"><a class="sidebar-brand" href="index.html">
+  <div class="sidebar-logo-container">
+    <img class="sidebar-logo" src="_static/logo.png" alt="Logo"/>
+  </div>
+  
+  <span class="sidebar-brand-text">TAM 1.2.3 documentation</span>
+  
+</a><form class="sidebar-search-container" method="get" action="search.html" role="search">
+  <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
+  <input type="hidden" name="check_keywords" value="yes">
+  <input type="hidden" name="area" value="default">
+</form>
+<div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
+  <p class="caption" role="heading"><span class="caption-text">🚀 Getting Started</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="README.html">TAM (Time series Additive Model)</a></li>
+<li class="toctree-l1 current current-page"><a class="current reference internal" href="#">📚 Theory Introduction of TAM and Cheatsheet</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">🧠 Theory: The Core Engine</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="math/core/01_primal_model.html">The Exact Primal Resolution</a></li>
+<li class="toctree-l1"><a class="reference internal" href="math/core/02_tensorization.html">The Theory of N-Dim Broadcasting and Normalization</a></li>
+<li class="toctree-l1"><a class="reference internal" href="math/core/03_linear_system.html">Linear Algebra: Direct vs. Iterative Solvers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="math/core/04_complexity.html">Computational Complexity (<span class="math notranslate nohighlight">\(\mathcal{O}(D^3+T D^2)\)</span> vs <span class="math notranslate nohighlight">\(\mathcal{O}(T^3)\)</span>)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="math/core/05_gcv_theory.html">Hyperparameter Optimization: Generalized Cross-Validation (GCV)</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">🌈 Theory: The Spectrum Library</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="math/spectrum/LINEAR.html">The Linear Effect (Ridge Regression)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="math/spectrum/SPLINES.html">The Spline Effect (P-Splines)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="math/spectrum/FOURIER.html">The Fourier Effect (Sobolev Spectral Basis)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="math/spectrum/WAVELETS.html">The Wavelet Effect (Ricker)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="math/spectrum/CHEBYSHEV.html">The Chebyshev Effect (Polynomial Minimax Basis)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="math/spectrum/TREE.html">The Tree Effect (Random Forests &amp; Binning Features)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="math/spectrum/NEURAL.html">The Neural Effect (NEPT)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="math/spectrum/RBF.html">The Radial Basis Function (RBF) Effect</a></li>
+<li class="toctree-l1"><a class="reference internal" href="math/spectrum/CATEGORICAL.html">The Categorical Effect (Discrete Topologies)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="math/spectrum/CROSS_TENSOR.html">The Tensor Product Effect (Interactions)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="math/spectrum/PHYSICS_PIKL.html">Physics-Informed Kernel Learning (PIKL)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="math/spectrum/PID.html">The PID Effect (Autoregressive Control Dynamics)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="math/spectrum/LINEAR_TREE.html">The Linear Tree Effect (Varying-Coefficient Models)</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">⚙️ Theory: Meta-Learners &amp; Inference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="math/meta/01_adaptive_online.html">Adaptive Online Learning (AdaptiveTAM)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="math/meta/02_kalman_filter.html">Dynamic Tracking via Extended Kalman Filtering [BETA]</a></li>
+<li class="toctree-l1"><a class="reference internal" href="math/meta/03_hierarchical_joint.html">Hierarchical Joint Optimization [BETA]</a></li>
+<li class="toctree-l1"><a class="reference internal" href="math/meta/04_conformal_safety.html">Uncertainty Quantification via Conformal Prediction [EXP]</a></li>
+<li class="toctree-l1"><a class="reference internal" href="math/meta/05_opera_aggregation.html">Online Prediction by Expert Aggregation (OPERA)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="math/meta/06_deep_gam_backfitting.html">Deep-GAM Hybridization and Orthogonal Backfitting [EXP]</a></li>
+<li class="toctree-l1"><a class="reference internal" href="math/meta/07_statistical_diagnostics.html">Statistical Inference and Diagnostics (Glass-Box) [EXP]</a></li>
+<li class="toctree-l1"><a class="reference internal" href="math/meta/08_auto_orchestrator.html">Evolutionary Orchestration and Multi-Fidelity AutoML</a></li>
+<li class="toctree-l1"><a class="reference internal" href="math/meta/09_auto_data_topology.html">AutoTAM Data Topology and Structural Safeguards [EXP]</a></li>
+<li class="toctree-l1"><a class="reference internal" href="math/meta/10_mlops_evaluation.html">Empirical Evaluation and MLOps Diagnostics</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">💻 Architecture: Core Implementation</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="architecture/core/01_additive_api.html">The Additive API and Object-Oriented Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="architecture/core/02_data_pipeline.html">The Engineering of Normalization and Padding</a></li>
+<li class="toctree-l1"><a class="reference internal" href="architecture/core/03_math_dispatcher.html">PyTorch Math Dispatcher &amp; Matrix-Free Solvers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="architecture/core/04_hardware_memory.html">Hardware Memory Dispatch &amp; Anti-OOM Systems</a></li>
+<li class="toctree-l1"><a class="reference internal" href="architecture/core/05_gcv_implementation.html">Auto-ML via Generalized Cross-Validation (GCV)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="architecture/core/06_the_spectrum_api.html">The Spectral Dictionary: PyTorch Implementations &amp; Factory Assembly</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">🛠️ Architecture: Advanced Orchestration</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="architecture/meta/01_adaptive_code.html">Online Error Correction (AdaptiveTAM)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="architecture/meta/02_kalman_torchscript.html">Kalman TorchScript Optimizations &amp; Block Updates [BETA]</a></li>
+<li class="toctree-l1"><a class="reference internal" href="architecture/meta/03_hierarchical_code.html">Hierarchical Engineering &amp; Memory Assembly  [BETA]</a></li>
+<li class="toctree-l1"><a class="reference internal" href="architecture/meta/04_safety_code.html">Diagnostics, Visualization &amp; Utilities Engineering [EXP]</a></li>
+<li class="toctree-l1"><a class="reference internal" href="architecture/meta/05_opera_gpu.html">OPERA GPU Tensor Batching</a></li>
+<li class="toctree-l1"><a class="reference internal" href="architecture/meta/06_neural_hybrid.html">DeepGAM Engineering &amp; Sequential Encapsulation [EXP]</a></li>
+<li class="toctree-l1"><a class="reference internal" href="architecture/meta/07_diagnostics_utils.html">Diagnostics, Visualization &amp; Utilities Engineering  [EXP]</a></li>
+<li class="toctree-l1"><a class="reference internal" href="architecture/meta/08_auto_orchestrator_code.html">Orchestrator Pipeline and Evolutionary Hub-and-Spoke Engine [EXP]</a></li>
+<li class="toctree-l1"><a class="reference internal" href="architecture/meta/09_auto_data_topology_code.html">AutoTAM Data Topology: Stateful Architecture &amp; Pandas Vectorization [EXP]</a></li>
+<li class="toctree-l1"><a class="reference internal" href="architecture/meta/10_mlops_tracking_code.html">MLOps Tracking and Empirical Benchmarking (Engineering)</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">🧪 Gallery of Examples &amp; Use Cases</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="EXAMPLES.html">🧪 Gallery of Examples &amp; Use Cases</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">📚 References &amp; Changelog</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="AUTHORS.html">👥 Authors and Contributions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="ACKNOWLEDGEMENTS.html">🔬 Scientific Background &amp; Acknowledgments</a></li>
+<li class="toctree-l1"><a class="reference internal" href="CHANGELOG.html">Changelog</a></li>
+<li class="toctree-l1"><a class="reference internal" href="CONTRIBUTING.html">🤝 Contributing to Time series Additive Model (TAM)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="README_DOC.html">📘 Documentation Generation Guide (TAM)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="bibliography.html">References</a></li>
+</ul>
+
+</div>
+</div>
+
+      </div>
+      
+    </div>
+  </aside>
+  <div class="main">
+    <div class="content">
+      <div class="article-container">
+        <a href="#" class="back-to-top muted-link">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+            <path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8v12z"></path>
+          </svg>
+          <span>Back to top</span>
+        </a>
+        <div class="content-icon-container">
+          <div class="view-this-page">
+  <a class="muted-link" href="_sources/THEORY.md.txt" title="View this page">
+    <svg><use href="#svg-eye"></use></svg>
+    <span class="visually-hidden">View this page</span>
+  </a>
+</div>
+<div class="theme-toggle-container theme-toggle-content">
+            <button class="theme-toggle" aria-label="Toggle Light / Dark / Auto color theme">
+              <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+              <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+              <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+              <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+            </button>
+          </div>
+          <label class="toc-overlay-icon toc-content-icon" for="__toc">
+            <span class="icon"><svg><use href="#svg-toc"></use></svg></span>
+          </label>
+        </div>
+        <article role="main" id="furo-main-content">
+          <section class="tex2jax_ignore mathjax_ignore" id="theory-introduction-of-tam-and-cheatsheet">
+<h1>📚 Theory Introduction of TAM and Cheatsheet<a class="headerlink" href="#theory-introduction-of-tam-and-cheatsheet" title="Link to this heading">¶</a></h1>
+<p><a class="reference internal" href="README.html"><span class="std std-doc">⬅️ <code class="docutils literal notranslate"><span class="pre">README</span></code></span></a> | <a class="reference internal" href="EXAMPLES.html"><span class="std std-doc">🧪 <code class="docutils literal notranslate"><span class="pre">EXAMPLES</span></code></span></a> | <a class="reference internal" href="AUTHORS.html"><span class="std std-doc">👥 <code class="docutils literal notranslate"><span class="pre">AUTHORS</span></code></span></a> | <a class="reference internal" href="ACKNOWLEDGEMENTS.html"><span class="std std-doc">📝 <code class="docutils literal notranslate"><span class="pre">ACKNOWLEDGEMENTS</span></code></span></a></p>
+<p>This document serves as the central mathematical reference and directory for the Time series Additive Model (TAM) framework.</p>
+<hr class="docutils" />
+<section id="the-core-primal-equation">
+<h2>The Core Primal Equation<a class="headerlink" href="#the-core-primal-equation" title="Link to this heading">¶</a></h2>
+<p>At the heart of TAM’s exact resolution is a global convex optimization problem. Rather than relying on black-box gradient descent or scaling-limited dual kernel matrices, the framework projects all functional bases explicitly into a finite Reproducing Kernel Hilbert Space (RKHS).</p>
+<p>The entire framework scales around this single, exact analytical resolution:</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[\hat{\theta} = \left( \Phi^\top \Lambda^\top \Lambda \Phi + T \cdot P \right)^{-1} \Phi^\top \Lambda^\top \Lambda Y\]</div>
+</div>
+<ul class="simple">
+<li><p><strong><span class="math notranslate nohighlight">\(\Phi\)</span>:</strong> The finite-dimensional Design Matrix (Feature Map).</p></li>
+<li><p><strong><span class="math notranslate nohighlight">\(\Lambda\)</span>:</strong> The observation weighting/masking diagonal matrix.</p></li>
+<li><p><strong><span class="math notranslate nohighlight">\(P\)</span>:</strong> The structural penalty matrix (controlling the bias-variance tradeoff).</p></li>
+<li><p><strong><span class="math notranslate nohighlight">\(Y\)</span>:</strong> The target vector.</p></li>
+<li><p><strong><span class="math notranslate nohighlight">\(T\)</span> (Time Steps):</strong> The temporal sequence length per group. In the codebase, this corresponds to <code class="docutils literal notranslate"><span class="pre">num_samples</span></code>.</p></li>
+</ul>
+<p><em>(Note: This exact resolution is computed independently for each group <span class="math notranslate nohighlight">\(g \in G\)</span> to preserve local time-series dynamics).</em></p>
+</section>
+<hr class="docutils" />
+<section id="the-core-and-meta-models">
+<h2>The Core and Meta Models<a class="headerlink" href="#the-core-and-meta-models" title="Link to this heading">¶</a></h2>
+<section id="the-core-model">
+<h3>The Core Model<a class="headerlink" href="#the-core-model" title="Link to this heading">¶</a></h3>
+<p>You build the baseline model by mapping features into different mathematical bases (e.g., splines <code class="docutils literal notranslate"><span class="pre">s()</span></code>, Fourier <code class="docutils literal notranslate"><span class="pre">f()</span></code>, linear <code class="docutils literal notranslate"><span class="pre">l()</span></code>, physics <code class="docutils literal notranslate"><span class="pre">phys()</span></code>) using an R-style formula. See the spectrum effect cheatsheet below.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">tam</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">ta</span>
+
+<span class="c1"># Define baseline components (Continuous and Categorical with specific topologies)</span>
+<span class="n">base_cats</span> <span class="o">=</span> <span class="s2">&quot;+ c(x3, n_cat=7, topo=&#39;nominal&#39;) + c(x4, n_cat=12, topo=&#39;fourier&#39;) + c(x7, n_cat=2, topo=&#39;ordinal&#39;) + c(x10, n_cat=31, topo=&#39;nominal&#39;)&quot;</span>
+<span class="n">base_lin</span> <span class="o">=</span> <span class="s2">&quot;l(x1) + l(x2) + l(x5) + l(x6) + l(x8)&quot;</span>
+
+<span class="c1"># Example 1: Physics-Informed Model (Explicit PDE injection)</span>
+<span class="n">f_physics</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;y ~ phys(x5, basis=&#39;spline&#39;, k=20, D1=0.5, D2=1.0) + s(x1, k=10) + s(x6, k=10) + s(Lag_y, k=15) </span><span class="si">{</span><span class="n">base_cats</span><span class="si">}</span><span class="s2">&quot;</span>
+<span class="n">model_phys</span> <span class="o">=</span> <span class="n">ta</span><span class="o">.</span><span class="n">StaticTAM</span><span class="p">(</span><span class="n">formula</span><span class="o">=</span><span class="n">f_physics</span><span class="p">,</span> <span class="n">date_col</span><span class="o">=</span><span class="s2">&quot;date&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">train_df</span><span class="p">)</span>
+
+<span class="c1"># Example 2: Spatial Tensor Interaction &amp; Wavelets</span>
+<span class="n">f_tensor</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;y ~ te(s(x1, k=15), f(x8, m=10), ap=-30) + te(s(x2, k=10), s(x6, k=10)) + w(Lag_y, n_scales=4, n_locations=10) </span><span class="si">{</span><span class="n">base_cats</span><span class="si">}</span><span class="s2">&quot;</span>
+<span class="n">model_tensor</span> <span class="o">=</span> <span class="n">ta</span><span class="o">.</span><span class="n">StaticTAM</span><span class="p">(</span><span class="n">formula</span><span class="o">=</span><span class="n">f_tensor</span><span class="p">,</span> <span class="n">date_col</span><span class="o">=</span><span class="s2">&quot;date&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">train_df</span><span class="p">)</span>
+
+<span class="c1"># Predictions are generated instantly</span>
+<span class="n">predictions</span> <span class="o">=</span> <span class="n">model_phys</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">test_df</span><span class="p">)</span>
+</pre></div>
+</div>
+</section>
+<section id="the-meta-models-cheatsheet">
+<h3>The Meta-Models Cheatsheet<a class="headerlink" href="#the-meta-models-cheatsheet" title="Link to this heading">¶</a></h3>
+<p>Real-world data is chaotic. Rather than polluting the exactness of the core engine, TAM uses specialized “Meta-Learners” that wrap around the base model to handle specific industrial constraints.</p>
+<ul>
+<li><p><strong>Sudden Concept Drift (Sliding Window)</strong> <span class="math notranslate nohighlight">\(\rightarrow\)</span> <strong><code class="docutils literal notranslate"><span class="pre">AdaptiveTAM</span></code></strong></p>
+<ul>
+<li><p><em>Use case:</em> A sudden crisis changes how your features behave. If the target of your base model is <code class="docutils literal notranslate"><span class="pre">y</span></code>, you can target <code class="docutils literal notranslate"><span class="pre">Residualy</span></code> for pure error correction, or <code class="docutils literal notranslate"><span class="pre">y</span></code> for dynamic ensemble recalibration. You can also use <code class="docutils literal notranslate"><span class="pre">effect_{feature}</span></code> if that feature is in the base model formula.</p></li>
+<li><p><strong>Option 1: Residual Tracking</strong></p>
+<ul>
+<li><p><em>Code:</em></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">ta</span><span class="o">.</span><span class="n">AdaptiveTAM</span><span class="p">(</span><span class="n">base_model</span><span class="o">=</span><span class="n">m</span><span class="p">,</span> <span class="n">adaptive_formula</span><span class="o">=</span><span class="s2">&quot;Residualy ~ l(Lag_Residual)&quot;</span><span class="p">,</span> <span class="n">update_interval_periods</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">training_window_periods</span><span class="o">=</span><span class="mi">28</span><span class="p">,</span> <span class="n">steps_per_period</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">horizon_steps</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+</pre></div>
+</div>
+</li>
+<li><p><em>Mathematics:</em> <span class="math notranslate nohighlight">\(\hat{y}_t - \hat{y}_{\text{base}, t} =  \beta_0(t) + \beta_1(t) \cdot \text{Lag\_Residual}_t\)</span></p></li>
+</ul>
+</li>
+<li><p><strong>Option 2: Dynamic Recalibration (Targeting <code class="docutils literal notranslate"><span class="pre">y</span></code>)</strong></p>
+<ul>
+<li><p><em>Code:</em></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">ta</span><span class="o">.</span><span class="n">AdaptiveTAM</span><span class="p">(</span><span class="n">base_model</span><span class="o">=</span><span class="n">m</span><span class="p">,</span> <span class="n">adaptive_formula</span><span class="o">=</span><span class="s2">&quot;y ~ l(Lag_Residual)&quot;</span><span class="p">,</span> <span class="n">update_interval_periods</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">training_window_periods</span><span class="o">=</span><span class="mi">28</span><span class="p">,</span> <span class="n">steps_per_period</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">horizon_steps</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">add_base_effects</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</pre></div>
+</div>
+</li>
+<li><p><em>Mathematics:</em> <span class="math notranslate nohighlight">\(\hat{y}_t =  \beta_0(t) + \beta_1(t) \cdot \text{Lag\_Residual}_t + \sum_{k} \beta_k(t) \cdot \text{Base\_Effect}_{k, t}\)</span></p></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><p><strong>Continuous Parameter Drift (State-Space)</strong> <span class="math notranslate nohighlight">\(\rightarrow\)</span> <strong><code class="docutils literal notranslate"><span class="pre">KalmanTAM</span></code></strong> (BETA)</p>
+<ul>
+<li><p><em>Use case:</em> You need to continuously track evolving coefficients step-by-step using an Extended Kalman Filter. The formula target MUST match the target of your base model if you use <code class="docutils literal notranslate"><span class="pre">add_base_effects=True</span></code> to automatically track the drift of the original physics.</p></li>
+<li><p><em>Code:</em></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">ta</span><span class="o">.</span><span class="n">KalmanTAM</span><span class="p">(</span><span class="n">base_model</span><span class="o">=</span><span class="n">m</span><span class="p">,</span> <span class="n">kalman_formula</span><span class="o">=</span><span class="s2">&quot;y ~ l(Lag_Residual)&quot;</span><span class="p">,</span> <span class="n">date_col</span><span class="o">=</span><span class="s2">&quot;date&quot;</span><span class="p">,</span> <span class="n">horizon_steps</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">process_noise_var</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span> <span class="n">observation_noise_var</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">use_decomposition</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</pre></div>
+</div>
+</li>
+<li><p><em>Mathematics:</em> <span class="math notranslate nohighlight">\(\hat{y}_t =  \beta_0(t) + \beta_1(t) \cdot \text{Lag\_Residual}_t + \sum_{k} \beta_k(t) \cdot \text{Base\_Effect}_{k, t}\)</span></p></li>
+</ul>
+</li>
+<li><p><strong>Standalone Mode (Without StaticTAM)</strong></p>
+<ul class="simple">
+<li><p><em>Use case:</em> You want to use the Kalman or Adaptive engines to track the residuals of an external model. You must compute the residual manually and add the tracker’s output back to your base forecast.</p></li>
+<li><p><em>AdaptiveTAM:</em> <code class="docutils literal notranslate"><span class="pre">ta.AdaptiveTAM(base_model=None,</span> <span class="pre">adaptive_formula=&quot;Residual</span> <span class="pre">~</span> <span class="pre">l(Lag_Residual)&quot;,</span> <span class="pre">group_col=&quot;group&quot;,</span> <span class="pre">date_col=&quot;date&quot;,</span> <span class="pre">...)</span></code></p></li>
+<li><p><em>KalmanTAM:</em> <code class="docutils literal notranslate"><span class="pre">ta.KalmanTAM(base_model=None,</span> <span class="pre">kalman_formula=&quot;Residual</span> <span class="pre">~</span> <span class="pre">l(Lag_Residual)&quot;,</span> <span class="pre">group_col=&quot;group&quot;,</span> <span class="pre">date_col=&quot;date&quot;,</span> <span class="pre">...)</span></code></p></li>
+</ul>
+</li>
+<li><p>🚧 <strong>Hierarchical Coherence</strong> <span class="math notranslate nohighlight">\(\rightarrow\)</span> <strong><code class="docutils literal notranslate"><span class="pre">HierarchicalTAM</span></code></strong> (BETA)</p>
+<ul class="simple">
+<li><p><em>Use case:</em> Ensuring aggregate forecasts exactly equal the sum of sub-forecasts via joint optimization.</p></li>
+<li><p><em>Code:</em> <code class="docutils literal notranslate"><span class="pre">ta.HierarchicalTAM(structure={&quot;y&quot;:</span> <span class="pre">['yA','yB']},</span> <span class="pre">formulas=node_formulas,</span> <span class="pre">node_col=&quot;Node&quot;,</span> <span class="pre">date_col=&quot;date&quot;)</span></code></p></li>
+</ul>
+</li>
+<li><p><strong>Model Ensembling (Aggregation)</strong> <span class="math notranslate nohighlight">\(\rightarrow\)</span> <strong><code class="docutils literal notranslate"><span class="pre">OperaTAM</span></code></strong></p>
+<ul class="simple">
+<li><p><em>Use case:</em> You have multiple competing models and want to dynamically aggregate them based on real-time regret.</p></li>
+<li><p><em>Code (Formula):</em> <code class="docutils literal notranslate"><span class="pre">ta.OperaTAM(formula=&quot;y</span> <span class="pre">~</span> <span class="pre">l(E_PhysicsTAM)</span> <span class="pre">+</span> <span class="pre">l(E_HierarchicalTAM)&quot;,</span> <span class="pre">algorithm='MLpol',</span> <span class="pre">date_col='date',</span> <span class="pre">loss_type='square',</span> <span class="pre">horizon_steps=1)</span></code></p></li>
+<li><p><em>Code (Columns):</em> <code class="docutils literal notranslate"><span class="pre">ta.OperaTAM(target_col=&quot;y&quot;,</span> <span class="pre">expert_cols=[&quot;E_PhysicsTAM&quot;,</span> <span class="pre">&quot;E_HierarchicalTAM&quot;],</span> <span class="pre">algorithm='MLpol',</span> <span class="pre">date_col='date',</span> <span class="pre">loss_type='square',</span> <span class="pre">horizon_steps=1)</span></code></p></li>
+</ul>
+</li>
+<li><p>🚧 <strong>Extreme Non-Linearities</strong> <span class="math notranslate nohighlight">\(\rightarrow\)</span> <strong><code class="docutils literal notranslate"><span class="pre">NeuralTAM</span></code></strong> (EXP)</p>
+<ul class="simple">
+<li><p><em>Use case:</em> You want to embed a Deep Neural Network to capture complex residuals that standard physics missed. Calling <code class="docutils literal notranslate"><span class="pre">.fit()</span></code> automatically trains the parametric base model first, and then iteratively trains the neural effects.</p></li>
+<li><p><em>Code:</em> <code class="docutils literal notranslate"><span class="pre">ta.NeuralTAM(formula=&quot;y</span> <span class="pre">~</span> <span class="pre">n(x1,</span> <span class="pre">n_neurons=100,</span> <span class="pre">act='relu',</span> <span class="pre">n_hidden_layers=3)</span> <span class="pre">+</span> <span class="pre">s(x2)&quot;,</span> <span class="pre">date_col=&quot;date&quot;,</span> <span class="pre">epochs=1500,</span> <span class="pre">lr=0.001,</span> <span class="pre">batch_size=128)</span></code></p></li>
+</ul>
+</li>
+<li><p>🚧 <strong>Uncertainty &amp; Risk</strong> <span class="math notranslate nohighlight">\(\rightarrow\)</span> <strong><code class="docutils literal notranslate"><span class="pre">SafetyTAM</span></code></strong> (EXP)</p>
+<ul class="simple">
+<li><p><em>Use case:</em> You need statistically guaranteed confidence intervals around your point predictions using Adaptive Conformal Inference (ACI).</p></li>
+<li><p><em>Code:</em> <code class="docutils literal notranslate"><span class="pre">safety</span> <span class="pre">=</span> <span class="pre">ta.SafetyTAM(alpha=0.1);</span> <span class="pre">safety.calibrate(y_true,</span> <span class="pre">y_pred)</span></code></p></li>
+<li><p><em>Output:</em>
+<br>
+<img src="_static/aci_safetytam.png" width="600" alt="SafetyTAM Adaptive Conformal Inference"></p></li>
+</ul>
+</li>
+<li><p>🚧 <strong>Automated Discovery (AutoML)</strong> <span class="math notranslate nohighlight">\(\rightarrow\)</span> <strong><code class="docutils literal notranslate"><span class="pre">AutoTAM</span></code></strong> (EXP)</p>
+<ul class="simple">
+<li><p><em>Use case:</em> You want an Evolutionary Engine to automatically discover the best formula topologies and hyperparameters for you.</p></li>
+<li><p><em>Code:</em> <code class="docutils literal notranslate"><span class="pre">AutoTAM(formula=&quot;y</span> <span class="pre">~</span> <span class="pre">AutoPipe(x1,</span> <span class="pre">x2,</span> <span class="pre">Lag_y)&quot;,</span> <span class="pre">n_experts=10,</span> <span class="pre">pop_size=50,</span> <span class="pre">use_opera=True)</span></code></p></li>
+</ul>
+</li>
+</ul>
+</section>
+</section>
+<section id="the-spectrum-of-effects-cheatsheet">
+<h2>The “Spectrum” of Effects Cheatsheet<a class="headerlink" href="#the-spectrum-of-effects-cheatsheet" title="Link to this heading">¶</a></h2>
+<p>Different physical phenomena require different mathematical topologies. TAM flattens these diverse fields into a unified “Spectrum”. Below is a quick reference for the PyTorch API syntax, the hyperparameters, the mapping function (<span class="math notranslate nohighlight">\(\Phi\)</span>), and the applied structural penalty (<span class="math notranslate nohighlight">\(P\)</span>) for each base effect.</p>
+<blockquote>
+<div><p>💡 <strong>Mathematical Note:</strong> The individual mapping functions (<span class="math notranslate nohighlight">\(\Phi\)</span>) and penalty matrices (<span class="math notranslate nohighlight">\(P_l\)</span>) defined below are the exact building blocks of the framework. When you sum effects in your formula, TAM concatenates these individual <span class="math notranslate nohighlight">\(\Phi\)</span> matrices and block-diagonally stacks the <span class="math notranslate nohighlight">\(P_l\)</span> matrices to form the global penalty <span class="math notranslate nohighlight">\(P\)</span>. Note that each individual penalty <span class="math notranslate nohighlight">\(P_l\)</span> intrinsically encapsulates its specific regularization multiplier <span class="math notranslate nohighlight">\(\lambda\)</span>. These are plugged directly into the <strong>Core Primal Equation</strong> at the top of this page to solve for the global optimal weights.</p>
+</div></blockquote>
+<blockquote>
+<div><p>💡 <strong>Universal Extrapolation (<code class="docutils literal notranslate"><span class="pre">extrapolate</span></code>):</strong> All effects natively support Out-Of-Distribution bounds via the <code class="docutils literal notranslate"><span class="pre">extrapolate</span></code> parameter. You can securely bound outputs outside the <code class="docutils literal notranslate"><span class="pre">[-1,</span> <span class="pre">1]^F</span></code> hypercube using <code class="docutils literal notranslate"><span class="pre">'continue'</span></code> (raw evaluation), <code class="docutils literal notranslate"><span class="pre">'constant'</span></code> (plateau), <code class="docutils literal notranslate"><span class="pre">'linear'</span></code> (1st-order Taylor extension), or <code class="docutils literal notranslate"><span class="pre">'saturation'</span></code> (asymptotic curve).</p>
+</div></blockquote>
+<section id="linear-l">
+<h3><a class="reference internal" href="math/spectrum/LINEAR.html"><span class="std std-doc">Linear (<code class="docutils literal notranslate"><span class="pre">l</span></code>)</span></a><a class="headerlink" href="#linear-l" title="Link to this heading">¶</a></h3>
+<ul class="simple">
+<li><p><strong>Syntax:</strong> <code class="docutils literal notranslate"><span class="pre">l(x,</span> <span class="pre">scaled=3.14,</span> <span class="pre">ap=-30)</span></code></p></li>
+<li><p><strong>Hyperparameters:</strong> <code class="docutils literal notranslate"><span class="pre">scaled</span></code>: Optional scaling factor applied to the input (defaults to <span class="math notranslate nohighlight">\(\pi\)</span> as a weakl legacy). <code class="docutils literal notranslate"><span class="pre">ap</span></code>: The penalty power defining the regularization strength.</p></li>
+<li><p><strong>Mapping function:</strong> <span class="math notranslate nohighlight">\(\phi_{lin}(x) = s \cdot x\)</span></p></li>
+<li><p><strong>Penalty Matrix:</strong> <span class="math notranslate nohighlight">\(P_{lin} = \lambda I\)</span> with <span class="math notranslate nohighlight">\(\lambda = 10^{ap}\)</span></p></li>
+</ul>
+</section>
+<section id="fourier-f">
+<h3><a class="reference internal" href="math/spectrum/FOURIER.html"><span class="std std-doc">Fourier (<code class="docutils literal notranslate"><span class="pre">f</span></code>)</span></a><a class="headerlink" href="#fourier-f" title="Link to this heading">¶</a></h3>
+<ul class="simple">
+<li><p><strong>Syntax:</strong> <code class="docutils literal notranslate"><span class="pre">f(x,</span> <span class="pre">m=10,</span> <span class="pre">s=1,</span> <span class="pre">cyclic=True)</span></code></p></li>
+<li><p><strong>Hyperparameters:</strong> <code class="docutils literal notranslate"><span class="pre">m</span></code>: Number of harmonic frequencies. <code class="docutils literal notranslate"><span class="pre">s</span></code>: Smoothness parameter that dictates the algebraic decay rate. <code class="docutils literal notranslate"><span class="pre">cyclic</span></code>: Strict periodic boundary (<code class="docutils literal notranslate"><span class="pre">True</span></code>) or relaxed boundary (<code class="docutils literal notranslate"><span class="pre">False</span></code>).</p></li>
+<li><p><strong>Mapping function:</strong> <span class="math notranslate nohighlight">\(\phi_{fourier}(x) = \left[ \cos(k \pi x), \sin(k \pi x) \right]_{k=1}^m \text{ if cyclic } \left[ \cos\left(\frac{k \pi x}{2}\right), \sin\left(\frac{k \pi x}{2}\right) \right]_{k=1}^m\)</span></p></li>
+<li><p><strong>Penalty Matrix:</strong> <span class="math notranslate nohighlight">\(P_{fourier} = \lambda \cdot \text{diag}\left( [1 + k^{2s}]_{k=1}^m \oplus [1 + k^{2s}]_{k=1}^m \right)\)</span></p></li>
+</ul>
+</section>
+<section id="spline-s">
+<h3><a class="reference internal" href="math/spectrum/SPLINES.html"><span class="std std-doc">Spline (<code class="docutils literal notranslate"><span class="pre">s</span></code>)</span></a><a class="headerlink" href="#spline-s" title="Link to this heading">¶</a></h3>
+<ul class="simple">
+<li><p><strong>Syntax:</strong> <code class="docutils literal notranslate"><span class="pre">s(x,</span> <span class="pre">k=10,</span> <span class="pre">deg=3,</span> <span class="pre">p=2)</span></code></p></li>
+<li><p><strong>Hyperparameters:</strong> <code class="docutils literal notranslate"><span class="pre">k</span></code>: Number of fixed knots. <code class="docutils literal notranslate"><span class="pre">deg</span></code>: Degree of the B-spline polynomial. <code class="docutils literal notranslate"><span class="pre">p</span></code>: Order of the discrete difference operator used for penalization.</p></li>
+<li><p><strong>Mapping function:</strong> <span class="math notranslate nohighlight">\(\phi_{spline}(x) = [B_{1,m}(x), \dots, B_{K,m}(x)]^T\)</span></p></li>
+<li><p><strong>Penalty Matrix:</strong> <span class="math notranslate nohighlight">\(P_{spline} = \lambda (\Delta_d^T \Delta_d)\)</span></p></li>
+</ul>
+</section>
+<section id="chebyshev-p">
+<h3><a class="reference internal" href="math/spectrum/CHEBYSHEV.html"><span class="std std-doc">Chebyshev (<code class="docutils literal notranslate"><span class="pre">p</span></code>)</span></a><a class="headerlink" href="#chebyshev-p" title="Link to this heading">¶</a></h3>
+<ul class="simple">
+<li><p><strong>Syntax:</strong> <code class="docutils literal notranslate"><span class="pre">p(x,</span> <span class="pre">deg=5,</span> <span class="pre">s=0)</span></code></p></li>
+<li><p><strong>Hyperparameters:</strong> <code class="docutils literal notranslate"><span class="pre">deg</span></code>: Maximum evaluated polynomial degree. <code class="docutils literal notranslate"><span class="pre">s</span></code>: Smoothness parameter acting as a low-pass filter.</p></li>
+<li><p><strong>Mapping function:</strong> <span class="math notranslate nohighlight">\(\phi_{chebyshev}(x) = \left[ T_n(x) \right]_{n=1}^D\)</span></p></li>
+<li><p><strong>Penalty Matrix:</strong> <span class="math notranslate nohighlight">\(P_{chebyshev} = \lambda \cdot \text{diag}\left( n^{2s} \right)_{n=1}^D\)</span></p></li>
+</ul>
+</section>
+<section id="categorical-c">
+<h3><a class="reference internal" href="math/spectrum/CATEGORICAL.html"><span class="std std-doc">Categorical (<code class="docutils literal notranslate"><span class="pre">c</span></code>)</span></a><a class="headerlink" href="#categorical-c" title="Link to this heading">¶</a></h3>
+<ul class="simple">
+<li><p><strong>Syntax:</strong> <code class="docutils literal notranslate"><span class="pre">c(x,</span> <span class="pre">n_cat=5,</span> <span class="pre">topo='ordinal',</span> <span class="pre">p_order=1)</span></code></p></li>
+<li><p><strong>Hyperparameters:</strong> <code class="docutils literal notranslate"><span class="pre">topo</span></code>: Topological mapping (<code class="docutils literal notranslate"><span class="pre">nominal</span></code>, <code class="docutils literal notranslate"><span class="pre">ordinal</span></code>, or <code class="docutils literal notranslate"><span class="pre">fourier</span></code>). <code class="docutils literal notranslate"><span class="pre">p_order</span></code>: The penalty order applied.</p></li>
+<li><p><strong>Mapping function:</strong> <strong>Nominal/Ordinal:</strong> <span class="math notranslate nohighlight">\(\phi_{cat}(x) = \left[ I(x=c_1), \dots, I(x=c_K) \right]^\top\)</span> | <strong>Fourier:</strong> <span class="math notranslate nohighlight">\(\phi_{cat}(x) = \left[ \cos\left(\frac{k \pi x}{2}\right), \sin\left(\frac{k \pi x}{2}\right) \right]_{k=1}^m\)</span></p></li>
+<li><p><strong>Penalty Matrix:</strong> <strong>Nominal:</strong> <span class="math notranslate nohighlight">\(P_{cat} = \lambda I\)</span> | <strong>Ordinal:</strong> <span class="math notranslate nohighlight">\(P_{cat} = \lambda D^\top D\)</span> | <strong>Fourier:</strong> <span class="math notranslate nohighlight">\(P_{cat} = \lambda \cdot \text{diag}\left( 1 + k^{2s} \right)\)</span></p></li>
+</ul>
+</section>
+<section id="interaction-te">
+<h3><a class="reference internal" href="math/spectrum/CROSS_TENSOR.html"><span class="std std-doc">Interaction (<code class="docutils literal notranslate"><span class="pre">te</span></code>)</span></a><a class="headerlink" href="#interaction-te" title="Link to this heading">¶</a></h3>
+<ul class="simple">
+<li><p><strong>Syntax:</strong> <code class="docutils literal notranslate"><span class="pre">te(s(x,</span> <span class="pre">k=10),</span> <span class="pre">f(t,</span> <span class="pre">m=5),</span> <span class="pre">ap=-30)</span></code></p></li>
+<li><p><strong>Mapping function:</strong> <span class="math notranslate nohighlight">\(\phi_{cross}(x_1, \dots, x_{K_{te}}) = \phi_1(x_1) \otimes \dots \otimes \phi_{K_{te}}(x_{K_{te}})\)</span></p></li>
+<li><p>2D Mapping function: <span class="math notranslate nohighlight">\(\phi_{cross}(x_1, x_2) = \left[ h_{1,i}(x_1) h_{2,j}(x_2) \right]_{i=1, \dots, D_1}^{j=1, \dots, D_2}\)</span></p></li>
+<li><p><strong>Penalty Matrix:</strong> <span class="math notranslate nohighlight">\(P_{cross} = \lambda \sum_{i=1}^{K_{te}} \left( I_1 \otimes \dots \otimes P_i \otimes \dots \otimes I_{K_{te}} \right)\)</span></p></li>
+<li><p>2D Penalty Matrix: <span class="math notranslate nohighlight">\(P_{cross} = \lambda (P_1 \otimes I_2 + I_1 \otimes P_2)\)</span></p></li>
+</ul>
+</section>
+<section id="rbf-rbf">
+<h3><a class="reference internal" href="math/spectrum/RBF.html"><span class="std std-doc">RBF (<code class="docutils literal notranslate"><span class="pre">rbf</span></code>)</span></a><a class="headerlink" href="#rbf-rbf" title="Link to this heading">¶</a></h3>
+<ul class="simple">
+<li><p><strong>Syntax:</strong> <code class="docutils literal notranslate"><span class="pre">rbf(x,</span> <span class="pre">n_centers=50,</span> <span class="pre">gamma=0.1,</span> <span class="pre">nu=None)</span></code></p></li>
+<li><p><strong>Hyperparameters:</strong> <code class="docutils literal notranslate"><span class="pre">n_centers</span></code>: Fixed set of strategically chosen prototypes or centroids. <code class="docutils literal notranslate"><span class="pre">gamma</span></code>: Bandwidth parameter (inverse squared length-scale). <code class="docutils literal notranslate"><span class="pre">nu</span></code>: Smoothness parameter for the Matérn kernel that strictly controls fractional differentiability.</p></li>
+<li><p><strong>Mapping function:</strong> <span class="math notranslate nohighlight">\(\phi_{rbf}(x) = \left[ K(x, c_1), \dots, K(x, c_M) \right]^\top\)</span></p></li>
+<li><p><strong>Penalty Matrix:</strong> <span class="math notranslate nohighlight">\(P_{rbf} = \lambda I\)</span></p></li>
+</ul>
+</section>
+<section id="neural-n">
+<h3><a class="reference internal" href="math/spectrum/NEURAL.html"><span class="std std-doc">Neural (<code class="docutils literal notranslate"><span class="pre">n</span></code>)</span></a><a class="headerlink" href="#neural-n" title="Link to this heading">¶</a></h3>
+<ul class="simple">
+<li><p><strong>Syntax:</strong> <code class="docutils literal notranslate"><span class="pre">n(x,</span> <span class="pre">n_neurons=500,</span> <span class="pre">act='relu',</span> <span class="pre">n_hidden_layers=1)</span></code></p></li>
+<li><p><strong>Hyperparameters:</strong> <code class="docutils literal notranslate"><span class="pre">n_neurons</span></code>: Width of the neural layer. <code class="docutils literal notranslate"><span class="pre">act</span></code>: Non-linear activation function (<code class="docutils literal notranslate"><span class="pre">relu</span></code>, <code class="docutils literal notranslate"><span class="pre">cos</span></code>, <code class="docutils literal notranslate"><span class="pre">tanh</span></code>). <code class="docutils literal notranslate"><span class="pre">n_hidden_layers</span></code>: Number of stochastic hidden layers.</p></li>
+<li><p><strong>Mapping function:</strong> <span class="math notranslate nohighlight">\(\phi_{neural}(x) = \frac{1}{\sqrt{N_L}} z^{(L)}\)</span> <em>(where <span class="math notranslate nohighlight">\(z^{(L)}\)</span> represents the stochastic output of the final frozen hidden layer)</em></p></li>
+<li><p><strong>Penalty Matrix:</strong> <span class="math notranslate nohighlight">\(P_{neural} = \lambda I\)</span></p></li>
+</ul>
+</section>
+<section id="tree-t">
+<h3><a class="reference internal" href="math/spectrum/TREE.html"><span class="std std-doc">Tree (<code class="docutils literal notranslate"><span class="pre">t</span></code>)</span></a><a class="headerlink" href="#tree-t" title="Link to this heading">¶</a></h3>
+<ul class="simple">
+<li><p><strong>Syntax:</strong> <code class="docutils literal notranslate"><span class="pre">t(x,</span> <span class="pre">n_trees=50,</span> <span class="pre">max_depth=5,</span> <span class="pre">max_leaves=None,</span> <span class="pre">seed=42)</span></code></p></li>
+<li><p><strong>Hyperparameters:</strong></p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">n_trees</span></code> (<span class="math notranslate nohighlight">\(B\)</span>): Number of independent trees in the ensemble.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">max_depth</span></code> (<span class="math notranslate nohighlight">\(d\)</span>): Triggers the Oblivious Binary architecture (creates <span class="math notranslate nohighlight">\(M=2^d\)</span> symmetric leaves per tree). Ideal for multi-dimensional spatial interactions.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">max_leaves</span></code> (<span class="math notranslate nohighlight">\(M\)</span>): Overrides max_depth to trigger the Flat N-ary Histogram architecture (creates <span class="math notranslate nohighlight">\(M\)</span> leaves per tree). Ideal for 1D Piecewise Linear Regressions.</p></li>
+</ul>
+</li>
+<li><p><strong>Mapping function:</strong> <span class="math notranslate nohighlight">\(\phi_{tree}(x) = \frac{1}{\sqrt{B}} \left[ I(x \in R_{1,1}), \dots, I(x \in R_{B,M}) \right]^\top\)</span></p></li>
+<li><p><strong>Penalty Matrix:</strong> <span class="math notranslate nohighlight">\(P_{tree} = \lambda I\)</span></p></li>
+</ul>
+</section>
+<section id="wavelet-w">
+<h3><a class="reference internal" href="math/spectrum/WAVELETS.html"><span class="std std-doc">Wavelet (<code class="docutils literal notranslate"><span class="pre">w</span></code>)</span></a><a class="headerlink" href="#wavelet-w" title="Link to this heading">¶</a></h3>
+<ul class="simple">
+<li><p><strong>Syntax:</strong> <code class="docutils literal notranslate"><span class="pre">w(x,</span> <span class="pre">n_scales=5,</span> <span class="pre">n_locations=20)</span></code>.</p></li>
+<li><p><strong>Hyperparameters:</strong> <code class="docutils literal notranslate"><span class="pre">n_scales</span></code>: Number of logarithmically spaced dilations. <code class="docutils literal notranslate"><span class="pre">n_locations</span></code>: Number of linearly spaced centers.</p></li>
+<li><p><strong>Mapping function:</strong> <span class="math notranslate nohighlight">\(\phi_{wavelet}(x) = \left[ \frac{1}{\sqrt{a_i}} \psi\left(\frac{x - b_j}{a_i}\right) \right]_{i=1, \dots, n_{scales}}^{j=1, \dots, n_{locations}}\)</span></p></li>
+<li><p><strong>Penalty Matrix:</strong> <span class="math notranslate nohighlight">\(P_{wavelet} = \lambda \cdot \text{diag}\left( \frac{1}{a_i^2} \right)\)</span></p></li>
+</ul>
+</section>
+<section id="physics-phys">
+<h3><a class="reference internal" href="math/spectrum/PHYSICS_PIKL.html"><span class="std std-doc">Physics (<code class="docutils literal notranslate"><span class="pre">phys</span></code>)</span></a><a class="headerlink" href="#physics-phys" title="Link to this heading">¶</a></h3>
+<ul class="simple">
+<li><p><strong>Syntax:</strong> <code class="docutils literal notranslate"><span class="pre">phys(x,</span> <span class="pre">basis='spline',</span> <span class="pre">k=20,</span> <span class="pre">D1=0.5,</span> <span class="pre">D2=1.0)</span></code></p></li>
+<li><p><strong>Hyperparameters:</strong> <code class="docutils literal notranslate"><span class="pre">basis</span></code>: The underlying feature map utilized (<code class="docutils literal notranslate"><span class="pre">spline</span></code>, <code class="docutils literal notranslate"><span class="pre">fourier</span></code>, or <code class="docutils literal notranslate"><span class="pre">neural</span></code>). <code class="docutils literal notranslate"><span class="pre">D0/D1/D2</span></code>: Explicit weights for the differential equation operator.</p></li>
+<li><p><strong>Mapping function:</strong> <span class="math notranslate nohighlight">\(\Phi_{phys}(x) = \Phi_{base}(x)\)</span></p></li>
+<li><p><strong>Penalty Matrix:</strong> <span class="math notranslate nohighlight">\(P_{phys} = \lambda L_{op}^\top L_{op}\)</span></p></li>
+</ul>
+</section>
+<section id="pid-pid">
+<h3><a class="reference internal" href="math/spectrum/PID.html"><span class="std std-doc">PID (<code class="docutils literal notranslate"><span class="pre">pid</span></code>)</span></a><a class="headerlink" href="#pid-pid" title="Link to this heading">¶</a></h3>
+<ul class="simple">
+<li><p><strong>Syntax:</strong> <code class="docutils literal notranslate"><span class="pre">pid(x,</span> <span class="pre">w=7,</span> <span class="pre">d_pen=10.0)</span></code></p></li>
+<li><p><strong>Hyperparameters:</strong> <code class="docutils literal notranslate"><span class="pre">w</span></code>: Predefined window for the sliding rolling mean. <code class="docutils literal notranslate"><span class="pre">d_pen</span></code>: Artificial stiffness multiplier applied strictly to the derivative term.</p></li>
+<li><p><strong>Mapping function:</strong> <span class="math notranslate nohighlight">\(\phi_{pid}(y_{t-1}) = \left[ y_{t-1}, \quad \frac{1}{w} \sum_{k=1}^w y_{t-k}, \quad y_{t-1} - y_{t-2} \right]^T\)</span></p></li>
+<li><p><strong>Penalty Matrix:</strong> <span class="math notranslate nohighlight">\(P_{pid} = \lambda \cdot \text{diag}(1, 1, d_{mult})\)</span></p></li>
+</ul>
+</section>
+<section id="linear-tree-lt">
+<h3><a class="reference internal" href="math/spectrum/LINEAR_TREE.html"><span class="std std-doc">Linear Tree (<code class="docutils literal notranslate"><span class="pre">lt</span></code>)</span></a><a class="headerlink" href="#linear-tree-lt" title="Link to this heading">¶</a></h3>
+<ul class="simple">
+<li><p><strong>Syntax:</strong> <code class="docutils literal notranslate"><span class="pre">lt(x1,</span> <span class="pre">slope='x2',</span> <span class="pre">max_depth=4)</span></code></p></li>
+<li><p><strong>Hyperparameters:</strong> Inherits standard Tree partitioning parameters (<code class="docutils literal notranslate"><span class="pre">max_depth</span></code>, <code class="docutils literal notranslate"><span class="pre">max_leaves</span></code>). <code class="docutils literal notranslate"><span class="pre">slope</span></code>: explicitly defines the linear interaction variable (defaults to the partition variable if omitted).</p></li>
+<li><p><strong>Mapping function:</strong> <span class="math notranslate nohighlight">\(\phi_{lt}(x_{part}, x_{slope}) = \left[ \phi_{tree_{base}}(x_{part}), \quad \phi_{tree_{slope}}(x_{part}) \otimes \phi_{lin}(x_{slope}) \right]^\top\)</span></p></li>
+<li><p><strong>Penalty Matrix:</strong> Block diagonal encapsulation: <span class="math notranslate nohighlight">\(P_{lt} = \text{diag}(P_{tree}, P_{cross})\)</span></p></li>
+<li><p>📖 <em>Note: This effect natively encapsulates the piecewise logic to fully support multi-dimensional spatial interactions without requiring formula macro expansions.</em></p></li>
+</ul>
+</section>
+</section>
+<hr class="docutils" />
+<section id="benchmark-proof-the-power-of-topology-meta-learning">
+<h2>📊 Benchmark Proof: The Power of Topology &amp; Meta-Learning<a class="headerlink" href="#benchmark-proof-the-power-of-topology-meta-learning" title="Link to this heading">¶</a></h2>
+<p><em>(To reproduce these results, execute <code class="docutils literal notranslate"><span class="pre">python</span> <span class="pre">use_cases/cheatsheet.py</span></code> located in the repository, note: results of BETA/EXP modules may differ, timing depends on the hardware configuration).</em></p>
+<p>To demonstrate the framework’s mathematical guarantees, we ran a comprehensive benchmark (<code class="docutils literal notranslate"><span class="pre">cheatsheet.py</span></code>) simulating a complex Data Generation Process (DGP). The DGP contained a mix of linear trends, periodic seasonality, a hidden physical Damped Harmonic Oscillator, complex tensor interactions, and high-frequency non-linear noise.</p>
+<p>We deployed the entire TAM spectrum (Static bases, Neural Networks, Physics operators) and wrapped them in all available Meta-Learners. Here is the final Test Set performance (ranked by <strong>RMSE</strong>):</p>
+<ul class="simple">
+<li><p>🥇 <strong><code class="docutils literal notranslate"><span class="pre">OOE_GlobalTAM</span></code></strong> (Test RMSE: <strong>5.99</strong>): The ultimate meta-learner. By using the <code class="docutils literal notranslate"><span class="pre">OperaTAM</span></code> algorithm to dynamically aggregate all sub-ensembles based on real-time regret, it successfully muted failing models and pushed the global error lower than any individual expert.</p></li>
+<li><p>🥈 <strong><code class="docutils literal notranslate"><span class="pre">OE_PhysicsTAM</span></code></strong> (Test RMSE: <strong>6.10</strong>): Explicit Domain Knowledge. By injecting the exact differential equation (PDE) of the Damped Harmonic Oscillator directly into the RKHS penalty matrix, it effortlessly extracted the true physical signal.</p></li>
+<li><p>🥉 <strong><code class="docutils literal notranslate"><span class="pre">OE_AdaptiveTAM</span></code></strong> (Test RMSE: <strong>6.12</strong>): Sliding-window online learning. Proves that mapping base model residuals to a short-term adaptive memory effectively corrects sudden concept drift.</p></li>
+<li><p>🏅 <strong><code class="docutils literal notranslate"><span class="pre">OE_HierarchicalTAM</span></code></strong> (Test RMSE: <strong>6.26</strong>): Structural Coherence. Enforcing the strict top-down constraint (<span class="math notranslate nohighlight">\(Y = Y_A + Y_B\)</span>) during the global convex optimization prevented the sub-models from overfitting their local, partial noise.</p></li>
+<li><p>🏅 <strong><code class="docutils literal notranslate"><span class="pre">OE_NeuralTAM</span></code></strong> (Test RMSE: <strong>6.28</strong>): The Deep Learning Hybrid. The properly tuned Neural Networks (ReLU, Cos, Tanh) successfully mapped the high-frequency non-linear noise, proving highly effective when integrated into the TAM pipeline.</p></li>
+<li><p>🏅 <strong><code class="docutils literal notranslate"><span class="pre">OE_KalmanTAM</span></code></strong> (Test RMSE: <strong>6.31</strong>): The Extended Kalman Filter. By continuously tracking the parameter drift of the base models in a state-space formulation, it drastically stabilized predictions across the non-stationary test set.</p></li>
+<li><p>🏅 <strong><code class="docutils literal notranslate"><span class="pre">OE_StaticTAM</span></code></strong> (Test RMSE: <strong>6.80</strong>): The pure Mathematical bases. Explicit continuous dictionaries (like Fourier, Splines, and Tensors) provided a fast, exact, and highly interpretable analytical baseline.</p></li>
+<li><p>🚧 <strong><code class="docutils literal notranslate"><span class="pre">E_AutoTAM_Champion</span></code></strong> (Test RMSE: <strong>8.93</strong>): <strong>[BETA]</strong> The AutoML meta-model is still under construction, but it already achieves near-human performance with 5 experts and a population size of 20.</p></li>
+</ul>
+<section id="key-takeaways-for-practitioners">
+<h3>💡 Key Takeaways for Practitioners:<a class="headerlink" href="#key-takeaways-for-practitioners" title="Link to this heading">¶</a></h3>
+<ol class="arabic simple">
+<li><p><strong>Topology Matters:</strong> Choosing the correct mathematical basis (e.g., <code class="docutils literal notranslate"><span class="pre">phys()</span></code> for differential equations) provides a massive performance baseline. Furthermore, properly integrating neural layers (<code class="docutils literal notranslate"><span class="pre">n()</span></code>) helps capture complex residual interactions that classical models miss.</p></li>
+<li><p><strong>Drift is Inevitable (But Fixable):</strong> Time-series data is inherently non-stationary. Wrapping your base models in <strong>Adaptive</strong> or <strong>Kalman</strong> drift-correction layers significantly reduces error.</p></li>
+<li><p><strong>Trust the Aggregation:</strong> You don’t have to guess the perfect model. By feeding a diverse portfolio of expert models (Static, Neural, Physics) into <strong>OperaTAM</strong>, the algorithm’s real-time regret bounds mathematically guarantee that the final ensemble will perform at least as well as the best individual expert.</p></li>
+</ol>
+</section>
+<hr class="docutils" />
+<section id="visualizing-the-benchmark-benchmarktracker">
+<h3>📈 Visualizing the Benchmark (<code class="docutils literal notranslate"><span class="pre">BenchmarkTracker</span></code>)<a class="headerlink" href="#visualizing-the-benchmark-benchmarktracker" title="Link to this heading">¶</a></h3>
+<p>The performance table above is extracted directly from TAM’s built-in <code class="docutils literal notranslate"><span class="pre">BenchmarkTracker</span></code> module, which automatically compiles MLOps diagnostic dashboards.</p>
+<p>Below is the visual output of this exact benchmark. Notice how the dashboard not only ranks the models but also provides a Chronological Forecast to verify stage-by-stage alignment (Train vs. Validation vs. Test) and a Test Set Vulnerability heatmap to identify exactly where specific models struggle across different feature regimes.</p>
+<div align="center">
+  <img src="_static/dashboard_7_OperaTAM_Meta-Learners.png" width="1000" alt="TAM Evaluation Dashboard">
+</div>
+</section>
+<hr class="docutils" />
+<section id="deep-dive-inside-the-meta-ensembles">
+<h3>🔬 Deep Dive: Inside the Meta-Ensembles<a class="headerlink" href="#deep-dive-inside-the-meta-ensembles" title="Link to this heading">¶</a></h3>
+<p>Each Meta-Learner is itself an ensemble of different mathematical bases. To achieve the final scores shown in the benchmark above, the framework uses the <code class="docutils literal notranslate"><span class="pre">OperaTAM</span></code> algorithm internally to dynamically route trust to the best-performing topological components over time. Below is the visual gallery of these internal weight allocations.</p>
+<p><strong>1. The Ultimate Aggregation: GlobalTAM</strong></p>
+<div align="center">
+  <img src="_static/opera_weights_OOE_GlobalTAM.png" width="800" alt="GlobalTAM Weights">
+</div>
+<p><strong>2. Structural Coherence: HierarchicalTAM</strong></p>
+<div align="center">
+  <img src="_static/opera_weights_OE_HierarchicalTAM.png" width="800" alt="HierarchicalTAM Weights">
+</div>
+<p><strong>3. Explicit Domain Knowledge: PhysicsTAM</strong></p>
+<div align="center">
+  <img src="_static/opera_weights_OE_PhysicsTAM.png" width="800" alt="PhysicsTAM Weights">
+</div>
+<p><strong>4. Deep Learning Hybrid: NeuralTAM</strong></p>
+<div align="center">
+  <img src="_static/opera_weights_OE_NeuralTAM.png" width="800" alt="NeuralTAM Weights">
+</div>
+<p><strong>5. State-Space Tracking: KalmanTAM</strong></p>
+<div align="center">
+  <img src="_static/opera_weights_OE_KalmanTAM.png" width="800" alt="KalmanTAM Weights">
+</div>
+<p><strong>6. Sliding-Window Online Learning: AdaptiveTAM</strong></p>
+<div align="center">
+  <img src="_static/opera_weights_OE_AdaptiveTAM.png" width="800" alt="AdaptiveTAM Weights">
+</div>
+<p><strong>7. Pure Mathematical Bases: StaticTAM</strong></p>
+<div align="center">
+  <img src="_static/opera_weights_OE_StaticTAM.png" width="800" alt="StaticTAM Weights">
+</div>
+</section>
+</section>
+<hr class="docutils" />
+<section id="full-documentation-map">
+<h2>🧭 Full Documentation Map<a class="headerlink" href="#full-documentation-map" title="Link to this heading">¶</a></h2>
+<p>TAM enforces a strict <strong>Mirror Architecture</strong> in its documentation: every mathematical concept (The “Why”) has a direct PyTorch engineering counterpart (The “How”).</p>
+<section id="the-core-engine">
+<h3>⚙️ The Core Engine<a class="headerlink" href="#the-core-engine" title="Link to this heading">¶</a></h3>
+<ul class="simple">
+<li><p><strong>The Primal Model:</strong> <a class="reference internal" href="math/core/01_primal_model.html"><span class="std std-doc">🧠 Theory</span></a> | <a class="reference internal" href="architecture/core/01_additive_api.html"><span class="std std-doc">💻 Architecture</span></a></p></li>
+<li><p><strong>Tensorization &amp; Data:</strong> <a class="reference internal" href="math/core/02_tensorization.html"><span class="std std-doc">🧠 Theory</span></a> | <a class="reference internal" href="architecture/core/02_data_pipeline.html"><span class="std std-doc">💻 Architecture</span></a></p></li>
+<li><p><strong>Linear Systems:</strong> <a class="reference internal" href="math/core/03_linear_system.html"><span class="std std-doc">🧠 Theory</span></a> | <a class="reference internal" href="architecture/core/03_math_dispatcher.html"><span class="std std-doc">💻 Architecture</span></a></p></li>
+<li><p><strong>Complexity &amp; Hardware:</strong> <a class="reference internal" href="math/core/04_complexity.html"><span class="std std-doc">🧠 Theory</span></a> | <a class="reference internal" href="architecture/core/04_hardware_memory.html"><span class="std std-doc">💻 Architecture</span></a></p></li>
+<li><p><strong>GCV &amp; Auto-ML:</strong> <a class="reference internal" href="math/core/05_gcv_theory.html"><span class="std std-doc">🧠 Theory</span></a> | <a class="reference internal" href="architecture/core/05_gcv_implementation.html"><span class="std std-doc">💻 Architecture</span></a></p></li>
+</ul>
+</section>
+<section id="meta-learners-inference">
+<h3>🛡️ Meta-Learners &amp; Inference<a class="headerlink" href="#meta-learners-inference" title="Link to this heading">¶</a></h3>
+<ul class="simple">
+<li><p><strong>Adaptive Online Learning:</strong> <a class="reference internal" href="math/meta/01_adaptive_online.html"><span class="std std-doc">🧠 Theory</span></a> | <a class="reference internal" href="architecture/meta/01_adaptive_code.html"><span class="std std-doc">💻 Architecture</span></a></p></li>
+<li><p><strong>Extended Kalman Filter</strong> (BETA) : <a class="reference internal" href="math/meta/02_kalman_filter.html"><span class="std std-doc">🧠 Theory</span></a> | <a class="reference internal" href="architecture/meta/02_kalman_torchscript.html"><span class="std std-doc">💻 Architecture</span></a></p></li>
+<li><p><strong>Hierarchical Reconciliation</strong> (BETA) : <a class="reference internal" href="math/meta/03_hierarchical_joint.html"><span class="std std-doc">🧠 Theory</span></a> | <a class="reference internal" href="architecture/meta/03_hierarchical_code.html"><span class="std std-doc">💻 Architecture</span></a></p></li>
+<li><p><strong>Conformal Safety (ACI)</strong> (EXP) : <a class="reference internal" href="math/meta/04_conformal_safety.html"><span class="std std-doc">🧠 Theory</span></a> | <a class="reference internal" href="architecture/meta/04_safety_code.html"><span class="std std-doc">💻 Architecture</span></a></p></li>
+<li><p><strong>Expert Aggregation (Opera):</strong> <a class="reference internal" href="math/meta/05_opera_aggregation.html"><span class="std std-doc">🧠 Theory</span></a> | <a class="reference internal" href="architecture/meta/05_opera_gpu.html"><span class="std std-doc">💻 Architecture</span></a></p></li>
+<li><p><strong>Deep-GAM Hybridization</strong> (EXP) : <a class="reference internal" href="math/meta/06_deep_gam_backfitting.html"><span class="std std-doc">🧠 Theory</span></a> | <a class="reference internal" href="architecture/meta/06_neural_hybrid.html"><span class="std std-doc">💻 Architecture</span></a></p></li>
+<li><p><strong>Statistical Diagnostics</strong> (EXP) : <a class="reference internal" href="math/meta/07_statistical_diagnostics.html"><span class="std std-doc">🧠 Theory</span></a> | <a class="reference internal" href="architecture/meta/07_diagnostics_utils.html"><span class="std std-doc">💻 Architecture</span></a></p></li>
+<li><p><strong>Evolutionary AutoML (AutoTAM)</strong> (EXP) : <a class="reference internal" href="math/meta/08_auto_orchestrator.html"><span class="std std-doc">🧠 Theory</span></a> | <a class="reference internal" href="architecture/meta/08_auto_orchestrator_code.html"><span class="std std-doc">💻 Architecture</span></a></p></li>
+<li><p><strong>Data Topology (AutoTAM)</strong> (EXP) : <a class="reference internal" href="math/meta/09_auto_data_topology.html"><span class="std std-doc">🧠 Theory</span></a> | <a class="reference internal" href="architecture/meta/09_auto_data_topology_code.html"><span class="std std-doc">💻 Architecture</span></a></p></li>
+<li><p><strong>MLOps Evaluation:</strong> <a class="reference internal" href="math/meta/10_mlops_evaluation.html"><span class="std std-doc">🧠 Theory</span></a> | <a class="reference internal" href="architecture/meta/10_mlops_tracking_code.html"><span class="std std-doc">💻 Architecture</span></a></p></li>
+</ul>
+</section>
+</section>
+<hr class="docutils" />
+<section id="status-flags">
+<h2>Status flags<a class="headerlink" href="#status-flags" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p><strong>(BETA)</strong>: Research modules under active development. Mostly functional but not fully validated. API may change.</p></li>
+<li><p><strong>(EXP)</strong>: Experimental or incomplete features. May not function correctly.</p></li>
+</ul>
+</section>
+</section>
+
+        </article>
+      </div>
+      <footer>
+        
+        <div class="related-pages">
+          <a class="next-page" href="math/core/01_primal_model.html">
+              <div class="page-info">
+                <div class="context">
+                  <span>Next</span>
+                </div>
+                <div class="title">The Exact Primal Resolution</div>
+              </div>
+              <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
+            </a>
+          <a class="prev-page" href="README.html">
+              <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
+              <div class="page-info">
+                <div class="context">
+                  <span>Previous</span>
+                </div>
+                
+                <div class="title">TAM (Time series Additive Model)</div>
+                
+              </div>
+            </a>
+        </div>
+        <div class="bottom-of-page">
+          <div class="left-details">
+            <div class="copyright">
+                Copyright &#169; 2026, Yann Allioux, Nathan Doumèche, Éloi Bedek
+            </div>
+            Made with <a href="https://www.sphinx-doc.org/">Sphinx</a> and <a class="muted-link" href="https://pradyunsg.me">@pradyunsg</a>'s
+            
+            <a href="https://github.com/pradyunsg/furo">Furo</a>
+            
+          </div>
+          <div class="right-details">
+            
+          </div>
+        </div>
+        
+      </footer>
+    </div>
+    <aside class="toc-drawer">
+      
+      
+      <div class="toc-sticky toc-scroll">
+        <div class="toc-title-container">
+          <span class="toc-title">
+            On this page
+          </span>
+        </div>
+        <div class="toc-tree-container">
+          <div class="toc-tree">
+            <ul>
+<li><a class="reference internal" href="#">📚 Theory Introduction of TAM and Cheatsheet</a><ul>
+<li><a class="reference internal" href="#the-core-primal-equation">The Core Primal Equation</a></li>
+<li><a class="reference internal" href="#the-core-and-meta-models">The Core and Meta Models</a><ul>
+<li><a class="reference internal" href="#the-core-model">The Core Model</a></li>
+<li><a class="reference internal" href="#the-meta-models-cheatsheet">The Meta-Models Cheatsheet</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#the-spectrum-of-effects-cheatsheet">The “Spectrum” of Effects Cheatsheet</a><ul>
+<li><a class="reference internal" href="#linear-l"><span class="xref myst">Linear (<code class="docutils literal notranslate"><span class="pre">l</span></code>)</span></a></li>
+<li><a class="reference internal" href="#fourier-f"><span class="xref myst">Fourier (<code class="docutils literal notranslate"><span class="pre">f</span></code>)</span></a></li>
+<li><a class="reference internal" href="#spline-s"><span class="xref myst">Spline (<code class="docutils literal notranslate"><span class="pre">s</span></code>)</span></a></li>
+<li><a class="reference internal" href="#chebyshev-p"><span class="xref myst">Chebyshev (<code class="docutils literal notranslate"><span class="pre">p</span></code>)</span></a></li>
+<li><a class="reference internal" href="#categorical-c"><span class="xref myst">Categorical (<code class="docutils literal notranslate"><span class="pre">c</span></code>)</span></a></li>
+<li><a class="reference internal" href="#interaction-te"><span class="xref myst">Interaction (<code class="docutils literal notranslate"><span class="pre">te</span></code>)</span></a></li>
+<li><a class="reference internal" href="#rbf-rbf"><span class="xref myst">RBF (<code class="docutils literal notranslate"><span class="pre">rbf</span></code>)</span></a></li>
+<li><a class="reference internal" href="#neural-n"><span class="xref myst">Neural (<code class="docutils literal notranslate"><span class="pre">n</span></code>)</span></a></li>
+<li><a class="reference internal" href="#tree-t"><span class="xref myst">Tree (<code class="docutils literal notranslate"><span class="pre">t</span></code>)</span></a></li>
+<li><a class="reference internal" href="#wavelet-w"><span class="xref myst">Wavelet (<code class="docutils literal notranslate"><span class="pre">w</span></code>)</span></a></li>
+<li><a class="reference internal" href="#physics-phys"><span class="xref myst">Physics (<code class="docutils literal notranslate"><span class="pre">phys</span></code>)</span></a></li>
+<li><a class="reference internal" href="#pid-pid"><span class="xref myst">PID (<code class="docutils literal notranslate"><span class="pre">pid</span></code>)</span></a></li>
+<li><a class="reference internal" href="#linear-tree-lt"><span class="xref myst">Linear Tree (<code class="docutils literal notranslate"><span class="pre">lt</span></code>)</span></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#benchmark-proof-the-power-of-topology-meta-learning">📊 Benchmark Proof: The Power of Topology &amp; Meta-Learning</a><ul>
+<li><a class="reference internal" href="#key-takeaways-for-practitioners">💡 Key Takeaways for Practitioners:</a></li>
+<li><a class="reference internal" href="#visualizing-the-benchmark-benchmarktracker">📈 Visualizing the Benchmark (<code class="docutils literal notranslate"><span class="pre">BenchmarkTracker</span></code>)</a></li>
+<li><a class="reference internal" href="#deep-dive-inside-the-meta-ensembles">🔬 Deep Dive: Inside the Meta-Ensembles</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#full-documentation-map">🧭 Full Documentation Map</a><ul>
+<li><a class="reference internal" href="#the-core-engine">⚙️ The Core Engine</a></li>
+<li><a class="reference internal" href="#meta-learners-inference">🛡️ Meta-Learners &amp; Inference</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#status-flags">Status flags</a></li>
+</ul>
+</li>
+</ul>
+
+          </div>
+        </div>
+      </div>
+      
+      
+    </aside>
+  </div>
+</div><script src="_static/documentation_options.js?v=590429e0"></script>
+    <script src="_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="_static/scripts/furo.js?v=46bd48cc"></script>
+    <script>window.MathJax = {"options": {"processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+    <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@4/tex-mml-chtml.js"></script>
+    </body>
+</html>

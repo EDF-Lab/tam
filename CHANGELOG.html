@@ -1,0 +1,607 @@
+<!doctype html>
+<html class="no-js" lang="en" data-content_root="./">
+  <head><meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="index" title="Index" href="genindex.html"><link rel="search" title="Search" href="search.html"><link rel="next" title="🤝 Contributing to Time series Additive Model (TAM)" href="CONTRIBUTING.html"><link rel="prev" title="🔬 Scientific Background &amp; Acknowledgments" href="ACKNOWLEDGEMENTS.html">
+        <link rel="prefetch" href="_static/logo.png" as="image">
+
+    <!-- Generated with Sphinx 9.1.0 and Furo 2025.12.19 -->
+        <title>Changelog - TAM 1.2.3 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=d111a655" />
+    <link rel="stylesheet" type="text/css" href="_static/styles/furo.css?v=7bdb33bb" />
+    <link rel="stylesheet" type="text/css" href="_static/styles/furo-extensions.css?v=8dab3a3b" />
+    
+    
+
+
+<style>
+  body {
+    --color-code-background: #f2f2f2;
+  --color-code-foreground: #1e1e1e;
+  
+  }
+  @media not print {
+    body[data-theme="dark"] {
+      --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+    }
+    @media (prefers-color-scheme: dark) {
+      body:not([data-theme="light"]) {
+        --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+      }
+    }
+  }
+</style></head>
+  <body>
+    
+    <script>
+      document.body.dataset.theme = localStorage.getItem("theme") || "auto";
+    </script>
+    
+
+<svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
+  <symbol id="svg-toc" viewBox="0 0 24 24">
+    <title>Contents</title>
+    <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 1024 1024">
+      <path d="M408 442h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8zm-8 204c0 4.4 3.6 8 8 8h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56zm504-486H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zm0 632H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zM115.4 518.9L271.7 642c5.8 4.6 14.4.5 14.4-6.9V388.9c0-7.4-8.5-11.5-14.4-6.9L115.4 505.1a8.74 8.74 0 0 0 0 13.8z"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-menu" viewBox="0 0 24 24">
+    <title>Menu</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-menu">
+      <line x1="3" y1="12" x2="21" y2="12"></line>
+      <line x1="3" y1="6" x2="21" y2="6"></line>
+      <line x1="3" y1="18" x2="21" y2="18"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-arrow-right" viewBox="0 0 24 24">
+    <title>Expand</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-chevron-right">
+      <polyline points="9 18 15 12 9 6"></polyline>
+    </svg>
+  </symbol>
+  <symbol id="svg-sun" viewBox="0 0 24 24">
+    <title>Light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="feather-sun">
+      <circle cx="12" cy="12" r="5"></circle>
+      <line x1="12" y1="1" x2="12" y2="3"></line>
+      <line x1="12" y1="21" x2="12" y2="23"></line>
+      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+      <line x1="1" y1="12" x2="3" y2="12"></line>
+      <line x1="21" y1="12" x2="23" y2="12"></line>
+      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+      <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon" viewBox="0 0 24 24">
+    <title>Dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-moon">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454z" />
+    </svg>
+  </symbol>
+  <symbol id="svg-sun-with-moon" viewBox="0 0 24 24">
+    <title>Auto light/dark, in light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path style="opacity: 50%" d="M 5.411 14.504 C 5.471 14.504 5.532 14.504 5.591 14.504 C 3.639 16.319 4.383 19.569 6.931 20.352 C 7.693 20.586 8.512 20.551 9.25 20.252 C 8.023 23.207 4.056 23.725 2.11 21.184 C 0.166 18.642 1.702 14.949 4.874 14.536 C 5.051 14.512 5.231 14.5 5.411 14.5 L 5.411 14.504 Z"/>
+      <line x1="14.5" y1="3.25" x2="14.5" y2="1.25"/>
+      <line x1="14.5" y1="15.85" x2="14.5" y2="17.85"/>
+      <line x1="10.044" y1="5.094" x2="8.63" y2="3.68"/>
+      <line x1="19" y1="14.05" x2="20.414" y2="15.464"/>
+      <line x1="8.2" y1="9.55" x2="6.2" y2="9.55"/>
+      <line x1="20.8" y1="9.55" x2="22.8" y2="9.55"/>
+      <line x1="10.044" y1="14.006" x2="8.63" y2="15.42"/>
+      <line x1="19" y1="5.05" x2="20.414" y2="3.636"/>
+      <circle cx="14.5" cy="9.55" r="3.6"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon-with-sun" viewBox="0 0 24 24">
+    <title>Auto light/dark, in dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path d="M 8.282 7.007 C 8.385 7.007 8.494 7.007 8.595 7.007 C 5.18 10.184 6.481 15.869 10.942 17.24 C 12.275 17.648 13.706 17.589 15 17.066 C 12.851 22.236 5.91 23.143 2.505 18.696 C -0.897 14.249 1.791 7.786 7.342 7.063 C 7.652 7.021 7.965 7 8.282 7 L 8.282 7.007 Z"/>
+      <line style="opacity: 50%" x1="18" y1="3.705" x2="18" y2="2.5"/>
+      <line style="opacity: 50%" x1="18" y1="11.295" x2="18" y2="12.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="4.816" x2="14.464" y2="3.964"/>
+      <line style="opacity: 50%" x1="20.711" y1="10.212" x2="21.563" y2="11.063"/>
+      <line style="opacity: 50%" x1="14.205" y1="7.5" x2="13.001" y2="7.5"/>
+      <line style="opacity: 50%" x1="21.795" y1="7.5" x2="23" y2="7.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="10.184" x2="14.464" y2="11.036"/>
+      <line style="opacity: 50%" x1="20.711" y1="4.789" x2="21.563" y2="3.937"/>
+      <circle style="opacity: 50%" cx="18" cy="7.5" r="2.169"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-pencil" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-pencil-code">
+      <path d="M4 20h4l10.5 -10.5a2.828 2.828 0 1 0 -4 -4l-10.5 10.5v4" />
+      <path d="M13.5 6.5l4 4" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+  <symbol id="svg-eye" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-eye-code">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M10 12a2 2 0 1 0 4 0a2 2 0 0 0 -4 0" />
+      <path
+        d="M11.11 17.958c-3.209 -.307 -5.91 -2.293 -8.11 -5.958c2.4 -4 5.4 -6 9 -6c3.6 0 6.6 2 9 6c-.21 .352 -.427 .688 -.647 1.008" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+</svg>
+
+<input type="checkbox" class="sidebar-toggle" name="__navigation" id="__navigation" aria-label="Toggle site navigation sidebar">
+<input type="checkbox" class="sidebar-toggle" name="__toc" id="__toc" aria-label="Toggle table of contents sidebar">
+<label class="overlay sidebar-overlay" for="__navigation"></label>
+<label class="overlay toc-overlay" for="__toc"></label>
+
+<a class="skip-to-content muted-link" href="#furo-main-content">Skip to content</a>
+
+
+
+<div class="page">
+  <header class="mobile-header">
+    <div class="header-left">
+      <label class="nav-overlay-icon" for="__navigation">
+        <span class="icon"><svg><use href="#svg-menu"></use></svg></span>
+      </label>
+    </div>
+    <div class="header-center">
+      <a href="index.html"><div class="brand">TAM 1.2.3 documentation</div></a>
+    </div>
+    <div class="header-right">
+      <div class="theme-toggle-container theme-toggle-header">
+        <button class="theme-toggle" aria-label="Toggle Light / Dark / Auto color theme">
+          <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+          <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+          <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+          <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+        </button>
+      </div>
+      <label class="toc-overlay-icon toc-header-icon" for="__toc">
+        <span class="icon"><svg><use href="#svg-toc"></use></svg></span>
+      </label>
+    </div>
+  </header>
+  <aside class="sidebar-drawer">
+    <div class="sidebar-container">
+      
+      <div class="sidebar-sticky"><a class="sidebar-brand" href="index.html">
+  <div class="sidebar-logo-container">
+    <img class="sidebar-logo" src="_static/logo.png" alt="Logo"/>
+  </div>
+  
+  <span class="sidebar-brand-text">TAM 1.2.3 documentation</span>
+  
+</a><form class="sidebar-search-container" method="get" action="search.html" role="search">
+  <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
+  <input type="hidden" name="check_keywords" value="yes">
+  <input type="hidden" name="area" value="default">
+</form>
+<div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
+  <p class="caption" role="heading"><span class="caption-text">🚀 Getting Started</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="README.html">TAM (Time series Additive Model)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="THEORY.html">📚 Theory Introduction of TAM and Cheatsheet</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">🧠 Theory: The Core Engine</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="math/core/01_primal_model.html">The Exact Primal Resolution</a></li>
+<li class="toctree-l1"><a class="reference internal" href="math/core/02_tensorization.html">The Theory of N-Dim Broadcasting and Normalization</a></li>
+<li class="toctree-l1"><a class="reference internal" href="math/core/03_linear_system.html">Linear Algebra: Direct vs. Iterative Solvers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="math/core/04_complexity.html">Computational Complexity (<span class="math notranslate nohighlight">\(\mathcal{O}(D^3+T D^2)\)</span> vs <span class="math notranslate nohighlight">\(\mathcal{O}(T^3)\)</span>)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="math/core/05_gcv_theory.html">Hyperparameter Optimization: Generalized Cross-Validation (GCV)</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">🌈 Theory: The Spectrum Library</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="math/spectrum/LINEAR.html">The Linear Effect (Ridge Regression)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="math/spectrum/SPLINES.html">The Spline Effect (P-Splines)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="math/spectrum/FOURIER.html">The Fourier Effect (Sobolev Spectral Basis)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="math/spectrum/WAVELETS.html">The Wavelet Effect (Ricker)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="math/spectrum/CHEBYSHEV.html">The Chebyshev Effect (Polynomial Minimax Basis)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="math/spectrum/TREE.html">The Tree Effect (Random Forests &amp; Binning Features)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="math/spectrum/NEURAL.html">The Neural Effect (NEPT)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="math/spectrum/RBF.html">The Radial Basis Function (RBF) Effect</a></li>
+<li class="toctree-l1"><a class="reference internal" href="math/spectrum/CATEGORICAL.html">The Categorical Effect (Discrete Topologies)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="math/spectrum/CROSS_TENSOR.html">The Tensor Product Effect (Interactions)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="math/spectrum/PHYSICS_PIKL.html">Physics-Informed Kernel Learning (PIKL)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="math/spectrum/PID.html">The PID Effect (Autoregressive Control Dynamics)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="math/spectrum/LINEAR_TREE.html">The Linear Tree Effect (Varying-Coefficient Models)</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">⚙️ Theory: Meta-Learners &amp; Inference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="math/meta/01_adaptive_online.html">Adaptive Online Learning (AdaptiveTAM)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="math/meta/02_kalman_filter.html">Dynamic Tracking via Extended Kalman Filtering [BETA]</a></li>
+<li class="toctree-l1"><a class="reference internal" href="math/meta/03_hierarchical_joint.html">Hierarchical Joint Optimization [BETA]</a></li>
+<li class="toctree-l1"><a class="reference internal" href="math/meta/04_conformal_safety.html">Uncertainty Quantification via Conformal Prediction [EXP]</a></li>
+<li class="toctree-l1"><a class="reference internal" href="math/meta/05_opera_aggregation.html">Online Prediction by Expert Aggregation (OPERA)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="math/meta/06_deep_gam_backfitting.html">Deep-GAM Hybridization and Orthogonal Backfitting [EXP]</a></li>
+<li class="toctree-l1"><a class="reference internal" href="math/meta/07_statistical_diagnostics.html">Statistical Inference and Diagnostics (Glass-Box) [EXP]</a></li>
+<li class="toctree-l1"><a class="reference internal" href="math/meta/08_auto_orchestrator.html">Evolutionary Orchestration and Multi-Fidelity AutoML</a></li>
+<li class="toctree-l1"><a class="reference internal" href="math/meta/09_auto_data_topology.html">AutoTAM Data Topology and Structural Safeguards [EXP]</a></li>
+<li class="toctree-l1"><a class="reference internal" href="math/meta/10_mlops_evaluation.html">Empirical Evaluation and MLOps Diagnostics</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">💻 Architecture: Core Implementation</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="architecture/core/01_additive_api.html">The Additive API and Object-Oriented Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="architecture/core/02_data_pipeline.html">The Engineering of Normalization and Padding</a></li>
+<li class="toctree-l1"><a class="reference internal" href="architecture/core/03_math_dispatcher.html">PyTorch Math Dispatcher &amp; Matrix-Free Solvers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="architecture/core/04_hardware_memory.html">Hardware Memory Dispatch &amp; Anti-OOM Systems</a></li>
+<li class="toctree-l1"><a class="reference internal" href="architecture/core/05_gcv_implementation.html">Auto-ML via Generalized Cross-Validation (GCV)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="architecture/core/06_the_spectrum_api.html">The Spectral Dictionary: PyTorch Implementations &amp; Factory Assembly</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">🛠️ Architecture: Advanced Orchestration</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="architecture/meta/01_adaptive_code.html">Online Error Correction (AdaptiveTAM)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="architecture/meta/02_kalman_torchscript.html">Kalman TorchScript Optimizations &amp; Block Updates [BETA]</a></li>
+<li class="toctree-l1"><a class="reference internal" href="architecture/meta/03_hierarchical_code.html">Hierarchical Engineering &amp; Memory Assembly  [BETA]</a></li>
+<li class="toctree-l1"><a class="reference internal" href="architecture/meta/04_safety_code.html">Diagnostics, Visualization &amp; Utilities Engineering [EXP]</a></li>
+<li class="toctree-l1"><a class="reference internal" href="architecture/meta/05_opera_gpu.html">OPERA GPU Tensor Batching</a></li>
+<li class="toctree-l1"><a class="reference internal" href="architecture/meta/06_neural_hybrid.html">DeepGAM Engineering &amp; Sequential Encapsulation [EXP]</a></li>
+<li class="toctree-l1"><a class="reference internal" href="architecture/meta/07_diagnostics_utils.html">Diagnostics, Visualization &amp; Utilities Engineering  [EXP]</a></li>
+<li class="toctree-l1"><a class="reference internal" href="architecture/meta/08_auto_orchestrator_code.html">Orchestrator Pipeline and Evolutionary Hub-and-Spoke Engine [EXP]</a></li>
+<li class="toctree-l1"><a class="reference internal" href="architecture/meta/09_auto_data_topology_code.html">AutoTAM Data Topology: Stateful Architecture &amp; Pandas Vectorization [EXP]</a></li>
+<li class="toctree-l1"><a class="reference internal" href="architecture/meta/10_mlops_tracking_code.html">MLOps Tracking and Empirical Benchmarking (Engineering)</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">🧪 Gallery of Examples &amp; Use Cases</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="EXAMPLES.html">🧪 Gallery of Examples &amp; Use Cases</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">📚 References &amp; Changelog</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="AUTHORS.html">👥 Authors and Contributions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="ACKNOWLEDGEMENTS.html">🔬 Scientific Background &amp; Acknowledgments</a></li>
+<li class="toctree-l1 current current-page"><a class="current reference internal" href="#">Changelog</a></li>
+<li class="toctree-l1"><a class="reference internal" href="CONTRIBUTING.html">🤝 Contributing to Time series Additive Model (TAM)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="README_DOC.html">📘 Documentation Generation Guide (TAM)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="bibliography.html">References</a></li>
+</ul>
+
+</div>
+</div>
+
+      </div>
+      
+    </div>
+  </aside>
+  <div class="main">
+    <div class="content">
+      <div class="article-container">
+        <a href="#" class="back-to-top muted-link">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+            <path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8v12z"></path>
+          </svg>
+          <span>Back to top</span>
+        </a>
+        <div class="content-icon-container">
+          <div class="view-this-page">
+  <a class="muted-link" href="_sources/CHANGELOG.md.txt" title="View this page">
+    <svg><use href="#svg-eye"></use></svg>
+    <span class="visually-hidden">View this page</span>
+  </a>
+</div>
+<div class="theme-toggle-container theme-toggle-content">
+            <button class="theme-toggle" aria-label="Toggle Light / Dark / Auto color theme">
+              <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+              <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+              <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+              <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+            </button>
+          </div>
+          <label class="toc-overlay-icon toc-content-icon" for="__toc">
+            <span class="icon"><svg><use href="#svg-toc"></use></svg></span>
+          </label>
+        </div>
+        <article role="main" id="furo-main-content">
+          <section class="tex2jax_ignore mathjax_ignore" id="changelog">
+<h1>Changelog<a class="headerlink" href="#changelog" title="Link to this heading">¶</a></h1>
+<p>All notable changes to this project will be documented in this file.</p>
+<p>The format is based on <a class="reference external" href="https://keepachangelog.com/en/1.0.0/">Keep a Changelog</a>,
+and this project adheres to <a class="reference external" href="https://semver.org/spec/v2.0.0.html">Semantic Versioning</a>.</p>
+<blockquote>
+<div><p>Source repository: https://github.com/EDF-Lab/tam</p>
+</div></blockquote>
+<blockquote>
+<div><p>The first official open-source release of the TAM framework under this structure is <strong><a class="reference external" href="https://github.com/EDF-Lab/tam/releases/tag/v1.2.3">1.2.3</a></strong>.</p>
+</div></blockquote>
+<blockquote>
+<div><p>⚠️ Note: Versions 1.1.1–1.2.2 correspond to internal development milestones and were not publicly released.</p>
+</div></blockquote>
+<blockquote>
+<div><p><strong><a class="reference external" href="https://pypi.org/project/weakl/0.0.6/">0.0.6</a></strong> corresponds to the legacy <code class="docutils literal notranslate"><span class="pre">weakl</span></code> package available on PyPI.</p>
+</div></blockquote>
+<hr class="docutils" />
+<section id="id1">
+<h2><a class="reference external" href="https://github.com/EDF-Lab/tam/releases/tag/v1.2.3">1.2.3</a> - 2026-06-08<a class="headerlink" href="#id1" title="Link to this heading">¶</a></h2>
+<blockquote>
+<div><p>The DOI was generated via Zenodo on release : https://doi.org/10.5281/zenodo.20543272.</p>
+</div></blockquote>
+<section id="added-new-models-core-features">
+<h3>✨ Added (New Models &amp; Core Features)<a class="headerlink" href="#added-new-models-core-features" title="Link to this heading">¶</a></h3>
+<ul class="simple">
+<li><p><strong>Universal Extrapolation Wrapper</strong>: Introduced native Out-Of-Distribution (OOD) extrapolation for all base effects via the <code class="docutils literal notranslate"><span class="pre">extrapolate</span></code> parameter. It safely bounds the feature map to the <span class="math notranslate nohighlight">\([-1, 1]^F\)</span> hypercube and utilizes multidimensional directional derivatives (stepping strictly backward into the safe zone) for OOD inputs. Supported modes include <code class="docutils literal notranslate"><span class="pre">continue</span></code> (native topology), <code class="docutils literal notranslate"><span class="pre">constant</span></code> (plateau/clamping), <code class="docutils literal notranslate"><span class="pre">linear</span></code> (first-order Taylor expansion), and <code class="docutils literal notranslate"><span class="pre">saturation</span></code> (smooth asymptotic clamping).</p></li>
+<li><p><strong>Linear Tree (<code class="docutils literal notranslate"><span class="pre">lt(...)</span></code>)</strong>: Added a native effect that generates piecewise linear models. It utilizes a dedicated <code class="docutils literal notranslate"><span class="pre">LinearTreeEffect</span></code> class to encapsulate a standard <code class="docutils literal notranslate"><span class="pre">TreeEffect</span></code> (acting as the local intercept/level) crossed with a <code class="docutils literal notranslate"><span class="pre">TensorProductEffect</span></code> (acting as the local linear slope). This provides a single, cohesive model for varying-coefficient trees, seamlessly handling multi-dimensional spatial data without requiring formula macro workarounds.</p></li>
+<li><p><strong>Flat N-ary Histograms (<code class="docutils literal notranslate"><span class="pre">TreeEffect</span></code>)</strong>: Added the <code class="docutils literal notranslate"><span class="pre">max_leaves</span></code> parameter to bypass binary depth and force flat 1D N-ary splits. This includes an Anti-Starvation Protocol (evenly spaced bins) for single trees to guarantee full matrix rank and prevent over-complete matrix singularities in piecewise regressions.</p></li>
+<li><p><strong>Academic Reproductions</strong>: Added official benchmark scripts reproducing foundational load forecasting architectures using the TAM framework:</p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">2011_pierrot_goude.py</span></code>: Benchmarks native grouping vs. PyGAM manual loops using local B-splines.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">2025_doumeche_et_al.py</span></code>: Benchmarks the transition from local splines to global Fourier bases with Sobolev regularization.</p></li>
+</ul>
+</li>
+<li><p><strong>Theory, Cheatsheets and Documentation</strong>: Added comprehensive TAM documentation:</p>
+<ul>
+<li><p><a class="reference internal" href="THEORY.html"><span class="std std-doc">THEORY</span></a> as the central mathematical reference and <code class="docutils literal notranslate"><span class="pre">cheatsheet.py</span></code> to showcase the entire TAM spectrum (Static bases, Neural Networks, Physics operators) wrapped in Meta-Learners.</p></li>
+<li><p><strong>The StaticTAM</strong></p>
+<ul>
+<li><p><strong>The Primal Model:</strong> <a class="reference internal" href="math/core/01_primal_model.html"><span class="std std-doc">Theory</span></a> | <a class="reference internal" href="architecture/core/01_additive_api.html"><span class="std std-doc">Architecture</span></a></p></li>
+<li><p><strong>Tensorization &amp; Data:</strong> <a class="reference internal" href="math/core/02_tensorization.html"><span class="std std-doc">Theory</span></a> | <a class="reference internal" href="architecture/core/02_data_pipeline.html"><span class="std std-doc">Architecture</span></a></p></li>
+<li><p><strong>Linear Systems:</strong> <a class="reference internal" href="math/core/03_linear_system.html"><span class="std std-doc">Theory</span></a> | <a class="reference internal" href="architecture/core/03_math_dispatcher.html"><span class="std std-doc">Architecture</span></a></p></li>
+<li><p><strong>Complexity &amp; Hardware:</strong> <a class="reference internal" href="math/core/04_complexity.html"><span class="std std-doc">Theory</span></a> | <a class="reference internal" href="architecture/core/04_hardware_memory.html"><span class="std std-doc">Architecture</span></a></p></li>
+<li><p><strong>GCV &amp; Auto-ML:</strong> <a class="reference internal" href="math/core/05_gcv_theory.html"><span class="std std-doc">Theory</span></a> | <a class="reference internal" href="architecture/core/05_gcv_implementation.html"><span class="std std-doc">Architecture</span></a></p></li>
+<li><p><strong>The base effects</strong> : <a class="reference internal" href="math/spectrum/LINEAR.html"><span class="std std-doc">Linear</span></a> / <a class="reference internal" href="math/spectrum/FOURIER.html"><span class="std std-doc">Fourier</span></a> / <a class="reference internal" href="math/spectrum/SPLINES.html"><span class="std std-doc">Spline</span></a> / <a class="reference internal" href="math/spectrum/CHEBYSHEV.html"><span class="std std-doc">Chebyshev</span></a> / <a class="reference internal" href="math/spectrum/CATEGORICAL.html"><span class="std std-doc">Categorical</span></a> / <a class="reference internal" href="math/spectrum/CROSS_TENSOR.html"><span class="std std-doc">Interaction</span></a> / <a class="reference internal" href="math/spectrum/RBF.html"><span class="std std-doc">RBF</span></a> / <a class="reference internal" href="math/spectrum/NEURAL.html"><span class="std std-doc">Neural</span></a> / <a class="reference internal" href="math/spectrum/TREE.html"><span class="std std-doc">Tree</span></a> / <a class="reference internal" href="math/spectrum/LINEAR_TREE.html"><span class="std std-doc">Linear Tree</span></a> / <a class="reference internal" href="math/spectrum/WAVELETS.html"><span class="std std-doc">Wavelet</span></a> / <a class="reference internal" href="math/spectrum/PID.html"><span class="std std-doc">PID</span></a> / <a class="reference internal" href="math/spectrum/PHYSICS_PIKL.html"><span class="std std-doc">Physics</span></a></p></li>
+</ul>
+</li>
+<li><p><strong>The AdaptiveTAM</strong></p>
+<ul>
+<li><p><strong>Adaptive Online Learning:</strong> <a class="reference internal" href="math/meta/01_adaptive_online.html"><span class="std std-doc">Theory</span></a> | <a class="reference internal" href="architecture/meta/01_adaptive_code.html"><span class="std std-doc">Architecture</span></a></p></li>
+</ul>
+</li>
+<li><p><strong>The OperaTAM</strong></p>
+<ul>
+<li><p><strong>Expert Aggregation (Opera):</strong> <a class="reference internal" href="math/meta/05_opera_aggregation.html"><span class="std std-doc">Theory</span></a> | <a class="reference internal" href="architecture/meta/05_opera_gpu.html"><span class="std std-doc">Architecture</span></a></p></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</section>
+<section id="changed-major-refactoring-optimization">
+<h3>🚀 Changed (Major Refactoring &amp; Optimization)<a class="headerlink" href="#changed-major-refactoring-optimization" title="Link to this heading">¶</a></h3>
+<ul class="simple">
+<li><p><strong>OPERA Dual API Support (<code class="docutils literal notranslate"><span class="pre">OperaTAM</span></code>)</strong>: Added a standard array-based initialization (<code class="docutils literal notranslate"><span class="pre">target_col=&quot;y&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">expert_cols=[&quot;E1&quot;,</span> <span class="pre">&quot;E2&quot;]</span></code>) alongside the existing R-like formula API (<code class="docutils literal notranslate"><span class="pre">formula=&quot;y</span> <span class="pre">~</span> <span class="pre">l(E1)</span> <span class="pre">+</span> <span class="pre">l(E2)&quot;</span></code>), allowing for simpler dynamic aggregation.</p></li>
+<li><p><strong>Architectural Shape Normalization</strong>: Overhauled <code class="docutils literal notranslate"><span class="pre">build_feature_map</span></code> across <code class="docutils literal notranslate"><span class="pre">TreeEffect</span></code>, <code class="docutils literal notranslate"><span class="pre">NeuralEffect</span></code>, and <code class="docutils literal notranslate"><span class="pre">RBFEffect</span></code>. Added a dynamic dimensional router to natively resolve tensor broadcasting ambiguities across 1D (OOD wrappers), 2D (Kronecker <code class="docutils literal notranslate"><span class="pre">te(...)</span></code> interactions), and 3D+ (Primal Solver Factory) inputs.</p></li>
+<li><p><strong>Formula Parser Robustness</strong>: Upgraded <code class="docutils literal notranslate"><span class="pre">parse_formula_to_terms</span></code> to explicitly track and uniquely index nested sub-arguments using positional indices (<code class="docutils literal notranslate"><span class="pre">i</span></code>, <code class="docutils literal notranslate"><span class="pre">j</span></code>). Resolves parameter collision and overwriting issues when parsing nested interaction terms containing identical effect types.</p></li>
+<li><p><strong>Memory Probe Safeguards (Dummy Pass)</strong>: Improved robustness of the VRAM footprint estimation during the dummy pass across all base effects. This prevents premature initialization of randomized partition geometries, NEPT weights, or RBF centers during the framework’s memory estimation phase.</p></li>
+<li><p><strong>Categorical Effect Automation</strong>: The Categorical effect (<code class="docutils literal notranslate"><span class="pre">c(...)</span></code>) now automatically parses the dataset to count <code class="docutils literal notranslate"><span class="pre">n_cat</span></code> if the parameter is omitted by the user.</p></li>
+<li><p><strong>MLOps Dashboard (<code class="docutils literal notranslate"><span class="pre">plotting_dashboard</span></code>)</strong>:</p>
+<ul>
+<li><p>Enhanced chronological forecast plots with a <code class="docutils literal notranslate"><span class="pre">forecast_smoothing</span></code> parameter (supports rolling averages and date-based resampling).</p></li>
+<li><p>Implemented dynamic evaluation metrics for the Test Set Vulnerability heatmap (automatically scaling for RMSE, MAE, MAPE, etc.).</p></li>
+<li><p>Unified color mapping across all subplots ensuring consistent model identification using Matplotlib’s <code class="docutils literal notranslate"><span class="pre">tab10</span></code> colormap.</p></li>
+</ul>
+</li>
+</ul>
+</section>
+</section>
+<hr class="docutils" />
+<section id="internal-1-2-2-2026-03-26-not-publicly-released">
+<h2>[Internal] 1.2.2 - 2026-03-26 (Not publicly released)<a class="headerlink" href="#internal-1-2-2-2026-03-26-not-publicly-released" title="Link to this heading">¶</a></h2>
+<section id="id2">
+<h3>✨ Added (New Models &amp; Core Features)<a class="headerlink" href="#id2" title="Link to this heading">¶</a></h3>
+<ul class="simple">
+<li><p><strong>Evolutionary Orchestrator (<code class="docutils literal notranslate"><span class="pre">AutoTAM</span></code>)</strong>: A multi-fidelity AutoML engine for automated GAM discovery. It utilizes a Hub-and-Spoke evolutionary architecture, strict topological sanitization, and bi-level optimization (GPU MSP-GCV) to solve the combinatorial explosion of adaptive models, ultimately deploying orthogonal experts into a Dual OPERA arena.</p></li>
+<li><p><strong>OPERA (<code class="docutils literal notranslate"><span class="pre">OperaTAM</span></code>)</strong>: A new expert aggregation meta-learner featuring a fast GPU implementation natively optimized via <code class="docutils literal notranslate"><span class="pre">&#64;torch.jit.script</span></code>.</p></li>
+<li><p><strong>Kalman Filter (<code class="docutils literal notranslate"><span class="pre">KalmanTAM</span></code>)</strong>: Dynamically tracks coefficient drift over time via a Fast Dynamic Extended Kalman Filter (EKF), highly optimized using the Woodbury matrix identity (reducing inversion complexity to <span class="math notranslate nohighlight">\(\mathcal{O}(T_{block}^3)\)</span>) and compiled with <code class="docutils literal notranslate"><span class="pre">TorchScript</span></code>.</p></li>
+<li><p><strong>DeepGAM (<code class="docutils literal notranslate"><span class="pre">NeuralTAM</span></code>)</strong>: A new Deep-GAM hybrid model (Additive + Deep Learning) implementing Group-wise Orthogonal Backfitting.</p></li>
+<li><p><strong>Tree Effect (<code class="docutils literal notranslate"><span class="pre">TreeEffect</span></code>)</strong>: Added the Tree / Random Forest effect (<code class="docutils literal notranslate"><span class="pre">t(...)</span></code>) designed for GPU, based on Oblivious Random Trees and Random Binning Features approximation.</p></li>
+<li><p><strong>Hardware Manager (<code class="docutils literal notranslate"><span class="pre">HardwareManager</span></code>)</strong>: Centralized hardware abstraction layer to dynamically manage the capabilities of different compute backends.</p></li>
+<li><p><strong><code class="docutils literal notranslate"><span class="pre">_dispatcher.py</span></code> (Mathematical Solver Dispatcher)</strong>: Created an intelligent routing layer between statistical modeling abstractions and PyTorch linear algebra engines. It dynamically routes resolution to either a chunked direct solver or a Matrix-Free Sparse Conjugate Gradient (CG) solver based on topological complexity and available VRAM.</p></li>
+<li><p><strong><code class="docutils literal notranslate"><span class="pre">_memory.py</span></code> (Hardware Memory Management and Estimation)</strong>: Completely isolated low-level hardware interactions into a dedicated module. It estimates the byte footprint of massive matrices and calculates safe algorithmic chunk sizes.</p></li>
+</ul>
+</section>
+<section id="id3">
+<h3>🚀 Changed (Major Refactoring &amp; Optimization)<a class="headerlink" href="#id3" title="Link to this heading">¶</a></h3>
+<ul class="simple">
+<li><p><strong>Neural Effect Improvements (<code class="docutils literal notranslate"><span class="pre">NeuralEffect</span></code>)</strong>: Added support for multiple hidden layers to project variables into higher dimensions.</p></li>
+<li><p><strong>Native GPU Acceleration</strong>: Complete migration of intensive CPU to GPU calculation for Splines (<code class="docutils literal notranslate"><span class="pre">s(...)</span></code>), Wavelets (<code class="docutils literal notranslate"><span class="pre">w(...)</span></code>), and RBF (<code class="docutils literal notranslate"><span class="pre">rbf(...)</span></code>) effects, improving performance of design matrix construction.</p></li>
+<li><p><strong>Memory Management (Safeguards &amp; Smart Chunking)</strong>:</p>
+<ul>
+<li><p>Overhauled memory safety to prevent and correct CUDA Out of Memory bugs via a smart chunking system.</p></li>
+<li><p>Implemented a memory safeguard for CPU / group-chunking by independent series.</p></li>
+<li><p>Established strict dynamic RAM &amp; VRAM safety margins to guarantee the stability of large matrix inversion operations.</p></li>
+</ul>
+</li>
+</ul>
+</section>
+</section>
+<hr class="docutils" />
+<section id="internal-1-2-1-2025-12-18-not-publicly-released">
+<h2>[Internal] 1.2.1 - 2025-12-18 (Not publicly released)<a class="headerlink" href="#internal-1-2-1-2025-12-18-not-publicly-released" title="Link to this heading">¶</a></h2>
+<p>This version represents a complete architectural overhaul, introducing advanced functional bases (Spectrum), Conformal Prediction, and a full benchmark suite.</p>
+<section id="id4">
+<h3>✨ Added (New Models &amp; Core Features)<a class="headerlink" href="#id4" title="Link to this heading">¶</a></h3>
+<ul class="simple">
+<li><p><strong>Auto-ML (GCV):</strong> Added <code class="docutils literal notranslate"><span class="pre">StaticTAM.auto_fit()</span></code> using <strong>Generalized Cross Validation (GCV)</strong> for automatic global regularization parameter selection, eliminating the need for a validation set.</p></li>
+<li><p><strong>Safety Module (Conformal Prediction):</strong> Added <code class="docutils literal notranslate"><span class="pre">SafetyTAM</span></code> implementing <strong>Split Conformal</strong> (static) and <strong>Adaptive Conformal Inference (ACI)</strong> (dynamic) to guarantee valid confidence intervals under distribution shift.</p></li>
+<li><p><strong>Hierarchical Reconciliation:</strong> Added <code class="docutils literal notranslate"><span class="pre">HierarchicalTAM</span></code> to solve global constraints (e.g., National = Sum of Regions) via joint optimization on the primal system.</p></li>
+<li><p><strong>Model Introspection:</strong> Added <code class="docutils literal notranslate"><span class="pre">StaticTAM.summary()</span></code> to display the model’s structure, complexity, and regularization parameters.</p></li>
+<li><p><strong>Core Effects Library (<code class="docutils literal notranslate"><span class="pre">spectrum</span></code>):</strong> Implemented a complete modular library of advanced functional bases:</p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">ChebyshevEffect</span></code> (<code class="docutils literal notranslate"><span class="pre">p(...)</span></code>): Global polynomials for stable trend approximation.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">WaveletEffect</span></code> (<code class="docutils literal notranslate"><span class="pre">w(...)</span></code>): Ricker wavelets for local anomaly and transient feature detection.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">NeuralEffect</span></code> (<code class="docutils literal notranslate"><span class="pre">n(...)</span></code>): Neural projection for high-dimensional non-linearity.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">RBFEffect</span></code> (<code class="docutils literal notranslate"><span class="pre">rbf(...)</span></code>): Support for both <strong>Gaussian</strong> and <strong>Matérn</strong> (physics-informed) kernels.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">TensorProductEffect</span></code> (<code class="docutils literal notranslate"><span class="pre">te(...)</span></code>): <strong>Multivariate interactions</strong> (Kronecker product) for surface modeling.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">UniversalPhysicsEffect</span></code> (<code class="docutils literal notranslate"><span class="pre">phys(...)</span></code>): <strong>PIKL</strong> (Physics-Informed Kernel Learning) for constraining models with differential operators (ODEs/PDEs).</p></li>
+</ul>
+</li>
+</ul>
+</section>
+<section id="id5">
+<h3>🚀 Changed (Major Refactoring &amp; Optimization)<a class="headerlink" href="#id5" title="Link to this heading">¶</a></h3>
+<ul class="simple">
+<li><p><strong>Math Engine (Primal Solver):</strong> Formally validated the exact <strong>Primal Ridge Solver</strong> utilizing block-diagonal covariance accumulation. Corrected performance tracking to accurately reflect the framework’s time complexity of <span class="math notranslate nohighlight">\(\mathcal{O}(G \times T \times D^2 + G \times D^3)\)</span>, ensuring isolated mathematical resolution per group <span class="math notranslate nohighlight">\(G\)</span>.</p></li>
+<li><p><strong>Effect Architecture:</strong> Refactored the core around <code class="docutils literal notranslate"><span class="pre">BaseEffect</span></code>, establishing the <code class="docutils literal notranslate"><span class="pre">List[BaseEffect]</span></code> as the standard configuration.</p></li>
+<li><p><strong>Modularization:</strong> Monolithic <code class="docutils literal notranslate"><span class="pre">_effects.py</span></code> was entirely split into the <code class="docutils literal notranslate"><span class="pre">spectrum</span></code> package, improving modularity.</p></li>
+<li><p><strong>Normalization Domain:</strong> Changed global feature normalization from the Fourier-centric <span class="math notranslate nohighlight">\([-\pi, \pi]\)</span> to the strictly orthogonal <strong><span class="math notranslate nohighlight">\([-1, 1]\)</span></strong> domain in <code class="docutils literal notranslate"><span class="pre">_data.py</span></code>. Basis functions now apply internal scaling (e.g., Fourier rescales to <span class="math notranslate nohighlight">\([-\pi, \pi]\)</span>).</p></li>
+<li><p><strong>Decomposition Robustness:</strong> Implemented <strong>collision detection</strong> in <code class="docutils literal notranslate"><span class="pre">_math.py</span></code> to automatically prefix feature effects (e.g., <code class="docutils literal notranslate"><span class="pre">l_time</span></code>, <code class="docutils literal notranslate"><span class="pre">s_time</span></code>) when multiple bases share the same input variable.</p></li>
+</ul>
+</section>
+<section id="fixed-critical">
+<h3>🐛 Fixed (Critical)<a class="headerlink" href="#fixed-critical" title="Link to this heading">¶</a></h3>
+<ul class="simple">
+<li><p><strong>Recursive Parsing:</strong> Implemented an architectural fix in <code class="docutils literal notranslate"><span class="pre">parse_formula_to_terms</span></code> to correctly <strong>identify and preserve string tokens</strong> (like <code class="docutils literal notranslate"><span class="pre">ga_te</span></code> or <code class="docutils literal notranslate"><span class="pre">grid_k</span></code>) during the recursive parsing of <code class="docutils literal notranslate"><span class="pre">te(...)</span></code> terms.</p></li>
+<li><p><strong>Syntax Stability:</strong> Converted all docstrings containing LaTeX math commands to <strong>raw strings</strong> (<code class="docutils literal notranslate"><span class="pre">r&quot;&quot;&quot;...&quot;&quot;&quot;</span></code>) to eliminate Python <code class="docutils literal notranslate"><span class="pre">SyntaxWarning</span></code>s.</p></li>
+</ul>
+</section>
+</section>
+<hr class="docutils" />
+<section id="internal-1-1-1-2025-11-21-not-publicly-released">
+<h2>[Internal] 1.1.1 - 2025-11-21 (Not publicly released)<a class="headerlink" href="#internal-1-1-1-2025-11-21-not-publicly-released" title="Link to this heading">¶</a></h2>
+<p>This version introduced the Formula API and the first object-oriented refactoring.</p>
+<section id="breaking-changes">
+<h3>⚠️ Breaking Changes<a class="headerlink" href="#breaking-changes" title="Link to this heading">¶</a></h3>
+<ul class="simple">
+<li><p>Removed legacy dictionary-based API (<code class="docutils literal notranslate"><span class="pre">m_orders</span></code>, <code class="docutils literal notranslate"><span class="pre">s_orders</span></code>, <code class="docutils literal notranslate"><span class="pre">alpha_list</span></code>)</p></li>
+<li><p>Introduced formula-based API as the primary interface</p></li>
+</ul>
+</section>
+<section id="added">
+<h3>✨ Added<a class="headerlink" href="#added" title="Link to this heading">¶</a></h3>
+<ul class="simple">
+<li><p><strong>Formula-based API (<code class="docutils literal notranslate"><span class="pre">model/additive.py</span></code>):</strong> Implemented a new, intuitive R-like formula API (e.g., <code class="docutils literal notranslate"><span class="pre">Load</span> <span class="pre">~</span> <span class="pre">s(temp,</span> <span class="pre">k=10)</span> <span class="pre">+</span> <span class="pre">l(day_type)</span></code>) as the new standard for model initialization.</p></li>
+<li><p><strong>Spline Effects (<code class="docutils literal notranslate"><span class="pre">model/_effects.py</span></code>):</strong> Added <code class="docutils literal notranslate"><span class="pre">SplineEffect</span></code> (P-splines) as a new core effect type, available via <code class="docutils literal notranslate"><span class="pre">s(...)</span></code>.</p></li>
+<li><p><strong>Formula Parser (<code class="docutils literal notranslate"><span class="pre">common/utils.py</span></code>):</strong> Added a <code class="docutils literal notranslate"><span class="pre">parse_formula_to_terms</span></code> function to support the new API.</p></li>
+<li><p><strong><code class="docutils literal notranslate"><span class="pre">StaticTAM</span></code> &amp; <code class="docutils literal notranslate"><span class="pre">AdaptiveTAM</span></code>:</strong> Implemented the full object-oriented API (<code class="docutils literal notranslate"><span class="pre">.fit()</span></code>, <code class="docutils literal notranslate"><span class="pre">.predict()</span></code>) and the online error correction model.</p></li>
+<li><p><strong>Multi-Start Grid Search:</strong> The <code class="docutils literal notranslate"><span class="pre">grid_search_fit</span></code> method now uses a <strong>Multi-Start Coordinate Descent</strong> strategy (Conservative, Median, Aggressive) to avoid local minima.</p></li>
+<li><p><strong><code class="docutils literal notranslate"><span class="pre">diagnostics</span></code> Module:</strong> Added a module for model analysis, including t-tests and feature importance visualization.</p></li>
+</ul>
+</section>
+<section id="changed">
+<h3>⚙️ Changed<a class="headerlink" href="#changed" title="Link to this heading">¶</a></h3>
+<ul class="simple">
+<li><p><strong>Legacy API Removed:</strong> Removed the old <code class="docutils literal notranslate"><span class="pre">m_orders</span></code>, <code class="docutils literal notranslate"><span class="pre">s_orders</span></code>, <code class="docutils literal notranslate"><span class="pre">alpha_list</span></code> dictionary-based configuration from <code class="docutils literal notranslate"><span class="pre">v0.0.6</span></code>.</p></li>
+<li><p><strong>Package Structure:</strong> The codebase was refactored into a modular package structure (<code class="docutils literal notranslate"><span class="pre">common</span></code>, <code class="docutils literal notranslate"><span class="pre">model</span></code>).</p></li>
+<li><p><strong>Internal Math:</strong> Math functions (<code class="docutils literal notranslate"><span class="pre">_math.py</span></code>) were cleaned of all effect-specific logic and made robust to 2D/3D tensor inputs.</p></li>
+<li><p><strong>Hardcoded Names Removed:</strong> Removed dependencies on specific column names (<code class="docutils literal notranslate"><span class="pre">tod</span></code>, <code class="docutils literal notranslate"><span class="pre">timestamp</span></code>, <code class="docutils literal notranslate"><span class="pre">Load</span></code>).</p></li>
+</ul>
+</section>
+</section>
+<hr class="docutils" />
+<section id="id6">
+<h2><a class="reference external" href="https://pypi.org/project/weakl/0.0.6/">0.0.6</a> - 2025-05-27<a class="headerlink" href="#id6" title="Link to this heading">¶</a></h2>
+<section id="id7">
+<h3>Added<a class="headerlink" href="#id7" title="Link to this heading">¶</a></h3>
+<ul class="simple">
+<li><p>Initial project setup based on the original <code class="docutils literal notranslate"><span class="pre">weakl</span></code> v0.0.6 package.</p></li>
+</ul>
+</section>
+</section>
+</section>
+
+        </article>
+      </div>
+      <footer>
+        
+        <div class="related-pages">
+          <a class="next-page" href="CONTRIBUTING.html">
+              <div class="page-info">
+                <div class="context">
+                  <span>Next</span>
+                </div>
+                <div class="title">🤝 Contributing to Time series Additive Model (TAM)</div>
+              </div>
+              <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
+            </a>
+          <a class="prev-page" href="ACKNOWLEDGEMENTS.html">
+              <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
+              <div class="page-info">
+                <div class="context">
+                  <span>Previous</span>
+                </div>
+                
+                <div class="title">🔬 Scientific Background &amp; Acknowledgments</div>
+                
+              </div>
+            </a>
+        </div>
+        <div class="bottom-of-page">
+          <div class="left-details">
+            <div class="copyright">
+                Copyright &#169; 2026, Yann Allioux, Nathan Doumèche, Éloi Bedek
+            </div>
+            Made with <a href="https://www.sphinx-doc.org/">Sphinx</a> and <a class="muted-link" href="https://pradyunsg.me">@pradyunsg</a>'s
+            
+            <a href="https://github.com/pradyunsg/furo">Furo</a>
+            
+          </div>
+          <div class="right-details">
+            
+          </div>
+        </div>
+        
+      </footer>
+    </div>
+    <aside class="toc-drawer">
+      
+      
+      <div class="toc-sticky toc-scroll">
+        <div class="toc-title-container">
+          <span class="toc-title">
+            On this page
+          </span>
+        </div>
+        <div class="toc-tree-container">
+          <div class="toc-tree">
+            <ul>
+<li><a class="reference internal" href="#">Changelog</a><ul>
+<li><a class="reference internal" href="#id1">1.2.3 - 2026-06-08</a><ul>
+<li><a class="reference internal" href="#added-new-models-core-features">✨ Added (New Models &amp; Core Features)</a></li>
+<li><a class="reference internal" href="#changed-major-refactoring-optimization">🚀 Changed (Major Refactoring &amp; Optimization)</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#internal-1-2-2-2026-03-26-not-publicly-released">[Internal] 1.2.2 - 2026-03-26 (Not publicly released)</a><ul>
+<li><a class="reference internal" href="#id2">✨ Added (New Models &amp; Core Features)</a></li>
+<li><a class="reference internal" href="#id3">🚀 Changed (Major Refactoring &amp; Optimization)</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#internal-1-2-1-2025-12-18-not-publicly-released">[Internal] 1.2.1 - 2025-12-18 (Not publicly released)</a><ul>
+<li><a class="reference internal" href="#id4">✨ Added (New Models &amp; Core Features)</a></li>
+<li><a class="reference internal" href="#id5">🚀 Changed (Major Refactoring &amp; Optimization)</a></li>
+<li><a class="reference internal" href="#fixed-critical">🐛 Fixed (Critical)</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#internal-1-1-1-2025-11-21-not-publicly-released">[Internal] 1.1.1 - 2025-11-21 (Not publicly released)</a><ul>
+<li><a class="reference internal" href="#breaking-changes">⚠️ Breaking Changes</a></li>
+<li><a class="reference internal" href="#added">✨ Added</a></li>
+<li><a class="reference internal" href="#changed">⚙️ Changed</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#id6">0.0.6 - 2025-05-27</a><ul>
+<li><a class="reference internal" href="#id7">Added</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+          </div>
+        </div>
+      </div>
+      
+      
+    </aside>
+  </div>
+</div><script src="_static/documentation_options.js?v=590429e0"></script>
+    <script src="_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="_static/scripts/furo.js?v=46bd48cc"></script>
+    <script>window.MathJax = {"options": {"processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+    <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@4/tex-mml-chtml.js"></script>
+    </body>
+</html>
