@@ -1,0 +1,118 @@
+[build-system]
+requires = ["setuptools>=64"]
+build-backend = "setuptools.build_meta"
+
+# ---------------------------------------------------------------------------
+# Project metadata (PEP 621 declarative format)
+# ---------------------------------------------------------------------------
+[project]
+# Distribution name on PyPI is "tam-ml" (the bare "tam" name is already taken);
+# the importable package remains "tam" (i.e. `import tam`).
+name = "tam-ml"
+description = "The unified framework for interpretable, physics-informed, and high-performance time series forecasting."
+readme = { file = "README.md", content-type = "text/markdown" }
+license = { text = "LGPL-3.0-or-later" }
+requires-python = ">=3.10"
+
+# Version is sourced dynamically from `tam.__version__` so it is declared
+# in exactly one place (src/tam/__init__.py).
+dynamic = ["version"]
+
+authors = [
+    { name = "Yann Allioux",    email = "yann.allioux@edf.fr" },
+    { name = "Nathan Doumèche"},
+    { name = "Éloi Bedek"},
+]
+maintainers = [
+    { name = "Yann Allioux", email = "yann.allioux@edf.fr" },
+]
+
+keywords = [
+    "time series", "generalized additive models", "machine learning",
+    "pytorch", "gpu", "physics-informed", "forecasting", "interpretable ai",
+]
+
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Intended Audience :: Science/Research",
+    "Intended Audience :: Developers",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "License :: OSI Approved :: GNU Lesser General Public License v3 or later (LGPLv3+)",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+]
+
+# ---------------------------------------------------------------------------
+# Runtime dependencies
+# ---------------------------------------------------------------------------
+dependencies = [
+    "torch>=2.3.1",
+    "numpy>=2.0.0",
+    "pandas>=2.2.2",
+    "scipy>=1.14.0",
+    "matplotlib>=3.9.0",
+    "psutil>=5.9.0",
+]
+
+# ---------------------------------------------------------------------------
+# Optional dependency groups
+# ---------------------------------------------------------------------------
+[project.optional-dependencies]
+
+dev = [
+    "pytest>=8.0",
+    "pytest-cov>=5.0",
+    "build>=1.2",
+    "twine>=5.0",
+]
+
+docs = [
+    "sphinx>=7.0",
+    "furo>=2024.1",
+    "myst-parser>=3.0",
+    "sphinxcontrib-bibtex>=2.6",
+]
+
+# ---------------------------------------------------------------------------
+# Project URLs
+# ---------------------------------------------------------------------------
+[project.urls]
+Repository    = "https://github.com/EDF-Lab/tam"
+Documentation = "https://edf-lab.github.io/tam/"
+"Bug Tracker" = "https://github.com/EDF-Lab/tam/issues"
+
+# ---------------------------------------------------------------------------
+# Build configuration (src layout)
+# ---------------------------------------------------------------------------
+[tool.setuptools.dynamic]
+version = { attr = "tam.__version__" }
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+tam = ["data/*.csv"]
+
+# ---------------------------------------------------------------------------
+# Tooling configuration
+# ---------------------------------------------------------------------------
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts   = "-q"
+filterwarnings = [
+    # Suppress the PyTorch 3.14+ JIT deprecation warning during tests
+    "ignore:.*torch\\.jit\\.script.*:DeprecationWarning",
+]
+
+[tool.coverage.run]
+source = ["tam"]
+branch = true
+
+[tool.coverage.report]
+show_missing = true

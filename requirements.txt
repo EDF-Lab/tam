@@ -1,0 +1,80 @@
+-e / #tam debugging mode
+
+#tests
+pytest
+pytest-cov
+
+# Documentation
+sphinx>=7.0.0
+sphinx-rtd-theme
+sphinxcontrib-bibtex
+myst-parser
+furo 
+
+# Data & scientific calculation
+pandas>=2.0.0
+numpy>=1.24.0
+scipy>=1.10.0
+
+# Visualisation
+geopandas==1.1.1
+matplotlib>=3.7.0
+seaborn>=0.12.0
+folium
+ipython>=9.12.0
+
+# ML & Stats
+statsmodels>=0.14.0
+scikit-learn>=1.3.0
+pygam>=0.9.0
+tabicl==2.1.1
+tabicl[regressor]==2.1.1
+tabicl[forecast]==2.1.1
+
+## ==============================================================================
+## TAM Hardware Configurations
+## ==============================================================================
+## The standard `pip install .` command uses PyPI defaults, which often
+## downloads the massive CUDA (GPU) version of PyTorch on Windows/Linux.
+## Use the options below to explicitly control your hardware setup.
+##
+## INSTRUCTIONS:
+## To activate an option, remove the single '#' at the start of the relevant lines.
+## Do not remove the double '##' (these are purely informational comments).
+
+## --- Option 1: Force Lightweight CPU Version (Fast Loading) ---
+## This forces the installation of the standard TAM CPU-only configuration.
+## The framework loading time (`import tam as ta`) with this version is very fast: ~4 seconds.
+## 
+## HOW TO SWITCH BACK FROM GPU TO CPU:
+## 1. First, you must completely remove the GPU wheels by running this command:
+##    pip uninstall torch torchvision torchaudio
+## 2. Uncomment the two lines below (remove the single '#').
+## 3. Run: pip install -r requirements.txt
+##
+# --extra-index-url https://download.pytorch.org/whl/cpu
+# torch>=2.4.1
+
+
+## --- Option 2: Force Custom GPU Version (Local Wheels) ---
+## Uncomment the lines below (remove the single '#') to install from your local 
+## files if you need hardware acceleration.
+##
+## HOW TO FIND THE RIGHT WHEELS FOR YOUR GPU:
+## 1. Open your terminal/command prompt and type `nvidia-smi` to find your max supported CUDA version.
+## 2. Go to the PyTorch wheel archive: https://download.pytorch.org/whl/torch_stable.html
+## 3. Search for the files that match your specific setup:
+##    - The CUDA version (e.g., 'cu121' for CUDA 12.1).
+##    - Your Python version (e.g., 'cp312' for Python 3.12).
+##    - Your OS (e.g., 'win_amd64' for Windows).
+## 4. Download the files, place them in the 'package/' folder, and update the filenames below if needed.
+##
+## PERFORMANCE WARNING FOR WINDOWS:
+## Installing these massive CUDA wheels makes `import tam as ta` very slow:
+##   ~ 40 seconds initial load time when using the GPU.
+##   ~ 20 seconds initial load time even if you force CPU usage in your script via:
+##     os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
+##
+# package/torch-2.5.1+cu121-cp312-cp312-win_amd64.whl
+# package/torchvision-0.20.1+cu121-cp312-cp312-win_amd64.whl
+# package/torchaudio-2.5.1+cu121-cp312-cp312-win_amd64.whl

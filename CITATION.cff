@@ -1,0 +1,40 @@
+# CITATION.cff file for the TAM project
+
+cff-version: 1.2.0
+message: "If you use this software in your research, please cite it as below."
+title: "TAM: The unified framework for interpretable, physics-informed, and high-performance time series forecasting"
+
+authors:
+  - family-names: "Allioux"
+    given-names: "Yann"
+    orcid: "https://orcid.org/0009-0002-0199-0678"
+    affiliation: "EDF R&D, Palaiseau, France"
+  - family-names: "Goude"
+    given-names: "Yannig"
+    orcid: "https://orcid.org/0000-0003-2028-5536"
+    affiliation: "EDF R&D, Palaiseau, France"
+
+identifiers:
+  - type: doi
+    value: 10.5281/zenodo.20543272
+    description: "Zenodo Software Archive"
+  - type: doi
+    value: 10.21105/joss.XXXXX # Placeholder for the JOSS DOI
+    description: "Journal of Open Source Software"
+
+
+repository-code: "https://github.com/EDF-Lab/tam"
+version: 1.2.3
+date-released: 2026-06-08
+
+keywords:
+  - "Python"
+  - "GPU"
+  - "Additive Models"
+  - "Adaptive Models"
+  - "Physics Informed Learning"
+  - "Conformal Prediction"
+  - "Hierarchical Forecasting"
+  - "Time Series"
+
+license: LGPL-3.0

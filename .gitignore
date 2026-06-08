@@ -1,0 +1,37 @@
+# Working directories (local-only, not part of the release)
+docs/build/
+use_cases/temp/
+use_cases/scripts/
+ongoing/
+package/
+slides/output/
+
+# Python environments
+/venv/
+/env/
+/.venv/
+/.env/
+
+# Python compiled / cache files
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+
+# Distribution and packaging artifacts
+/build/
+/dist/
+*.egg-info/
+*.egg
+MANIFEST
+
+# IDE and editor settings
+.vscode/
+.idea/
+
+# macOS
+.DS_Store
+
+# Windows
+Thumbs.db
