@@ -8,7 +8,7 @@ This chapter details the overarching software engineering pipeline of the TAM fr
 
 To avoid redundancy, low-level data padding, hardware dispatching, and specific effect implementations are delegated to their respective documentation files.
 
-## 1. Global Configurations (`utils.py`)
+## Global Configurations (`utils.py`)
 
 Before any model is instantiated, the framework establishes a unified global configuration via `utils.py`. 
 
@@ -18,9 +18,9 @@ To maintain mathematical determinism in the exact Primal inversion and guarantee
 :language: python
 :start-after: "#: <config>"
 :end-before: "#: </config>"
-````
+```
 
-## 2\. The Foundation: `_base.py`
+## The Foundation: `_base.py`
 
 The `_base.py` script acts as the structural foundation for all models in the framework. It defines the abstract class `BaseTAM`, which orchestrates the standardized control flow.
 
@@ -30,15 +30,13 @@ To ensure a consistent API without duplicating boilerplate tensor operations acr
   * It standardizes the temporal alignment and handling of missing groups. *(For exact tensor padding logic, refer to the [Data Pipeline](02_data_pipeline.md)).*
   * It defines the continuous optimization problem logically, forcing child classes to implement the specific construction of the design matrix $\Phi$ and the penalty matrix $P$ required to stabilize the regularized normal equations {cite:p}`hoerl1970ridge`.
 
-<!-- end list -->
-
 ```{literalinclude} ../../../../src/tam/model/_base.py
 :language: python
 :start-after: "#: <class_def>"
 :end-before: "#: </class_def>"
 ```
 
-## 3\. The Factory Orchestration (`_factory.py` & `_base_effects.py`)
+## The Factory Orchestration (`_factory.py` & `_base_effects.py`)
 
 Instead of hardcoding basis functions into the solver, `StaticTAM` relies on an explicit Dependency Injection architecture. It expects components that conform strictly to the `BaseEffect` interface (`_base_effects.py`).
 
@@ -52,7 +50,7 @@ To bridge the user's R-style formula string to these concrete interface objects,
 :end-before: "#: <parse_linear>"
 ```
 
-## 4\. The Core Solver (`additive.py`)
+## The Core Solver (`additive.py`)
 
 The `StaticTAM` class is the primary engine of the framework. It inherits from `BaseTAM` and acts as the grand orchestrator. Once the mathematical blocks are assembled via the Factory, `StaticTAM` delegates the actual matrix inversions to the underlying [Math Dispatcher](03_math_dispatcher.md).
 
@@ -76,7 +74,7 @@ Because the Primal space concatenates independent topological blocks, the framew
 :end-before: "#: </decompose_pred>"
 ```
 
-## 5\. Hyperparameter Routing: Continuous vs. Discrete
+## Hyperparameter Routing: Continuous vs. Discrete
 
 To safely scale to Gigadata without exhausting computational time, `StaticTAM` divides hyperparameter tuning into two distinct structural methods.
 
@@ -95,3 +93,11 @@ While regularization is continuous, topological choices-such as the number of kn
 :start-after: "#: <grid_search_logic>"
 :end-before: "#: </grid_search_logic>"
 ```
+
+## Separation of Concerns: Simulation vs. Inference
+
+To guarantee safety in operational production pipelines, `AdaptiveTAM` strictly separates historical learning from out-of-sample inference.
+
+**Architectural Choice (The `fit` / `predict` Split):**
+* **`fit(data)`:** Runs the full sliding-window `predict_online()` simulation. At the end of the simulation, it extracts the final historical residuals and trains a global, frozen `StaticTAM` model (`self.static_residual_model_`) to act as the permanent correction rule.
+* **`predict(data)`:** A purely deterministic, read-only method. It applies the base model and the frozen static residual model to new data. By completely bypassing the sliding-window simulation during inference, it guarantees blazing-fast, $O(1)$ execution time and zero target leakage.

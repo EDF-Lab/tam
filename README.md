@@ -112,6 +112,10 @@ df['E2'] = ta.StaticTAM(formula=f2, date_col="date").fit(d_dict['train']).predic
 opera = ta.OperaTAM("log_passengers ~ l(E1) + l(E2)", algorithm='MLPOL', date_col='date', horizon_steps=12)
 df['OPERA'] = opera.predict_online(df)['prediction_opera'].values
 
+# Option B (Production): Train on history, apply frozen weights to the future
+# opera.fit(d_dict['train'])
+# test_predictions = opera.predict(d_dict['test'])
+
 # 5. Evaluate and plot
 for name, col in [("Expert 1", "E1"), ("Expert 2", "E2"), ("OPERA", "OPERA")]:
     tr = ta.BenchmarkTracker(name)

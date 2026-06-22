@@ -19,7 +19,7 @@ requires-python = ">=3.10"
 dynamic = ["version"]
 
 authors = [
-    { name = "Yann Allioux",    email = "yann.allioux@edf.fr" },
+    { name = "Yann Allioux"},
     { name = "Nathan Doumèche"},
     { name = "Éloi Bedek"},
 ]

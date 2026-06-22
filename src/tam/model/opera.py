@@ -347,6 +347,63 @@ class OperaTAM:
         # Apply the boolean mask to strip away the padding injected by _balance_groups
         return _cleanup_dummies(balanced_df[mask], self.group_col, self.date_col)
 
+    def fit(self, df: pd.DataFrame) -> 'OperaTAM':
+        r"""
+        Fits the OperaTAM model by running the online historical simulation
+        to learn the optimal expert aggregation weights.
+
+        Args:
+            df (pd.DataFrame): Training data containing targets and experts.
+
+        Returns:
+            self: The fitted OperaTAM instance.
+        """
+        self.predict_online(df)
+        return self
+
+    def predict(self, df: pd.DataFrame) -> pd.DataFrame:
+        r"""
+        Apply frozen end-of-training expert weights to new (test) data.
+
+        Uses the last weight vector from ``self.weights_history_`` (i.e. the
+        weights learned at the final timestep of the training simulation).
+
+        Args:
+            df: New DataFrame containing the expert columns.
+
+        Returns:
+            pd.DataFrame: Copy of ``df`` with ``prediction_opera`` and
+            ``weight_{expert}`` columns added.
+        """
+        if not self.weights_history_:
+            raise RuntimeError("Call fit() first to populate the expert weights history.")
+
+        # 1. Standard TAM Transitivity Shield (Inject dummies if missing)
+        result = _ensure_dummies(df.copy(), self.group_col, self.date_col)
+
+        result["prediction_opera"] = 0.0
+        for col in self.expert_cols:
+            result[f"weight_{col}"] = 0.0
+
+        uniform = np.ones(len(self.expert_cols)) / len(self.expert_cols)
+
+        # 2. Apply weights per group
+        for g_name in result[self.group_col].unique():
+            g_mask = result[self.group_col] == g_name
+            
+            # Extract the last row of weights_history_ for this group
+            final_w = self.weights_history_.get(g_name, None)
+            weights = final_w[-1, :] if final_w is not None else uniform
+
+            experts = result.loc[g_mask, self.expert_cols].values.astype(float)
+            result.loc[g_mask, "prediction_opera"] = experts @ weights
+
+            for j, col in enumerate(self.expert_cols):
+                result.loc[g_mask, f"weight_{col}"] = weights[j]
+
+        # 3. Cleanup dummies before returning
+        return _cleanup_dummies(result, self.group_col, self.date_col)
+
     def plot_weights(
         self, 
         df: Optional[pd.DataFrame] = None, 

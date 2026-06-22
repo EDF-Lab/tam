@@ -133,6 +133,10 @@ class AdaptiveTAM:
                         "This will cause a cross-target correction.",
                         UserWarning
                     )
+        
+        self.last_state_dict_ = None
+        self.max_res_ = None
+        self.min_res_ = None
 #: </init_adaptive>
 
 #: <prepare_sim>
@@ -345,19 +349,130 @@ class AdaptiveTAM:
         return self.predictions_
 #: </run_sim>
 
+    def _save_final_state(self):
+        r"""
+        Extracts the final window from the prepared simulation tensors, 
+        solves the linear system to get the most recent adaptive parameters, 
+        and saves them for out-of-sample inference.
+        """
+        x_stacked, y_stacked, _, _, data_bm, _, _ = self.simulation_data_
+        
+        # Save historical bounds for safety clipping during inference
+        self.max_res_ = np.float32(data_bm[self.target_col_].max())
+        self.min_res_ = np.float32(data_bm[self.target_col_].min())
+        
+        run_device = TORCH_DEVICE
+        num_samples_train = x_stacked.shape[2]
+        
+        # Extract ONLY the last available training window (index -1)
+        x_last = x_stacked[:, -1, :, :].to(run_device)
+        y_last = y_stacked[:, -1, :, :].to(run_device)
+        
+        loss_L_star_L = self.adaptive_model_._build_loss_matrix().to(run_device)
+        sobolev_matrix = self.adaptive_model_._build_penalty_matrix().to(run_device)
+        
+        phi_train = self.adaptive_model_._build_design_matrix(x_last)
+        cov_X, cov_XY = _compute_weighted_covariances(phi_train, y_last, loss_L_star_L)
+        
+        final_coeffs = solve_linear_system(cov_X, cov_XY, sobolev_matrix, num_samples_train)
+        
+        self.last_state_dict_ = {}
+        for i, g in enumerate(self.unique_groups_):
+            self.last_state_dict_[g] = final_coeffs[i].cpu().clone()
+
     def predict_online(self, data: pd.DataFrame) -> pd.DataFrame:
         r"""
-        Runs the full adaptive pipeline: preparation + simulation.
-
-        Args:
-            data: The DataFrame to predict on.
-
-        Returns:
-            pd.DataFrame: Final predictions including the adapted column.
+        Runs the full adaptive historical pipeline: preparation + simulation.
         """
         self.prepare_simulation(data)
         self.simulation()
+        self._save_final_state()
         return self.predictions_
+
+    def fit(self, data: pd.DataFrame) -> 'AdaptiveTAM':
+        r"""
+        Fits the adaptive model by solving the regularized linear system
+        ONLY for the final available training window per group.
+        This provides the optimal final parameters for out-of-sample inference
+        without executing the full historical sliding-window simulation.
+        """
+        self.prepare_simulation(data)
+        self._save_final_state()
+        return self
+
+    def predict(self, df: pd.DataFrame) -> pd.DataFrame:
+        r"""
+        Predicts on new data using the frozen adaptive state learned from 
+        the final training window.
+        """
+        if getattr(self, 'last_state_dict_', None) is None:
+            raise RuntimeError("Call fit() first to train the final adaptive state.")
+
+        # --- 1. Base Model Extraction ---
+        if self.base_model_ is not None:
+            data_bm = self.base_model_.decompose_prediction(df)
+            data_pred = self.base_model_.predict(df)
+            target_col_bm = self.base_model_.target_col_
+        else:
+            data_bm = df.copy()
+            data_pred = df.copy()
+            target_col_bm = self.target_col_
+
+        data_bm = _ensure_dummies(data_bm, self.group_col_, self.date_col_)
+        data_pred = _ensure_dummies(data_pred, self.group_col_, self.date_col_)
+
+        est_col_name = f'Estimated{target_col_bm}'
+        if est_col_name not in data_bm.columns:
+            data_bm[est_col_name] = data_pred.get(est_col_name, 0.0)
+
+        mask, balanced_data = _balance_groups(
+            dataset=data_bm, group_col=self.group_col_, date_col=self.date_col_, method="fill"
+        )
+        
+        # --- 2. Adaptive Feature Matrix ---
+        x_pred, _, unique_groups_pred = self.adaptive_model_._prepare_data(
+            balanced_data, target_col=None, ignore_template_check=True
+        )
+        
+        run_device = TORCH_DEVICE
+        x_pred = x_pred.to(run_device)
+        phi_pred = self.adaptive_model_._build_design_matrix(x_pred)
+        
+        # --- 3. Construct Frozen Coefficient Tensor ---
+        G_pred, N_pred, d_pred = phi_pred.shape
+        coeffs_tensor = torch.zeros((G_pred, d_pred, 1), device=run_device, dtype=phi_pred.dtype)
+        
+        for i, g in enumerate(unique_groups_pred):
+            if g in self.last_state_dict_:
+                coeffs_tensor[i, :, 0] = self.last_state_dict_[g].to(run_device).squeeze(-1)
+                
+        res_pred_tensor = _predict_from_coeffs(phi_pred, coeffs_tensor)
+        
+        data_with_predictions = _reassemble_predictions(
+            original_data=balanced_data,
+            predictions_stacked=res_pred_tensor.squeeze(-1).cpu(),
+            group_col=self.group_col_,
+            unique_groups=unique_groups_pred,
+            target_col=self.target_col_
+        )
+        
+        # --- 4. Safety Bounding and Reassembly ---
+        est_col = f'Estimated{self.target_col_}'
+        adapted_col = f"AdaptedEstimated{target_col_bm}"
+        
+        if getattr(self, 'max_res_', None) is not None:
+             data_with_predictions.loc[data_with_predictions[est_col] >= self.max_res_, est_col] = self.max_res_
+             data_with_predictions.loc[data_with_predictions[est_col] <= self.min_res_, est_col] = self.min_res_
+
+        if self.target_col_ == target_col_bm:
+            data_with_predictions[adapted_col] = data_with_predictions[est_col].fillna(0)
+        else:
+            data_with_predictions[adapted_col] = (
+                data_with_predictions[est_col_name] + 
+                data_with_predictions[est_col].fillna(0)
+            )
+
+        return _cleanup_dummies(data_with_predictions[mask], self.group_col_, self.date_col_)
 
     def _evaluate_adaptive_config(
         self, 
@@ -633,8 +748,7 @@ class AdaptiveTAM:
             final_model.unique_groups_ = self.unique_groups_
             final_model.target_col_ = self.target_col_
 
-            final_model.prepare_simulation(data_val)
-            final_model.simulation()
+            final_model.predict_online(data_val)
             
             return final_model
 #: </grid_search_adaptive>

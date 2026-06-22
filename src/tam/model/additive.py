@@ -315,14 +315,14 @@ class StaticTAM(BaseTAM):
         if self.coefficients_ is None:
             raise RuntimeError("Model must be fitted first.")
 
-        required_cols = self.features_config_['features'] + [self.group_col_, self.target_col_, self.date_col_]
+        required_cols = self.features_config_['features'] + [self.group_col_, self.date_col_]
         _check_features(dataset=data, required_features=required_cols)
         
         mask, balanced_data = _balance_groups(
             dataset=data, group_col=self.group_col_, date_col=self.date_col_, method="fill"
         )
 
-        x_predict, _, _ = self._prepare_data(balanced_data, target_col=self.target_col_)
+        x_predict, _, _ = self._prepare_data(balanced_data)
         
         final_decomposed_effects = smart_decompose(x_predict, self.coefficients_, self.effects_list_)
 

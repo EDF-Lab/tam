@@ -208,8 +208,9 @@ class KalmanTAM:
 
     def _prepare_kalman_features(
         self, 
-        data: pd.DataFrame
-    ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, list, pd.DataFrame]:
+        data: pd.DataFrame,
+        is_inference: bool = False
+    ) -> Tuple[torch.Tensor, Optional[torch.Tensor], torch.Tensor, list, pd.DataFrame]:
         r"""
         Extracts tracking features and the base model's full prediction.
         Builds the normalized Design Matrix required for Residual Tracking,
@@ -241,8 +242,9 @@ class KalmanTAM:
             df_features[base_pred_col] = 0.0
             
         # Build the normalized Kalman design matrix and extract targets.
+        target_col_to_use = None if is_inference else self.target_col_
         x_stacked, y_stacked, unique_groups = self.feature_extractor_._prepare_data(
-            df_features, target_col=self.target_col_
+            df_features, target_col=target_col_to_use
         )
         
         # Extract base predictions for GPU arithmetic.
@@ -444,4 +446,87 @@ class KalmanTAM:
         df_final = df_final.rename(columns={res_col: f"KalmanAdapted_{self.target_col_}"})
         
         df_final_masked = df_final[prepared_data["mask"]]
+
+        # Save frozen states and scales for out-of-sample inference
+        self.last_state_dict_ = {}
+        self.scale_dict_ = {}
+        for i, g in enumerate(prepared_data["unique_groups"]):
+            self.last_state_dict_[g] = self.states_history_[-1, i, :].clone()
+            self.scale_dict_[g] = prepared_data["y_scale"][i, 0, 0].cpu().clone()
+
+        return _cleanup_dummies(df_final_masked, self.group_col_, self.date_col_)
+    
+    def fit(self, data: pd.DataFrame, **kwargs) -> 'KalmanTAM':
+        r"""
+        Fits the Kalman filter by running the historical tracking simulation.
+        Learns and saves the optimal state (drift weights) per group.
+
+        Args:
+            data: Training DataFrame.
+            
+        Returns:
+            self: The fitted KalmanTAM instance.
+        """
+        self.predict_online(data, **kwargs)
+        return self
+
+    def predict(self, df: pd.DataFrame) -> pd.DataFrame:
+        r"""
+        Applies the frozen end-of-training Kalman state to new (test) data.
+        
+        Uses the last updated tracking weights from the historical simulation 
+        to project the drift forward as a stable, static rule.
+
+        Args:
+            df: New DataFrame containing the features.
+
+        Returns:
+            pd.DataFrame: DataFrame augmented with the `KalmanAdapted_{target}` column.
+        """
+        if getattr(self, 'last_state_dict_', None) is None:
+            raise RuntimeError("Call fit() first to populate the Kalman states history.")
+
+        df = _ensure_dummies(df, self.group_col_, self.date_col_)
+        mask, balanced_data = _balance_groups(
+            dataset=df, group_col=self.group_col_, date_col=self.date_col_, method="fill"
+        )
+
+        phi_matrix, _, base_pred_stacked, unique_groups_pred, df_original = self._prepare_kalman_features(balanced_data, is_inference=True)
+
+        G_pred, N_pred, d_pred = phi_matrix.shape
+        device = phi_matrix.device
+        dtype = phi_matrix.dtype
+
+        # Construct the frozen state and scale tensors aligned with the inference groups
+        last_state_tensor = torch.zeros((G_pred, d_pred, 1), device=device, dtype=dtype)
+        scale_tensor = torch.ones((G_pred, 1, 1), device=device, dtype=dtype)
+
+        for i, g in enumerate(unique_groups_pred):
+            if g in self.last_state_dict_:
+                last_state_tensor[i, :, 0] = self.last_state_dict_[g].to(device)
+                scale_tensor[i, 0, 0] = self.scale_dict_[g].to(device)
+            else:
+                # If a completely new group is encountered during inference, 
+                # the tensors remain zero -> zero drift (base model physics only).
+                pass
+
+        # Compute the correction delta in normalized space
+        delta_norm = torch.bmm(phi_matrix, last_state_tensor)
+        
+        # Scale back to real target space (base_pred is already in real space)
+        delta_real = delta_norm * scale_tensor
+        predictions_denorm = base_pred_stacked + delta_real
+
+        df_final = _reassemble_predictions(
+            df_original,
+            predictions_denorm.squeeze(-1).cpu(),
+            self.group_col_,
+            unique_groups_pred,
+            self.target_col_
+        )
+
+        res_col = f"Estimated{self.target_col_}"
+        df_final = df_final.rename(columns={res_col: f"KalmanAdapted_{self.target_col_}"})
+
+        df_final_masked = df_final[mask]
         return _cleanup_dummies(df_final_masked, self.group_col_, self.date_col_)

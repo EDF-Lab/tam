@@ -95,3 +95,63 @@ def test_kalman_tune_hyperparameters(dummy_panel_data):
     assert isinstance(best_params, dict)
     assert "observation_noise_var" in best_params
     assert np.isfinite(best_rmse)
+
+def test_kalman_fit_predict_operational(dummy_panel_data):
+    """
+    Tests the frozen inference API for KalmanTAM.
+    Verifies that the patched feature extractor successfully bypasses target 
+    extraction during out-of-sample prediction.
+    """
+    model = KalmanTAM(
+        kalman_formula="load ~ l(temperature)",
+        group_col="smart_meter_id", 
+        date_col="timestamp",
+        block_size=16,
+    )
+    
+    # 1. Historical Tracking
+    model.fit(dummy_panel_data)
+    
+    assert hasattr(model, 'last_state_dict_'), "fit() did not save Kalman states."
+    assert hasattr(model, 'scale_dict_'), "fit() did not save Kalman scaling factors."
+    assert len(model.last_state_dict_) > 0
+    
+    # 2. Operational Inference (Drop the target column)
+    prod_data = dummy_panel_data.drop(columns=["load"])
+    
+    preds = model.predict(prod_data)
+    
+    assert "KalmanAdapted_load" in preds.columns
+    assert len(preds) == len(prod_data)
+    assert not preds["KalmanAdapted_load"].isna().any()
+
+def test_kalman_coherence(dummy_panel_data):
+    """
+    Parity Test: Ensures the final step of the dynamic Kalman tracking
+    matches exactly with the frozen static rule applied during inference.
+    """
+    # 1. Dynamic continuous tracking
+    model_dyn = KalmanTAM(
+        kalman_formula="load ~ l(temperature)", group_col="smart_meter_id", date_col="timestamp", 
+        block_size=16, horizon_steps=1
+    )
+    res_dyn = model_dyn.predict_online(dummy_panel_data)
+    
+    # 2. Frozen state inference
+    model_stat = KalmanTAM(
+        kalman_formula="load ~ l(temperature)", group_col="smart_meter_id", date_col="timestamp", 
+        block_size=16, horizon_steps=1
+    )
+    model_stat.fit(dummy_panel_data)
+    res_stat = model_stat.predict(dummy_panel_data)
+    
+    # 3. Mathematical Parity Check on the last timestamp
+    group_id = dummy_panel_data['smart_meter_id'].iloc[0]
+    
+    last_dyn = res_dyn[res_dyn['smart_meter_id'] == group_id].iloc[-1]['KalmanAdapted_load']
+    last_stat = res_stat[res_stat['smart_meter_id'] == group_id].iloc[-1]['KalmanAdapted_load']
+    
+    np.testing.assert_allclose(
+        last_dyn, last_stat, rtol=1e-4, 
+        err_msg="KalmanTAM frozen predict() diverged from the final state of predict_online()."
+    )

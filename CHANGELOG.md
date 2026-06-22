@@ -16,6 +16,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.2.4] - 2026-06-22
+
+### Added
+- **API Standardization:** Introduced explicit `fit()` and `predict()` methods across all meta-models (`AdaptiveTAM`, `OperaTAM`, `KalmanTAM`). This establishes a unified, scikit-learn-like operational workflow (train on historical data, freeze state, predict out-of-sample) regardless of the underlying algorithm.
+- **AdaptiveTAM:** Added `fit()` and `predict()` methods for production deployment. The `fit()` method efficiently extracts and solves the linear system strictly for the final available training window. The `predict()` method then applies this frozen state (`last_state_dict_`) to new data in $O(1)$ time with strict safety clipping, ensuring instant, deterministic inference without target leakage.
+- **KalmanTAM:** Added `fit()` and `predict()` methods alongside end-of-training state extraction (`last_state_dict_` and `scale_dict_`). This allows users to project the finalized Kalman drift weights forward as a stable, static rule on new data, with the internal normalization math handled automatically.
+- **OperaTAM:** Added `fit()` and `predict()` methods to transition from continuous dynamic simulation to frozen-weight inference. `fit()` runs the historical simulation, while `predict()` cleanly extracts and applies the final expert aggregation weights to new out-of-sample data.
+
+### Fixed
+- **StaticTAM:** Removed the `target_col` requirement from the required features check in `decompose_prediction`. This resolves a critical blocker for operational inference pipelines where the target variable is naturally unavailable.
+- **KalmanTAM:** Patched `_prepare_kalman_features` to securely bypass target column extraction during out-of-sample inference, preventing crashes when the target variable is absent.
+
 ## [1.2.3] - 2026-06-08
 > The DOI was generated via Zenodo on release : https://doi.org/10.5281/zenodo.20543272.
 
@@ -144,5 +156,6 @@ This version introduced the Formula API and the first object-oriented refactorin
 ### Added
 * Initial project setup based on the original `weakl` v0.0.6 package.
 
+[1.2.4]: https://github.com/EDF-Lab/tam/releases/tag/v1.2.4
 [1.2.3]: https://github.com/EDF-Lab/tam/releases/tag/v1.2.3
 [0.0.6]: https://pypi.org/project/weakl/0.0.6/

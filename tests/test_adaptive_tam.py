@@ -64,3 +64,65 @@ def test_adaptive_tam_coordinate_descent(dummy_panel_data):
     assert best_model is not None, "Grid search returned None."
     assert isinstance(best_model, ta.AdaptiveTAM), "Grid search must return an AdaptiveTAM instance."
     assert best_model.predictions_ is not None, "Grid search model did not run simulation."
+
+def test_adaptive_tam_fit_predict_operational(dummy_panel_data):
+    """
+    Tests the new O(1) inference API for production deployment.
+    Ensures fit() saves the final state and predict() applies it flawlessly,
+    even when the target column is physically missing from the inference data.
+    """
+    model = ta.AdaptiveTAM(
+        adaptive_formula="load ~ l(temperature)",
+        group_col="smart_meter_id",
+        date_col="timestamp",
+        update_interval_periods=1,
+        training_window_periods=10,
+        steps_per_period=1
+    )
+    
+    # 1. Historical Simulation
+    model.fit(dummy_panel_data)
+    
+    assert hasattr(model, 'last_state_dict_'), "fit() did not create last_state_dict_."
+    assert model.last_state_dict_ is not None, "Final state was not saved."
+    assert hasattr(model, 'max_res_'), "fit() did not save safety clipping bounds."
+    
+    # 2. Operational Inference (Drop the target column entirely)
+    prod_data = dummy_panel_data.drop(columns=["load"])
+    
+    predictions = model.predict(prod_data)
+    
+    assert "AdaptedEstimatedload" in predictions.columns, "Missing adapted prediction column."
+    assert len(predictions) == len(prod_data), "Prediction length mismatch."
+    assert not predictions["AdaptedEstimatedload"].isna().any(), "Predictions contain NaNs."
+
+def test_adaptive_tam_coherence(dummy_panel_data):
+    """
+    Parity Test: Ensures the final step of the dynamic predict_online 
+    matches exactly with the static predict() applying the frozen state.
+    """
+    # 1. Dynamic continuous simulation
+    model_dyn = ta.AdaptiveTAM(
+        adaptive_formula="load ~ l(temperature)", group_col="smart_meter_id", date_col="timestamp",
+        update_interval_periods=1, training_window_periods=5, steps_per_period=1, horizon_steps=1
+    )
+    res_dyn = model_dyn.predict_online(dummy_panel_data)
+    
+    # 2. Frozen state inference
+    model_stat = ta.AdaptiveTAM(
+        adaptive_formula="load ~ l(temperature)", group_col="smart_meter_id", date_col="timestamp",
+        update_interval_periods=1, training_window_periods=5, steps_per_period=1, horizon_steps=1
+    )
+    model_stat.fit(dummy_panel_data)
+    res_stat = model_stat.predict(dummy_panel_data)
+    
+    # 3. Mathematical Parity Check on the last timestamp for a given group
+    group_id = dummy_panel_data['smart_meter_id'].iloc[0]
+    
+    last_dyn = res_dyn[res_dyn['smart_meter_id'] == group_id].iloc[-1]['AdaptedEstimatedload']
+    last_stat = res_stat[res_stat['smart_meter_id'] == group_id].iloc[-1]['AdaptedEstimatedload']
+    
+    np.testing.assert_allclose(
+        last_dyn, last_stat, rtol=1e-4, 
+        err_msg="AdaptiveTAM frozen predict() diverged from the final state of predict_online()."
+    )
