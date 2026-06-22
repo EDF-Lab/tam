@@ -93,3 +93,11 @@ The `grid_search_fit()` method implements the "Multi-Start" hyperparameter solve
 :end-before: "#: </grid_search_adaptive>"
 :caption: src/tam/model/adaptative.py (Coordinate Descent Algorithm for Hyperparameters)
 ```
+
+## Separation of Concerns: Simulation vs. Inference
+
+To guarantee speed and safety in operational production pipelines, `AdaptiveTAM` strictly separates the continuous historical simulation from out-of-sample inference.
+
+**Architectural Choice (The $O(1)$ Inference Optimization):**
+* **`fit(data)`:** Instead of running the massive sliding-window simulation over the entire dataset, `fit()` leverages the `_save_final_state()` method. This function slices *only* the final available training window from the 4D tensor, solves the exact Primal linear system for that single step, and freezes the optimal coefficients (`last_state_dict_`) along with historical safety clipping bounds.
+* **`predict(data)`:** A purely deterministic, read-only method. It builds the design matrix $\Phi$ for the new data and multiplies it directly against the frozen coefficients. By completely bypassing sliding-window tensorization and system resolution during inference, it guarantees blazing-fast $O(1)$ execution time and absolute protection against target leakage.

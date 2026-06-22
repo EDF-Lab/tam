@@ -69,3 +69,10 @@ In production forecasting, online algorithms must not leak future information.
 **Architectural Choice (Information Delay):**
 After the optimized loops evaluate the performance weights natively, the `OperaTAM.predict_online` method intercepts the raw `weights_np` array. If the user specifies a multi-step forecasting scenario (`horizon_steps > 1`), the algorithm explicitly shifts the learned weights forward by $H - 1$ steps. 
 The "blind" initial steps are overridden with uniform weights (`1.0 / len(experts)`), and the historical weights are shifted causally to the right: `shifted_weights[:, shift:, :] = weights_np[:, :-shift, :]`. This ensures the aggregated prediction at time $t$ strictly relies on expert performance evaluated *prior* to the blind forecast horizon.
+
+## Production Inference & State Freezing
+
+While `predict_online()` handles the complex task of running the sequential 3D tensor loop over historical data, production forecasting requires applying a strict, static rule to future data.
+
+**Architectural Choice (The Inference API):**
+To standardize the deployment pipeline, `OperaTAM` implements a dedicated `predict()` method. When `fit()` (which wraps `predict_online()`) completes the historical simulation, the final updated weight vector per group is saved to `self.weights_history_`. When a user subsequently calls `predict(test_data)`, the framework completely bypasses the TorchScript C++ loop. Instead, it extracts the final frozen weights and executes a standard NumPy dot product (`experts @ weights`), ensuring instant, deterministic out-of-sample predictions.

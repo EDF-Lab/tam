@@ -52,6 +52,12 @@ predictions = model_phys.predict(test_df)
 ### The Meta-Models Cheatsheet
 Real-world data is chaotic. Rather than polluting the exactness of the core engine, TAM uses specialized "Meta-Learners" that wrap around the base model to handle specific industrial constraints.
 
+> 💡 **Universal Operational API:** All TAM Meta-Learners (`AdaptiveTAM`, `KalmanTAM`, `OperaTAM`) support a unified `scikit-learn` style workflow for production pipelines:
+> 1. **Historical Simulation:** Call `model.fit(train_df)` to run the dynamic online simulation and learn the optimal drift/aggregation weights.
+> 2. **Frozen Inference:** Call `model.predict(test_df)` to apply the *last known state* as a stable, static rule on new out-of-sample data, strictly preventing target leakage.
+> 
+> *(Note: You can still call `predict_online(df)` if you wish to run a continuous dynamic simulation over an entire backtest dataset).*
+
 * **Sudden Concept Drift (Sliding Window)** $\rightarrow$ **`AdaptiveTAM`**
     * *Use case:* A sudden crisis changes how your features behave. If the target of your base model is `y`, you can target `Residualy` for pure error correction, or `y` for dynamic ensemble recalibration. You can also use `effect_{feature}` if that feature is in the base model formula.
     * **Option 1: Residual Tracking**

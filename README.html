@@ -7,7 +7,7 @@
         <link rel="prefetch" href="_static/logo.png" as="image">
 
     <!-- Generated with Sphinx 9.1.0 and Furo 2025.12.19 -->
-        <title>TAM (Time series Additive Model) - TAM 1.2.3 documentation</title>
+        <title>TAM (Time series Additive Model) - TAM 1.2.4 documentation</title>
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=d111a655" />
     <link rel="stylesheet" type="text/css" href="_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="_static/styles/furo-extensions.css?v=8dab3a3b" />
@@ -162,7 +162,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="index.html"><div class="brand">TAM 1.2.3 documentation</div></a>
+      <a href="index.html"><div class="brand">TAM 1.2.4 documentation</div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -186,7 +186,7 @@
     <img class="sidebar-logo" src="_static/logo.png" alt="Logo"/>
   </div>
   
-  <span class="sidebar-brand-text">TAM 1.2.3 documentation</span>
+  <span class="sidebar-brand-text">TAM 1.2.4 documentation</span>
   
 </a><form class="sidebar-search-container" method="get" action="search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
@@ -411,6 +411,10 @@
 <span class="n">opera</span> <span class="o">=</span> <span class="n">ta</span><span class="o">.</span><span class="n">OperaTAM</span><span class="p">(</span><span class="s2">&quot;log_passengers ~ l(E1) + l(E2)&quot;</span><span class="p">,</span> <span class="n">algorithm</span><span class="o">=</span><span class="s1">&#39;MLPOL&#39;</span><span class="p">,</span> <span class="n">date_col</span><span class="o">=</span><span class="s1">&#39;date&#39;</span><span class="p">,</span> <span class="n">horizon_steps</span><span class="o">=</span><span class="mi">12</span><span class="p">)</span>
 <span class="n">df</span><span class="p">[</span><span class="s1">&#39;OPERA&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">opera</span><span class="o">.</span><span class="n">predict_online</span><span class="p">(</span><span class="n">df</span><span class="p">)[</span><span class="s1">&#39;prediction_opera&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">values</span>
 
+<span class="c1"># Option B (Production): Train on history, apply frozen weights to the future</span>
+<span class="c1"># opera.fit(d_dict[&#39;train&#39;])</span>
+<span class="c1"># test_predictions = opera.predict(d_dict[&#39;test&#39;])</span>
+
 <span class="c1"># 5. Evaluate and plot</span>
 <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">col</span> <span class="ow">in</span> <span class="p">[(</span><span class="s2">&quot;Expert 1&quot;</span><span class="p">,</span> <span class="s2">&quot;E1&quot;</span><span class="p">),</span> <span class="p">(</span><span class="s2">&quot;Expert 2&quot;</span><span class="p">,</span> <span class="s2">&quot;E2&quot;</span><span class="p">),</span> <span class="p">(</span><span class="s2">&quot;OPERA&quot;</span><span class="p">,</span> <span class="s2">&quot;OPERA&quot;</span><span class="p">)]:</span>
     <span class="n">tr</span> <span class="o">=</span> <span class="n">ta</span><span class="o">.</span><span class="n">BenchmarkTracker</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
@@ -560,7 +564,7 @@
       
     </aside>
   </div>
-</div><script src="_static/documentation_options.js?v=590429e0"></script>
+</div><script src="_static/documentation_options.js?v=928db92d"></script>
     <script src="_static/doctools.js?v=fd6eb6e6"></script>
     <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="_static/scripts/furo.js?v=46bd48cc"></script>

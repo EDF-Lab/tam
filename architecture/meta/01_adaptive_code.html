@@ -7,7 +7,7 @@
         <link rel="prefetch" href="../../_static/logo.png" as="image">
 
     <!-- Generated with Sphinx 9.1.0 and Furo 2025.12.19 -->
-        <title>Online Error Correction (AdaptiveTAM) - TAM 1.2.3 documentation</title>
+        <title>Online Error Correction (AdaptiveTAM) - TAM 1.2.4 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=d111a655" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo-extensions.css?v=8dab3a3b" />
@@ -162,7 +162,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="../../index.html"><div class="brand">TAM 1.2.3 documentation</div></a>
+      <a href="../../index.html"><div class="brand">TAM 1.2.4 documentation</div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -186,7 +186,7 @@
     <img class="sidebar-logo" src="../../_static/logo.png" alt="Logo"/>
   </div>
   
-  <span class="sidebar-brand-text">TAM 1.2.3 documentation</span>
+  <span class="sidebar-brand-text">TAM 1.2.4 documentation</span>
   
 </a><form class="sidebar-search-container" method="get" action="../../search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
@@ -417,6 +417,10 @@
                         <span class="s2">&quot;This will cause a cross-target correction.&quot;</span><span class="p">,</span>
                         <span class="ne">UserWarning</span>
                     <span class="p">)</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">last_state_dict_</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">max_res_</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">min_res_</span> <span class="o">=</span> <span class="kc">None</span>
 </pre></div>
 </div>
 </div>
@@ -916,13 +920,21 @@ Adaptive models can diverge wildly if they train on a window containing purely a
             <span class="n">final_model</span><span class="o">.</span><span class="n">unique_groups_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">unique_groups_</span>
             <span class="n">final_model</span><span class="o">.</span><span class="n">target_col_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">target_col_</span>
 
-            <span class="n">final_model</span><span class="o">.</span><span class="n">prepare_simulation</span><span class="p">(</span><span class="n">data_val</span><span class="p">)</span>
-            <span class="n">final_model</span><span class="o">.</span><span class="n">simulation</span><span class="p">()</span>
+            <span class="n">final_model</span><span class="o">.</span><span class="n">predict_online</span><span class="p">(</span><span class="n">data_val</span><span class="p">)</span>
             
             <span class="k">return</span> <span class="n">final_model</span>
 </pre></div>
 </div>
 </div>
+</section>
+<section id="separation-of-concerns-simulation-vs-inference">
+<h2>Separation of Concerns: Simulation vs. Inference<a class="headerlink" href="#separation-of-concerns-simulation-vs-inference" title="Link to this heading">¶</a></h2>
+<p>To guarantee speed and safety in operational production pipelines, <code class="docutils literal notranslate"><span class="pre">AdaptiveTAM</span></code> strictly separates the continuous historical simulation from out-of-sample inference.</p>
+<p><strong>Architectural Choice (The <span class="math notranslate nohighlight">\(O(1)\)</span> Inference Optimization):</strong></p>
+<ul class="simple">
+<li><p><strong><code class="docutils literal notranslate"><span class="pre">fit(data)</span></code>:</strong> Instead of running the massive sliding-window simulation over the entire dataset, <code class="docutils literal notranslate"><span class="pre">fit()</span></code> leverages the <code class="docutils literal notranslate"><span class="pre">_save_final_state()</span></code> method. This function slices <em>only</em> the final available training window from the 4D tensor, solves the exact Primal linear system for that single step, and freezes the optimal coefficients (<code class="docutils literal notranslate"><span class="pre">last_state_dict_</span></code>) along with historical safety clipping bounds.</p></li>
+<li><p><strong><code class="docutils literal notranslate"><span class="pre">predict(data)</span></code>:</strong> A purely deterministic, read-only method. It builds the design matrix <span class="math notranslate nohighlight">\(\Phi\)</span> for the new data and multiplies it directly against the frozen coefficients. By completely bypassing sliding-window tensorization and system resolution during inference, it guarantees blazing-fast <span class="math notranslate nohighlight">\(O(1)\)</span> execution time and absolute protection against target leakage.</p></li>
+</ul>
 </section>
 </section>
 
@@ -987,6 +999,7 @@ Adaptive models can diverge wildly if they train on a window containing purely a
 <li><a class="reference internal" href="#dynamic-target-and-preparation">Dynamic Target and Preparation</a></li>
 <li><a class="reference internal" href="#batch-execution-and-numerical-safety-clipping">Batch Execution and Numerical Safety (Clipping)</a></li>
 <li><a class="reference internal" href="#coordinate-descent-search-algorithm">Coordinate Descent Search Algorithm</a></li>
+<li><a class="reference internal" href="#separation-of-concerns-simulation-vs-inference">Separation of Concerns: Simulation vs. Inference</a></li>
 </ul>
 </li>
 </ul>
@@ -998,7 +1011,7 @@ Adaptive models can diverge wildly if they train on a window containing purely a
       
     </aside>
   </div>
-</div><script src="../../_static/documentation_options.js?v=590429e0"></script>
+</div><script src="../../_static/documentation_options.js?v=928db92d"></script>
     <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/scripts/furo.js?v=46bd48cc"></script>

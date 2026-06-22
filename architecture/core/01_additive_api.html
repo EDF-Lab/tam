@@ -7,7 +7,7 @@
         <link rel="prefetch" href="../../_static/logo.png" as="image">
 
     <!-- Generated with Sphinx 9.1.0 and Furo 2025.12.19 -->
-        <title>The Additive API and Object-Oriented Architecture - TAM 1.2.3 documentation</title>
+        <title>The Additive API and Object-Oriented Architecture - TAM 1.2.4 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=d111a655" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo-extensions.css?v=8dab3a3b" />
@@ -162,7 +162,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="../../index.html"><div class="brand">TAM 1.2.3 documentation</div></a>
+      <a href="../../index.html"><div class="brand">TAM 1.2.4 documentation</div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -186,7 +186,7 @@
     <img class="sidebar-logo" src="../../_static/logo.png" alt="Logo"/>
   </div>
   
-  <span class="sidebar-brand-text">TAM 1.2.3 documentation</span>
+  <span class="sidebar-brand-text">TAM 1.2.4 documentation</span>
   
 </a><form class="sidebar-search-container" method="get" action="../../search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
@@ -318,7 +318,7 @@
 <p>This chapter details the overarching software engineering pipeline of the TAM framework. It explains how high-level user formulas are parsed, routed, and translated into robust linear algebra operations across the primary orchestration scripts (<code class="docutils literal notranslate"><span class="pre">utils.py</span></code>, <code class="docutils literal notranslate"><span class="pre">_base.py</span></code>, <code class="docutils literal notranslate"><span class="pre">_factory.py</span></code>, and <code class="docutils literal notranslate"><span class="pre">additive.py</span></code>), structurally grounded in the Primal resolution theory <span class="bibtex-citation" id="id1">[<a class="reference internal" href="../../bibliography.html#id24" title="Nathan Doumèche, Francis Bach, Éloi Bedek, Gérard Biau, Claire Boyer, and Yannig Goude. Forecasting time series with constraints. arXiv preprint arXiv:2502.10485, 2025.">Doumèche <em>et al.</em>, 2025</a>]</span>.</p>
 <p>To avoid redundancy, low-level data padding, hardware dispatching, and specific effect implementations are delegated to their respective documentation files.</p>
 <section id="global-configurations-utils-py">
-<h2>1. Global Configurations (<code class="docutils literal notranslate"><span class="pre">utils.py</span></code>)<a class="headerlink" href="#global-configurations-utils-py" title="Link to this heading">¶</a></h2>
+<h2>Global Configurations (<code class="docutils literal notranslate"><span class="pre">utils.py</span></code>)<a class="headerlink" href="#global-configurations-utils-py" title="Link to this heading">¶</a></h2>
 <p>Before any model is instantiated, the framework establishes a unified global configuration via <code class="docutils literal notranslate"><span class="pre">utils.py</span></code>.</p>
 <p>To maintain mathematical determinism in the exact Primal inversion and guarantee convergence <span class="bibtex-citation" id="id2">[<a class="reference internal" href="../../bibliography.html#id24" title="Nathan Doumèche, Francis Bach, Éloi Bedek, Gérard Biau, Claire Boyer, and Yannig Goude. Forecasting time series with constraints. arXiv preprint arXiv:2502.10485, 2025.">Doumèche <em>et al.</em>, 2025</a>]</span>, the framework dynamically forces PyTorch and NumPy to utilize 64-bit precision (<code class="docutils literal notranslate"><span class="pre">float64</span></code>) where the hardware supports it. This initialization acts as the absolute source of truth for the device (<code class="docutils literal notranslate"><span class="pre">TORCH_DEVICE</span></code>) and the precision target (<code class="docutils literal notranslate"><span class="pre">NUMPY_DTYPE</span></code>) across the entire architecture.</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">.hardware</span><span class="w"> </span><span class="kn">import</span> <span class="n">hw</span>
@@ -334,7 +334,7 @@
 </div>
 </section>
 <section id="the-foundation-base-py">
-<h2>2. The Foundation: <code class="docutils literal notranslate"><span class="pre">_base.py</span></code><a class="headerlink" href="#the-foundation-base-py" title="Link to this heading">¶</a></h2>
+<h2>The Foundation: <code class="docutils literal notranslate"><span class="pre">_base.py</span></code><a class="headerlink" href="#the-foundation-base-py" title="Link to this heading">¶</a></h2>
 <p>The <code class="docutils literal notranslate"><span class="pre">_base.py</span></code> script acts as the structural foundation for all models in the framework. It defines the abstract class <code class="docutils literal notranslate"><span class="pre">BaseTAM</span></code>, which orchestrates the standardized control flow.</p>
 <p>To ensure a consistent API without duplicating boilerplate tensor operations across advanced Meta-Learners, <code class="docutils literal notranslate"><span class="pre">BaseTAM</span></code> utilizes the Object-Oriented Template Method Pattern.</p>
 <ul class="simple">
@@ -342,7 +342,6 @@
 <li><p>It standardizes the temporal alignment and handling of missing groups. <em>(For exact tensor padding logic, refer to the <a class="reference internal" href="02_data_pipeline.html"><span class="std std-doc">Data Pipeline</span></a>).</em></p></li>
 <li><p>It defines the continuous optimization problem logically, forcing child classes to implement the specific construction of the design matrix <span class="math notranslate nohighlight">\(\Phi\)</span> and the penalty matrix <span class="math notranslate nohighlight">\(P\)</span> required to stabilize the regularized normal equations <span class="bibtex-citation" id="id3">[<a class="reference internal" href="../../bibliography.html#id42" title="Arthur E Hoerl and Robert W Kennard. Ridge regression: biased estimation for nonorthogonal problems. Technometrics, 12(1):55–67, 1970.">Hoerl and Kennard, 1970</a>]</span>.</p></li>
 </ul>
-<!-- end list -->
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">BaseTAM</span><span class="p">(</span><span class="n">ABC</span><span class="p">):</span>
 <span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Abstract Base Class for TAM models.</span>
@@ -423,7 +422,7 @@
 </div>
 </section>
 <section id="the-factory-orchestration-factory-py-base-effects-py">
-<h2>3. The Factory Orchestration (<code class="docutils literal notranslate"><span class="pre">_factory.py</span></code> &amp; <code class="docutils literal notranslate"><span class="pre">_base_effects.py</span></code>)<a class="headerlink" href="#the-factory-orchestration-factory-py-base-effects-py" title="Link to this heading">¶</a></h2>
+<h2>The Factory Orchestration (<code class="docutils literal notranslate"><span class="pre">_factory.py</span></code> &amp; <code class="docutils literal notranslate"><span class="pre">_base_effects.py</span></code>)<a class="headerlink" href="#the-factory-orchestration-factory-py-base-effects-py" title="Link to this heading">¶</a></h2>
 <p>Instead of hardcoding basis functions into the solver, <code class="docutils literal notranslate"><span class="pre">StaticTAM</span></code> relies on an explicit Dependency Injection architecture. It expects components that conform strictly to the <code class="docutils literal notranslate"><span class="pre">BaseEffect</span></code> interface (<code class="docutils literal notranslate"><span class="pre">_base_effects.py</span></code>).</p>
 <p>To bridge the user’s R-style formula string to these concrete interface objects, the framework uses the <code class="docutils literal notranslate"><span class="pre">create_effects_from_parsed_terms</span></code> factory. This function is engineered specifically to support architectural Grid Searches. By passing a <code class="docutils literal notranslate"><span class="pre">token_values</span></code> dictionary, the factory dynamically substitutes string variables with concrete hyperparameters (e.g., swapping <code class="docutils literal notranslate"><span class="pre">'gk_la'</span></code> for <code class="docutils literal notranslate"><span class="pre">10</span></code>), allowing the solver to rebuild massive architectures on the fly without re-parsing the original regex structure.</p>
 <p><em>(For the specific mapping of every individual effect, refer to <a class="reference internal" href="06_the_spectrum_api.html"><span class="std std-doc">The Spectral Dictionary</span></a>).</em></p>
@@ -487,7 +486,7 @@
 </div>
 </section>
 <section id="the-core-solver-additive-py">
-<h2>4. The Core Solver (<code class="docutils literal notranslate"><span class="pre">additive.py</span></code>)<a class="headerlink" href="#the-core-solver-additive-py" title="Link to this heading">¶</a></h2>
+<h2>The Core Solver (<code class="docutils literal notranslate"><span class="pre">additive.py</span></code>)<a class="headerlink" href="#the-core-solver-additive-py" title="Link to this heading">¶</a></h2>
 <p>The <code class="docutils literal notranslate"><span class="pre">StaticTAM</span></code> class is the primary engine of the framework. It inherits from <code class="docutils literal notranslate"><span class="pre">BaseTAM</span></code> and acts as the grand orchestrator. Once the mathematical blocks are assembled via the Factory, <code class="docutils literal notranslate"><span class="pre">StaticTAM</span></code> delegates the actual matrix inversions to the underlying <a class="reference internal" href="03_math_dispatcher.html"><span class="std std-doc">Math Dispatcher</span></a>.</p>
 <section id="initialization-and-dependency-routing">
 <h3>Initialization and Dependency Routing<a class="headerlink" href="#initialization-and-dependency-routing" title="Link to this heading">¶</a></h3>
@@ -575,14 +574,14 @@
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">coefficients_</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s2">&quot;Model must be fitted first.&quot;</span><span class="p">)</span>
 
-        <span class="n">required_cols</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">features_config_</span><span class="p">[</span><span class="s1">&#39;features&#39;</span><span class="p">]</span> <span class="o">+</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">group_col_</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">target_col_</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">date_col_</span><span class="p">]</span>
+        <span class="n">required_cols</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">features_config_</span><span class="p">[</span><span class="s1">&#39;features&#39;</span><span class="p">]</span> <span class="o">+</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">group_col_</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">date_col_</span><span class="p">]</span>
         <span class="n">_check_features</span><span class="p">(</span><span class="n">dataset</span><span class="o">=</span><span class="n">data</span><span class="p">,</span> <span class="n">required_features</span><span class="o">=</span><span class="n">required_cols</span><span class="p">)</span>
         
         <span class="n">mask</span><span class="p">,</span> <span class="n">balanced_data</span> <span class="o">=</span> <span class="n">_balance_groups</span><span class="p">(</span>
             <span class="n">dataset</span><span class="o">=</span><span class="n">data</span><span class="p">,</span> <span class="n">group_col</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">group_col_</span><span class="p">,</span> <span class="n">date_col</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">date_col_</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="s2">&quot;fill&quot;</span>
         <span class="p">)</span>
 
-        <span class="n">x_predict</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_prepare_data</span><span class="p">(</span><span class="n">balanced_data</span><span class="p">,</span> <span class="n">target_col</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">target_col_</span><span class="p">)</span>
+        <span class="n">x_predict</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_prepare_data</span><span class="p">(</span><span class="n">balanced_data</span><span class="p">)</span>
         
         <span class="n">final_decomposed_effects</span> <span class="o">=</span> <span class="n">smart_decompose</span><span class="p">(</span><span class="n">x_predict</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">coefficients_</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">effects_list_</span><span class="p">)</span>
 
@@ -596,7 +595,7 @@
 </section>
 </section>
 <section id="hyperparameter-routing-continuous-vs-discrete">
-<h2>5. Hyperparameter Routing: Continuous vs. Discrete<a class="headerlink" href="#hyperparameter-routing-continuous-vs-discrete" title="Link to this heading">¶</a></h2>
+<h2>Hyperparameter Routing: Continuous vs. Discrete<a class="headerlink" href="#hyperparameter-routing-continuous-vs-discrete" title="Link to this heading">¶</a></h2>
 <p>To safely scale to Gigadata without exhausting computational time, <code class="docutils literal notranslate"><span class="pre">StaticTAM</span></code> divides hyperparameter tuning into two distinct structural methods.</p>
 <section id="the-continuous-algebraic-solver-gcv">
 <h3>The Continuous Algebraic Solver (GCV)<a class="headerlink" href="#the-continuous-algebraic-solver-gcv" title="Link to this heading">¶</a></h3>
@@ -757,6 +756,15 @@
 </div>
 </section>
 </section>
+<section id="separation-of-concerns-simulation-vs-inference">
+<h2>Separation of Concerns: Simulation vs. Inference<a class="headerlink" href="#separation-of-concerns-simulation-vs-inference" title="Link to this heading">¶</a></h2>
+<p>To guarantee safety in operational production pipelines, <code class="docutils literal notranslate"><span class="pre">AdaptiveTAM</span></code> strictly separates historical learning from out-of-sample inference.</p>
+<p><strong>Architectural Choice (The <code class="docutils literal notranslate"><span class="pre">fit</span></code> / <code class="docutils literal notranslate"><span class="pre">predict</span></code> Split):</strong></p>
+<ul class="simple">
+<li><p><strong><code class="docutils literal notranslate"><span class="pre">fit(data)</span></code>:</strong> Runs the full sliding-window <code class="docutils literal notranslate"><span class="pre">predict_online()</span></code> simulation. At the end of the simulation, it extracts the final historical residuals and trains a global, frozen <code class="docutils literal notranslate"><span class="pre">StaticTAM</span></code> model (<code class="docutils literal notranslate"><span class="pre">self.static_residual_model_</span></code>) to act as the permanent correction rule.</p></li>
+<li><p><strong><code class="docutils literal notranslate"><span class="pre">predict(data)</span></code>:</strong> A purely deterministic, read-only method. It applies the base model and the frozen static residual model to new data. By completely bypassing the sliding-window simulation during inference, it guarantees blazing-fast, <span class="math notranslate nohighlight">\(O(1)\)</span> execution time and zero target leakage.</p></li>
+</ul>
+</section>
 </section>
 
         </article>
@@ -815,19 +823,20 @@
           <div class="toc-tree">
             <ul>
 <li><a class="reference internal" href="#">The Additive API and Object-Oriented Architecture</a><ul>
-<li><a class="reference internal" href="#global-configurations-utils-py">1. Global Configurations (<code class="docutils literal notranslate"><span class="pre">utils.py</span></code>)</a></li>
-<li><a class="reference internal" href="#the-foundation-base-py">2. The Foundation: <code class="docutils literal notranslate"><span class="pre">_base.py</span></code></a></li>
-<li><a class="reference internal" href="#the-factory-orchestration-factory-py-base-effects-py">3. The Factory Orchestration (<code class="docutils literal notranslate"><span class="pre">_factory.py</span></code> &amp; <code class="docutils literal notranslate"><span class="pre">_base_effects.py</span></code>)</a></li>
-<li><a class="reference internal" href="#the-core-solver-additive-py">4. The Core Solver (<code class="docutils literal notranslate"><span class="pre">additive.py</span></code>)</a><ul>
+<li><a class="reference internal" href="#global-configurations-utils-py">Global Configurations (<code class="docutils literal notranslate"><span class="pre">utils.py</span></code>)</a></li>
+<li><a class="reference internal" href="#the-foundation-base-py">The Foundation: <code class="docutils literal notranslate"><span class="pre">_base.py</span></code></a></li>
+<li><a class="reference internal" href="#the-factory-orchestration-factory-py-base-effects-py">The Factory Orchestration (<code class="docutils literal notranslate"><span class="pre">_factory.py</span></code> &amp; <code class="docutils literal notranslate"><span class="pre">_base_effects.py</span></code>)</a></li>
+<li><a class="reference internal" href="#the-core-solver-additive-py">The Core Solver (<code class="docutils literal notranslate"><span class="pre">additive.py</span></code>)</a><ul>
 <li><a class="reference internal" href="#initialization-and-dependency-routing">Initialization and Dependency Routing</a></li>
 <li><a class="reference internal" href="#component-decomposition">Component Decomposition</a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#hyperparameter-routing-continuous-vs-discrete">5. Hyperparameter Routing: Continuous vs. Discrete</a><ul>
+<li><a class="reference internal" href="#hyperparameter-routing-continuous-vs-discrete">Hyperparameter Routing: Continuous vs. Discrete</a><ul>
 <li><a class="reference internal" href="#the-continuous-algebraic-solver-gcv">The Continuous Algebraic Solver (GCV)</a></li>
 <li><a class="reference internal" href="#the-discrete-architectural-solver-coordinate-descent">The Discrete Architectural Solver (Coordinate Descent)</a></li>
 </ul>
 </li>
+<li><a class="reference internal" href="#separation-of-concerns-simulation-vs-inference">Separation of Concerns: Simulation vs. Inference</a></li>
 </ul>
 </li>
 </ul>
@@ -839,7 +848,7 @@
       
     </aside>
   </div>
-</div><script src="../../_static/documentation_options.js?v=590429e0"></script>
+</div><script src="../../_static/documentation_options.js?v=928db92d"></script>
     <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/scripts/furo.js?v=46bd48cc"></script>

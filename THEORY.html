@@ -7,7 +7,7 @@
         <link rel="prefetch" href="_static/logo.png" as="image">
 
     <!-- Generated with Sphinx 9.1.0 and Furo 2025.12.19 -->
-        <title>📚 Theory Introduction of TAM and Cheatsheet - TAM 1.2.3 documentation</title>
+        <title>📚 Theory Introduction of TAM and Cheatsheet - TAM 1.2.4 documentation</title>
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=d111a655" />
     <link rel="stylesheet" type="text/css" href="_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="_static/styles/furo-extensions.css?v=8dab3a3b" />
@@ -162,7 +162,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="index.html"><div class="brand">TAM 1.2.3 documentation</div></a>
+      <a href="index.html"><div class="brand">TAM 1.2.4 documentation</div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -186,7 +186,7 @@
     <img class="sidebar-logo" src="_static/logo.png" alt="Logo"/>
   </div>
   
-  <span class="sidebar-brand-text">TAM 1.2.3 documentation</span>
+  <span class="sidebar-brand-text">TAM 1.2.4 documentation</span>
   
 </a><form class="sidebar-search-container" method="get" action="search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
@@ -358,6 +358,14 @@
 <section id="the-meta-models-cheatsheet">
 <h3>The Meta-Models Cheatsheet<a class="headerlink" href="#the-meta-models-cheatsheet" title="Link to this heading">¶</a></h3>
 <p>Real-world data is chaotic. Rather than polluting the exactness of the core engine, TAM uses specialized “Meta-Learners” that wrap around the base model to handle specific industrial constraints.</p>
+<blockquote>
+<div><p>💡 <strong>Universal Operational API:</strong> All TAM Meta-Learners (<code class="docutils literal notranslate"><span class="pre">AdaptiveTAM</span></code>, <code class="docutils literal notranslate"><span class="pre">KalmanTAM</span></code>, <code class="docutils literal notranslate"><span class="pre">OperaTAM</span></code>) support a unified <code class="docutils literal notranslate"><span class="pre">scikit-learn</span></code> style workflow for production pipelines:</p>
+<ol class="arabic simple">
+<li><p><strong>Historical Simulation:</strong> Call <code class="docutils literal notranslate"><span class="pre">model.fit(train_df)</span></code> to run the dynamic online simulation and learn the optimal drift/aggregation weights.</p></li>
+<li><p><strong>Frozen Inference:</strong> Call <code class="docutils literal notranslate"><span class="pre">model.predict(test_df)</span></code> to apply the <em>last known state</em> as a stable, static rule on new out-of-sample data, strictly preventing target leakage.</p></li>
+</ol>
+<p><em>(Note: You can still call <code class="docutils literal notranslate"><span class="pre">predict_online(df)</span></code> if you wish to run a continuous dynamic simulation over an entire backtest dataset).</em></p>
+</div></blockquote>
 <ul>
 <li><p><strong>Sudden Concept Drift (Sliding Window)</strong> <span class="math notranslate nohighlight">\(\rightarrow\)</span> <strong><code class="docutils literal notranslate"><span class="pre">AdaptiveTAM</span></code></strong></p>
 <ul>
@@ -782,7 +790,7 @@
       
     </aside>
   </div>
-</div><script src="_static/documentation_options.js?v=590429e0"></script>
+</div><script src="_static/documentation_options.js?v=928db92d"></script>
     <script src="_static/doctools.js?v=fd6eb6e6"></script>
     <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="_static/scripts/furo.js?v=46bd48cc"></script>
