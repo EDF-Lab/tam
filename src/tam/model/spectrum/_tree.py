@@ -50,11 +50,15 @@ class TreeEffect(BaseEffect):
         lambda_p: float,
         additional_features: Optional[List[str]],
         seed: int,
-        extrapolate: str
+        extrapolate: str,
+        sparsity_alpha: float = 0.0,
+        split_strategy: str = "uniform"
     ):
         super().__init__(feature_name, "tree", lambda_p, extrapolate)
         self.n_trees = n_trees
         self.seed = seed
+        self.sparsity_alpha = sparsity_alpha
+        self.split_strategy = split_strategy
         
         # Scaling factor to bound the RKHS norm as the ensemble size approaches infinity
         self.scale = 1.0 / np.sqrt(self.n_trees)
@@ -109,25 +113,38 @@ class TreeEffect(BaseEffect):
         rng = torch.Generator(device=device)
         rng.manual_seed(self.seed)
 
+        # Pre-compute domain bounds for backward compatibility ("uniform" strategy)
         x_min = x_in.min(dim=0).values.min()
         x_max = x_in.max(dim=0).values.max()
-        
-        # Prevent degenerate 0-width bounds on constant datasets
         if x_max == x_min:
             x_max += 1e-3
             x_min -= 1e-3
 
         if self.is_oblivious_binary:
             # --- Architecture 1: Oblivious Binary Tree ---
-            # Generate multi-dimensional random split thresholds
             self.split_features = torch.randint(
                 0, n_features, size=(self.n_trees, self.max_depth), 
                 generator=rng, device=device, dtype=torch.long
             )
-            self.split_thresholds = (x_max - x_min) * torch.rand(
-                self.n_trees, self.max_depth, 
-                generator=rng, device=device, dtype=x_in.dtype
-            ) + x_min
+            
+            if self.split_strategy == "quantile":
+                self.split_thresholds = torch.empty(
+                    self.n_trees, self.max_depth, 
+                    device=device, dtype=x_in.dtype
+                )
+                for i in range(self.n_trees):
+                    for d in range(self.max_depth):
+                        feat_idx = self.split_features[i, d]
+                        # Safely slice across all batch/time dimensions and flatten
+                        feature_data = x_in[..., feat_idx].flatten().to(torch.float64)
+                        rand_prob = torch.rand(1, generator=rng, device=device, dtype=torch.float64)
+                        self.split_thresholds[i, d] = torch.quantile(feature_data, rand_prob).to(x_in.dtype).squeeze()
+            else:
+                # Default "uniform" fallback for backward compatibility
+                self.split_thresholds = (x_max - x_min) * torch.rand(
+                    self.n_trees, self.max_depth, 
+                    generator=rng, device=device, dtype=x_in.dtype
+                ) + x_min
 
             # Cache binary multipliers [2^0, 2^1, ..., 2^(D-1)] for O(1) leaf indexing
             self.depth_multipliers = torch.pow(
@@ -144,23 +161,92 @@ class TreeEffect(BaseEffect):
             
             if self.n_trees == 1:
                 # [Anti-Starvation Protocol]
-                # For a single tree (e.g., Piecewise Linear Model), pure random thresholds 
-                # often create microscopic, empty leaves that cause matrix singularities.
-                # We enforce evenly spaced bins to guarantee full matrix rank.
-                even_splits = torch.linspace(
-                    x_min, x_max, self.leaves_per_tree + 1, 
-                    device=device, dtype=x_in.dtype
-                )[1:-1]
-                self.split_thresholds = even_splits.unsqueeze(0)
+                if self.split_strategy == "quantile":
+                    probabilities = torch.linspace(
+                        0.0, 1.0, self.leaves_per_tree + 1, 
+                        device=device, dtype=torch.float64
+                    )[1:-1]
+                    
+                    feat_idx = self.split_features[0, 0]
+                    # Safely slice and flatten
+                    feature_data = x_in[..., feat_idx].flatten().to(torch.float64)
+                    
+                    even_splits = torch.quantile(feature_data, probabilities).to(x_in.dtype).squeeze()
+                    
+                    # Squeeze guard for 1-split edge case
+                    if even_splits.dim() == 0:
+                        even_splits = even_splits.unsqueeze(0)
+                    self.split_thresholds = even_splits.unsqueeze(0)
+                else:
+                    # Default "uniform" deterministic domain spacing
+                    even_splits = torch.linspace(
+                        x_min, x_max, self.leaves_per_tree + 1, 
+                        device=device, dtype=x_in.dtype
+                    )[1:-1]
+                    self.split_thresholds = even_splits.unsqueeze(0)
             else:
                 # [Ensemble Protocol]
-                # For a Random Forest, pure random thresholds are safe because 
-                # overlapping regions cover the gaps and naturally prevent rank deficiency.
-                raw_thresholds = (x_max - x_min) * torch.rand(
-                    self.n_trees, self.n_splits_per_tree, 
-                    generator=rng, device=device, dtype=x_in.dtype
-                ) + x_min
-                self.split_thresholds, _ = torch.sort(raw_thresholds, dim=-1)
+                if self.split_strategy == "quantile":
+                    raw_thresholds = torch.empty(
+                        self.n_trees, self.n_splits_per_tree, 
+                        device=device, dtype=x_in.dtype
+                    )
+                    
+                    for i in range(self.n_trees):
+                        feat_idx = self.split_features[i, 0]
+                        # Safely slice and flatten
+                        feature_data = x_in[..., feat_idx].flatten().to(torch.float64)
+                        
+                        rand_probs = torch.rand(
+                            self.n_splits_per_tree, 
+                            generator=rng, device=device, dtype=torch.float64
+                        )
+                        raw_thresholds[i] = torch.quantile(feature_data, rand_probs).to(x_in.dtype)
+                        
+                    self.split_thresholds, _ = torch.sort(raw_thresholds, dim=-1)
+                else:
+                    # Default "uniform" domain sampling
+                    raw_thresholds = (x_max - x_min) * torch.rand(
+                        self.n_trees, self.n_splits_per_tree, 
+                        generator=rng, device=device, dtype=x_in.dtype
+                    ) + x_min
+                    self.split_thresholds, _ = torch.sort(raw_thresholds, dim=-1)
+                    
+        # Evaluate the routing logic strictly on the initialization (training) data
+        x_expanded = x_in.unsqueeze(-2).unsqueeze(-2)
+        batch_shape = list(x_in.shape[:-1])
+        
+        if self.is_oblivious_binary:
+            index_shape = batch_shape + [self.n_trees, self.max_depth, 1]
+            split_feat_expanded = self.split_features.view(
+                *([1] * len(batch_shape)), self.n_trees, self.max_depth, 1
+            ).expand(*index_shape)
+
+            input_expanded = x_expanded.expand(
+                *batch_shape, self.n_trees, self.max_depth, x_in.shape[-1]
+            )
+            x_splits = torch.gather(input_expanded, dim=-1, index=split_feat_expanded).squeeze(-1)
+            split_decisions = (x_splits > self.split_thresholds).to(torch.long)
+            leaf_indices = torch.sum(split_decisions * self.depth_multipliers, dim=-1)
+        else:
+            index_shape = batch_shape + [self.n_trees, 1, 1]
+            split_feat_expanded = self.split_features.view(
+                *([1] * len(batch_shape)), self.n_trees, 1, 1
+            ).expand(*index_shape)
+
+            input_expanded = x_expanded.expand(
+                *batch_shape, self.n_trees, 1, x_in.shape[-1]
+            )
+            x_splits = torch.gather(input_expanded, dim=-1, index=split_feat_expanded).squeeze(-1).squeeze(-1)
+            
+            x_splits_expand = x_splits.unsqueeze(-1)
+            thresh_expand = self.split_thresholds.view(*([1] * len(batch_shape)), self.n_trees, self.n_splits_per_tree)
+            leaf_indices = torch.sum((x_splits_expand > thresh_expand).to(torch.long), dim=-1)
+
+        # Count how many data points land in each leaf
+        one_hot_bins = torch.nn.functional.one_hot(leaf_indices, num_classes=self.leaves_per_tree)
+        # Sum across the batch dimension (dim=0)
+        self.empirical_counts = one_hot_bins.sum(dim=0).flatten()
 #: </init_tree>
 
 #: <feature_map>
@@ -255,18 +341,26 @@ class TreeEffect(BaseEffect):
         r"""
         Constructs the optimal structural penalty sub-matrix.
         
-        Because the leaf assignments function as discrete, non-ordinal categorical bins, 
-        they are optimally bounded by an isotropic Ridge penalty block.
-        
-        Memory Management: 
-        Constructs the matrix natively as a sparse coordinate (COO) tensor to 
-        strictly prevent VRAM exhaustion caused by massive dense diagonal matrices.
+        If sparsity_alpha > 0, the penalty dynamically adapts to the empirical 
+        data density of each specific leaf. Starved leaves receive massive penalties 
+        to prevent overfitting, while dense leaves receive standard shrinkage.
         """
-        # Create a 1D vector of the penalty values (Takes negligible memory)
-        diag_vals = torch.full(
-            (self.total_leaves,), self.lambda_p, 
-            device=TORCH_DEVICE, dtype=torch.get_default_dtype()
-        )
+        if self.sparsity_alpha > 0.0 and hasattr(self, 'empirical_counts'):
+            # Calculate Anisotropic Penalty based on empirical data counts
+            C_i = self.empirical_counts.to(TORCH_DEVICE, dtype=torch.float64)
+            C_bar = C_i.mean()
+            epsilon = 1.0  # Smoothing constant to prevent division by zero
+            
+            # Starved leaves (< C_bar) will get factors > 1.0
+            # Dense leaves (> C_bar) will get factors < 1.0
+            penalty_scaling = ((C_i + epsilon) / C_bar) ** (-self.sparsity_alpha)
+            diag_vals = self.lambda_p * penalty_scaling
+        else:
+            # Fallback to pure Isotropic Penalty (or for alpha = 0)
+            diag_vals = torch.full(
+                (self.total_leaves,), self.lambda_p, 
+                device=TORCH_DEVICE, dtype=torch.get_default_dtype()
+            )
         
         # Build as a sparse COO tensor directly to save VRAM
         indices = torch.arange(self.total_leaves, device=TORCH_DEVICE)

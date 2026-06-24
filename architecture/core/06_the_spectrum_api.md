@@ -270,7 +270,7 @@ Converts Oblivious Trees into sparse Euclidean bit-strings, modeling Random Binn
 ```
 
 **3. Penalty Matrix**
-Safely instantiates the Ridge penalty over the terminal leaves strictly as a sparse COO tensor.
+Safely instantiates the Anisotropic Sparsity-Adaptive Ridge penalty over the terminal leaves strictly as a sparse COO tensor. It dynamically scales the $L_2$ shrinkage inversely to the empirical data density ($C_i$) captured during initialization, heavily penalizing starved edge leaves to guarantee global matrix rank.
 ```{literalinclude} ../../../../src/tam/model/spectrum/_tree.py
 :language: python
 :start-after: "#: <penalty_matrix>"
@@ -417,7 +417,7 @@ Natively encapsulates the base `TreeEffect` (local intercept) and computes the K
 ```
 
 **3. Penalty Matrix**
-Constructs the block-diagonal encapsulation of the isotropic tree penalty and the anisotropic tensor penalty, safely coalescing them into a sparse COO tensor.
+Constructs the block-diagonal encapsulation of the anisotropic sparsity-adaptive tree penalty (local intercepts) and the Kronecker tensor penalty (local slopes), safely coalescing them into a single sparse COO tensor.
 
 ```{literalinclude} ../../../../src/tam/model/spectrum/_linear_tree.py
 :language: python

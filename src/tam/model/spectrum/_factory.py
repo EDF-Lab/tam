@@ -178,12 +178,14 @@ def create_effects_from_parsed_terms(
             max_leaves_raw = params_resolved.get('max_leaves', None)
             max_leaves = int(max_leaves_raw) if max_leaves_raw is not None else None
             seed = int(params_resolved.get('seed', 42))
+            sp_alpha = float(params_resolved.get('sp_alpha', 0))
+            split_strategy = params_resolved.get('split_strategy', 'uniform').lower().strip()
             others_str = params_resolved.get('others', None)
             additional_features = None
             if others_str:
                 additional_features = [s.strip() for s in others_str.split('|') if s.strip()]
             extrap_val = params_resolved.get('extrapolate', 'continue')
-            effects_list.append(TreeEffect(feature_name, n_trees, max_depth, max_leaves, lambda_p, additional_features, seed, extrap_val))
+            effects_list.append(TreeEffect(feature_name, n_trees, max_depth, max_leaves, lambda_p, additional_features, seed, extrap_val, sp_alpha, split_strategy))
         #: </parse_tree>
 
         #: <parse_tensor>
@@ -257,7 +259,10 @@ def create_effects_from_parsed_terms(
             max_leaves_raw = params_resolved.get('max_leaves', None)
             max_leaves = int(max_leaves_raw) if max_leaves_raw is not None else None
             seed = int(params_resolved.get('seed', 42))
-            
+
+            sp_alpha = float(params_resolved.get('sp_alpha', 0.0))
+            split_strategy = params_resolved.get('split_strategy', 'uniform').lower().strip()
+
             others_str = params_resolved.get('others', None)
             additional_features = [s.strip() for s in others_str.split('|') if s.strip()] if others_str else None
             
@@ -271,7 +276,9 @@ def create_effects_from_parsed_terms(
                 lambda_p=lambda_p,
                 additional_features=additional_features,
                 seed=seed,
-                extrapolate=extrap_val
+                extrapolate=extrap_val,
+                sparsity_alpha=sp_alpha,
+                split_strategy=split_strategy
             ))
         #: </parse_linear_tree>
 

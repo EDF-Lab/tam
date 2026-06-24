@@ -177,15 +177,15 @@ Different physical phenomena require different mathematical topologies. TAM flat
 
 ### [Tree (`t`)](math/spectrum/TREE.md)
 
-* **Syntax:** `t(x, n_trees=50, max_depth=5, max_leaves=None, seed=42)`
+* **Syntax:** `t(x, n_trees=50, max_depth=5, max_leaves=None, seed=42, sp_alpha=0.0, split_strategy='uniform')`
 * **Hyperparameters:**
   * `n_trees` ($B$): Number of independent trees in the ensemble.
   * `max_depth` ($d$): Triggers the Oblivious Binary architecture (creates $M=2^d$ symmetric leaves per tree). Ideal for multi-dimensional spatial interactions.
   * `max_leaves` ($M$): Overrides max_depth to trigger the Flat N-ary Histogram architecture (creates $M$ leaves per tree). Ideal for 1D Piecewise Linear Regressions.
-
-
+  * `sp_alpha` ($\alpha_{sp}$): Controls the Anisotropic Sparsity-Adaptive Penalty. Scales the penalty inversely to the empirical data density of each leaf.
+  * `split_strategy`: Defines the threshold sampling distribution (`uniform` for shift-invariant Cartesian grids, `quantile` for density-adaptive copulas).
 * **Mapping function:** $\phi_{tree}(x) = \frac{1}{\sqrt{B}} \left[ I(x \in R_{1,1}), \dots, I(x \in R_{B,M}) \right]^\top$
-* **Penalty Matrix:** $P_{tree} = \lambda I$
+* **Penalty Matrix:** $P_{tree} = \text{diag}\left( \lambda_p \cdot \left( \frac{C_i + \epsilon}{\bar{C}} \right)^{-\alpha_{sp}} \right)$ *(Anisotropic Ridge actively tracking empirical leaf density $C_i$)*
 
 ### [Wavelet (`w`)](math/spectrum/WAVELETS.md)
 
@@ -210,8 +210,8 @@ Different physical phenomena require different mathematical topologies. TAM flat
 
 ### [Linear Tree (`lt`)](math/spectrum/LINEAR_TREE.md)
 
-  * **Syntax:** `lt(x1, slope='x2', max_depth=4)`
-  * **Hyperparameters:** Inherits standard Tree partitioning parameters (`max_depth`, `max_leaves`). `slope`: explicitly defines the linear interaction variable (defaults to the partition variable if omitted).
+  * **Syntax:** `lt(x1, slope='x2', max_depth=4, sp_alpha=0.0, split_strategy='uniform')`
+  * **Hyperparameters:** Inherits standard Tree partitioning parameters (`max_depth`, `max_leaves`, `sp_alpha`, `split_strategy`). `slope`: explicitly defines the linear interaction variable (defaults to the partition variable if omitted).
   * **Mapping function:** $\phi_{lt}(x_{part}, x_{slope}) = \left[ \phi_{tree_{base}}(x_{part}), \quad \phi_{tree_{slope}}(x_{part}) \otimes \phi_{lin}(x_{slope}) \right]^\top$
   * **Penalty Matrix:** Block diagonal encapsulation: $P_{lt} = \text{diag}(P_{tree}, P_{cross})$
   * 📖 *Note: This effect natively encapsulates the piecewise logic to fully support multi-dimensional spatial interactions without requiring formula macro expansions.*

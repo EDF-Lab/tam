@@ -13,7 +13,7 @@ from .model.safety import SafetyTAM
 from .model.autotam.auto_tam import AutoTAM
 from .evaluation.tracker import BenchmarkTracker 
 
-__version__ = "1.2.4"
+__version__ = "1.2.5"
 
 __all__ = [
     "StaticTAM",

@@ -15,6 +15,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > **[0.0.6]** corresponds to the legacy `weakl` package available on PyPI.
 
 ---
+## [1.2.5] - 2026-06-24
+
+### Added
+- **Topological Split Strategies (`TreeEffect`):** Formalized the `split_strategy` parameter. Users can now explicitly toggle between `'uniform'` (creating mathematically orthogonal, shift-invariant Cartesian grids) and `'quantile'` (applying the empirical Probability Integral Transform to create density-adaptive partitions that perfectly balance sample distributions across all leaves).
+
+### Changed
+- **Empirical Sparsity-Adaptive Penalty (Anisotropic Ridge):** Upgraded the structural penalty of the Random Forest (`t(...)`) and Linear Tree (`lt(...)`) modules. By setting `sp_alpha > 0`, the initialization pass now accurately records the empirical data density of each terminal leaf ($C_i$). 
+- **Drift & Singularity Prevention:** Starved or empty edge-boundary leaves now receive geometrically massive penalties. This guarantees global matrix rank, eliminates the catastrophic test drift associated with hard Cartesian grids, and theoretically resolves the OLS singularities traditionally found in Model-Based Recursive Partitioning (MOB).
 
 ## [1.2.4] - 2026-06-22
 
@@ -156,6 +164,7 @@ This version introduced the Formula API and the first object-oriented refactorin
 ### Added
 * Initial project setup based on the original `weakl` v0.0.6 package.
 
+[1.2.5]: https://github.com/EDF-Lab/tam/releases/tag/v1.2.5
 [1.2.4]: https://github.com/EDF-Lab/tam/releases/tag/v1.2.4
 [1.2.3]: https://github.com/EDF-Lab/tam/releases/tag/v1.2.3
 [0.0.6]: https://pypi.org/project/weakl/0.0.6/

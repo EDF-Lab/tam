@@ -19,11 +19,11 @@ $$\phi_{lt}(x_{part}, x_{slope}) = \left[ \phi_{tree_{base}}(x_{part}), \quad \p
 
 To regularize this composite structure, the penalty matrix is constructed as a block-diagonal encapsulation of its internal components.
 
-The local intercepts are bounded by the standard isotropic Ridge penalty of the base tree ($P_{tree_{base}}$), while the local slopes are penalized by the anisotropic Kronecker penalty of the tensor product ($P_{cross}$):
+The local intercepts are bounded by the **Anisotropic Sparsity-Adaptive Ridge penalty** of the base tree ($P_{tree_{base}}$), while the local slopes are penalized by the anisotropic Kronecker penalty of the tensor product ($P_{cross}$):
 
 $$P_{lt} = \begin{bmatrix} P_{tree_{base}} & 0 \\ 0 & P_{cross} \end{bmatrix} = \text{diag}(P_{tree_{base}}, P_{cross})$$
 
-This anisotropic structure guarantees that the varying coefficients ($\beta_1(x_{part})$) can be penalized independently from the local intercepts ($\beta_0(x_{part})$), ensuring optimal scale-invariant shrinkage.
+This nested anisotropic structure is mathematically powerful. Not only can the varying coefficients ($\beta_1(x_{part})$) be penalized independently from the local intercepts ($\beta_0(x_{part})$), but by activating the sparsity hyperparameter ($\alpha_{sp} > 0$), the base tree penalties dynamically adapt to the empirical data density ($C_i$) of each specific leaf. Empty or starved spatial regions receive geometrically massive penalties on both their local intercept and their local slope, heavily shrinking wild linear extrapolations back to zero.
 
 ## Theoretical Critique: Resolving MOB Singularities
 
@@ -44,7 +44,7 @@ First, the Kronecker product ($\otimes$) of the slope tree and the linear projec
 When declaring a Linear Tree, the framework enforces several architectural guardrails to guarantee mathematical stability during the exact Primal Sparse Conjugate Gradient resolution:
 
 1. **Collinearity Prevention (`n_trees=1`):** The framework strictly forces the number of trees to 1. Using a massive random forest ($B \gg 1$) to calculate overlapping, localized linear slopes would create catastrophic multicollinearity inside the solver.
-2. **Anti-Starvation Protocol (`max_leaves`):** For 1D Piecewise Regressions (e.g., `lt(x, max_leaves=8)`), purely random binary splits create microscopic leaves. By using `max_leaves`, the framework bypasses Monte Carlo sampling, enforcing perfectly even quantile thresholds across the domain to maximize local data density.
+2. **Anti-Starvation Protocol (`max_leaves` & `split_strategy`):** For 1D Piecewise Regressions (e.g., `lt(x, max_leaves=8)`), purely random binary splits create microscopic leaves. By using `max_leaves`, the framework bypasses Monte Carlo sampling to enforce deterministic intervals. Depending on the `split_strategy`, it applies either mathematically orthogonal Cartesian grids (`uniform`) or density-adaptive copulas (`quantile`) to perfectly balance the data distribution and guarantee full matrix rank.
 3. **Spatial Local Slopes (`max_depth`):** For multi-dimensional interactions (e.g., `lt(lat, others='lon', slope='temp', max_depth=4)`), it uses an oblivious tree on the coordinates to construct a spatial grid, applying the Kronecker product to fit a unique, regularized varying-coefficient for temperature inside every geographic zone.
 
 ### Universal Extrapolation

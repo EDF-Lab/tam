@@ -153,6 +153,41 @@ def test_linear_tree_forces_single_tree():
     effect = _build("y ~ lt(x, slope=z, max_depth=3)", include_offset=False)[0]
     assert effect.base_tree.n_trees == 1
 
+def test_tree_default_params():
+    """Ensures TreeEffect defaults to isotropic uniform splits if omitted."""
+    effect = _build("y ~ t(x, max_depth=3)", include_offset=False)[0]
+    assert isinstance(effect, TreeEffect)
+    assert effect.sparsity_alpha == 0.0
+    assert effect.split_strategy == "uniform"
+    assert effect.is_oblivious_binary is True
+
+def test_tree_advanced_params():
+    """Verifies that the factory correctly parses the new density and topology configurations."""
+    effect = _build("y ~ t(x, sp_alpha=0.5, split_strategy='quantile', max_leaves=10)", include_offset=False)[0]
+    
+    assert effect.sparsity_alpha == 0.5
+    assert effect.split_strategy == "quantile"
+    
+    # max_leaves should override max_depth and trigger the Flat N-ary architecture
+    assert effect.leaves_per_tree == 10
+    assert effect.is_oblivious_binary is False
+
+def test_linear_tree_advanced_params_inheritance():
+    """
+    Verifies that sp_alpha and split_strategy defined in a Linear Tree formula
+    are correctly routed down to both the base_tree and the slope_tree.
+    """
+    effect = _build("y ~ lt(x, slope=z, sp_alpha=0.8, split_strategy='quantile')", include_offset=False)[0]
+    
+    assert isinstance(effect, LinearTreeEffect)
+    
+    # Check that the base tree inherited the parameters
+    assert effect.base_tree.sparsity_alpha == 0.8
+    assert effect.base_tree.split_strategy == "quantile"
+    
+    # Check that the slope tree also inherited the parameters
+    assert effect.slope_tree.sparsity_alpha == 0.8
+    assert effect.slope_tree.split_strategy == "quantile"
 
 # --------------------------------------------------------------------------- #
 # build_phi_from_effects / _infer_feature_columns column routing

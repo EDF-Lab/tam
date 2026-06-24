@@ -27,16 +27,20 @@ class LinearTreeEffect(BaseEffect):
         lambda_p: float,
         additional_features: Optional[List[str]],
         seed: int,
-        extrapolate: str
+        extrapolate: str,
+        sparsity_alpha: float = 0.0,
+        split_strategy: str = "uniform"
     ):
         super().__init__(feature_name, "linear_tree", lambda_p, extrapolate)
         
         self.base_tree = TreeEffect(
-            feature_name, n_trees, max_depth, max_leaves, lambda_p, additional_features, seed, 'continue'
+            feature_name, n_trees, max_depth, max_leaves, lambda_p, additional_features, seed, 'continue', 
+            sparsity_alpha, split_strategy
         )
 
         self.slope_tree = TreeEffect(
-            feature_name, n_trees, max_depth, max_leaves, 1.0, additional_features, seed, 'continue'
+            feature_name, n_trees, max_depth, max_leaves, 1.0, additional_features, seed, 'continue', 
+            sparsity_alpha, split_strategy
         )
         self.linear = LinearEffect(slope_feature, scaled=np.pi, lambda_p=1.0, extrapolate='continue')
         self.tensor = TensorProductEffect([self.slope_tree, self.linear], lambda_p, 'continue')

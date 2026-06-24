@@ -651,81 +651,101 @@ class StaticTAM(BaseTAM):
         """
         Displays a quick reference guide for formula syntax in the console.
         """
+                
         data = [
             {
                 "Token": "l(x)", 
                 "Effect": "Linear / Ridge", 
-                "Syntax Example": "l(trend, ap=-5)",
-                "Params": "ap (reg strength)"
+                "Syntax Example": "l(trend, scaled=3.14)",
+                "Specific Params": "scaled (data scaling)"
             },
             {
                 "Token": "s(x)", 
                 "Effect": "P-Spline", 
-                "Syntax Example": "s(temp, k=12, deg=3, ap=-2)",
-                "Params": "k (knots), deg (degree), p (penalty)"
+                "Syntax Example": "s(temp, k=12, deg=3, p=2)",
+                "Specific Params": "k (knots), deg (degree), p (penalty order)"
             },
             {
                 "Token": "f(x)", 
                 "Effect": "Fourier", 
-                "Syntax Example": "f(doy, m=6, s=1)",
-                "Params": "m (harmonics), s (smoothness)"
+                "Syntax Example": "f(doy, m=6, s=1, cyclic=True)",
+                "Specific Params": "m (harmonics), s (smoothness), cyclic (bool)"
             },
             {
                 "Token": "c(x)", 
                 "Effect": "Categorical", 
-                "Syntax Example": "c(day, topo='nominal')",
-                "Params": "n_cat (optional), topo ('nominal'/'ordinal')"
+                "Syntax Example": "c(day, topo='ordinal', p_order=1)",
+                "Specific Params": "n_cat (auto-inferred), topo ('nominal'/'ordinal'), p_order"
             },
             {
                 "Token": "p(x)", 
                 "Effect": "Chebyshev", 
-                "Syntax Example": "p(time, deg=5)",
-                "Params": "deg (degree)",
+                "Syntax Example": "p(time, deg=5, s=0)",
+                "Specific Params": "deg (degree), s (smoothness)",
                 "Usage": "Secular trends, stable extrapolation (Anti-Runge)"
             },
             {
                 "Token": "rbf(x)", 
-                "Effect": "RBF Kernel", 
+                "Effect": "RBF / Matérn Kernel", 
                 "Syntax Example": "rbf(Lat, others='Lon', n_centers=50)",
-                "Params": "n_centers, gamma, others (multivariate)"
+                "Specific Params": "n_centers, gamma, nu, others (multivariate)"
             },
             {
                 "Token": "n(x)", 
-                "Effect": "Neural", 
-                "Syntax Example": "n(Income, others='Age|Rooms', n_neurons=500)",
-                "Params": "n_neurons, act ('relu'/'cos'), others"
+                "Effect": "Neural Network", 
+                "Syntax Example": "n(Income, others='Age', n_neurons=500, seed=42)",
+                "Specific Params": "n_neurons, act ('relu'/'cos'/'tanh'), n_hidden_layers, seed, others"
             },
             {
                 "Token": "te(a, b)", 
                 "Effect": "Tensor Product", 
                 "Syntax Example": "te(s(Temp), f(Hour))",
-                "Params": "List of effects"
+                "Specific Params": "List of functional sub-effects"
             },
             {
                 "Token": "w(x)", 
-                "Effect": "Wavelet", 
-                "Syntax Example": "w(signal, n_scales=5)",
-                "Params": "n_scales, n_locations"
+                "Effect": "Wavelet (Ricker)", 
+                "Syntax Example": "w(signal, n_scales=5, n_locations=20)",
+                "Specific Params": "n_scales, n_locations"
             },
             {
                 "Token": "phys(x)", 
-                "Effect": "Physics (ODE)", 
-                "Syntax Example": "phys(t, basis='spline', D1=1, D0=0.5)",
-                "Params": "basis, D{n}=weight (Derivatives)"
+                "Effect": "Physics (PIKL/ODE)", 
+                "Syntax Example": "phys(t, basis='spline', k=20, D2=1.0)",
+                "Specific Params": "basis, k/n_coeffs, D{n} (derivative weights)"
+            },
+            {
+                "Token": "pid(x)", 
+                "Effect": "PID (Control)", 
+                "Syntax Example": "pid(y_lag, w=7, d_pen=10.0)",
+                "Specific Params": "w (rolling window), d_pen (derivative stiffness)"
             },
             {
                 "Token": "t(x)", 
                 "Effect": "Tree / Random Forest", 
-                "Syntax Example": "t(feature, n_trees=100, max_depth=6)",
-                "Params": "n_trees, max_depth, others"
+                "Syntax Example": "t(x, n_trees=50, sp_alpha=0.5, split_strategy='quantile')",
+                "Specific Params": "n_trees, max_depth, max_leaves, sp_alpha, split_strategy, seed, others"
+            },
+            {
+                "Token": "lt(x)", 
+                "Effect": "Linear Tree (VC Model)", 
+                "Syntax Example": "lt(x_part, slope='x_slope', max_leaves=8, sp_alpha=0.5)",
+                "Specific Params": "slope, max_depth, max_leaves, sp_alpha, split_strategy, seed, others"
             }
         ]
         
-        df = pd.DataFrame(data)
+        # Using .fillna("") ensures the 'Usage' column doesn't print 'NaN' for effects without it.
+        df = pd.DataFrame(data).fillna("")
         
-        print("\n--- TAM Formula Syntax Guide ---")
-        print(f"Global Arg: 'ap' = log10(lambda_p) regularization (ex: ap=-5 means 1e-5).\n")
+        print("\n" + "=" * 120)
+        print(" " * 45 + "TAM FORMULA SYNTAX GUIDE")
+        print("=" * 120)
+        print("GLOBAL ARGUMENTS (Applicable to ALL effects):")
+        print("  * 'ap'          : log10(lambda_p) regularization strength (e.g., ap=-5 means lambda_p = 1e-5).")
+        print("  * 'extrapolate' : OOD behavior ('continue', 'constant', 'linear', 'saturation').")
+        print("                  Note: Defaults vary logically by effect topology (e.g., Splines default to 'linear',")
+        print("                        Chebyshev defaults to 'saturation', Trees default to 'continue').\n")
         
-        with pd.option_context('display.max_rows', None, 'display.max_columns', None, 'display.width', 1000):
+        with pd.option_context('display.max_rows', None, 'display.max_columns', None, 'display.width', 1200):
             print(df.to_string(index=False, justify='left'))
-        print("-" * 100)
+        print("=" * 120 + "\n")
