@@ -7,7 +7,7 @@
         <link rel="prefetch" href="../../_static/logo.png" as="image">
 
     <!-- Generated with Sphinx 9.1.0 and Furo 2025.12.19 -->
-        <title>Hardware Memory Dispatch &amp; Anti-OOM Systems - TAM 1.2.4 documentation</title>
+        <title>Hardware Memory Dispatch &amp; Anti-OOM Systems - TAM 1.2.5 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=d111a655" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo-extensions.css?v=8dab3a3b" />
@@ -162,7 +162,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="../../index.html"><div class="brand">TAM 1.2.4 documentation</div></a>
+      <a href="../../index.html"><div class="brand">TAM 1.2.5 documentation</div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -186,7 +186,7 @@
     <img class="sidebar-logo" src="../../_static/logo.png" alt="Logo"/>
   </div>
   
-  <span class="sidebar-brand-text">TAM 1.2.4 documentation</span>
+  <span class="sidebar-brand-text">TAM 1.2.5 documentation</span>
   
 </a><form class="sidebar-search-container" method="get" action="../../search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
@@ -556,18 +556,26 @@
 <span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Constructs the optimal structural penalty sub-matrix.</span>
 <span class="sd">        </span>
-<span class="sd">        Because the leaf assignments function as discrete, non-ordinal categorical bins, </span>
-<span class="sd">        they are optimally bounded by an isotropic Ridge penalty block.</span>
-<span class="sd">        </span>
-<span class="sd">        Memory Management: </span>
-<span class="sd">        Constructs the matrix natively as a sparse coordinate (COO) tensor to </span>
-<span class="sd">        strictly prevent VRAM exhaustion caused by massive dense diagonal matrices.</span>
+<span class="sd">        If sparsity_alpha &gt; 0, the penalty dynamically adapts to the empirical </span>
+<span class="sd">        data density of each specific leaf. Starved leaves receive massive penalties </span>
+<span class="sd">        to prevent overfitting, while dense leaves receive standard shrinkage.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="c1"># Create a 1D vector of the penalty values (Takes negligible memory)</span>
-        <span class="n">diag_vals</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">full</span><span class="p">(</span>
-            <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">total_leaves</span><span class="p">,),</span> <span class="bp">self</span><span class="o">.</span><span class="n">lambda_p</span><span class="p">,</span> 
-            <span class="n">device</span><span class="o">=</span><span class="n">TORCH_DEVICE</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">get_default_dtype</span><span class="p">()</span>
-        <span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">sparsity_alpha</span> <span class="o">&gt;</span> <span class="mf">0.0</span> <span class="ow">and</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;empirical_counts&#39;</span><span class="p">):</span>
+            <span class="c1"># Calculate Anisotropic Penalty based on empirical data counts</span>
+            <span class="n">C_i</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">empirical_counts</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">TORCH_DEVICE</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span>
+            <span class="n">C_bar</span> <span class="o">=</span> <span class="n">C_i</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
+            <span class="n">epsilon</span> <span class="o">=</span> <span class="mf">1.0</span>  <span class="c1"># Smoothing constant to prevent division by zero</span>
+            
+            <span class="c1"># Starved leaves (&lt; C_bar) will get factors &gt; 1.0</span>
+            <span class="c1"># Dense leaves (&gt; C_bar) will get factors &lt; 1.0</span>
+            <span class="n">penalty_scaling</span> <span class="o">=</span> <span class="p">((</span><span class="n">C_i</span> <span class="o">+</span> <span class="n">epsilon</span><span class="p">)</span> <span class="o">/</span> <span class="n">C_bar</span><span class="p">)</span> <span class="o">**</span> <span class="p">(</span><span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">sparsity_alpha</span><span class="p">)</span>
+            <span class="n">diag_vals</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">lambda_p</span> <span class="o">*</span> <span class="n">penalty_scaling</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># Fallback to pure Isotropic Penalty (or for alpha = 0)</span>
+            <span class="n">diag_vals</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">full</span><span class="p">(</span>
+                <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">total_leaves</span><span class="p">,),</span> <span class="bp">self</span><span class="o">.</span><span class="n">lambda_p</span><span class="p">,</span> 
+                <span class="n">device</span><span class="o">=</span><span class="n">TORCH_DEVICE</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">get_default_dtype</span><span class="p">()</span>
+            <span class="p">)</span>
         
         <span class="c1"># Build as a sparse COO tensor directly to save VRAM</span>
         <span class="n">indices</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">total_leaves</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">TORCH_DEVICE</span><span class="p">)</span>
@@ -664,7 +672,7 @@
       
     </aside>
   </div>
-</div><script src="../../_static/documentation_options.js?v=928db92d"></script>
+</div><script src="../../_static/documentation_options.js?v=36f53d34"></script>
     <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/scripts/furo.js?v=46bd48cc"></script>

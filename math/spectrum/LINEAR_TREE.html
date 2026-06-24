@@ -7,7 +7,7 @@
         <link rel="prefetch" href="../../_static/logo.png" as="image">
 
     <!-- Generated with Sphinx 9.1.0 and Furo 2025.12.19 -->
-        <title>The Linear Tree Effect (Varying-Coefficient Models) - TAM 1.2.4 documentation</title>
+        <title>The Linear Tree Effect (Varying-Coefficient Models) - TAM 1.2.5 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=d111a655" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo-extensions.css?v=8dab3a3b" />
@@ -162,7 +162,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="../../index.html"><div class="brand">TAM 1.2.4 documentation</div></a>
+      <a href="../../index.html"><div class="brand">TAM 1.2.5 documentation</div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -186,7 +186,7 @@
     <img class="sidebar-logo" src="../../_static/logo.png" alt="Logo"/>
   </div>
   
-  <span class="sidebar-brand-text">TAM 1.2.4 documentation</span>
+  <span class="sidebar-brand-text">TAM 1.2.5 documentation</span>
   
 </a><form class="sidebar-search-container" method="get" action="../../search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
@@ -328,12 +328,12 @@
 <section id="optimal-penalization">
 <h2>Optimal Penalization<a class="headerlink" href="#optimal-penalization" title="Link to this heading">¶</a></h2>
 <p>To regularize this composite structure, the penalty matrix is constructed as a block-diagonal encapsulation of its internal components.</p>
-<p>The local intercepts are bounded by the standard isotropic Ridge penalty of the base tree (<span class="math notranslate nohighlight">\(P_{tree_{base}}\)</span>), while the local slopes are penalized by the anisotropic Kronecker penalty of the tensor product (<span class="math notranslate nohighlight">\(P_{cross}\)</span>):</p>
+<p>The local intercepts are bounded by the <strong>Anisotropic Sparsity-Adaptive Ridge penalty</strong> of the base tree (<span class="math notranslate nohighlight">\(P_{tree_{base}}\)</span>), while the local slopes are penalized by the anisotropic Kronecker penalty of the tensor product (<span class="math notranslate nohighlight">\(P_{cross}\)</span>):</p>
 <div class="math-wrapper docutils container">
 <div class="math notranslate nohighlight">
 \[\begin{split}P_{lt} = \begin{bmatrix} P_{tree_{base}} &amp; 0 \\ 0 &amp; P_{cross} \end{bmatrix} = \text{diag}(P_{tree_{base}}, P_{cross})\end{split}\]</div>
 </div>
-<p>This anisotropic structure guarantees that the varying coefficients (<span class="math notranslate nohighlight">\(\beta_1(x_{part})\)</span>) can be penalized independently from the local intercepts (<span class="math notranslate nohighlight">\(\beta_0(x_{part})\)</span>), ensuring optimal scale-invariant shrinkage.</p>
+<p>This nested anisotropic structure is mathematically powerful. Not only can the varying coefficients (<span class="math notranslate nohighlight">\(\beta_1(x_{part})\)</span>) be penalized independently from the local intercepts (<span class="math notranslate nohighlight">\(\beta_0(x_{part})\)</span>), but by activating the sparsity hyperparameter (<span class="math notranslate nohighlight">\(\alpha_{sp} &gt; 0\)</span>), the base tree penalties dynamically adapt to the empirical data density (<span class="math notranslate nohighlight">\(C_i\)</span>) of each specific leaf. Empty or starved spatial regions receive geometrically massive penalties on both their local intercept and their local slope, heavily shrinking wild linear extrapolations back to zero.</p>
 </section>
 <section id="theoretical-critique-resolving-mob-singularities">
 <h2>Theoretical Critique: Resolving MOB Singularities<a class="headerlink" href="#theoretical-critique-resolving-mob-singularities" title="Link to this heading">¶</a></h2>
@@ -351,7 +351,7 @@
 <p>When declaring a Linear Tree, the framework enforces several architectural guardrails to guarantee mathematical stability during the exact Primal Sparse Conjugate Gradient resolution:</p>
 <ol class="arabic simple">
 <li><p><strong>Collinearity Prevention (<code class="docutils literal notranslate"><span class="pre">n_trees=1</span></code>):</strong> The framework strictly forces the number of trees to 1. Using a massive random forest (<span class="math notranslate nohighlight">\(B \gg 1\)</span>) to calculate overlapping, localized linear slopes would create catastrophic multicollinearity inside the solver.</p></li>
-<li><p><strong>Anti-Starvation Protocol (<code class="docutils literal notranslate"><span class="pre">max_leaves</span></code>):</strong> For 1D Piecewise Regressions (e.g., <code class="docutils literal notranslate"><span class="pre">lt(x,</span> <span class="pre">max_leaves=8)</span></code>), purely random binary splits create microscopic leaves. By using <code class="docutils literal notranslate"><span class="pre">max_leaves</span></code>, the framework bypasses Monte Carlo sampling, enforcing perfectly even quantile thresholds across the domain to maximize local data density.</p></li>
+<li><p><strong>Anti-Starvation Protocol (<code class="docutils literal notranslate"><span class="pre">max_leaves</span></code> &amp; <code class="docutils literal notranslate"><span class="pre">split_strategy</span></code>):</strong> For 1D Piecewise Regressions (e.g., <code class="docutils literal notranslate"><span class="pre">lt(x,</span> <span class="pre">max_leaves=8)</span></code>), purely random binary splits create microscopic leaves. By using <code class="docutils literal notranslate"><span class="pre">max_leaves</span></code>, the framework bypasses Monte Carlo sampling to enforce deterministic intervals. Depending on the <code class="docutils literal notranslate"><span class="pre">split_strategy</span></code>, it applies either mathematically orthogonal Cartesian grids (<code class="docutils literal notranslate"><span class="pre">uniform</span></code>) or density-adaptive copulas (<code class="docutils literal notranslate"><span class="pre">quantile</span></code>) to perfectly balance the data distribution and guarantee full matrix rank.</p></li>
 <li><p><strong>Spatial Local Slopes (<code class="docutils literal notranslate"><span class="pre">max_depth</span></code>):</strong> For multi-dimensional interactions (e.g., <code class="docutils literal notranslate"><span class="pre">lt(lat,</span> <span class="pre">others='lon',</span> <span class="pre">slope='temp',</span> <span class="pre">max_depth=4)</span></code>), it uses an oblivious tree on the coordinates to construct a spatial grid, applying the Kronecker product to fit a unique, regularized varying-coefficient for temperature inside every geographic zone.</p></li>
 </ol>
 <section id="universal-extrapolation">
@@ -437,7 +437,7 @@
       
     </aside>
   </div>
-</div><script src="../../_static/documentation_options.js?v=928db92d"></script>
+</div><script src="../../_static/documentation_options.js?v=36f53d34"></script>
     <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/scripts/furo.js?v=46bd48cc"></script>

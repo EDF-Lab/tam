@@ -7,7 +7,7 @@
         <link rel="prefetch" href="../../_static/logo.png" as="image">
 
     <!-- Generated with Sphinx 9.1.0 and Furo 2025.12.19 -->
-        <title>The Spectral Dictionary: PyTorch Implementations &amp; Factory Assembly - TAM 1.2.4 documentation</title>
+        <title>The Spectral Dictionary: PyTorch Implementations &amp; Factory Assembly - TAM 1.2.5 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=d111a655" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo-extensions.css?v=8dab3a3b" />
@@ -162,7 +162,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="../../index.html"><div class="brand">TAM 1.2.4 documentation</div></a>
+      <a href="../../index.html"><div class="brand">TAM 1.2.5 documentation</div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -186,7 +186,7 @@
     <img class="sidebar-logo" src="../../_static/logo.png" alt="Logo"/>
   </div>
   
-  <span class="sidebar-brand-text">TAM 1.2.4 documentation</span>
+  <span class="sidebar-brand-text">TAM 1.2.5 documentation</span>
   
 </a><form class="sidebar-search-container" method="get" action="../../search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
@@ -925,12 +925,14 @@ Applies an isotropic Ridge penalty (<span class="math notranslate nohighlight">\
             <span class="n">max_leaves_raw</span> <span class="o">=</span> <span class="n">params_resolved</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;max_leaves&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
             <span class="n">max_leaves</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">max_leaves_raw</span><span class="p">)</span> <span class="k">if</span> <span class="n">max_leaves_raw</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="kc">None</span>
             <span class="n">seed</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">params_resolved</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;seed&#39;</span><span class="p">,</span> <span class="mi">42</span><span class="p">))</span>
+            <span class="n">sp_alpha</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">params_resolved</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;sp_alpha&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">))</span>
+            <span class="n">split_strategy</span> <span class="o">=</span> <span class="n">params_resolved</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;split_strategy&#39;</span><span class="p">,</span> <span class="s1">&#39;uniform&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
             <span class="n">others_str</span> <span class="o">=</span> <span class="n">params_resolved</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;others&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
             <span class="n">additional_features</span> <span class="o">=</span> <span class="kc">None</span>
             <span class="k">if</span> <span class="n">others_str</span><span class="p">:</span>
                 <span class="n">additional_features</span> <span class="o">=</span> <span class="p">[</span><span class="n">s</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">others_str</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;|&#39;</span><span class="p">)</span> <span class="k">if</span> <span class="n">s</span><span class="o">.</span><span class="n">strip</span><span class="p">()]</span>
             <span class="n">extrap_val</span> <span class="o">=</span> <span class="n">params_resolved</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;extrapolate&#39;</span><span class="p">,</span> <span class="s1">&#39;continue&#39;</span><span class="p">)</span>
-            <span class="n">effects_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">TreeEffect</span><span class="p">(</span><span class="n">feature_name</span><span class="p">,</span> <span class="n">n_trees</span><span class="p">,</span> <span class="n">max_depth</span><span class="p">,</span> <span class="n">max_leaves</span><span class="p">,</span> <span class="n">lambda_p</span><span class="p">,</span> <span class="n">additional_features</span><span class="p">,</span> <span class="n">seed</span><span class="p">,</span> <span class="n">extrap_val</span><span class="p">))</span>
+            <span class="n">effects_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">TreeEffect</span><span class="p">(</span><span class="n">feature_name</span><span class="p">,</span> <span class="n">n_trees</span><span class="p">,</span> <span class="n">max_depth</span><span class="p">,</span> <span class="n">max_leaves</span><span class="p">,</span> <span class="n">lambda_p</span><span class="p">,</span> <span class="n">additional_features</span><span class="p">,</span> <span class="n">seed</span><span class="p">,</span> <span class="n">extrap_val</span><span class="p">,</span> <span class="n">sp_alpha</span><span class="p">,</span> <span class="n">split_strategy</span><span class="p">))</span>
 </pre></div>
 </div>
 <p><strong>2. Feature Map</strong>
@@ -1022,23 +1024,31 @@ Converts Oblivious Trees into sparse Euclidean bit-strings, modeling Random Binn
 </pre></div>
 </div>
 <p><strong>3. Penalty Matrix</strong>
-Safely instantiates the Ridge penalty over the terminal leaves strictly as a sparse COO tensor.</p>
+Safely instantiates the Anisotropic Sparsity-Adaptive Ridge penalty over the terminal leaves strictly as a sparse COO tensor. It dynamically scales the <span class="math notranslate nohighlight">\(L_2\)</span> shrinkage inversely to the empirical data density (<span class="math notranslate nohighlight">\(C_i\)</span>) captured during initialization, heavily penalizing starved edge leaves to guarantee global matrix rank.</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span>    <span class="k">def</span><span class="w"> </span><span class="nf">build_penalty_matrix</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
 <span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Constructs the optimal structural penalty sub-matrix.</span>
 <span class="sd">        </span>
-<span class="sd">        Because the leaf assignments function as discrete, non-ordinal categorical bins, </span>
-<span class="sd">        they are optimally bounded by an isotropic Ridge penalty block.</span>
-<span class="sd">        </span>
-<span class="sd">        Memory Management: </span>
-<span class="sd">        Constructs the matrix natively as a sparse coordinate (COO) tensor to </span>
-<span class="sd">        strictly prevent VRAM exhaustion caused by massive dense diagonal matrices.</span>
+<span class="sd">        If sparsity_alpha &gt; 0, the penalty dynamically adapts to the empirical </span>
+<span class="sd">        data density of each specific leaf. Starved leaves receive massive penalties </span>
+<span class="sd">        to prevent overfitting, while dense leaves receive standard shrinkage.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="c1"># Create a 1D vector of the penalty values (Takes negligible memory)</span>
-        <span class="n">diag_vals</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">full</span><span class="p">(</span>
-            <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">total_leaves</span><span class="p">,),</span> <span class="bp">self</span><span class="o">.</span><span class="n">lambda_p</span><span class="p">,</span> 
-            <span class="n">device</span><span class="o">=</span><span class="n">TORCH_DEVICE</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">get_default_dtype</span><span class="p">()</span>
-        <span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">sparsity_alpha</span> <span class="o">&gt;</span> <span class="mf">0.0</span> <span class="ow">and</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;empirical_counts&#39;</span><span class="p">):</span>
+            <span class="c1"># Calculate Anisotropic Penalty based on empirical data counts</span>
+            <span class="n">C_i</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">empirical_counts</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">TORCH_DEVICE</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span>
+            <span class="n">C_bar</span> <span class="o">=</span> <span class="n">C_i</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
+            <span class="n">epsilon</span> <span class="o">=</span> <span class="mf">1.0</span>  <span class="c1"># Smoothing constant to prevent division by zero</span>
+            
+            <span class="c1"># Starved leaves (&lt; C_bar) will get factors &gt; 1.0</span>
+            <span class="c1"># Dense leaves (&gt; C_bar) will get factors &lt; 1.0</span>
+            <span class="n">penalty_scaling</span> <span class="o">=</span> <span class="p">((</span><span class="n">C_i</span> <span class="o">+</span> <span class="n">epsilon</span><span class="p">)</span> <span class="o">/</span> <span class="n">C_bar</span><span class="p">)</span> <span class="o">**</span> <span class="p">(</span><span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">sparsity_alpha</span><span class="p">)</span>
+            <span class="n">diag_vals</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">lambda_p</span> <span class="o">*</span> <span class="n">penalty_scaling</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># Fallback to pure Isotropic Penalty (or for alpha = 0)</span>
+            <span class="n">diag_vals</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">full</span><span class="p">(</span>
+                <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">total_leaves</span><span class="p">,),</span> <span class="bp">self</span><span class="o">.</span><span class="n">lambda_p</span><span class="p">,</span> 
+                <span class="n">device</span><span class="o">=</span><span class="n">TORCH_DEVICE</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">get_default_dtype</span><span class="p">()</span>
+            <span class="p">)</span>
         
         <span class="c1"># Build as a sparse COO tensor directly to save VRAM</span>
         <span class="n">indices</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">total_leaves</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">TORCH_DEVICE</span><span class="p">)</span>
@@ -1558,7 +1568,10 @@ The parser explicitly extracts the local slope feature and enforces <code class=
             <span class="n">max_leaves_raw</span> <span class="o">=</span> <span class="n">params_resolved</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;max_leaves&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
             <span class="n">max_leaves</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">max_leaves_raw</span><span class="p">)</span> <span class="k">if</span> <span class="n">max_leaves_raw</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="kc">None</span>
             <span class="n">seed</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">params_resolved</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;seed&#39;</span><span class="p">,</span> <span class="mi">42</span><span class="p">))</span>
-            
+
+            <span class="n">sp_alpha</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">params_resolved</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;sp_alpha&#39;</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">))</span>
+            <span class="n">split_strategy</span> <span class="o">=</span> <span class="n">params_resolved</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;split_strategy&#39;</span><span class="p">,</span> <span class="s1">&#39;uniform&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+
             <span class="n">others_str</span> <span class="o">=</span> <span class="n">params_resolved</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;others&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
             <span class="n">additional_features</span> <span class="o">=</span> <span class="p">[</span><span class="n">s</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">others_str</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;|&#39;</span><span class="p">)</span> <span class="k">if</span> <span class="n">s</span><span class="o">.</span><span class="n">strip</span><span class="p">()]</span> <span class="k">if</span> <span class="n">others_str</span> <span class="k">else</span> <span class="kc">None</span>
             
@@ -1572,7 +1585,9 @@ The parser explicitly extracts the local slope feature and enforces <code class=
                 <span class="n">lambda_p</span><span class="o">=</span><span class="n">lambda_p</span><span class="p">,</span>
                 <span class="n">additional_features</span><span class="o">=</span><span class="n">additional_features</span><span class="p">,</span>
                 <span class="n">seed</span><span class="o">=</span><span class="n">seed</span><span class="p">,</span>
-                <span class="n">extrapolate</span><span class="o">=</span><span class="n">extrap_val</span>
+                <span class="n">extrapolate</span><span class="o">=</span><span class="n">extrap_val</span><span class="p">,</span>
+                <span class="n">sparsity_alpha</span><span class="o">=</span><span class="n">sp_alpha</span><span class="p">,</span>
+                <span class="n">split_strategy</span><span class="o">=</span><span class="n">split_strategy</span>
             <span class="p">))</span>
 </pre></div>
 </div>
@@ -1595,7 +1610,7 @@ Natively encapsulates the base <code class="docutils literal notranslate"><span 
 </pre></div>
 </div>
 <p><strong>3. Penalty Matrix</strong>
-Constructs the block-diagonal encapsulation of the isotropic tree penalty and the anisotropic tensor penalty, safely coalescing them into a sparse COO tensor.</p>
+Constructs the block-diagonal encapsulation of the anisotropic sparsity-adaptive tree penalty (local intercepts) and the Kronecker tensor penalty (local slopes), safely coalescing them into a single sparse COO tensor.</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span>    <span class="k">def</span><span class="w"> </span><span class="nf">build_penalty_matrix</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
         
         <span class="n">P1</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">base_tree</span><span class="o">.</span><span class="n">build_penalty_matrix</span><span class="p">()</span>
@@ -1727,7 +1742,7 @@ Constructs the block-diagonal encapsulation of the isotropic tree penalty and th
       
     </aside>
   </div>
-</div><script src="../../_static/documentation_options.js?v=928db92d"></script>
+</div><script src="../../_static/documentation_options.js?v=36f53d34"></script>
     <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/scripts/furo.js?v=46bd48cc"></script>

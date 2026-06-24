@@ -7,7 +7,7 @@
         <link rel="prefetch" href="../../_static/logo.png" as="image">
 
     <!-- Generated with Sphinx 9.1.0 and Furo 2025.12.19 -->
-        <title>The Tree Effect (Random Forests &amp; Binning Features) - TAM 1.2.4 documentation</title>
+        <title>The Tree Effect (Random Forests &amp; Binning Features) - TAM 1.2.5 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=d111a655" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo-extensions.css?v=8dab3a3b" />
@@ -162,7 +162,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="../../index.html"><div class="brand">TAM 1.2.4 documentation</div></a>
+      <a href="../../index.html"><div class="brand">TAM 1.2.5 documentation</div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -186,7 +186,7 @@
     <img class="sidebar-logo" src="../../_static/logo.png" alt="Logo"/>
   </div>
   
-  <span class="sidebar-brand-text">TAM 1.2.4 documentation</span>
+  <span class="sidebar-brand-text">TAM 1.2.5 documentation</span>
   
 </a><form class="sidebar-search-container" method="get" action="../../search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
@@ -328,8 +328,8 @@
 <h3>The Dual-Architecture: Oblivious vs. Flat Histograms<a class="headerlink" href="#the-dual-architecture-oblivious-vs-flat-histograms" title="Link to this heading">¶</a></h3>
 <p>Depending on the hyperparameters provided, this module mathematically bifurcates into two distinct architectures:</p>
 <ol class="arabic simple">
-<li><p><strong>Oblivious Random Trees (<code class="docutils literal notranslate"><span class="pre">max_depth</span></code>):</strong> Generates symmetric, multi-dimensional binary splits yielding <span class="math notranslate nohighlight">\(2^D\)</span> leaves. Unlike standard CART algorithms that use greedy data-dependent optimization, this architecture generates purely random hypotheses: split features are sampled uniformly, and split thresholds are drawn from a uniform distribution <span class="math notranslate nohighlight">\(t \sim \mathcal{U}[-1, 1]\)</span>. This is ideal for spatial interactions and mathematically eliminates the thread divergence that paralyzes standard decision trees on GPUs.</p></li>
-<li><p><strong>Flat N-ary Histograms (<code class="docutils literal notranslate"><span class="pre">max_leaves</span></code>):</strong> Generates flat, 1-Dimensional piecewise splits. For 1D spaces, purely random Monte Carlo splits frequently create starved leaves (zero empirical data), destroying the local covariance matrix. This architecture triggers an <strong>Anti-Starvation Protocol</strong>: it bypasses random sampling entirely in favor of deterministic, mathematically even partitions (linearly spaced across the <span class="math notranslate nohighlight">\([-1, 1]\)</span> domain) to guarantee a full-rank linear system.</p></li>
+<li><p><strong>Oblivious Random Trees (<code class="docutils literal notranslate"><span class="pre">max_depth</span></code>):</strong> Generates symmetric, multi-dimensional binary splits yielding <span class="math notranslate nohighlight">\(2^D\)</span> leaves. Unlike standard CART algorithms that use greedy data-dependent optimization, this architecture generates data-independent topological hypotheses: split features are sampled uniformly, and split thresholds are drawn from statistical distributions (either uniform spatial grids or density-adaptive quantiles). This is ideal for spatial interactions and mathematically eliminates the thread divergence that paralyzes standard decision trees on GPUs.</p></li>
+<li><p><strong>Flat N-ary Histograms (<code class="docutils literal notranslate"><span class="pre">max_leaves</span></code>):</strong> Generates flat, 1-Dimensional piecewise splits. For 1D spaces, pure Monte Carlo splits frequently create starved leaves (zero empirical data), destroying the local covariance matrix. This architecture triggers an <strong>Anti-Starvation Protocol</strong>: it bypasses random sampling entirely in favor of deterministic, mathematically even partitions (via strict linear spacing or exact quantiles) to guarantee a full-rank linear system.</p></li>
 </ol>
 </section>
 </section>
@@ -345,29 +345,35 @@ The global matrix horizontally concatenates <span class="math notranslate nohigh
 <p><strong>2. The Hyperparameter Routing:</strong></p>
 <ul class="simple">
 <li><p><strong><code class="docutils literal notranslate"><span class="pre">n_trees</span></code> (<span class="math notranslate nohighlight">\(B\)</span>):</strong> Dictates the horizontal block expansion of <span class="math notranslate nohighlight">\(\Phi\)</span>. It strictly triggers the <span class="math notranslate nohighlight">\(\frac{1}{\sqrt{B}}\)</span> scaling factor across all non-zero entries to ensure RKHS convergence.</p></li>
-<li><p><strong><code class="docutils literal notranslate"><span class="pre">max_depth</span></code> (<span class="math notranslate nohighlight">\(D\)</span>):</strong> Forces the Oblivious architecture. The algorithm samples <span class="math notranslate nohighlight">\(D\)</span> random thresholds uniformly. The mapping evaluates the boolean path, outputting a One-Hot vector per tree of exactly <span class="math notranslate nohighlight">\(L = 2^D\)</span> columns.</p></li>
-<li><p><strong><code class="docutils literal notranslate"><span class="pre">max_leaves</span></code> (<span class="math notranslate nohighlight">\(L\)</span>):</strong> Forces the Flat Histogram architecture. It bypasses Monte Carlo sampling to generate <span class="math notranslate nohighlight">\(L\)</span> deterministically spaced intervals (via quantiles or linspace), yielding <span class="math notranslate nohighlight">\(L\)</span> columns per tree.</p></li>
-<li><p><strong><code class="docutils literal notranslate"><span class="pre">additional_features</span></code>:</strong> Transforms the 1D interval splits into a multi-dimensional checkerboard of spatial bounding boxes by allowing the random split sampler to cycle through multiple feature axes (e.g., creating a 2D spatial grid for Latitude/Longitude).</p></li>
+<li><p><strong><code class="docutils literal notranslate"><span class="pre">max_depth</span></code> (<span class="math notranslate nohighlight">\(D\)</span>):</strong> Forces the Oblivious architecture. The algorithm samples <span class="math notranslate nohighlight">\(D\)</span> random thresholds. The mapping evaluates the boolean path, outputting a One-Hot vector per tree of exactly <span class="math notranslate nohighlight">\(L = 2^D\)</span> columns.</p></li>
+<li><p><strong><code class="docutils literal notranslate"><span class="pre">max_leaves</span></code> (<span class="math notranslate nohighlight">\(L\)</span>):</strong> Forces the Flat Histogram architecture. It bypasses Monte Carlo sampling to generate <span class="math notranslate nohighlight">\(L\)</span> deterministically spaced intervals, yielding <span class="math notranslate nohighlight">\(L\)</span> columns per tree.</p></li>
+<li><p><strong><code class="docutils literal notranslate"><span class="pre">additional_features</span></code>:</strong> Transforms the 1D interval splits into a multi-dimensional checkerboard of spatial bounding boxes by allowing the random split sampler to cycle through multiple feature axes.</p></li>
+<li><p><strong><code class="docutils literal notranslate"><span class="pre">split_strategy</span></code>:</strong> Defines the threshold sampling distribution. <code class="docutils literal notranslate"><span class="pre">'uniform'</span></code> creates mathematically orthogonal, shift-invariant Cartesian grids. <code class="docutils literal notranslate"><span class="pre">'quantile'</span></code> applies the empirical Probability Integral Transform to create density-adaptive partitions that perfectly balance sample distributions across all leaves.</p></li>
+<li><p><strong><code class="docutils literal notranslate"><span class="pre">sp_alpha</span></code> (<span class="math notranslate nohighlight">\(\alpha_{sp}\)</span>):</strong> Controls the Anisotropic Sparsity-Adaptive Penalty, scaling the <span class="math notranslate nohighlight">\(L_2\)</span> shrinkage inversely to the empirical data density of each specific leaf.</p></li>
 </ul>
 </section>
-<section id="optimal-penalization">
-<h2>Optimal Penalization<a class="headerlink" href="#optimal-penalization" title="Link to this heading">¶</a></h2>
-<p>Because an observation <span class="math notranslate nohighlight">\(x\)</span> falls into exactly one leaf per tree, the resulting Primal feature evaluation <span class="math notranslate nohighlight">\(\phi_{tree}(x)\)</span> is a highly sparse Euclidean bit-string. Since the leaf assignments function as discrete, non-ordinal categorical bins, their coefficients are optimally bounded by an isotropic Ridge penalty block applied across all <span class="math notranslate nohighlight">\(B \times L\)</span> total features.</p>
-<p>Governed by the hyperparameter <strong><code class="docutils literal notranslate"><span class="pre">lambda</span></code> (<span class="math notranslate nohighlight">\(\lambda\)</span>)</strong>, the penalty matrix is mathematically defined as:</p>
+<section id="empirical-sparsity-adaptive-penalization-anisotropic-ridge">
+<h2>Empirical Sparsity-Adaptive Penalization (Anisotropic Ridge)<a class="headerlink" href="#empirical-sparsity-adaptive-penalization-anisotropic-ridge" title="Link to this heading">¶</a></h2>
+<p>A fundamental mathematical clash exists between the dense representations of continuous bases and the severe geometric sparsity of random forests. Because a single data point activates exactly one leaf per tree, classical exact solvers operating with a global isotropic Ridge penalty (<span class="math notranslate nohighlight">\(P = \lambda I\)</span>) tend to aggressively over-penalize the fragmented tree leaves, artificially collapsing the ensemble’s predictive variance.</p>
+<p>To achieve statistical equivalence with continuous modules, TAM replaces the isotropic penalty with an <strong>Anisotropic Sparsity-Adaptive Penalty</strong>. During the initial forward pass, the framework evaluates the routing logic on the training manifold to capture the exact empirical sample count <span class="math notranslate nohighlight">\(C_i\)</span> landing in each specific leaf <span class="math notranslate nohighlight">\(i\)</span>. The base penalty <span class="math notranslate nohighlight">\(\lambda_p\)</span> is then dynamically scaled for each individual leaf feature along the diagonal matrix:</p>
 <div class="math-wrapper docutils container">
 <div class="math notranslate nohighlight">
-\[P_{tree} = \lambda I_{(B \times L)}\]</div>
+\[[P_{tree}]_{ii} = \lambda_p \cdot \left( \frac{C_i + \epsilon}{\bar{C}} \right)^{-\alpha_{sp}}\]</div>
 </div>
-<p>Applying this isotropic <span class="math notranslate nohighlight">\(L_2\)</span> shrinkage strictly prevents isolated, deep leaves containing very few empirical samples from acquiring disproportionately large statistical weights, thereby controlling the structural variance of the tree ensemble.</p>
-<p><strong>Hardware Translation:</strong> Because <span class="math notranslate nohighlight">\(B \times L\)</span> can easily reach into the millions, materializing this identity matrix densely would cause immediate VRAM exhaustion. Therefore, the framework strictly initializes <span class="math notranslate nohighlight">\(P_{tree}\)</span> natively as a <code class="docutils literal notranslate"><span class="pre">torch.sparse_coo_tensor</span></code>, ensuring this massive penalty block consumes virtually zero memory while seamlessly integrating into the Sparse Conjugate Gradient solver.</p>
+<p>where <span class="math notranslate nohighlight">\(\bar{C}\)</span> is the mean sample count across all leaves, and <span class="math notranslate nohighlight">\(\epsilon\)</span> is a microscopic smoothing constant to prevent division by zero.</p>
+<ul class="simple">
+<li><p>When <span class="math notranslate nohighlight">\(\alpha_{sp} = 0\)</span>, the scaling factor collapses to <span class="math notranslate nohighlight">\(1\)</span>, strictly recovering the classical isotropic Ridge penalty (<span class="math notranslate nohighlight">\(\lambda_p I\)</span>) applied uniformly across the entire forest.</p></li>
+<li><p>When <span class="math notranslate nohighlight">\(\alpha_{sp} &gt; 0\)</span>, the penalty dynamically adapts to the data density. Highly populated leaves receive standard or reduced shrinkage, confidently fitting strong signals. Conversely, starved edge-boundary leaves receive geometrically massive penalties. This prevents the sparse basis from fitting empirical noise without artificially depressing the global tree effect.</p></li>
+</ul>
+<p><strong>Interaction with Split Strategy:</strong> This penalty perfectly complements the topological splitting strategy. When using the <code class="docutils literal notranslate"><span class="pre">quantile</span></code> strategy, data is distributed evenly across all leaves (<span class="math notranslate nohighlight">\(C_i \approx \bar{C}\)</span>), causing the anisotropic penalty to elegantly collapse back into a stable isotropic penalty. When using the <code class="docutils literal notranslate"><span class="pre">uniform</span></code> strategy, the anisotropic penalty actively suppresses the naturally starved edge regions, directly preventing catastrophic rank deficiency and test drift.</p>
+<p><strong>Hardware Translation:</strong> Because <span class="math notranslate nohighlight">\(B \times L\)</span> can easily reach into the millions, materializing this diagonal matrix densely would cause immediate VRAM exhaustion. Therefore, the framework strictly initializes <span class="math notranslate nohighlight">\(P_{tree}\)</span> natively as a <code class="docutils literal notranslate"><span class="pre">torch.sparse_coo_tensor</span></code>, consuming virtually zero memory while seamlessly integrating into the Sparse Conjugate Gradient solver.</p>
 </section>
 <section id="rkhs-eligibility-kernel-equivalence-sparsity-adaptation">
 <h2>RKHS Eligibility, Kernel Equivalence &amp; Sparsity Adaptation<a class="headerlink" href="#rkhs-eligibility-kernel-equivalence-sparsity-adaptation" title="Link to this heading">¶</a></h2>
 <p>In classical statistical software, tree predictions are strictly evaluated as algorithmic jump logic. However, projecting shift-invariant kernels into finite Primal spaces using randomized Monte Carlo sampling is a mathematically proven technique for scalable kernel machine resolution <span class="bibtex-citation" id="id3">[<a class="reference internal" href="../../bibliography.html#id60" title="Ali Rahimi and Benjamin Recht. Random features for large-scale kernel machines. In J. Platt, D. Koller, Y. Singer, and S. Roweis, editors, Advances in Neural Information Processing Systems, volume 20. Curran Associates, Inc., 2007. URL: https://proceedings.neurips.cc/paper_files/paper/2007/file/013a006f03dbc5392effeb8f18fda755-Paper.pdf.">Rahimi and Recht, 2007</a>]</span>.</p>
 <p>Building on this, Scornet (2016) provides the rigorous functional analysis proving that infinite random forests are strictly equivalent to specific Kernel estimators <span class="bibtex-citation" id="id4">[<a class="reference internal" href="../../bibliography.html#id66" title="Erwan Scornet. Random forests and kernel methods. IEEE Transactions on Information Theory, 62(3):1485–1500, 2016.">Scornet, 2016</a>]</span>. Within TAM, the <code class="docutils literal notranslate"><span class="pre">TreeEffect</span></code> operates exactly as a finite-dimensional Primal realization of this Random Forest Kernel. Taking the dot product of two scaled bit-strings over an infinite ensemble evaluates the exact probability that two points <span class="math notranslate nohighlight">\(x\)</span> and <span class="math notranslate nohighlight">\(x'\)</span> fall into the identical bin. The sparse random bins approximate a Laplacian-like continuous similarity metric, converging at <span class="math notranslate nohighlight">\(\mathcal{O}(1/B)\)</span>-orders of magnitude faster than standard random Fourier features <span class="bibtex-citation" id="id5">[<a class="reference internal" href="../../bibliography.html#id83" title="Lingfei Wu, Ian EH Yen, Jie Chen, and Rui Yan. Revisiting random binning features: fast convergence and strong parallelizability. In Proceedings of the 22nd ACM SIGKDD International Conference on Knowledge Discovery and Data Mining, 1265–1274. 2016.">Wu <em>et al.</em>, 2016</a>]</span>.</p>
 <p>Furthermore, the theoretical analysis of Breiman’s original algorithm proves that this specific feature map inherently <strong>adapts to sparsity</strong> <span class="bibtex-citation" id="id6">[<a class="reference internal" href="../../bibliography.html#id9" title="Gérard Biau. Analysis of a random forests model. The Journal of Machine Learning Research, 13:1063–1095, 2012.">Biau, 2012</a>]</span>. The statistical convergence rate of the tree ensemble depends strictly on the number of strong, active features rather than the ambient dimension of the noise. This guarantees that the TAM solver remains statistically efficient even when the spatial dictionary is bombarded with irrelevant exogenous variables.</p>
-<p>Therefore, equipping this sparse indicator bit-string with a strictly positive isotropic penalty (<span class="math notranslate nohighlight">\(P_{tree} = \lambda I_{(B \times L)}\)</span>) rigorously embeds the discrete tree ensemble into a valid, finite-dimensional RKHS.</p>
-<p><strong>Memory Management:</strong> To bypass absolute hardware limitations when the total number of leaves (<span class="math notranslate nohighlight">\(B \times L\)</span>) reaches into the millions, the framework natively constructs this block-diagonal penalty matrix as a sparse Coordinate (<code class="docutils literal notranslate"><span class="pre">COO</span></code>) tensor. This architectural decision explicitly prevents the dense GPU VRAM exhaustion that routinely paralyzes classical exact solvers.</p>
+<p>Therefore, equipping this sparse indicator bit-string with a strictly positive, sparsity-adaptive penalty rigorously embeds the discrete tree ensemble into a valid, finite-dimensional RKHS.</p>
 </section>
 <section id="theoretical-integration">
 <h2>Theoretical Integration<a class="headerlink" href="#theoretical-integration" title="Link to this heading">¶</a></h2>
@@ -437,7 +443,7 @@ The global matrix horizontally concatenates <span class="math notranslate nohigh
 </ul>
 </li>
 <li><a class="reference internal" href="#the-primal-matrix-schema-hyperparameter-topology">The Primal Matrix Schema &amp; Hyperparameter Topology</a></li>
-<li><a class="reference internal" href="#optimal-penalization">Optimal Penalization</a></li>
+<li><a class="reference internal" href="#empirical-sparsity-adaptive-penalization-anisotropic-ridge">Empirical Sparsity-Adaptive Penalization (Anisotropic Ridge)</a></li>
 <li><a class="reference internal" href="#rkhs-eligibility-kernel-equivalence-sparsity-adaptation">RKHS Eligibility, Kernel Equivalence &amp; Sparsity Adaptation</a></li>
 <li><a class="reference internal" href="#theoretical-integration">Theoretical Integration</a></li>
 </ul>
@@ -451,7 +457,7 @@ The global matrix horizontally concatenates <span class="math notranslate nohigh
       
     </aside>
   </div>
-</div><script src="../../_static/documentation_options.js?v=928db92d"></script>
+</div><script src="../../_static/documentation_options.js?v=36f53d34"></script>
     <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/scripts/furo.js?v=46bd48cc"></script>

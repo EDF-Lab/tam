@@ -7,7 +7,7 @@
         <link rel="prefetch" href="_static/logo.png" as="image">
 
     <!-- Generated with Sphinx 9.1.0 and Furo 2025.12.19 -->
-        <title>📚 Theory Introduction of TAM and Cheatsheet - TAM 1.2.4 documentation</title>
+        <title>📚 Theory Introduction of TAM and Cheatsheet - TAM 1.2.5 documentation</title>
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=d111a655" />
     <link rel="stylesheet" type="text/css" href="_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="_static/styles/furo-extensions.css?v=8dab3a3b" />
@@ -162,7 +162,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="index.html"><div class="brand">TAM 1.2.4 documentation</div></a>
+      <a href="index.html"><div class="brand">TAM 1.2.5 documentation</div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -186,7 +186,7 @@
     <img class="sidebar-logo" src="_static/logo.png" alt="Logo"/>
   </div>
   
-  <span class="sidebar-brand-text">TAM 1.2.4 documentation</span>
+  <span class="sidebar-brand-text">TAM 1.2.5 documentation</span>
   
 </a><form class="sidebar-search-container" method="get" action="search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
@@ -532,16 +532,18 @@
 <section id="tree-t">
 <h3><a class="reference internal" href="math/spectrum/TREE.html"><span class="std std-doc">Tree (<code class="docutils literal notranslate"><span class="pre">t</span></code>)</span></a><a class="headerlink" href="#tree-t" title="Link to this heading">¶</a></h3>
 <ul class="simple">
-<li><p><strong>Syntax:</strong> <code class="docutils literal notranslate"><span class="pre">t(x,</span> <span class="pre">n_trees=50,</span> <span class="pre">max_depth=5,</span> <span class="pre">max_leaves=None,</span> <span class="pre">seed=42)</span></code></p></li>
+<li><p><strong>Syntax:</strong> <code class="docutils literal notranslate"><span class="pre">t(x,</span> <span class="pre">n_trees=50,</span> <span class="pre">max_depth=5,</span> <span class="pre">max_leaves=None,</span> <span class="pre">seed=42,</span> <span class="pre">sp_alpha=0.0,</span> <span class="pre">split_strategy='uniform')</span></code></p></li>
 <li><p><strong>Hyperparameters:</strong></p>
 <ul>
 <li><p><code class="docutils literal notranslate"><span class="pre">n_trees</span></code> (<span class="math notranslate nohighlight">\(B\)</span>): Number of independent trees in the ensemble.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">max_depth</span></code> (<span class="math notranslate nohighlight">\(d\)</span>): Triggers the Oblivious Binary architecture (creates <span class="math notranslate nohighlight">\(M=2^d\)</span> symmetric leaves per tree). Ideal for multi-dimensional spatial interactions.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">max_leaves</span></code> (<span class="math notranslate nohighlight">\(M\)</span>): Overrides max_depth to trigger the Flat N-ary Histogram architecture (creates <span class="math notranslate nohighlight">\(M\)</span> leaves per tree). Ideal for 1D Piecewise Linear Regressions.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">sp_alpha</span></code> (<span class="math notranslate nohighlight">\(\alpha_{sp}\)</span>): Controls the Anisotropic Sparsity-Adaptive Penalty. Scales the penalty inversely to the empirical data density of each leaf.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">split_strategy</span></code>: Defines the threshold sampling distribution (<code class="docutils literal notranslate"><span class="pre">uniform</span></code> for shift-invariant Cartesian grids, <code class="docutils literal notranslate"><span class="pre">quantile</span></code> for density-adaptive copulas).</p></li>
 </ul>
 </li>
 <li><p><strong>Mapping function:</strong> <span class="math notranslate nohighlight">\(\phi_{tree}(x) = \frac{1}{\sqrt{B}} \left[ I(x \in R_{1,1}), \dots, I(x \in R_{B,M}) \right]^\top\)</span></p></li>
-<li><p><strong>Penalty Matrix:</strong> <span class="math notranslate nohighlight">\(P_{tree} = \lambda I\)</span></p></li>
+<li><p><strong>Penalty Matrix:</strong> <span class="math notranslate nohighlight">\(P_{tree} = \text{diag}\left( \lambda_p \cdot \left( \frac{C_i + \epsilon}{\bar{C}} \right)^{-\alpha_{sp}} \right)\)</span> <em>(Anisotropic Ridge actively tracking empirical leaf density <span class="math notranslate nohighlight">\(C_i\)</span>)</em></p></li>
 </ul>
 </section>
 <section id="wavelet-w">
@@ -574,8 +576,8 @@
 <section id="linear-tree-lt">
 <h3><a class="reference internal" href="math/spectrum/LINEAR_TREE.html"><span class="std std-doc">Linear Tree (<code class="docutils literal notranslate"><span class="pre">lt</span></code>)</span></a><a class="headerlink" href="#linear-tree-lt" title="Link to this heading">¶</a></h3>
 <ul class="simple">
-<li><p><strong>Syntax:</strong> <code class="docutils literal notranslate"><span class="pre">lt(x1,</span> <span class="pre">slope='x2',</span> <span class="pre">max_depth=4)</span></code></p></li>
-<li><p><strong>Hyperparameters:</strong> Inherits standard Tree partitioning parameters (<code class="docutils literal notranslate"><span class="pre">max_depth</span></code>, <code class="docutils literal notranslate"><span class="pre">max_leaves</span></code>). <code class="docutils literal notranslate"><span class="pre">slope</span></code>: explicitly defines the linear interaction variable (defaults to the partition variable if omitted).</p></li>
+<li><p><strong>Syntax:</strong> <code class="docutils literal notranslate"><span class="pre">lt(x1,</span> <span class="pre">slope='x2',</span> <span class="pre">max_depth=4,</span> <span class="pre">sp_alpha=0.0,</span> <span class="pre">split_strategy='uniform')</span></code></p></li>
+<li><p><strong>Hyperparameters:</strong> Inherits standard Tree partitioning parameters (<code class="docutils literal notranslate"><span class="pre">max_depth</span></code>, <code class="docutils literal notranslate"><span class="pre">max_leaves</span></code>, <code class="docutils literal notranslate"><span class="pre">sp_alpha</span></code>, <code class="docutils literal notranslate"><span class="pre">split_strategy</span></code>). <code class="docutils literal notranslate"><span class="pre">slope</span></code>: explicitly defines the linear interaction variable (defaults to the partition variable if omitted).</p></li>
 <li><p><strong>Mapping function:</strong> <span class="math notranslate nohighlight">\(\phi_{lt}(x_{part}, x_{slope}) = \left[ \phi_{tree_{base}}(x_{part}), \quad \phi_{tree_{slope}}(x_{part}) \otimes \phi_{lin}(x_{slope}) \right]^\top\)</span></p></li>
 <li><p><strong>Penalty Matrix:</strong> Block diagonal encapsulation: <span class="math notranslate nohighlight">\(P_{lt} = \text{diag}(P_{tree}, P_{cross})\)</span></p></li>
 <li><p>📖 <em>Note: This effect natively encapsulates the piecewise logic to fully support multi-dimensional spatial interactions without requiring formula macro expansions.</em></p></li>
@@ -790,7 +792,7 @@
       
     </aside>
   </div>
-</div><script src="_static/documentation_options.js?v=928db92d"></script>
+</div><script src="_static/documentation_options.js?v=36f53d34"></script>
     <script src="_static/doctools.js?v=fd6eb6e6"></script>
     <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="_static/scripts/furo.js?v=46bd48cc"></script>
