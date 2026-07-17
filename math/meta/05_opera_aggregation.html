@@ -7,7 +7,7 @@
         <link rel="prefetch" href="../../_static/logo.png" as="image">
 
     <!-- Generated with Sphinx 9.1.0 and Furo 2025.12.19 -->
-        <title>Online Prediction by Expert Aggregation (OPERA) - TAM 1.2.5 documentation</title>
+        <title>Online Prediction by Expert Aggregation (OPERA) - TAM 1.2.6 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=d111a655" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo-extensions.css?v=8dab3a3b" />
@@ -162,7 +162,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="../../index.html"><div class="brand">TAM 1.2.5 documentation</div></a>
+      <a href="../../index.html"><div class="brand">TAM 1.2.6 documentation</div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -186,7 +186,7 @@
     <img class="sidebar-logo" src="../../_static/logo.png" alt="Logo"/>
   </div>
   
-  <span class="sidebar-brand-text">TAM 1.2.5 documentation</span>
+  <span class="sidebar-brand-text">TAM 1.2.6 documentation</span>
   
 </a><form class="sidebar-search-container" method="get" action="../../search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
@@ -316,12 +316,12 @@
 <li><p><strong>Related code architecture:</strong> <a class="reference internal" href="../../architecture/meta/05_opera_gpu.html"><span class="std std-doc">See the Code Architecture</span></a></p></li>
 </ul>
 <p>While the Generalized Additive Models (GAMs) and hierarchical solvers within the Time series Additive Model (TAM) framework provide exceptionally robust point predictions, industrial forecasting pipelines often rely on multiple, fundamentally distinct algorithms (e.g., a Primal TAM model, a legacy SARIMA model, and a Deep Neural Network).</p>
-<p>Because different algorithms excel under different structural regimes, statically selecting a single “best” model inevitably leads to catastrophic failures during Concept Drift. To solve this mathematically, TAM integrates the <strong>Online Prediction by Expert Aggregation (OPERA)</strong> framework <span class="bibtex-citation" id="id1">[<a class="reference internal" href="../../bibliography.html#id31" title="Pierre Gaillard, Yannig Goude, Laurent Plagne, Thibaut Dubois, and Benoit Thieurmel. Opera, a r package, online prediction by expert aggregation (v1.1). 2016.">Gaillard <em>et al.</em>, 2016</a>]</span>.</p>
+<p>Because different algorithms excel under different structural regimes, statically selecting a single “best” model inevitably leads to catastrophic failures during Concept Drift. To solve this mathematically, TAM integrates the <strong>Online Prediction by Expert Aggregation (OPERA)</strong> framework <span class="bibtex-citation" id="id1">[<a class="reference internal" href="../../bibliography.html#id33" title="Pierre Gaillard, Yannig Goude, Laurent Plagne, Thibaut Dubois, and Benoit Thieurmel. Opera, a r package, online prediction by expert aggregation (v1.1). 2016.">Gaillard <em>et al.</em>, 2016</a>]</span>.</p>
 <p>Instead of picking a single winner, OperaTAM dynamically computes a convex combination of all available experts, adjusting the weights sequentially based on their real-time predictive performance.</p>
 <hr class="docutils" />
 <section id="the-game-theory-framework-and-regret">
 <h2>The Game Theory Framework and Regret<a class="headerlink" href="#the-game-theory-framework-and-regret" title="Link to this heading">¶</a></h2>
-<p>Online aggregation is formulated as a sequential, deterministic game between the forecaster and the environment <span class="bibtex-citation" id="id2">[<a class="reference internal" href="../../bibliography.html#id15" title="Nicolo Cesa-Bianchi and Gábor Lugosi. Prediction, learning, and games. Cambridge university press, 2006.">Cesa-Bianchi and Lugosi, 2006</a>]</span>. At each time step <span class="math notranslate nohighlight">\(t=1, \dots, T\)</span>:</p>
+<p>Online aggregation is formulated as a sequential, deterministic game between the forecaster and the environment <span class="bibtex-citation" id="id2">[<a class="reference internal" href="../../bibliography.html#id17" title="Nicolo Cesa-Bianchi and Gábor Lugosi. Prediction, learning, and games. Cambridge university press, 2006.">Cesa-Bianchi and Lugosi, 2006</a>]</span>. At each time step <span class="math notranslate nohighlight">\(t=1, \dots, T\)</span>:</p>
 <ol class="arabic">
 <li><p>A set of <span class="math notranslate nohighlight">\(K\)</span> experts provides their predictions <span class="math notranslate nohighlight">\(x_{k,t}\)</span>.</p></li>
 <li><p>The forecaster aggregates these predictions using a weight vector <span class="math notranslate nohighlight">\(w_{k,t}\)</span> (where <span class="math notranslate nohighlight">\(\sum w_{k,t} = 1\)</span>) to form the global ensemble prediction:</p>
@@ -333,7 +333,7 @@
 <li><p>The true observation <span class="math notranslate nohighlight">\(y_t\)</span> is revealed.</p></li>
 <li><p>The forecaster suffers a loss <span class="math notranslate nohighlight">\(\ell(\hat{y}_t, y_t)\)</span> and updates the weights for the next step based on the individual losses suffered by the experts, <span class="math notranslate nohighlight">\(\ell(x_{k,t}, y_t)\)</span>.</p></li>
 </ol>
-<p>The mathematical objective is to minimize the <strong>Regret</strong> (<span class="math notranslate nohighlight">\(R_{k,T}\)</span>). Regret bounds the difference between the forecaster’s cumulative loss and the cumulative loss of the best possible constant expert chosen in hindsight <span class="bibtex-citation" id="id3">[<a class="reference internal" href="../../bibliography.html#id15" title="Nicolo Cesa-Bianchi and Gábor Lugosi. Prediction, learning, and games. Cambridge university press, 2006.">Cesa-Bianchi and Lugosi, 2006</a>]</span>:</p>
+<p>The mathematical objective is to minimize the <strong>Regret</strong> (<span class="math notranslate nohighlight">\(R_{k,T}\)</span>). Regret bounds the difference between the forecaster’s cumulative loss and the cumulative loss of the best possible constant expert chosen in hindsight <span class="bibtex-citation" id="id3">[<a class="reference internal" href="../../bibliography.html#id17" title="Nicolo Cesa-Bianchi and Gábor Lugosi. Prediction, learning, and games. Cambridge university press, 2006.">Cesa-Bianchi and Lugosi, 2006</a>]</span>:</p>
 <div class="math-wrapper docutils container">
 <div class="math notranslate nohighlight">
 \[R_{k,T} = \sum_{t=1}^T \ell(\hat{y}_t, y_t) - \sum_{t=1}^T \ell(x_{k,t}, y_t)\]</div>
@@ -358,7 +358,7 @@
 <div class="math notranslate nohighlight">
 \[w_{k,t+1} \propto \exp\left( -\eta (L_{k, t} - \max_j L_{j, t}) \right)\]</div>
 </div>
-<p>This ensures the maximum exponent is always exactly 0, algebraically eliminating overflow while mathematically preserving the exact proportional weight distribution <span class="bibtex-citation" id="id4">[<a class="reference internal" href="../../bibliography.html#id31" title="Pierre Gaillard, Yannig Goude, Laurent Plagne, Thibaut Dubois, and Benoit Thieurmel. Opera, a r package, online prediction by expert aggregation (v1.1). 2016.">Gaillard <em>et al.</em>, 2016</a>]</span>.</p>
+<p>This ensures the maximum exponent is always exactly 0, algebraically eliminating overflow while mathematically preserving the exact proportional weight distribution <span class="bibtex-citation" id="id4">[<a class="reference internal" href="../../bibliography.html#id33" title="Pierre Gaillard, Yannig Goude, Laurent Plagne, Thibaut Dubois, and Benoit Thieurmel. Opera, a r package, online prediction by expert aggregation (v1.1). 2016.">Gaillard <em>et al.</em>, 2016</a>]</span>.</p>
 </li>
 </ol>
 </section>
@@ -366,7 +366,7 @@
 <hr class="docutils" />
 <section id="polynomial-minimax-strategy-mlpol">
 <h2>Polynomial Minimax Strategy (MLpol)<a class="headerlink" href="#polynomial-minimax-strategy-mlpol" title="Link to this heading">¶</a></h2>
-<p>The primary limitation of EWA is its reliance on a fixed hyperparameter <span class="math notranslate nohighlight">\(\eta\)</span>. To provide a fully automated, parameter-free ensemble, TAM natively implements the <strong>MLpol (Polynomial Minimax)</strong> strategy <span class="bibtex-citation" id="id5">[<a class="reference internal" href="../../bibliography.html#id31" title="Pierre Gaillard, Yannig Goude, Laurent Plagne, Thibaut Dubois, and Benoit Thieurmel. Opera, a r package, online prediction by expert aggregation (v1.1). 2016.">Gaillard <em>et al.</em>, 2016</a>]</span>.</p>
+<p>The primary limitation of EWA is its reliance on a fixed hyperparameter <span class="math notranslate nohighlight">\(\eta\)</span>. To provide a fully automated, parameter-free ensemble, TAM natively implements the <strong>MLpol (Polynomial Minimax)</strong> strategy <span class="bibtex-citation" id="id5">[<a class="reference internal" href="../../bibliography.html#id33" title="Pierre Gaillard, Yannig Goude, Laurent Plagne, Thibaut Dubois, and Benoit Thieurmel. Opera, a r package, online prediction by expert aggregation (v1.1). 2016.">Gaillard <em>et al.</em>, 2016</a>]</span>.</p>
 <p>Rather than tracking absolute losses, MLpol tracks the <strong>Linearized Pseudo-Regret</strong> <span class="math notranslate nohighlight">\(r_{k,t}\)</span> of each expert against the aggregated consensus:</p>
 <div class="math-wrapper docutils container">
 <div class="math notranslate nohighlight">
@@ -376,7 +376,7 @@
 <div class="math notranslate nohighlight">
 \[R_{k,t} = \sum_{s=1}^t r_{k,s}\]</div>
 </div>
-<p>According to the polynomial potential bounds established by Cesa-Bianchi and Lugosi <span class="bibtex-citation" id="id6">[<a class="reference internal" href="../../bibliography.html#id15" title="Nicolo Cesa-Bianchi and Gábor Lugosi. Prediction, learning, and games. Cambridge university press, 2006.">Cesa-Bianchi and Lugosi, 2006</a>]</span>, the optimal weight update is proportional to the gradient of the squared positive regret. The TAM implementation strictly translates this as applying a Rectified Linear Unit (ReLU) to the cumulative regret, multiplied by an adaptive learning rate <span class="math notranslate nohighlight">\(\eta_{k,t}\)</span>:</p>
+<p>According to the polynomial potential bounds established by Cesa-Bianchi and Lugosi <span class="bibtex-citation" id="id6">[<a class="reference internal" href="../../bibliography.html#id17" title="Nicolo Cesa-Bianchi and Gábor Lugosi. Prediction, learning, and games. Cambridge university press, 2006.">Cesa-Bianchi and Lugosi, 2006</a>]</span>, the optimal weight update is proportional to the gradient of the squared positive regret. The TAM implementation strictly translates this as applying a Rectified Linear Unit (ReLU) to the cumulative regret, multiplied by an adaptive learning rate <span class="math notranslate nohighlight">\(\eta_{k,t}\)</span>:</p>
 <div class="math-wrapper docutils container">
 <div class="math notranslate nohighlight">
 \[w_{k,t+1} = \frac{\eta_{k,t} \max(0, R_{k,t})}{\sum_{j=1}^K \eta_{j,t} \max(0, R_{j,t})}\]</div>
@@ -387,7 +387,7 @@ To mathematically guarantee that the algorithm operates within optimal theoretic
 <div class="math notranslate nohighlight">
 \[\eta_{k,t} = \left( \frac{1}{\eta_{k,t-1}} + r_{k,t}^2 + \max_j \left( w_{j,t} [r_{j,t}]_+^2 \right) \right)^{-1}\]</div>
 </div>
-<p>This analytically guarantees convergence without requiring the user to tune any parameters <span class="bibtex-citation" id="id7">[<a class="reference internal" href="../../bibliography.html#id31" title="Pierre Gaillard, Yannig Goude, Laurent Plagne, Thibaut Dubois, and Benoit Thieurmel. Opera, a r package, online prediction by expert aggregation (v1.1). 2016.">Gaillard <em>et al.</em>, 2016</a>]</span>.</p>
+<p>This analytically guarantees convergence without requiring the user to tune any parameters <span class="bibtex-citation" id="id7">[<a class="reference internal" href="../../bibliography.html#id33" title="Pierre Gaillard, Yannig Goude, Laurent Plagne, Thibaut Dubois, and Benoit Thieurmel. Opera, a r package, online prediction by expert aggregation (v1.1). 2016.">Gaillard <em>et al.</em>, 2016</a>]</span>.</p>
 </section>
 <hr class="docutils" />
 <section id="d-tensor-batching-gigadata-scaling">
@@ -395,7 +395,7 @@ To mathematically guarantee that the algorithm operates within optimal theoretic
 <p>The original OPERA implementation sequentially loops through the time series step-by-step. However, executing a standard <code class="docutils literal notranslate"><span class="pre">for</span> <span class="pre">t</span> <span class="pre">in</span> <span class="pre">range(T):</span></code> loop in Python over millions of smart-meter rows triggers severe CPU-GPU kernel launch bottlenecks, effectively paralyzing the hardware.</p>
 <p>To solve this, <code class="docutils literal notranslate"><span class="pre">OperaTAM</span></code> re-architects the online aggregation into a <strong>3D Tensor Batching</strong> paradigm.
 The historical data is padded and reshaped into a contiguous GPU tensor of dimensions <code class="docutils literal notranslate"><span class="pre">(Batch,</span> <span class="pre">Time,</span> <span class="pre">Experts)</span></code>, where the <code class="docutils literal notranslate"><span class="pre">Batch</span></code> dimension represents independent spatial groups (e.g., thousands of distinct energy substations).</p>
-<p>The sequential mathematical loop is then decorated with <code class="docutils literal notranslate"><span class="pre">&#64;torch.jit.script</span></code>. This compiles the sequential MLpol evaluation, simultaneously tracking the regret sequences for thousands of independent groups in a single pass without standard Python loop overhead. This fuses the theoretical purity of the OPERA framework <span class="bibtex-citation" id="id8">[<a class="reference internal" href="../../bibliography.html#id31" title="Pierre Gaillard, Yannig Goude, Laurent Plagne, Thibaut Dubois, and Benoit Thieurmel. Opera, a r package, online prediction by expert aggregation (v1.1). 2016.">Gaillard <em>et al.</em>, 2016</a>]</span> with the raw computational velocity of modern deep learning infrastructures.</p>
+<p>The sequential mathematical loop is then decorated with <code class="docutils literal notranslate"><span class="pre">&#64;torch.jit.script</span></code>. This compiles the sequential MLpol evaluation, simultaneously tracking the regret sequences for thousands of independent groups in a single pass without standard Python loop overhead. This fuses the theoretical purity of the OPERA framework <span class="bibtex-citation" id="id8">[<a class="reference internal" href="../../bibliography.html#id33" title="Pierre Gaillard, Yannig Goude, Laurent Plagne, Thibaut Dubois, and Benoit Thieurmel. Opera, a r package, online prediction by expert aggregation (v1.1). 2016.">Gaillard <em>et al.</em>, 2016</a>]</span> with the raw computational velocity of modern deep learning infrastructures.</p>
 </section>
 </section>
 
@@ -428,7 +428,7 @@ The historical data is padded and reshaped into a contiguous GPU tensor of dimen
         <div class="bottom-of-page">
           <div class="left-details">
             <div class="copyright">
-                Copyright &#169; 2026, Yann Allioux, Nathan Doumèche, Éloi Bedek
+                Copyright &#169; 2025-2026 Électricité de France (contributors: Yann Allioux); 2023-2025 Électricité de France, Sorbonne Université (contributors: Nathan Doumèche, Éloi Bedek)
             </div>
             Made with <a href="https://www.sphinx-doc.org/">Sphinx</a> and <a class="muted-link" href="https://pradyunsg.me">@pradyunsg</a>'s
             
@@ -473,7 +473,7 @@ The historical data is padded and reshaped into a contiguous GPU tensor of dimen
       
     </aside>
   </div>
-</div><script src="../../_static/documentation_options.js?v=36f53d34"></script>
+</div><script src="../../_static/documentation_options.js?v=010db75e"></script>
     <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/scripts/furo.js?v=46bd48cc"></script>

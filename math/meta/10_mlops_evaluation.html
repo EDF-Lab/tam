@@ -7,7 +7,7 @@
         <link rel="prefetch" href="../../_static/logo.png" as="image">
 
     <!-- Generated with Sphinx 9.1.0 and Furo 2025.12.19 -->
-        <title>Empirical Evaluation and MLOps Diagnostics - TAM 1.2.5 documentation</title>
+        <title>Empirical Evaluation and MLOps Diagnostics - TAM 1.2.6 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=d111a655" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo-extensions.css?v=8dab3a3b" />
@@ -162,7 +162,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="../../index.html"><div class="brand">TAM 1.2.5 documentation</div></a>
+      <a href="../../index.html"><div class="brand">TAM 1.2.6 documentation</div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -186,7 +186,7 @@
     <img class="sidebar-logo" src="../../_static/logo.png" alt="Logo"/>
   </div>
   
-  <span class="sidebar-brand-text">TAM 1.2.5 documentation</span>
+  <span class="sidebar-brand-text">TAM 1.2.6 documentation</span>
   
 </a><form class="sidebar-search-container" method="get" action="../../search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
@@ -321,7 +321,7 @@
 <hr class="docutils" />
 <section id="the-mathematics-of-forecasting-metrics">
 <h2>1. The Mathematics of Forecasting Metrics<a class="headerlink" href="#the-mathematics-of-forecasting-metrics" title="Link to this heading">¶</a></h2>
-<p>The evaluation engine computes a diverse suite of metrics because no single mathematical norm captures all dimensions of predictive failure <span class="bibtex-citation" id="id1">[<a class="reference internal" href="../../bibliography.html#id105" title="Rob J Hyndman and Anne B Koehler. Another look at measures of forecast accuracy. International journal of forecasting, 22(4):679–688, 2006.">Hyndman and Koehler, 2006</a>]</span>.</p>
+<p>The evaluation engine computes a diverse suite of metrics because no single mathematical norm captures all dimensions of predictive failure <span class="bibtex-citation" id="id1">[<a class="reference internal" href="../../bibliography.html#id107" title="Rob J Hyndman and Anne B Koehler. Another look at measures of forecast accuracy. International journal of forecasting, 22(4):679–688, 2006.">Hyndman and Koehler, 2006</a>]</span>.</p>
 <section id="l-1-and-l-2-loss-metrics">
 <h3><span class="math notranslate nohighlight">\(L_1\)</span> and <span class="math notranslate nohighlight">\(L_2\)</span> Loss Metrics<a class="headerlink" href="#l-1-and-l-2-loss-metrics" title="Link to this heading">¶</a></h3>
 <p>The fundamental scale-dependent metrics measure the absolute magnitude of the error:</p>
@@ -338,7 +338,7 @@
 <div class="math notranslate nohighlight">
 \[\text{RMSE} = \sqrt{ \frac{1}{N} \sum_{i=1}^N (Y_i - \hat{Y}_i)^2 }\]</div>
 </div>
-<p>Because RMSE is based on the <span class="math notranslate nohighlight">\(L_2\)</span> norm, it penalizes the variance of the errors <span class="bibtex-citation" id="id2">[<a class="reference internal" href="../../bibliography.html#id106" title="Tianfeng Chai and Roland R Draxler. Root mean square error (rmse) or mean absolute error (mae)?–arguments against avoiding rmse in the literature. Geoscientific model development, 7(3):1247–1250, 2014.">Chai and Draxler, 2014</a>]</span>. A model with a low MAE but a high RMSE indicates that while it is generally accurate, it occasionally makes catastrophic forecasting errors.</p>
+<p>Because RMSE is based on the <span class="math notranslate nohighlight">\(L_2\)</span> norm, it penalizes the variance of the errors <span class="bibtex-citation" id="id2">[<a class="reference internal" href="../../bibliography.html#id108" title="Tianfeng Chai and Roland R Draxler. Root mean square error (rmse) or mean absolute error (mae)?–arguments against avoiding rmse in the literature. Geoscientific model development, 7(3):1247–1250, 2014.">Chai and Draxler, 2014</a>]</span>. A model with a low MAE but a high RMSE indicates that while it is generally accurate, it occasionally makes catastrophic forecasting errors.</p>
 </li>
 </ul>
 </section>
@@ -358,7 +358,7 @@
 <div class="math notranslate nohighlight">
 \[\text{SMAPE} = \frac{100}{N} \sum_{i=1}^N \frac{|Y_i - \hat{Y}_i|}{(|Y_i| + |\hat{Y}_i|)/2}\]</div>
 </div>
-<p>To construct a mathematically safe environment for the <code class="docutils literal notranslate"><span class="pre">AutoTAM</span></code> orchestrator, the framework relies heavily on SMAPE <span class="bibtex-citation" id="id3">[<a class="reference internal" href="../../bibliography.html#id105" title="Rob J Hyndman and Anne B Koehler. Another look at measures of forecast accuracy. International journal of forecasting, 22(4):679–688, 2006.">Hyndman and Koehler, 2006</a>]</span>. By dividing by the average of the true and predicted values, SMAPE strictly bounds the maximum error for any single observation to exactly <span class="math notranslate nohighlight">\(200\%\)</span>. This guarantees that a single zero-target anomaly cannot destabilize the global fitness function during evolutionary hyperparameter search.</p>
+<p>To construct a mathematically safe environment for the <code class="docutils literal notranslate"><span class="pre">AutoTAM</span></code> orchestrator, the framework relies heavily on SMAPE <span class="bibtex-citation" id="id3">[<a class="reference internal" href="../../bibliography.html#id107" title="Rob J Hyndman and Anne B Koehler. Another look at measures of forecast accuracy. International journal of forecasting, 22(4):679–688, 2006.">Hyndman and Koehler, 2006</a>]</span>. By dividing by the average of the true and predicted values, SMAPE strictly bounds the maximum error for any single observation to exactly <span class="math notranslate nohighlight">\(200\%\)</span>. This guarantees that a single zero-target anomaly cannot destabilize the global fitness function during evolutionary hyperparameter search.</p>
 </li>
 </ul>
 </section>
@@ -380,7 +380,7 @@ It computes the performance ratio:</p>
 <h2>3. Residual Autocorrelation (The Durbin-Watson Proxy)<a class="headerlink" href="#residual-autocorrelation-the-durbin-watson-proxy" title="Link to this heading">¶</a></h2>
 <p>If a Generalized Additive Model perfectly captures the conditional expectation <span class="math notranslate nohighlight">\(\mu(X)\)</span>, the residuals <span class="math notranslate nohighlight">\(\epsilon_t = Y_t - \hat{Y}_t\)</span> must be pure White Noise (<span class="math notranslate nohighlight">\(\mathbb{E}[\epsilon_t \epsilon_{t-k}] = 0\)</span> for all <span class="math notranslate nohighlight">\(k &gt; 0\)</span>).</p>
 <p>If the residuals exhibit serial correlation, it proves the current topology is missing a critical time-dependent feature (e.g., an unmodeled daily seasonality or an auto-regressive tensor product).</p>
-<p>The <code class="docutils literal notranslate"><span class="pre">analyze_residuals</span></code> module computes the <strong>Lag-1 Autocorrelation</strong> (<span class="math notranslate nohighlight">\(\rho_1\)</span>) as a highly efficient computational proxy for the canonical Durbin-Watson (<span class="math notranslate nohighlight">\(DW\)</span>) statistic <span class="bibtex-citation" id="id4">[<a class="reference internal" href="../../bibliography.html#id93" title="James Durbin and Geoffrey S Watson. Testing for serial correlation in least squares regression: i. Biometrika, 37(3/4):409–428, 1950.">Durbin and Watson, 1950</a>]</span>.</p>
+<p>The <code class="docutils literal notranslate"><span class="pre">analyze_residuals</span></code> module computes the <strong>Lag-1 Autocorrelation</strong> (<span class="math notranslate nohighlight">\(\rho_1\)</span>) as a highly efficient computational proxy for the canonical Durbin-Watson (<span class="math notranslate nohighlight">\(DW\)</span>) statistic <span class="bibtex-citation" id="id4">[<a class="reference internal" href="../../bibliography.html#id95" title="James Durbin and Geoffrey S Watson. Testing for serial correlation in least squares regression: i. Biometrika, 37(3/4):409–428, 1950.">Durbin and Watson, 1950</a>]</span>.</p>
 <p>The classical <span class="math notranslate nohighlight">\(DW\)</span> test evaluates:</p>
 <div class="math-wrapper docutils container">
 <div class="math notranslate nohighlight">
@@ -429,7 +429,7 @@ It computes the performance ratio:</p>
         <div class="bottom-of-page">
           <div class="left-details">
             <div class="copyright">
-                Copyright &#169; 2026, Yann Allioux, Nathan Doumèche, Éloi Bedek
+                Copyright &#169; 2025-2026 Électricité de France (contributors: Yann Allioux); 2023-2025 Électricité de France, Sorbonne Université (contributors: Nathan Doumèche, Éloi Bedek)
             </div>
             Made with <a href="https://www.sphinx-doc.org/">Sphinx</a> and <a class="muted-link" href="https://pradyunsg.me">@pradyunsg</a>'s
             
@@ -474,7 +474,7 @@ It computes the performance ratio:</p>
       
     </aside>
   </div>
-</div><script src="../../_static/documentation_options.js?v=36f53d34"></script>
+</div><script src="../../_static/documentation_options.js?v=010db75e"></script>
     <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/scripts/furo.js?v=46bd48cc"></script>

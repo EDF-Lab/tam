@@ -7,7 +7,7 @@
         <link rel="prefetch" href="../../_static/logo.png" as="image">
 
     <!-- Generated with Sphinx 9.1.0 and Furo 2025.12.19 -->
-        <title>Adaptive Online Learning (AdaptiveTAM) - TAM 1.2.5 documentation</title>
+        <title>Adaptive Online Learning (AdaptiveTAM) - TAM 1.2.6 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=d111a655" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo-extensions.css?v=8dab3a3b" />
@@ -162,7 +162,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="../../index.html"><div class="brand">TAM 1.2.5 documentation</div></a>
+      <a href="../../index.html"><div class="brand">TAM 1.2.6 documentation</div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -186,7 +186,7 @@
     <img class="sidebar-logo" src="../../_static/logo.png" alt="Logo"/>
   </div>
   
-  <span class="sidebar-brand-text">TAM 1.2.5 documentation</span>
+  <span class="sidebar-brand-text">TAM 1.2.6 documentation</span>
   
 </a><form class="sidebar-search-container" method="get" action="../../search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
@@ -316,8 +316,8 @@
 <li><p><strong>Related code architecture:</strong> <a class="reference internal" href="../../architecture/meta/01_adaptive_code.html"><span class="std std-doc">See the Code Architecture</span></a></p></li>
 <li><p><strong>Alternative tracking:</strong> <a class="reference internal" href="02_kalman_filter.html"><span class="std std-doc">Kalman Filter Theory</span></a></p></li>
 </ul>
-<p>Standard Generalized Additive Models (GAMs) assume the underlying data generating process is globally stationary <span class="bibtex-citation" id="id1">[<a class="reference internal" href="../../bibliography.html#id40" title="Trevor J Hastie. Generalized additive models. Statistical models in S, pages 249–307, 2017.">Hastie, 2017</a>]</span>. However, real-world time series, particularly in energy grids and financial markets, frequently experience concept drift, structural breaks, and unobserved localized shocks <span class="bibtex-citation" id="id2">[<a class="reference internal" href="../../bibliography.html#id24" title="Nathan Doumèche, Francis Bach, Éloi Bedek, Gérard Biau, Claire Boyer, and Yannig Goude. Forecasting time series with constraints. arXiv preprint arXiv:2502.10485, 2025.">Doumèche <em>et al.</em>, 2025</a>]</span>.</p>
-<p>To address this without continuously retraining the entire global topology, the TAM framework introduces a parallel “Online” sliding-window strategy, operationalizing the foundational principles of WeaKL-Online into a highly scalable architecture <span class="bibtex-citation" id="id3">[<a class="reference internal" href="../../bibliography.html#id24" title="Nathan Doumèche, Francis Bach, Éloi Bedek, Gérard Biau, Claire Boyer, and Yannig Goude. Forecasting time series with constraints. arXiv preprint arXiv:2502.10485, 2025.">Doumèche <em>et al.</em>, 2025</a>]</span>.</p>
+<p>Standard Generalized Additive Models (GAMs) assume the underlying data generating process is globally stationary <span class="bibtex-citation" id="id1">[<a class="reference internal" href="../../bibliography.html#id42" title="Trevor J Hastie. Generalized additive models. Statistical models in S, pages 249–307, 2017.">Hastie, 2017</a>]</span>. However, real-world time series, particularly in energy grids and financial markets, frequently experience concept drift, structural breaks, and unobserved localized shocks <span class="bibtex-citation" id="id2">[<a class="reference internal" href="../../bibliography.html#id26" title="Nathan Doumèche, Francis Bach, Éloi Bedek, Gérard Biau, Claire Boyer, and Yannig Goude. Forecasting time series with constraints. arXiv preprint arXiv:2502.10485, 2025.">Doumèche <em>et al.</em>, 2025</a>]</span>.</p>
+<p>To address this without continuously retraining the entire global topology, the TAM framework introduces a parallel “Online” sliding-window strategy, operationalizing the foundational principles of WeaKL-Online into a highly scalable architecture <span class="bibtex-citation" id="id3">[<a class="reference internal" href="../../bibliography.html#id26" title="Nathan Doumèche, Francis Bach, Éloi Bedek, Gérard Biau, Claire Boyer, and Yannig Goude. Forecasting time series with constraints. arXiv preprint arXiv:2502.10485, 2025.">Doumèche <em>et al.</em>, 2025</a>]</span>.</p>
 <p>For alternative approaches dealing with state-space stochasticity rather than deterministic windows, please refer to the continuous tracking methods (<a class="reference internal" href="02_kalman_filter.html"><span class="std std-doc">See Dynamic Tracking via Extended Kalman Filtering</span></a>).</p>
 <section id="the-two-stage-expert-corrector-architecture">
 <h2>The Two-Stage “Expert-Corrector” Architecture<a class="headerlink" href="#the-two-stage-expert-corrector-architecture" title="Link to this heading">¶</a></h2>
@@ -362,7 +362,7 @@
 <div class="math notranslate nohighlight">
 \[\nabla_\theta \mathcal{L}_t(\theta) = -2 \Phi_{adapt, W}^\top \Lambda_{W}^\top \Lambda_{W} (\epsilon_{W} - \Phi_{adapt, W}\theta) + 2 W P \theta = 0\]</div>
 </div>
-<p>Solving for <span class="math notranslate nohighlight">\(\theta\)</span> yields the exact local primal minimizer computed via direct linear algebra <span class="bibtex-citation" id="id4">[<a class="reference internal" href="../../bibliography.html#id24" title="Nathan Doumèche, Francis Bach, Éloi Bedek, Gérard Biau, Claire Boyer, and Yannig Goude. Forecasting time series with constraints. arXiv preprint arXiv:2502.10485, 2025.">Doumèche <em>et al.</em>, 2025</a>]</span>:</p>
+<p>Solving for <span class="math notranslate nohighlight">\(\theta\)</span> yields the exact local primal minimizer computed via direct linear algebra <span class="bibtex-citation" id="id4">[<a class="reference internal" href="../../bibliography.html#id26" title="Nathan Doumèche, Francis Bach, Éloi Bedek, Gérard Biau, Claire Boyer, and Yannig Goude. Forecasting time series with constraints. arXiv preprint arXiv:2502.10485, 2025.">Doumèche <em>et al.</em>, 2025</a>]</span>:</p>
 <div class="math-wrapper docutils container">
 <div class="math notranslate nohighlight">
 \[\hat{\theta}_{adapt, t} = \left( \Phi_{adapt, W}^\top \Lambda_{W}^\top \Lambda_{W} \Phi_{adapt, W} + W \cdot P \right)^{-1} \Phi_{adapt, W}^\top \Lambda_{W}^\top \Lambda_{W} \epsilon_{W}\]</div>
@@ -401,7 +401,7 @@
         <div class="bottom-of-page">
           <div class="left-details">
             <div class="copyright">
-                Copyright &#169; 2026, Yann Allioux, Nathan Doumèche, Éloi Bedek
+                Copyright &#169; 2025-2026 Électricité de France (contributors: Yann Allioux); 2023-2025 Électricité de France, Sorbonne Université (contributors: Nathan Doumèche, Éloi Bedek)
             </div>
             Made with <a href="https://www.sphinx-doc.org/">Sphinx</a> and <a class="muted-link" href="https://pradyunsg.me">@pradyunsg</a>'s
             
@@ -448,7 +448,7 @@
       
     </aside>
   </div>
-</div><script src="../../_static/documentation_options.js?v=36f53d34"></script>
+</div><script src="../../_static/documentation_options.js?v=010db75e"></script>
     <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/scripts/furo.js?v=46bd48cc"></script>

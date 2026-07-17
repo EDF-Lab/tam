@@ -7,7 +7,7 @@
         <link rel="prefetch" href="../../_static/logo.png" as="image">
 
     <!-- Generated with Sphinx 9.1.0 and Furo 2025.12.19 -->
-        <title>The PID Effect (Autoregressive Control Dynamics) - TAM 1.2.5 documentation</title>
+        <title>The PID Effect (Autoregressive Control Dynamics) - TAM 1.2.6 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=d111a655" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo-extensions.css?v=8dab3a3b" />
@@ -162,7 +162,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="../../index.html"><div class="brand">TAM 1.2.5 documentation</div></a>
+      <a href="../../index.html"><div class="brand">TAM 1.2.6 documentation</div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -186,7 +186,7 @@
     <img class="sidebar-logo" src="../../_static/logo.png" alt="Logo"/>
   </div>
   
-  <span class="sidebar-brand-text">TAM 1.2.5 documentation</span>
+  <span class="sidebar-brand-text">TAM 1.2.6 documentation</span>
   
 </a><form class="sidebar-search-container" method="get" action="../../search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
@@ -317,9 +317,9 @@
 </ul>
 <section id="theoretical-critique-ar-p-over-parameterization-vs-physical-momentum">
 <h2>Theoretical Critique: AR(<span class="math notranslate nohighlight">\(p\)</span>) Over-parameterization vs. Physical Momentum<a class="headerlink" href="#theoretical-critique-ar-p-over-parameterization-vs-physical-momentum" title="Link to this heading">¶</a></h2>
-<p>In time-series forecasting, standard models traditionally treat autoregressive target lags (e.g., <span class="math notranslate nohighlight">\(y_{t-1}, y_{t-2}, \dots, y_{t-p}\)</span>) as independent linear terms. While the Box-Jenkins methodology for ARMA modeling <span class="bibtex-citation" id="id1">[<a class="reference internal" href="../../bibliography.html#id11" title="George EP Box, Gwilym M Jenkins, Gregory C Reinsel, and Greta M Ljung. Time series analysis: forecasting and control. John Wiley &amp; Sons, 2015.">Box <em>et al.</em>, 2015</a>]</span> relies on statistical correlation to estimate these weights, this purely data-driven approach possesses a severe structural flaw when dealing with noisy physical systems (e.g., power grids or thermal masses).</p>
+<p>In time-series forecasting, standard models traditionally treat autoregressive target lags (e.g., <span class="math notranslate nohighlight">\(y_{t-1}, y_{t-2}, \dots, y_{t-p}\)</span>) as independent linear terms. While the Box-Jenkins methodology for ARMA modeling <span class="bibtex-citation" id="id1">[<a class="reference internal" href="../../bibliography.html#id13" title="George EP Box, Gwilym M Jenkins, Gregory C Reinsel, and Greta M Ljung. Time series analysis: forecasting and control. John Wiley &amp; Sons, 2015.">Box <em>et al.</em>, 2015</a>]</span> relies on statistical correlation to estimate these weights, this purely data-driven approach possesses a severe structural flaw when dealing with noisy physical systems (e.g., power grids or thermal masses).</p>
 <p>An unconstrained AR(<span class="math notranslate nohighlight">\(p\)</span>) process treats every lag as a free parameter, frequently overfitting to high-frequency stochastic noise and failing to explicitly capture the underlying physical momentum and inertial dynamics.</p>
-<p>To mathematically constrain the model’s internal memory, the TAM framework projects the autoregressive lags into a discrete <strong>Proportional-Integral-Derivative (PID)</strong> space. Originally formalized mathematically by Nicolas Minorsky in 1922 for the automatic steering of naval vessels <span class="bibtex-citation" id="id2">[<a class="reference internal" href="../../bibliography.html#id54" title="Nicolas Minorsky. Directional stability of automatically steered bodies. Journal of the American Society for Naval Engineers, 34(2):280–309, 1922.">Minorsky, 1922</a>]</span>, this acts as a highly interpretable, physics-informed inductive bias. It forces the hypothesis space to map the target’s past states into three explicit dynamic components <span class="bibtex-citation" id="id3">[<a class="reference internal" href="../../bibliography.html#id2" title="Karl Johan Åström and Richard Murray. Feedback systems: an introduction for scientists and engineers. Princeton university press, 2021.">Åström and Murray, 2021</a>]</span>:</p>
+<p>To mathematically constrain the model’s internal memory, the TAM framework projects the autoregressive lags into a discrete <strong>Proportional-Integral-Derivative (PID)</strong> space. Originally formalized mathematically by Nicolas Minorsky in 1922 for the automatic steering of naval vessels <span class="bibtex-citation" id="id2">[<a class="reference internal" href="../../bibliography.html#id56" title="Nicolas Minorsky. Directional stability of automatically steered bodies. Journal of the American Society for Naval Engineers, 34(2):280–309, 1922.">Minorsky, 1922</a>]</span>, this acts as a highly interpretable, physics-informed inductive bias. It forces the hypothesis space to map the target’s past states into three explicit dynamic components <span class="bibtex-citation" id="id3">[<a class="reference internal" href="../../bibliography.html#id2" title="Karl Johan Åström and Richard Murray. Feedback systems: an introduction for scientists and engineers. Princeton university press, 2021.">Åström and Murray, 2021</a>]</span>:</p>
 <ol class="arabic simple">
 <li><p><strong>Proportional (<span class="math notranslate nohighlight">\(P\)</span>):</strong> The immediate reaction to the most recent state (<span class="math notranslate nohighlight">\(y_{t-1}\)</span>).</p></li>
 <li><p><strong>Integral (<span class="math notranslate nohighlight">\(I\)</span>):</strong> The accumulation of past states to capture long-term baseline drift and physical inertia. To maintain numerical parity, this is computed as a sliding rolling mean over a predefined window <span class="math notranslate nohighlight">\(w\)</span>.</p></li>
@@ -363,12 +363,12 @@
 <div class="math notranslate nohighlight">
 \[D(z) = z^w - a_1 z^{w-1} - a_2 z^{w-2} - \dots - \frac{K_i}{w}\]</div>
 </div>
-<p>By evaluating <span class="math notranslate nohighlight">\(H(z = e^{j\omega})\)</span>, the framework explicitly generates <strong>Bode plots</strong> of the learned machine learning model. This frequency-response visualization technique, pioneered by Hendrik W. Bode in the 1940s for amplifier stability <span class="bibtex-citation" id="id5">[<a class="reference internal" href="../../bibliography.html#id10" title="Hendrik W Bode. Network analysis and feedback amplifier design. 1945.">Bode, 1945</a>]</span>, allows us to inspect the exact gain and phase margins of the GAM.</p>
+<p>By evaluating <span class="math notranslate nohighlight">\(H(z = e^{j\omega})\)</span>, the framework explicitly generates <strong>Bode plots</strong> of the learned machine learning model. This frequency-response visualization technique, pioneered by Hendrik W. Bode in the 1940s for amplifier stability <span class="bibtex-citation" id="id5">[<a class="reference internal" href="../../bibliography.html#id12" title="Hendrik W Bode. Network analysis and feedback amplifier design. 1945.">Bode, 1945</a>]</span>, allows us to inspect the exact gain and phase margins of the GAM.</p>
 <p>If the maximum magnitude of the complex roots (poles) of <span class="math notranslate nohighlight">\(D(z)\)</span> is strictly less than <span class="math notranslate nohighlight">\(1.0\)</span>, the model is mathematically proven to be <strong>BIBO (Bounded-Input Bounded-Output) stable</strong> <span class="bibtex-citation" id="id6">[<a class="reference internal" href="../../bibliography.html#id2" title="Karl Johan Åström and Richard Murray. Feedback systems: an introduction for scientists and engineers. Princeton university press, 2021.">Åström and Murray, 2021</a>]</span>. This guarantees that the machine learning forecaster will not inject resonant instabilities if deployed inside a live Model Predictive Control (MPC) loop.</p>
 </section>
 <section id="rkhs-eligibility-theoretical-integration">
 <h2>RKHS Eligibility &amp; Theoretical Integration<a class="headerlink" href="#rkhs-eligibility-theoretical-integration" title="Link to this heading">¶</a></h2>
-<p>The PID effect is a direct, finite-dimensional linear mapping of endogenous lag states. When equipped with the strictly positive definite penalty matrix <span class="math notranslate nohighlight">\(P_{pid}\)</span>, it rigorously satisfies Mercer’s conditions, operating as a valid Reproducing Kernel Hilbert Space (RKHS) <span class="bibtex-citation" id="id7">[<a class="reference internal" href="../../bibliography.html#id7" title="Nachman Aronszajn. Theory of reproducing kernels. Transactions of the American mathematical society, 68(3):337–404, 1950.">Aronszajn, 1950</a>]</span>.</p>
+<p>The PID effect is a direct, finite-dimensional linear mapping of endogenous lag states. When equipped with the strictly positive definite penalty matrix <span class="math notranslate nohighlight">\(P_{pid}\)</span>, it rigorously satisfies Mercer’s conditions, operating as a valid Reproducing Kernel Hilbert Space (RKHS) <span class="bibtex-citation" id="id7">[<a class="reference internal" href="../../bibliography.html#id9" title="Nachman Aronszajn. Theory of reproducing kernels. Transactions of the American mathematical society, 68(3):337–404, 1950.">Aronszajn, 1950</a>]</span>.</p>
 <p>By isolating the autoregressive target dynamics into this specific functional space, the TAM framework cleanly separates the endogenous inertia of the system from the exogenous drivers (like Splines for temperature or Fourier series for seasonality). Both spaces are concatenated and solved simultaneously within the exact, closed-form inversion of the global Primal matrix on the GPU. This allows continuous hyperparameter optimization to perfectly balance statistical likelihood with rigorous physical stability.</p>
 </section>
 </section>
@@ -402,7 +402,7 @@
         <div class="bottom-of-page">
           <div class="left-details">
             <div class="copyright">
-                Copyright &#169; 2026, Yann Allioux, Nathan Doumèche, Éloi Bedek
+                Copyright &#169; 2025-2026 Électricité de France (contributors: Yann Allioux); 2023-2025 Électricité de France, Sorbonne Université (contributors: Nathan Doumèche, Éloi Bedek)
             </div>
             Made with <a href="https://www.sphinx-doc.org/">Sphinx</a> and <a class="muted-link" href="https://pradyunsg.me">@pradyunsg</a>'s
             
@@ -444,7 +444,7 @@
       
     </aside>
   </div>
-</div><script src="../../_static/documentation_options.js?v=36f53d34"></script>
+</div><script src="../../_static/documentation_options.js?v=010db75e"></script>
     <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/scripts/furo.js?v=46bd48cc"></script>

@@ -7,7 +7,7 @@
         <link rel="prefetch" href="../../_static/logo.png" as="image">
 
     <!-- Generated with Sphinx 9.1.0 and Furo 2025.12.19 -->
-        <title>The Linear Tree Effect (Varying-Coefficient Models) - TAM 1.2.5 documentation</title>
+        <title>The Linear Tree Effect (Varying-Coefficient Models) - TAM 1.2.6 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=d111a655" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo-extensions.css?v=8dab3a3b" />
@@ -162,7 +162,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="../../index.html"><div class="brand">TAM 1.2.5 documentation</div></a>
+      <a href="../../index.html"><div class="brand">TAM 1.2.6 documentation</div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -186,7 +186,7 @@
     <img class="sidebar-logo" src="../../_static/logo.png" alt="Logo"/>
   </div>
   
-  <span class="sidebar-brand-text">TAM 1.2.5 documentation</span>
+  <span class="sidebar-brand-text">TAM 1.2.6 documentation</span>
   
 </a><form class="sidebar-search-container" method="get" action="../../search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
@@ -318,7 +318,7 @@
 <section id="formula-definition-varying-coefficient-networks">
 <h2>Formula Definition: Varying-Coefficient Networks<a class="headerlink" href="#formula-definition-varying-coefficient-networks" title="Link to this heading">¶</a></h2>
 <p>By definition, a standard <code class="docutils literal notranslate"><span class="pre">TreeEffect</span></code> constructs a piecewise-constant response surface. It perfectly isolates spatial jumps and structural breaks but cannot calculate local gradients or continuous linear slopes within its terminal leaves.</p>
-<p>To build <strong>Piecewise Continuous Regressions</strong>, the TAM framework elevates the “Linear Tree” concept into a rigorous <strong>Varying-Coefficient (VC) Model</strong> <span class="bibtex-citation" id="id1">[<a class="reference internal" href="../../bibliography.html#id39" title="Trevor Hastie and Robert Tibshirani. Varying-coefficient models. Journal of the Royal Statistical Society Series B: Statistical Methodology, 55(4):757–779, 1993.">Hastie and Tibshirani, 1993</a>]</span>. The <code class="docutils literal notranslate"><span class="pre">LinearTreeEffect</span></code> (<code class="docutils literal notranslate"><span class="pre">lt</span></code>) explicitly decouples the variables defining the <strong>partitions/geography</strong> (<span class="math notranslate nohighlight">\(x_{part}\)</span>) from the continuous variables defining the <strong>local slopes</strong> (<span class="math notranslate nohighlight">\(x_{slope}\)</span>).</p>
+<p>To build <strong>Piecewise Continuous Regressions</strong>, the TAM framework elevates the “Linear Tree” concept into a rigorous <strong>Varying-Coefficient (VC) Model</strong> <span class="bibtex-citation" id="id1">[<a class="reference internal" href="../../bibliography.html#id41" title="Trevor Hastie and Robert Tibshirani. Varying-coefficient models. Journal of the Royal Statistical Society Series B: Statistical Methodology, 55(4):757–779, 1993.">Hastie and Tibshirani, 1993</a>]</span>. The <code class="docutils literal notranslate"><span class="pre">LinearTreeEffect</span></code> (<code class="docutils literal notranslate"><span class="pre">lt</span></code>) explicitly decouples the variables defining the <strong>partitions/geography</strong> (<span class="math notranslate nohighlight">\(x_{part}\)</span>) from the continuous variables defining the <strong>local slopes</strong> (<span class="math notranslate nohighlight">\(x_{slope}\)</span>).</p>
 <p>Mathematically, it encapsulates a base tree (acting as the local intercept <span class="math notranslate nohighlight">\(\beta_0(x_{part})\)</span>) and a tensor product of a slope tree with a linear effect (acting as the varying gradient <span class="math notranslate nohighlight">\(\beta_1(x_{part})\)</span>). The explicit Primal feature mapping geometrically concatenates these two spaces:</p>
 <div class="math-wrapper docutils container">
 <div class="math notranslate nohighlight">
@@ -337,13 +337,13 @@
 </section>
 <section id="theoretical-critique-resolving-mob-singularities">
 <h2>Theoretical Critique: Resolving MOB Singularities<a class="headerlink" href="#theoretical-critique-resolving-mob-singularities" title="Link to this heading">¶</a></h2>
-<p>In classical statistical literature, “Linear Trees” (such as M5 or MOB) rely on <strong>Model-Based Recursive Partitioning</strong> <span class="bibtex-citation" id="id2">[<a class="reference internal" href="../../bibliography.html#id85" title="Achim Zeileis, Torsten Hothorn, and Kurt Hornik. Model-based recursive partitioning. Journal of Computational and Graphical Statistics, 17(2):492–514, 2008.">Zeileis <em>et al.</em>, 2008</a>]</span>. These algorithms attempt to fit an unpenalized local Ordinary Least Squares (OLS) regression strictly inside every individual leaf.</p>
-<p><strong>The Singularity Flaw:</strong> As Zeileis et al. highlight, this recursive partitioning frequently triggers catastrophic matrix singularities. If a specific spatial partition (leaf) is starved of temporal data or lacks variance in the <span class="math notranslate nohighlight">\(x_{slope}\)</span> dimension, its local covariance matrix (<span class="math notranslate nohighlight">\(X^\top X\)</span>) becomes non-invertible, crashing the algorithm <span class="bibtex-citation" id="id3">[<a class="reference internal" href="../../bibliography.html#id85" title="Achim Zeileis, Torsten Hothorn, and Kurt Hornik. Model-based recursive partitioning. Journal of Computational and Graphical Statistics, 17(2):492–514, 2008.">Zeileis <em>et al.</em>, 2008</a>]</span>.</p>
+<p>In classical statistical literature, “Linear Trees” (such as M5 or MOB) rely on <strong>Model-Based Recursive Partitioning</strong> <span class="bibtex-citation" id="id2">[<a class="reference internal" href="../../bibliography.html#id87" title="Achim Zeileis, Torsten Hothorn, and Kurt Hornik. Model-based recursive partitioning. Journal of Computational and Graphical Statistics, 17(2):492–514, 2008.">Zeileis <em>et al.</em>, 2008</a>]</span>. These algorithms attempt to fit an unpenalized local Ordinary Least Squares (OLS) regression strictly inside every individual leaf.</p>
+<p><strong>The Singularity Flaw:</strong> As Zeileis et al. highlight, this recursive partitioning frequently triggers catastrophic matrix singularities. If a specific spatial partition (leaf) is starved of temporal data or lacks variance in the <span class="math notranslate nohighlight">\(x_{slope}\)</span> dimension, its local covariance matrix (<span class="math notranslate nohighlight">\(X^\top X\)</span>) becomes non-invertible, crashing the algorithm <span class="bibtex-citation" id="id3">[<a class="reference internal" href="../../bibliography.html#id87" title="Achim Zeileis, Torsten Hothorn, and Kurt Hornik. Model-based recursive partitioning. Journal of Computational and Graphical Statistics, 17(2):492–514, 2008.">Zeileis <em>et al.</em>, 2008</a>]</span>.</p>
 <p><strong>The TAM Solution:</strong> By formulating the varying-coefficient model globally via the Primal tensor product (<span class="math notranslate nohighlight">\(\Phi_{tree} \otimes \Phi_{lin}\)</span>), TAM entirely bypasses the localized OLS problem. The explicit structural penalty <span class="math notranslate nohighlight">\(P_{cross}\)</span> strictly dominates any empty or low-variance subspace. If a geographic region lacks sufficient data to resolve a local slope, the solver smoothly shrinks that unstable local gradient exactly to zero. The model safely falls back exclusively on the global linear trend, mathematically guaranteeing a globally full-rank system without algorithmic crashes.</p>
 </section>
 <section id="rkhs-eligibility">
 <h2>RKHS Eligibility<a class="headerlink" href="#rkhs-eligibility" title="Link to this heading">¶</a></h2>
-<p>The theoretical validity of this effect relies on two fundamental closure properties of Reproducing Kernel Hilbert Spaces (RKHS) proven by Aronszajn <span class="bibtex-citation" id="id4">[<a class="reference internal" href="../../bibliography.html#id7" title="Nachman Aronszajn. Theory of reproducing kernels. Transactions of the American mathematical society, 68(3):337–404, 1950.">Aronszajn, 1950</a>]</span>.</p>
+<p>The theoretical validity of this effect relies on two fundamental closure properties of Reproducing Kernel Hilbert Spaces (RKHS) proven by Aronszajn <span class="bibtex-citation" id="id4">[<a class="reference internal" href="../../bibliography.html#id9" title="Nachman Aronszajn. Theory of reproducing kernels. Transactions of the American mathematical society, 68(3):337–404, 1950.">Aronszajn, 1950</a>]</span>.</p>
 <p>First, the Kronecker product (<span class="math notranslate nohighlight">\(\otimes\)</span>) of the slope tree and the linear projection rigorously generates a valid piecewise-continuous RKHS (closure under pointwise multiplication). Second, concatenating this joint space with the base tree space via a direct sum (<span class="math notranslate nohighlight">\(\oplus\)</span>) maintains the strict positive definiteness of the global space. Therefore, the <code class="docutils literal notranslate"><span class="pre">LinearTreeEffect</span></code> operates mathematically as a perfectly valid, finite-dimensional RKHS.</p>
 </section>
 <section id="architectural-guardrails">
@@ -391,7 +391,7 @@
         <div class="bottom-of-page">
           <div class="left-details">
             <div class="copyright">
-                Copyright &#169; 2026, Yann Allioux, Nathan Doumèche, Éloi Bedek
+                Copyright &#169; 2025-2026 Électricité de France (contributors: Yann Allioux); 2023-2025 Électricité de France, Sorbonne Université (contributors: Nathan Doumèche, Éloi Bedek)
             </div>
             Made with <a href="https://www.sphinx-doc.org/">Sphinx</a> and <a class="muted-link" href="https://pradyunsg.me">@pradyunsg</a>'s
             
@@ -437,7 +437,7 @@
       
     </aside>
   </div>
-</div><script src="../../_static/documentation_options.js?v=36f53d34"></script>
+</div><script src="../../_static/documentation_options.js?v=010db75e"></script>
     <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/scripts/furo.js?v=46bd48cc"></script>

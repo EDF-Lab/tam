@@ -7,7 +7,7 @@
         <link rel="prefetch" href="../../_static/logo.png" as="image">
 
     <!-- Generated with Sphinx 9.1.0 and Furo 2025.12.19 -->
-        <title>PyTorch Math Dispatcher &amp; Matrix-Free Solvers - TAM 1.2.5 documentation</title>
+        <title>PyTorch Math Dispatcher &amp; Matrix-Free Solvers - TAM 1.2.6 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=d111a655" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo-extensions.css?v=8dab3a3b" />
@@ -162,7 +162,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="../../index.html"><div class="brand">TAM 1.2.5 documentation</div></a>
+      <a href="../../index.html"><div class="brand">TAM 1.2.6 documentation</div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -186,7 +186,7 @@
     <img class="sidebar-logo" src="../../_static/logo.png" alt="Logo"/>
   </div>
   
-  <span class="sidebar-brand-text">TAM 1.2.5 documentation</span>
+  <span class="sidebar-brand-text">TAM 1.2.6 documentation</span>
   
 </a><form class="sidebar-search-container" method="get" action="../../search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
@@ -318,7 +318,7 @@
 <p>This chapter explores how the linear algebra theory described in <a class="reference internal" href="../../math/core/03_linear_system.html"><span class="std std-doc">Linear Algebra: Direct vs. Iterative Solvers</span></a> is translated into high-performance, batched PyTorch tensor operations, seamlessly bridging statistical abstractions with low-level hardware constraints.</p>
 <section id="covariance-accumulation">
 <h2>Covariance Accumulation<a class="headerlink" href="#covariance-accumulation" title="Link to this heading">¶</a></h2>
-<p>The <code class="docutils literal notranslate"><span class="pre">_math.py</span></code> module handles the foundational matrix multiplications. The <code class="docutils literal notranslate"><span class="pre">_compute_weighted_covariances</span></code> function is responsible for building the Left-Hand Side (<code class="docutils literal notranslate"><span class="pre">cov_X</span></code>) and Right-Hand Side (<code class="docutils literal notranslate"><span class="pre">cov_XY</span></code>) of the regularized normal equations <span class="bibtex-citation" id="id1">[<a class="reference internal" href="../../bibliography.html#id24" title="Nathan Doumèche, Francis Bach, Éloi Bedek, Gérard Biau, Claire Boyer, and Yannig Goude. Forecasting time series with constraints. arXiv preprint arXiv:2502.10485, 2025.">Doumèche <em>et al.</em>, 2025</a>]</span>.</p>
+<p>The <code class="docutils literal notranslate"><span class="pre">_math.py</span></code> module handles the foundational matrix multiplications. The <code class="docutils literal notranslate"><span class="pre">_compute_weighted_covariances</span></code> function is responsible for building the Left-Hand Side (<code class="docutils literal notranslate"><span class="pre">cov_X</span></code>) and Right-Hand Side (<code class="docutils literal notranslate"><span class="pre">cov_XY</span></code>) of the regularized normal equations <span class="bibtex-citation" id="id1">[<a class="reference internal" href="../../bibliography.html#id26" title="Nathan Doumèche, Francis Bach, Éloi Bedek, Gérard Biau, Claire Boyer, and Yannig Goude. Forecasting time series with constraints. arXiv preprint arXiv:2502.10485, 2025.">Doumèche <em>et al.</em>, 2025</a>]</span>.</p>
 <p>By utilizing <code class="docutils literal notranslate"><span class="pre">torch.mT</span></code> (batched matrix transpose) and the <code class="docutils literal notranslate"><span class="pre">&#64;</span></code> operator, PyTorch computes these covariance matrices across the temporal or group batch dimension simultaneously. The script dynamically handles target weighting via a loss-weighting matrix <code class="docutils literal notranslate"><span class="pre">loss_L_star_L</span></code> prior to the dot product, ensuring that multidimensional outputs are appropriately scaled.</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">def</span><span class="w"> </span><span class="nf">_compute_weighted_covariances</span><span class="p">(</span>
     <span class="n">phi</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
@@ -373,9 +373,9 @@
 </section>
 <section id="direct-solvers-and-the-jitter-application">
 <h2>Direct Solvers and the Jitter Application<a class="headerlink" href="#direct-solvers-and-the-jitter-application" title="Link to this heading">¶</a></h2>
-<p>When the topological complexity (the feature dimension <span class="math notranslate nohighlight">\(D\)</span>) is small enough to fit safely in VRAM, the orchestrator routes the problem to the <code class="docutils literal notranslate"><span class="pre">solve_linear_system</span></code> function, which utilizes exact direct inversion via <code class="docutils literal notranslate"><span class="pre">torch.linalg.solve</span></code> <span class="bibtex-citation" id="id2">[<a class="reference internal" href="../../bibliography.html#id34" title="Gene H Golub and Charles F Van Loan. Matrix computations. The Johns Hopkins University Press, 1996.">Golub and Van Loan, 1996</a>]</span>.</p>
+<p>When the topological complexity (the feature dimension <span class="math notranslate nohighlight">\(D\)</span>) is small enough to fit safely in VRAM, the orchestrator routes the problem to the <code class="docutils literal notranslate"><span class="pre">solve_linear_system</span></code> function, which utilizes exact direct inversion via <code class="docutils literal notranslate"><span class="pre">torch.linalg.solve</span></code> <span class="bibtex-citation" id="id2">[<a class="reference internal" href="../../bibliography.html#id36" title="Gene H Golub and Charles F Van Loan. Matrix computations. The Johns Hopkins University Press, 1996.">Golub and Van Loan, 1996</a>]</span>.</p>
 <p>To guarantee that the matrix remains strictly positive-definite across diverse precision levels (Float32 vs Float64) and highly correlated feature spaces, the framework injects an adaptive Jitter.</p>
-<p>This numerical anvil adds a microscopic trace (<span class="math notranslate nohighlight">\(\delta I = 10^{-6} \times T \times I\)</span>) to the diagonal, acting as a baseline Ridge penalty <span class="bibtex-citation" id="id3">[<a class="reference internal" href="../../bibliography.html#id42" title="Arthur E Hoerl and Robert W Kennard. Ridge regression: biased estimation for nonorthogonal problems. Technometrics, 12(1):55–67, 1970.">Hoerl and Kennard, 1970</a>]</span>. This immediately stabilizes the condition number of the matrix before passing it to the underlying linear algebra backend (e.g., LAPACK for CPU, or cuSOLVER/MAGMA for GPU).</p>
+<p>This numerical anvil adds a microscopic trace (<span class="math notranslate nohighlight">\(\delta I = 10^{-6} \times T \times I\)</span>) to the diagonal, acting as a baseline Ridge penalty <span class="bibtex-citation" id="id3">[<a class="reference internal" href="../../bibliography.html#id44" title="Arthur E Hoerl and Robert W Kennard. Ridge regression: biased estimation for nonorthogonal problems. Technometrics, 12(1):55–67, 1970.">Hoerl and Kennard, 1970</a>]</span>. This immediately stabilizes the condition number of the matrix before passing it to the underlying linear algebra backend (e.g., LAPACK for CPU, or cuSOLVER/MAGMA for GPU).</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">def</span><span class="w"> </span><span class="nf">solve_linear_system</span><span class="p">(</span>
     <span class="n">cov_X</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
     <span class="n">cov_XY</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
@@ -433,7 +433,7 @@
 <h2>The Matrix-Free Conjugate Gradient<a class="headerlink" href="#the-matrix-free-conjugate-gradient" title="Link to this heading">¶</a></h2>
 <p>If the user designs a massive architecture (e.g., crossing a Random Forest with 10,000 leaves against a Fourier series), the resulting dense covariance matrix <span class="math notranslate nohighlight">\(\Phi^T \Phi\)</span> would trigger a catastrophic Out-Of-Memory (OOM) error.</p>
 <p>To bypass this physical barrier, the framework utilizes <code class="docutils literal notranslate"><span class="pre">solve_sparse_cg</span></code>, a Matrix-Free Conjugate Gradient solver.</p>
-<p>Instead of computing and allocating the massive <span class="math notranslate nohighlight">\(D \times D\)</span> system, the solver operates entirely within a Krylov subspace <span class="bibtex-citation" id="id4">[<a class="reference internal" href="../../bibliography.html#id34" title="Gene H Golub and Charles F Van Loan. Matrix computations. The Johns Hopkins University Press, 1996.">Golub and Van Loan, 1996</a>]</span>. It requires only a closure function <code class="docutils literal notranslate"><span class="pre">compute_Av(v)</span></code> that evaluates the matrix-vector product <span class="math notranslate nohighlight">\((A \cdot v)\)</span>. This allows the framework to iteratively discover the optimal coefficients <span class="math notranslate nohighlight">\(\hat{\theta}\)</span> without ever materializing the dense matrix in memory.</p>
+<p>Instead of computing and allocating the massive <span class="math notranslate nohighlight">\(D \times D\)</span> system, the solver operates entirely within a Krylov subspace <span class="bibtex-citation" id="id4">[<a class="reference internal" href="../../bibliography.html#id36" title="Gene H Golub and Charles F Van Loan. Matrix computations. The Johns Hopkins University Press, 1996.">Golub and Van Loan, 1996</a>]</span>. It requires only a closure function <code class="docutils literal notranslate"><span class="pre">compute_Av(v)</span></code> that evaluates the matrix-vector product <span class="math notranslate nohighlight">\((A \cdot v)\)</span>. This allows the framework to iteratively discover the optimal coefficients <span class="math notranslate nohighlight">\(\hat{\theta}\)</span> without ever materializing the dense matrix in memory.</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">def</span><span class="w"> </span><span class="nf">solve_sparse_cg</span><span class="p">(</span>
     <span class="n">compute_Av</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">],</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">],</span> 
     <span class="n">b</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> 
@@ -572,7 +572,7 @@
         <div class="bottom-of-page">
           <div class="left-details">
             <div class="copyright">
-                Copyright &#169; 2026, Yann Allioux, Nathan Doumèche, Éloi Bedek
+                Copyright &#169; 2025-2026 Électricité de France (contributors: Yann Allioux); 2023-2025 Électricité de France, Sorbonne Université (contributors: Nathan Doumèche, Éloi Bedek)
             </div>
             Made with <a href="https://www.sphinx-doc.org/">Sphinx</a> and <a class="muted-link" href="https://pradyunsg.me">@pradyunsg</a>'s
             
@@ -614,7 +614,7 @@
       
     </aside>
   </div>
-</div><script src="../../_static/documentation_options.js?v=36f53d34"></script>
+</div><script src="../../_static/documentation_options.js?v=010db75e"></script>
     <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/scripts/furo.js?v=46bd48cc"></script>

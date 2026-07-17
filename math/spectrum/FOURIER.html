@@ -7,7 +7,7 @@
         <link rel="prefetch" href="../../_static/logo.png" as="image">
 
     <!-- Generated with Sphinx 9.1.0 and Furo 2025.12.19 -->
-        <title>The Fourier Effect (Sobolev Spectral Basis) - TAM 1.2.5 documentation</title>
+        <title>The Fourier Effect (Sobolev Spectral Basis) - TAM 1.2.6 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=d111a655" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo-extensions.css?v=8dab3a3b" />
@@ -162,7 +162,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="../../index.html"><div class="brand">TAM 1.2.5 documentation</div></a>
+      <a href="../../index.html"><div class="brand">TAM 1.2.6 documentation</div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -186,7 +186,7 @@
     <img class="sidebar-logo" src="../../_static/logo.png" alt="Logo"/>
   </div>
   
-  <span class="sidebar-brand-text">TAM 1.2.5 documentation</span>
+  <span class="sidebar-brand-text">TAM 1.2.6 documentation</span>
   
 </a><form class="sidebar-search-container" method="get" action="../../search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
@@ -317,8 +317,8 @@
 </ul>
 <section id="foundational-theory-structural-evolution">
 <h2>Foundational Theory &amp; Structural Evolution<a class="headerlink" href="#foundational-theory-structural-evolution" title="Link to this heading">¶</a></h2>
-<p>To model rigid, deterministic seasonalities and cyclical phenomena (e.g., daily load profiles or yearly temperature variations), the framework projects the continuous input space into a frequency domain using a truncated Fourier series <span class="bibtex-citation" id="id1">[<a class="reference internal" href="../../bibliography.html#id37" title="Andrew C Harvey. Forecasting, structural time series models and the Kalman filter. Cambridge university press, 1989.">Harvey, 1989</a>]</span>.</p>
-<p>In its foundational formulation for Weak Kernel Learning (WeaKL), Doumèche et al. (2025) defined this spectral basis within a Reproducing Kernel Hilbert Space (RKHS) using complex exponentials (<span class="math notranslate nohighlight">\(e^{ikx}\)</span>). While mathematically elegant for proving convergence in Sobolev spaces <span class="bibtex-citation" id="id2">[<a class="reference internal" href="../../bibliography.html#id24" title="Nathan Doumèche, Francis Bach, Éloi Bedek, Gérard Biau, Claire Boyer, and Yannig Goude. Forecasting time series with constraints. arXiv preprint arXiv:2502.10485, 2025.">Doumèche <em>et al.</em>, 2025</a>]</span>, managing complex-number arithmetic within deep tensor autograd engines (like PyTorch) introduces severe memory and performance bottlenecks.</p>
+<p>To model rigid, deterministic seasonalities and cyclical phenomena (e.g., daily load profiles or yearly temperature variations), the framework projects the continuous input space into a frequency domain using a truncated Fourier series <span class="bibtex-citation" id="id1">[<a class="reference internal" href="../../bibliography.html#id39" title="Andrew C Harvey. Forecasting, structural time series models and the Kalman filter. Cambridge university press, 1989.">Harvey, 1989</a>]</span>.</p>
+<p>In its foundational formulation for Weak Kernel Learning (WeaKL), Doumèche et al. (2025) defined this spectral basis within a Reproducing Kernel Hilbert Space (RKHS) using complex exponentials (<span class="math notranslate nohighlight">\(e^{ikx}\)</span>). While mathematically elegant for proving convergence in Sobolev spaces <span class="bibtex-citation" id="id2">[<a class="reference internal" href="../../bibliography.html#id26" title="Nathan Doumèche, Francis Bach, Éloi Bedek, Gérard Biau, Claire Boyer, and Yannig Goude. Forecasting time series with constraints. arXiv preprint arXiv:2502.10485, 2025.">Doumèche <em>et al.</em>, 2025</a>]</span>, managing complex-number arithmetic within deep tensor autograd engines (like PyTorch) introduces severe memory and performance bottlenecks.</p>
 <p>To achieve Gigadata scalability while strictly preserving the theoretical guarantees of WeaKL, the TAM framework re-architects this spectral projection. It maps the complex formulation into an exact, equivalent real-valued basis using strictly harmonic sines and cosines, maximizing native GPU matrix multiplication throughput.</p>
 </section>
 <section id="formula-definition-the-real-spectral-basis-phi">
@@ -344,17 +344,17 @@ The angular frequency is halved, mapping the <span class="math notranslate nohig
 </section>
 <section id="the-sobolev-structural-penalty-p">
 <h2>The Sobolev Structural Penalty (<span class="math notranslate nohighlight">\(P\)</span>)<a class="headerlink" href="#the-sobolev-structural-penalty-p" title="Link to this heading">¶</a></h2>
-<p>Unpenalized Fourier series are highly susceptible to overfitting high-frequency noise. In kernel learning, this is mitigated by evaluating the function within a Sobolev space, which mathematically penalizes the roughness (derivatives) of the function <span class="bibtex-citation" id="id3">[<a class="reference internal" href="../../bibliography.html#id64" title="Bernhard Schölkopf and Alexander J Smola. Learning with kernels: support vector machines, regularization, optimization, and beyond. MIT press, 2002.">Schölkopf and Smola, 2002</a>]</span>.</p>
-<p>The TAM framework explicitly operationalizes this Sobolev norm <span class="bibtex-citation" id="id4">[<a class="reference internal" href="../../bibliography.html#id24" title="Nathan Doumèche, Francis Bach, Éloi Bedek, Gérard Biau, Claire Boyer, and Yannig Goude. Forecasting time series with constraints. arXiv preprint arXiv:2502.10485, 2025.">Doumèche <em>et al.</em>, 2025</a>, <a class="reference internal" href="../../bibliography.html#id68" title="Alex J Smola and Bernhard Schölkopf. A tutorial on support vector regression. Statistics and computing, 14(3):199–222, 2004.">Smola and Schölkopf, 2004</a>]</span>. The structural penalty sub-matrix <span class="math notranslate nohighlight">\(P_{fourier}\)</span> is defined as a strictly diagonal matrix where the penalty applied to each harmonic pair scales with its frequency <span class="math notranslate nohighlight">\(k\)</span>, governed by a smoothness parameter <span class="math notranslate nohighlight">\(s\)</span>:</p>
+<p>Unpenalized Fourier series are highly susceptible to overfitting high-frequency noise. In kernel learning, this is mitigated by evaluating the function within a Sobolev space, which mathematically penalizes the roughness (derivatives) of the function <span class="bibtex-citation" id="id3">[<a class="reference internal" href="../../bibliography.html#id66" title="Bernhard Schölkopf and Alexander J Smola. Learning with kernels: support vector machines, regularization, optimization, and beyond. MIT press, 2002.">Schölkopf and Smola, 2002</a>]</span>.</p>
+<p>The TAM framework explicitly operationalizes this Sobolev norm <span class="bibtex-citation" id="id4">[<a class="reference internal" href="../../bibliography.html#id26" title="Nathan Doumèche, Francis Bach, Éloi Bedek, Gérard Biau, Claire Boyer, and Yannig Goude. Forecasting time series with constraints. arXiv preprint arXiv:2502.10485, 2025.">Doumèche <em>et al.</em>, 2025</a>, <a class="reference internal" href="../../bibliography.html#id70" title="Alex J Smola and Bernhard Schölkopf. A tutorial on support vector regression. Statistics and computing, 14(3):199–222, 2004.">Smola and Schölkopf, 2004</a>]</span>. The structural penalty sub-matrix <span class="math notranslate nohighlight">\(P_{fourier}\)</span> is defined as a strictly diagonal matrix where the penalty applied to each harmonic pair scales with its frequency <span class="math notranslate nohighlight">\(k\)</span>, governed by a smoothness parameter <span class="math notranslate nohighlight">\(s\)</span>:</p>
 <div class="math-wrapper docutils container">
 <div class="math notranslate nohighlight">
 \[P_{fourier} = \lambda \cdot \text{diag}\left( [1 + k^{2s}]_{k=1}^m \oplus [1 + k^{2s}]_{k=1}^m \right)\]</div>
 </div>
-<p>Because <span class="math notranslate nohighlight">\(1 + k^{2s} &gt; 0\)</span> strictly for all <span class="math notranslate nohighlight">\(k \ge 1\)</span>, the penalty matrix is strictly positive definite. This guarantees an empty null space (the unpenalized constant <span class="math notranslate nohighlight">\(k=0\)</span> is intentionally excluded from the effect and handled globally by the framework’s intercept). This rigorously satisfies Aronszajn’s conditions for a valid RKHS <span class="bibtex-citation" id="id5">[<a class="reference internal" href="../../bibliography.html#id7" title="Nachman Aronszajn. Theory of reproducing kernels. Transactions of the American mathematical society, 68(3):337–404, 1950.">Aronszajn, 1950</a>]</span>, ensuring the perfect invertibility of the global normal equations.</p>
+<p>Because <span class="math notranslate nohighlight">\(1 + k^{2s} &gt; 0\)</span> strictly for all <span class="math notranslate nohighlight">\(k \ge 1\)</span>, the penalty matrix is strictly positive definite. This guarantees an empty null space (the unpenalized constant <span class="math notranslate nohighlight">\(k=0\)</span> is intentionally excluded from the effect and handled globally by the framework’s intercept). This rigorously satisfies Aronszajn’s conditions for a valid RKHS <span class="bibtex-citation" id="id5">[<a class="reference internal" href="../../bibliography.html#id9" title="Nachman Aronszajn. Theory of reproducing kernels. Transactions of the American mathematical society, 68(3):337–404, 1950.">Aronszajn, 1950</a>]</span>, ensuring the perfect invertibility of the global normal equations.</p>
 </section>
 <section id="theoretical-integration-hardware-translation">
 <h2>Theoretical Integration &amp; Hardware Translation<a class="headerlink" href="#theoretical-integration-hardware-translation" title="Link to this heading">¶</a></h2>
-<p>Classical spectral convolutions typically rely on the Fast Fourier Transform (FFT). However, FFTs strictly require perfectly spaced, equidistant temporal grids <span class="bibtex-citation" id="id6">[<a class="reference internal" href="../../bibliography.html#id12" title="John P Boyd. Chebyshev and Fourier spectral methods. Courier Corporation, 2001.">Boyd, 2001</a>]</span>, which frequently fails in real-world time series marred by missing data or irregular sampling.</p>
+<p>Classical spectral convolutions typically rely on the Fast Fourier Transform (FFT). However, FFTs strictly require perfectly spaced, equidistant temporal grids <span class="bibtex-citation" id="id6">[<a class="reference internal" href="../../bibliography.html#id14" title="John P Boyd. Chebyshev and Fourier spectral methods. Courier Corporation, 2001.">Boyd, 2001</a>]</span>, which frequently fails in real-world time series marred by missing data or irregular sampling.</p>
 <p>By formulating the Fourier effect strictly within the continuous Primal RKHS dictionary, TAM bypasses this limitation entirely. The feature map <span class="math notranslate nohighlight">\(\Phi\)</span> is constructed via massively parallelized tensor operations directly on the arbitrarily spaced continuous input <span class="math notranslate nohighlight">\(x\)</span>. Furthermore, because the penalty matrix <span class="math notranslate nohighlight">\(P_{fourier}\)</span> is strictly diagonal, it injects minimal memory overhead into the global block-diagonal system. This allows highly expressive, high-frequency seasonal models (<span class="math notranslate nohighlight">\(m &gt; 100\)</span>) to be solved instantly alongside neural features and splines within the exact <span class="math notranslate nohighlight">\(\mathcal{O}(N_{total} D^2)\)</span> Primal solver.</p>
 </section>
 </section>
@@ -388,7 +388,7 @@ The angular frequency is halved, mapping the <span class="math notranslate nohig
         <div class="bottom-of-page">
           <div class="left-details">
             <div class="copyright">
-                Copyright &#169; 2026, Yann Allioux, Nathan Doumèche, Éloi Bedek
+                Copyright &#169; 2025-2026 Électricité de France (contributors: Yann Allioux); 2023-2025 Électricité de France, Sorbonne Université (contributors: Nathan Doumèche, Éloi Bedek)
             </div>
             Made with <a href="https://www.sphinx-doc.org/">Sphinx</a> and <a class="muted-link" href="https://pradyunsg.me">@pradyunsg</a>'s
             
@@ -430,7 +430,7 @@ The angular frequency is halved, mapping the <span class="math notranslate nohig
       
     </aside>
   </div>
-</div><script src="../../_static/documentation_options.js?v=36f53d34"></script>
+</div><script src="../../_static/documentation_options.js?v=010db75e"></script>
     <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/scripts/furo.js?v=46bd48cc"></script>

@@ -37,6 +37,7 @@ Our core engine is built for industrial-grade performance on massive datasets. I
 * **Docstrings:** We use **Google-style docstrings**. Ensure your functions and classes are fully documented, as Sphinx uses `autodoc` and `napoleon` to generate the API reference automatically.
 * **Type Hinting:** Use strict Python type hints (`typing`) for all function arguments and return types.
 * **No Math in Code Comments:** Keep inline Python comments focused strictly on software engineering (e.g., tensor shapes `# Shape: [B, T, D]`, VRAM allocation, PyTorch workarounds). Leave the mathematical proofs to the `math/` Markdown files.
+* **Chronological Tensor Alignment:** When projecting Pandas DataFrames into PyTorch tensors for time-series formulas, row-adjacency must equal chronological adjacency. Always apply `.sort_values(date_col)` before tensor stacking or truncating (e.g., before `.groupby().head()`), and re-sort the target Pandas indices chronologically before mapping tensor predictions back, to prevent silent row-scrambling on unsorted input.
 
 ## 4. Submitting a Pull Request (PR)
 

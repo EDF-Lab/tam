@@ -7,7 +7,7 @@
         <link rel="prefetch" href="../../_static/logo.png" as="image">
 
     <!-- Generated with Sphinx 9.1.0 and Furo 2025.12.19 -->
-        <title>The Chebyshev Effect (Polynomial Minimax Basis) - TAM 1.2.5 documentation</title>
+        <title>The Chebyshev Effect (Polynomial Minimax Basis) - TAM 1.2.6 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=d111a655" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo-extensions.css?v=8dab3a3b" />
@@ -162,7 +162,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="../../index.html"><div class="brand">TAM 1.2.5 documentation</div></a>
+      <a href="../../index.html"><div class="brand">TAM 1.2.6 documentation</div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -186,7 +186,7 @@
     <img class="sidebar-logo" src="../../_static/logo.png" alt="Logo"/>
   </div>
   
-  <span class="sidebar-brand-text">TAM 1.2.5 documentation</span>
+  <span class="sidebar-brand-text">TAM 1.2.6 documentation</span>
   
 </a><form class="sidebar-search-container" method="get" action="../../search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
@@ -318,14 +318,14 @@
 <section id="foundational-theory-runge-s-phenomenon-minimax-approximation">
 <h2>Foundational Theory: Runge’s Phenomenon &amp; Minimax Approximation<a class="headerlink" href="#foundational-theory-runge-s-phenomenon-minimax-approximation" title="Link to this heading">¶</a></h2>
 <p>To model smooth, long-term secular trends and continuous macro-phenomena, classical statistical models often rely on standard polynomial regression using a monomial basis (<span class="math notranslate nohighlight">\(1, x, x^2, \dots, x^n\)</span>).</p>
-<p>However, modern approximation theory dictates that evaluating high-degree monomials yields highly ill-conditioned Vandermonde matrices. More critically, uniformly spaced polynomial interpolation systematically triggers <strong>Runge’s phenomenon</strong>, catastrophic, unbounded oscillations at the boundaries of the interval <span class="bibtex-citation" id="id1">[<a class="reference internal" href="../../bibliography.html#id71" title="Lloyd N Trefethen. Approximation theory and approximation practice, extended edition. SIAM, 2019.">Trefethen, 2019</a>]</span>.</p>
-<p>To mathematically resolve this, the TAM framework abandons the monomial basis and instead projects the continuous input space onto a basis of orthogonal <strong>Chebyshev polynomials of the first kind</strong>, <span class="math notranslate nohighlight">\(T_n(x)\)</span>. Chebyshev polynomials are mathematically proven to achieve near-optimal <strong>minimax approximation</strong> (minimizing the maximum absolute error across the domain), guaranteeing that the interpolation error is distributed evenly without explosive boundary oscillations <span class="bibtex-citation" id="id2">[<a class="reference internal" href="../../bibliography.html#id71" title="Lloyd N Trefethen. Approximation theory and approximation practice, extended edition. SIAM, 2019.">Trefethen, 2019</a>]</span>.</p>
+<p>However, modern approximation theory dictates that evaluating high-degree monomials yields highly ill-conditioned Vandermonde matrices. More critically, uniformly spaced polynomial interpolation systematically triggers <strong>Runge’s phenomenon</strong>, catastrophic, unbounded oscillations at the boundaries of the interval <span class="bibtex-citation" id="id1">[<a class="reference internal" href="../../bibliography.html#id73" title="Lloyd N Trefethen. Approximation theory and approximation practice, extended edition. SIAM, 2019.">Trefethen, 2019</a>]</span>.</p>
+<p>To mathematically resolve this, the TAM framework abandons the monomial basis and instead projects the continuous input space onto a basis of orthogonal <strong>Chebyshev polynomials of the first kind</strong>, <span class="math notranslate nohighlight">\(T_n(x)\)</span>. Chebyshev polynomials are mathematically proven to achieve near-optimal <strong>minimax approximation</strong> (minimizing the maximum absolute error across the domain), guaranteeing that the interpolation error is distributed evenly without explosive boundary oscillations <span class="bibtex-citation" id="id2">[<a class="reference internal" href="../../bibliography.html#id73" title="Lloyd N Trefethen. Approximation theory and approximation practice, extended edition. SIAM, 2019.">Trefethen, 2019</a>]</span>.</p>
 </section>
 <section id="topological-constraints-formula-definition-phi">
 <h2>Topological Constraints &amp; Formula Definition (<span class="math notranslate nohighlight">\(\Phi\)</span>)<a class="headerlink" href="#topological-constraints-formula-definition-phi" title="Link to this heading">¶</a></h2>
-<p>As established in the data preparation pipeline, the input variable <span class="math notranslate nohighlight">\(x\)</span> is strictly normalized to the domain <span class="math notranslate nohighlight">\([-1, 1]\)</span> via an affine transformation. This is not merely a scaling heuristic; it is a fundamental topological requirement. Chebyshev polynomials only maintain their minimax approximation properties and their strict orthogonality (with respect to the singular weight function <span class="math notranslate nohighlight">\((1-x^2)^{-1/2}\)</span>) within this specific bounded interval <span class="bibtex-citation" id="id3">[<a class="reference internal" href="../../bibliography.html#id62" title="Theodore J. Rivlin. The Chebyshev Polynomials. John Wiley &amp; Sons, 2nd edition, 1990.">Rivlin, 1990</a>]</span>.</p>
+<p>As established in the data preparation pipeline, the input variable <span class="math notranslate nohighlight">\(x\)</span> is strictly normalized to the domain <span class="math notranslate nohighlight">\([-1, 1]\)</span> via an affine transformation. This is not merely a scaling heuristic; it is a fundamental topological requirement. Chebyshev polynomials only maintain their minimax approximation properties and their strict orthogonality (with respect to the singular weight function <span class="math notranslate nohighlight">\((1-x^2)^{-1/2}\)</span>) within this specific bounded interval <span class="bibtex-citation" id="id3">[<a class="reference internal" href="../../bibliography.html#id64" title="Theodore J. Rivlin. The Chebyshev Polynomials. John Wiley &amp; Sons, 2nd edition, 1990.">Rivlin, 1990</a>]</span>.</p>
 <p>The explicit finite-dimensional feature map <span class="math notranslate nohighlight">\(\phi(x)\)</span> evaluates these polynomials up to a specified <code class="docutils literal notranslate"><span class="pre">degree</span></code> <span class="math notranslate nohighlight">\(D\)</span>. However, evaluating Chebyshev polynomials via direct trigonometric definitions (<span class="math notranslate nohighlight">\(T_n(x) = \cos(n \arccos x)\)</span>) is computationally expensive, and expanding them into standard algebraic powers induces severe numerical instability.</p>
-<p>Instead, the framework utilizes the mathematically exact <strong>three-term recurrence relation</strong> <span class="bibtex-citation" id="id4">[<a class="reference internal" href="../../bibliography.html#id62" title="Theodore J. Rivlin. The Chebyshev Polynomials. John Wiley &amp; Sons, 2nd edition, 1990.">Rivlin, 1990</a>]</span>:</p>
+<p>Instead, the framework utilizes the mathematically exact <strong>three-term recurrence relation</strong> <span class="bibtex-citation" id="id4">[<a class="reference internal" href="../../bibliography.html#id64" title="Theodore J. Rivlin. The Chebyshev Polynomials. John Wiley &amp; Sons, 2nd edition, 1990.">Rivlin, 1990</a>]</span>:</p>
 <div class="math-wrapper docutils container">
 <div class="math notranslate nohighlight">
 \[T_0(x) = 1\]</div>
@@ -346,7 +346,7 @@
 </section>
 <section id="numerical-stability-hardware-translation">
 <h2>Numerical Stability &amp; Hardware Translation<a class="headerlink" href="#numerical-stability-hardware-translation" title="Link to this heading">¶</a></h2>
-<p>A core engineering novelty of the TAM framework is the translation of this recurrence relation natively into GPU tensor operations. Higham proved that evaluating polynomial bases via direct exponentiation leads to catastrophic floating-point cancellation and massive roundoff errors on modern hardware <span class="bibtex-citation" id="id5">[<a class="reference internal" href="../../bibliography.html#id41" title="Nicholas J Higham. Accuracy and stability of numerical algorithms. SIAM, 2002.">Higham, 2002</a>]</span>.</p>
+<p>A core engineering novelty of the TAM framework is the translation of this recurrence relation natively into GPU tensor operations. Higham proved that evaluating polynomial bases via direct exponentiation leads to catastrophic floating-point cancellation and massive roundoff errors on modern hardware <span class="bibtex-citation" id="id5">[<a class="reference internal" href="../../bibliography.html#id43" title="Nicholas J Higham. Accuracy and stability of numerical algorithms. SIAM, 2002.">Higham, 2002</a>]</span>.</p>
 <p>By strictly utilizing the three-term recurrence relation, the <code class="docutils literal notranslate"><span class="pre">_chebyshev.py</span></code> module explicitly bounds the floating-point arithmetic. Furthermore, by evaluating this recursively in-place (updating <span class="math notranslate nohighlight">\(T_n\)</span> using only the active <span class="math notranslate nohighlight">\(T_{n-1}\)</span> and <span class="math notranslate nohighlight">\(T_{n-2}\)</span> vectors), the tensor engine entirely avoids materializing dense, ill-conditioned intermediate matrices, ensuring perfectly stable gradients even at high polynomial degrees (<span class="math notranslate nohighlight">\(D &gt; 50\)</span>).</p>
 </section>
 <section id="the-spectral-sobolev-penalty-p">
@@ -357,12 +357,12 @@
 <div class="math notranslate nohighlight">
 \[P_{chebyshev} = \lambda \cdot \text{diag}\left( n^{2s} \right)_{n=1}^D\]</div>
 </div>
-<p>Where <span class="math notranslate nohighlight">\(\lambda\)</span> acts as the global regularization strength. Operationally, this acts as a mathematically exact low-pass filter <span class="bibtex-citation" id="id6">[<a class="reference internal" href="../../bibliography.html#id12" title="John P Boyd. Chebyshev and Fourier spectral methods. Courier Corporation, 2001.">Boyd, 2001</a>]</span>. As the polynomial degree <span class="math notranslate nohighlight">\(n\)</span> increases, the penalty scales aggressively, forcing the global solver to heavily penalize high-degree, high-frequency “wiggles” in favor of smooth, low-degree structural trends.</p>
+<p>Where <span class="math notranslate nohighlight">\(\lambda\)</span> acts as the global regularization strength. Operationally, this acts as a mathematically exact low-pass filter <span class="bibtex-citation" id="id6">[<a class="reference internal" href="../../bibliography.html#id14" title="John P Boyd. Chebyshev and Fourier spectral methods. Courier Corporation, 2001.">Boyd, 2001</a>]</span>. As the polynomial degree <span class="math notranslate nohighlight">\(n\)</span> increases, the penalty scales aggressively, forcing the global solver to heavily penalize high-degree, high-frequency “wiggles” in favor of smooth, low-degree structural trends.</p>
 </section>
 <section id="rkhs-eligibility">
 <h2>RKHS Eligibility<a class="headerlink" href="#rkhs-eligibility" title="Link to this heading">¶</a></h2>
 <p>By equipping the orthogonal polynomial basis with this strictly positive, degree-dependent diagonal penalty, the functional space is formally bounded within a valid Reproducing Kernel Hilbert Space (RKHS). Because <span class="math notranslate nohighlight">\(n^{2s} &gt; 0\)</span> strictly for all evaluated degrees <span class="math notranslate nohighlight">\(n \ge 1\)</span>, the penalty matrix is strictly positive definite.</p>
-<p>This formulation perfectly isolates the null space (the unpenalized constant <span class="math notranslate nohighlight">\(T_0\)</span> is intentionally excluded from the effect and handled by the global intercept). This satisfies Aronszajn’s conditions for RKHS invertibility <span class="bibtex-citation" id="id7">[<a class="reference internal" href="../../bibliography.html#id7" title="Nachman Aronszajn. Theory of reproducing kernels. Transactions of the American mathematical society, 68(3):337–404, 1950.">Aronszajn, 1950</a>]</span>, guaranteeing that the global macro-trend can be resolved exactly and simultaneously alongside complex local transients (wavelets) and deep neural features without mathematically corrupting the global convexity of the Ridge solver.</p>
+<p>This formulation perfectly isolates the null space (the unpenalized constant <span class="math notranslate nohighlight">\(T_0\)</span> is intentionally excluded from the effect and handled by the global intercept). This satisfies Aronszajn’s conditions for RKHS invertibility <span class="bibtex-citation" id="id7">[<a class="reference internal" href="../../bibliography.html#id9" title="Nachman Aronszajn. Theory of reproducing kernels. Transactions of the American mathematical society, 68(3):337–404, 1950.">Aronszajn, 1950</a>]</span>, guaranteeing that the global macro-trend can be resolved exactly and simultaneously alongside complex local transients (wavelets) and deep neural features without mathematically corrupting the global convexity of the Ridge solver.</p>
 </section>
 </section>
 
@@ -395,7 +395,7 @@
         <div class="bottom-of-page">
           <div class="left-details">
             <div class="copyright">
-                Copyright &#169; 2026, Yann Allioux, Nathan Doumèche, Éloi Bedek
+                Copyright &#169; 2025-2026 Électricité de France (contributors: Yann Allioux); 2023-2025 Électricité de France, Sorbonne Université (contributors: Nathan Doumèche, Éloi Bedek)
             </div>
             Made with <a href="https://www.sphinx-doc.org/">Sphinx</a> and <a class="muted-link" href="https://pradyunsg.me">@pradyunsg</a>'s
             
@@ -438,7 +438,7 @@
       
     </aside>
   </div>
-</div><script src="../../_static/documentation_options.js?v=36f53d34"></script>
+</div><script src="../../_static/documentation_options.js?v=010db75e"></script>
     <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/scripts/furo.js?v=46bd48cc"></script>

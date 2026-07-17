@@ -7,7 +7,7 @@
         <link rel="prefetch" href="../../_static/logo.png" as="image">
 
     <!-- Generated with Sphinx 9.1.0 and Furo 2025.12.19 -->
-        <title>The Categorical Effect (Discrete Topologies) - TAM 1.2.5 documentation</title>
+        <title>The Categorical Effect (Discrete Topologies) - TAM 1.2.6 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=d111a655" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo-extensions.css?v=8dab3a3b" />
@@ -162,7 +162,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="../../index.html"><div class="brand">TAM 1.2.5 documentation</div></a>
+      <a href="../../index.html"><div class="brand">TAM 1.2.6 documentation</div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -186,7 +186,7 @@
     <img class="sidebar-logo" src="../../_static/logo.png" alt="Logo"/>
   </div>
   
-  <span class="sidebar-brand-text">TAM 1.2.5 documentation</span>
+  <span class="sidebar-brand-text">TAM 1.2.6 documentation</span>
   
 </a><form class="sidebar-search-container" method="get" action="../../search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
@@ -337,9 +337,9 @@ If the discrete categories represent sampled points of an underlying continuous 
 <div class="math notranslate nohighlight">
 \[P_{cat} = \lambda I\]</div>
 </div>
-<p>This uniformly shrinks the coefficients toward zero, acting as an optimal Bayesian prior that prevents sparse or rare categories from dominating the global variance <span class="bibtex-citation" id="id1">[<a class="reference internal" href="../../bibliography.html#id80" title="Simon N Wood. Generalized additive models: an introduction with R. chapman and hall/CRC, 2017.">Wood, 2017</a>]</span>.</p>
+<p>This uniformly shrinks the coefficients toward zero, acting as an optimal Bayesian prior that prevents sparse or rare categories from dominating the global variance <span class="bibtex-citation" id="id1">[<a class="reference internal" href="../../bibliography.html#id82" title="Simon N Wood. Generalized additive models: an introduction with R. chapman and hall/CRC, 2017.">Wood, 2017</a>]</span>.</p>
 </li>
-<li><p><strong>Ordinal (Ordered) Categories:</strong> If the classes possess a natural sequence (e.g., age groups), an isotropic penalty destroys this inherent topological information. Instead, we enforce smooth clustering by penalizing the transitions between adjacent categories <span class="bibtex-citation" id="id2">[<a class="reference internal" href="../../bibliography.html#id33" title="Jan Gertheiss and Gerhard Tutz. Sparse modeling of categorial explanatory variables. 2010.">Gertheiss and Tutz, 2010</a>]</span>. The optimal penalty is constructed using a finite difference matrix <span class="math notranslate nohighlight">\(D\)</span>:</p>
+<li><p><strong>Ordinal (Ordered) Categories:</strong> If the classes possess a natural sequence (e.g., age groups), an isotropic penalty destroys this inherent topological information. Instead, we enforce smooth clustering by penalizing the transitions between adjacent categories <span class="bibtex-citation" id="id2">[<a class="reference internal" href="../../bibliography.html#id35" title="Jan Gertheiss and Gerhard Tutz. Sparse modeling of categorial explanatory variables. 2010.">Gertheiss and Tutz, 2010</a>]</span>. The optimal penalty is constructed using a finite difference matrix <span class="math notranslate nohighlight">\(D\)</span>:</p>
 <div class="math-wrapper docutils container">
 <div class="math notranslate nohighlight">
 \[P_{cat} = \lambda D^\top D\]</div>
@@ -351,17 +351,17 @@ If the discrete categories represent sampled points of an underlying continuous 
 <div class="math notranslate nohighlight">
 \[P_{cat} = \lambda \cdot \text{diag}\left( [1 + k^{2s}]_{k=1}^m \oplus [1 + k^{2s}]_{k=1}^m \right)\]</div>
 </div>
-<p>This structurally filters out high-frequency ringing artifacts across the discrete bins, stabilizing time-series learning by mapping discrete dummies to continuous angular projections <span class="bibtex-citation" id="id3">[<a class="reference internal" href="../../bibliography.html#id24" title="Nathan Doumèche, Francis Bach, Éloi Bedek, Gérard Biau, Claire Boyer, and Yannig Goude. Forecasting time series with constraints. arXiv preprint arXiv:2502.10485, 2025.">Doumèche <em>et al.</em>, 2025</a>]</span>.</p>
+<p>This structurally filters out high-frequency ringing artifacts across the discrete bins, stabilizing time-series learning by mapping discrete dummies to continuous angular projections <span class="bibtex-citation" id="id3">[<a class="reference internal" href="../../bibliography.html#id26" title="Nathan Doumèche, Francis Bach, Éloi Bedek, Gérard Biau, Claire Boyer, and Yannig Goude. Forecasting time series with constraints. arXiv preprint arXiv:2502.10485, 2025.">Doumèche <em>et al.</em>, 2025</a>]</span>.</p>
 </li>
 </ul>
 </section>
 <section id="rkhs-eligibility">
 <h2>RKHS Eligibility<a class="headerlink" href="#rkhs-eligibility" title="Link to this heading">¶</a></h2>
-<p>These projections securely embed discrete categorical topologies into a continuous, finite-dimensional vector space. In the nominal case, equipping the orthogonal basis with an isotropic penalty natively generates the Kronecker delta kernel, defined as <span class="math notranslate nohighlight">\(k(x, x') = \delta_{x, x'}\)</span>. In the ordinal case, the finite difference penalty dynamically generates a structured covariance matrix where the kernel similarity decays proportionally to the ordinal distance between classes. Both satisfy all Mercer conditions for a valid Reproducing Kernel Hilbert Space (RKHS) <span class="bibtex-citation" id="id4">[<a class="reference internal" href="../../bibliography.html#id7" title="Nachman Aronszajn. Theory of reproducing kernels. Transactions of the American mathematical society, 68(3):337–404, 1950.">Aronszajn, 1950</a>]</span>.</p>
+<p>These projections securely embed discrete categorical topologies into a continuous, finite-dimensional vector space. In the nominal case, equipping the orthogonal basis with an isotropic penalty natively generates the Kronecker delta kernel, defined as <span class="math notranslate nohighlight">\(k(x, x') = \delta_{x, x'}\)</span>. In the ordinal case, the finite difference penalty dynamically generates a structured covariance matrix where the kernel similarity decays proportionally to the ordinal distance between classes. Both satisfy all Mercer conditions for a valid Reproducing Kernel Hilbert Space (RKHS) <span class="bibtex-citation" id="id4">[<a class="reference internal" href="../../bibliography.html#id9" title="Nachman Aronszajn. Theory of reproducing kernels. Transactions of the American mathematical society, 68(3):337–404, 1950.">Aronszajn, 1950</a>]</span>.</p>
 </section>
 <section id="theoretical-integration-hardware-translation">
 <h2>Theoretical Integration &amp; Hardware Translation<a class="headerlink" href="#theoretical-integration-hardware-translation" title="Link to this heading">¶</a></h2>
-<p>In classical statistical software, estimating discrete categorical effects alongside continuous non-linear smoothers often forces the algorithm to rely on partitioned design spaces and alternating iterative backfitting <span class="bibtex-citation" id="id5">[<a class="reference internal" href="../../bibliography.html#id16" title="John M Chambers and Trevor J Hastie. Statistical models. In Statistical models in S, pages 13–44. Routledge, 2017.">Chambers and Hastie, 2017</a>]</span>.</p>
+<p>In classical statistical software, estimating discrete categorical effects alongside continuous non-linear smoothers often forces the algorithm to rely on partitioned design spaces and alternating iterative backfitting <span class="bibtex-citation" id="id5">[<a class="reference internal" href="../../bibliography.html#id18" title="John M Chambers and Trevor J Hastie. Statistical models. In Statistical models in S, pages 13–44. Routledge, 2017.">Chambers and Hastie, 2017</a>]</span>.</p>
 <p>By rigorously formalizing categorical sets as penalized finite-dimensional RKHS blocks, the TAM framework flawlessly concatenates these discrete embeddings directly beside continuous bases (such as Fourier series or Splines). This theoretically bridges discrete and continuous functional analysis, allowing both to be evaluated (<code class="docutils literal notranslate"><span class="pre">torch.nn.functional.one_hot</span></code>) and solved simultaneously within the exact, closed-form inversion of the global Primal matrix on the GPU.</p>
 </section>
 </section>
@@ -395,7 +395,7 @@ If the discrete categories represent sampled points of an underlying continuous 
         <div class="bottom-of-page">
           <div class="left-details">
             <div class="copyright">
-                Copyright &#169; 2026, Yann Allioux, Nathan Doumèche, Éloi Bedek
+                Copyright &#169; 2025-2026 Électricité de France (contributors: Yann Allioux); 2023-2025 Électricité de France, Sorbonne Université (contributors: Nathan Doumèche, Éloi Bedek)
             </div>
             Made with <a href="https://www.sphinx-doc.org/">Sphinx</a> and <a class="muted-link" href="https://pradyunsg.me">@pradyunsg</a>'s
             
@@ -436,7 +436,7 @@ If the discrete categories represent sampled points of an underlying continuous 
       
     </aside>
   </div>
-</div><script src="../../_static/documentation_options.js?v=36f53d34"></script>
+</div><script src="../../_static/documentation_options.js?v=010db75e"></script>
     <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/scripts/furo.js?v=46bd48cc"></script>

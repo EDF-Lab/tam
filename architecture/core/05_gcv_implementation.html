@@ -7,7 +7,7 @@
         <link rel="prefetch" href="../../_static/logo.png" as="image">
 
     <!-- Generated with Sphinx 9.1.0 and Furo 2025.12.19 -->
-        <title>Auto-ML via Generalized Cross-Validation (GCV) - TAM 1.2.5 documentation</title>
+        <title>Auto-ML via Generalized Cross-Validation (GCV) - TAM 1.2.6 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=d111a655" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo-extensions.css?v=8dab3a3b" />
@@ -162,7 +162,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="../../index.html"><div class="brand">TAM 1.2.5 documentation</div></a>
+      <a href="../../index.html"><div class="brand">TAM 1.2.6 documentation</div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -186,7 +186,7 @@
     <img class="sidebar-logo" src="../../_static/logo.png" alt="Logo"/>
   </div>
   
-  <span class="sidebar-brand-text">TAM 1.2.5 documentation</span>
+  <span class="sidebar-brand-text">TAM 1.2.6 documentation</span>
   
 </a><form class="sidebar-search-container" method="get" action="../../search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
@@ -316,7 +316,7 @@
 <li><p><strong>Related mathematical theory:</strong> <a class="reference internal" href="../../math/core/05_gcv_theory.html"><span class="std std-doc">See the Mathematical Theory</span></a></p></li>
 </ul>
 <p>Hyperparameter tuning via standard Grid Search is computationally expensive. While earlier versions relied heavily on “Multi-Start” Coordinate Descent for all parameters, the framework fully automated the continuous penalty optimization via <code class="docutils literal notranslate"><span class="pre">StaticTAM.auto_fit()</span></code>.</p>
-<p>This engine leverages the <code class="docutils literal notranslate"><span class="pre">smart_solve_gcv</span></code> dispatcher, implementing Golub’s trace trick <span class="bibtex-citation" id="id1">[<a class="reference internal" href="../../bibliography.html#id35" title="Gene H Golub, Michael Heath, and Grace Wahba. Generalized cross-validation as a method for choosing a good ridge parameter. Technometrics, 21(2):215–223, 1979.">Golub <em>et al.</em>, 1979</a>]</span> to find the optimal regularization parameter (<span class="math notranslate nohighlight">\(\lambda\)</span>) for each effect simultaneously, without requiring K-fold retraining.</p>
+<p>This engine leverages the <code class="docutils literal notranslate"><span class="pre">smart_solve_gcv</span></code> dispatcher, implementing Golub’s trace trick <span class="bibtex-citation" id="id1">[<a class="reference internal" href="../../bibliography.html#id37" title="Gene H Golub, Michael Heath, and Grace Wahba. Generalized cross-validation as a method for choosing a good ridge parameter. Technometrics, 21(2):215–223, 1979.">Golub <em>et al.</em>, 1979</a>]</span> to find the optimal regularization parameter (<span class="math notranslate nohighlight">\(\lambda\)</span>) for each effect simultaneously, without requiring K-fold retraining.</p>
 <hr class="docutils" />
 <section id="the-orchestrator-and-api-entry-point">
 <h2>The Orchestrator and API Entry Point<a class="headerlink" href="#the-orchestrator-and-api-entry-point" title="Link to this heading">¶</a></h2>
@@ -407,7 +407,7 @@
 <hr class="docutils" />
 <section id="discrete-coordinate-descent-optimization">
 <h2>Discrete Coordinate Descent Optimization<a class="headerlink" href="#discrete-coordinate-descent-optimization" title="Link to this heading">¶</a></h2>
-<p>To optimize the multiple parameters efficiently across the block-diagonal structure, <code class="docutils literal notranslate"><span class="pre">smart_solve_gcv</span></code> deploys a memory-safe Discrete Coordinate Descent loop <span class="bibtex-citation" id="id2">[<a class="reference internal" href="../../bibliography.html#id82" title="Stephen J Wright. Coordinate descent algorithms. Mathematical programming, 151(1):3–34, 2015.">Wright, 2015</a>]</span>.</p>
+<p>To optimize the multiple parameters efficiently across the block-diagonal structure, <code class="docutils literal notranslate"><span class="pre">smart_solve_gcv</span></code> deploys a memory-safe Discrete Coordinate Descent loop <span class="bibtex-citation" id="id2">[<a class="reference internal" href="../../bibliography.html#id84" title="Stephen J Wright. Coordinate descent algorithms. Mathematical programming, 151(1):3–34, 2015.">Wright, 2015</a>]</span>.</p>
 <ol class="arabic simple">
 <li><p><strong>Initialization:</strong> It extracts the starting <span class="math notranslate nohighlight">\(\log_{10}(\lambda)\)</span> values from the <code class="docutils literal notranslate"><span class="pre">effects_list</span></code>.</p></li>
 <li><p><strong>Iterative Search:</strong> For a maximum of 15 cycles, it iterates through each individual effect.</p></li>
@@ -734,7 +734,7 @@
         <div class="bottom-of-page">
           <div class="left-details">
             <div class="copyright">
-                Copyright &#169; 2026, Yann Allioux, Nathan Doumèche, Éloi Bedek
+                Copyright &#169; 2025-2026 Électricité de France (contributors: Yann Allioux); 2023-2025 Électricité de France, Sorbonne Université (contributors: Nathan Doumèche, Éloi Bedek)
             </div>
             Made with <a href="https://www.sphinx-doc.org/">Sphinx</a> and <a class="muted-link" href="https://pradyunsg.me">@pradyunsg</a>'s
             
@@ -775,7 +775,7 @@
       
     </aside>
   </div>
-</div><script src="../../_static/documentation_options.js?v=36f53d34"></script>
+</div><script src="../../_static/documentation_options.js?v=010db75e"></script>
     <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/scripts/furo.js?v=46bd48cc"></script>

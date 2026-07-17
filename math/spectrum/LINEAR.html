@@ -7,7 +7,7 @@
         <link rel="prefetch" href="../../_static/logo.png" as="image">
 
     <!-- Generated with Sphinx 9.1.0 and Furo 2025.12.19 -->
-        <title>The Linear Effect (Ridge Regression) - TAM 1.2.5 documentation</title>
+        <title>The Linear Effect (Ridge Regression) - TAM 1.2.6 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=d111a655" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo-extensions.css?v=8dab3a3b" />
@@ -162,7 +162,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="../../index.html"><div class="brand">TAM 1.2.5 documentation</div></a>
+      <a href="../../index.html"><div class="brand">TAM 1.2.6 documentation</div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -186,7 +186,7 @@
     <img class="sidebar-logo" src="../../_static/logo.png" alt="Logo"/>
   </div>
   
-  <span class="sidebar-brand-text">TAM 1.2.5 documentation</span>
+  <span class="sidebar-brand-text">TAM 1.2.6 documentation</span>
   
 </a><form class="sidebar-search-container" method="get" action="../../search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
@@ -326,7 +326,7 @@
 </section>
 <section id="optimal-penalization">
 <h2>Optimal Penalization<a class="headerlink" href="#optimal-penalization" title="Link to this heading">¶</a></h2>
-<p>To bound the hypothesis space, we apply Tikhonov (Ridge) regularization <span class="bibtex-citation" id="id1">[<a class="reference internal" href="../../bibliography.html#id42" title="Arthur E Hoerl and Robert W Kennard. Ridge regression: biased estimation for nonorthogonal problems. Technometrics, 12(1):55–67, 1970.">Hoerl and Kennard, 1970</a>, <a class="reference internal" href="../../bibliography.html#id70" title="Andrey Nikolayevich Tikhonov and others. On the stability of inverse problems. Dokl. Akad. Nauk SSSR, 39(5):195–198, 1943.">Tikhonov and others, 1943</a>]</span>. The structural penalty sub-matrix is defined as a scaled identity matrix, <span class="math notranslate nohighlight">\(P_{lin} = \lambda I\)</span> (where <span class="math notranslate nohighlight">\(\lambda\)</span> represents the penalty weight, classically denoted as <span class="math notranslate nohighlight">\(\lambda\)</span>). Consequently, the penalty evaluated within the global unified risk translates exactly to the squared <span class="math notranslate nohighlight">\(L_2\)</span> norm of the linear coefficients:</p>
+<p>To bound the hypothesis space, we apply Tikhonov (Ridge) regularization <span class="bibtex-citation" id="id1">[<a class="reference internal" href="../../bibliography.html#id44" title="Arthur E Hoerl and Robert W Kennard. Ridge regression: biased estimation for nonorthogonal problems. Technometrics, 12(1):55–67, 1970.">Hoerl and Kennard, 1970</a>, <a class="reference internal" href="../../bibliography.html#id72" title="Andrey Nikolayevich Tikhonov and others. On the stability of inverse problems. Dokl. Akad. Nauk SSSR, 39(5):195–198, 1943.">Tikhonov and others, 1943</a>]</span>. The structural penalty sub-matrix is defined as a scaled identity matrix, <span class="math notranslate nohighlight">\(P_{lin} = \lambda I\)</span> (where <span class="math notranslate nohighlight">\(\lambda\)</span> represents the penalty weight, classically denoted as <span class="math notranslate nohighlight">\(\lambda\)</span>). Consequently, the penalty evaluated within the global unified risk translates exactly to the squared <span class="math notranslate nohighlight">\(L_2\)</span> norm of the linear coefficients:</p>
 <div class="math-wrapper docutils container">
 <div class="math notranslate nohighlight">
 \[||P_{lin}^{1/2} \theta_{lin}||_2^2 = \lambda ||\theta_{lin}||_2^2\]</div>
@@ -334,19 +334,19 @@
 </section>
 <section id="rkhs-eligibility">
 <h2>RKHS Eligibility<a class="headerlink" href="#rkhs-eligibility" title="Link to this heading">¶</a></h2>
-<p>This direct projection corresponds precisely to the homogeneous Dot Product Kernel (or Linear Kernel), defined as <span class="math notranslate nohighlight">\(k(x, x') = \langle x, x' \rangle = x^\top x'\)</span> <span class="bibtex-citation" id="id2">[<a class="reference internal" href="../../bibliography.html#id76" title="Carl Edward Rasmussen and Christopher KI Williams. Gaussian processes for machine learning. Volume 2. MIT press Cambridge, MA, 2006.">Rasmussen and Williams, 2006</a>]</span>.</p>
+<p>This direct projection corresponds precisely to the homogeneous Dot Product Kernel (or Linear Kernel), defined as <span class="math notranslate nohighlight">\(k(x, x') = \langle x, x' \rangle = x^\top x'\)</span> <span class="bibtex-citation" id="id2">[<a class="reference internal" href="../../bibliography.html#id78" title="Carl Edward Rasmussen and Christopher KI Williams. Gaussian processes for machine learning. Volume 2. MIT press Cambridge, MA, 2006.">Rasmussen and Williams, 2006</a>]</span>.</p>
 <p>By equipping the standard Euclidean space with the strictly positive definite penalty norm induced by <span class="math notranslate nohighlight">\(\lambda I\)</span>, the coefficients are rigorously bounded. This guarantees that the linear mapping satisfies Mercer’s conditions, formally operating as a valid, finite-dimensional Reproducing Kernel Hilbert Space (RKHS). The framework mathematically ensures the strict invertibility of the global covariance matrix <span class="math notranslate nohighlight">\(\left( \Phi^\top \Lambda^\top \Lambda \Phi + n P \right)\)</span>. This stabilizes the global matrix resolution, entirely preventing numerical singularities without artificially suppressing the linear signal.</p>
 </section>
 <section id="the-offset-intercept-integration">
 <h2>The Offset (Intercept) Integration<a class="headerlink" href="#the-offset-intercept-integration" title="Link to this heading">¶</a></h2>
 <p>A critical distinction of the TAM framework lies in its handling of the global bias (the Intercept).</p>
-<p>Standard practice in Ordinary Least Squares (OLS) and traditional Ridge regression leaves the intercept unpenalized. This ensures that the solution remains invariant to translations of the target variable <span class="math notranslate nohighlight">\(Y\)</span>, and guarantees that the intercept simply evaluates to the mean of the response when the predictors are centered <span class="bibtex-citation" id="id3">[<a class="reference internal" href="../../bibliography.html#id38" title="Trevor Hastie, Robert Tibshirani, and Jerome Friedman. The Elements of Statistical Learning: Data Mining, Inference, and Prediction. Springer Science &amp; Business Media, 2009.">Hastie <em>et al.</em>, 2009</a>]</span>. However, the TAM algorithm abandons this separation to maintain maximum hardware efficiency and matrix uniformity. The bias is treated as a regularized weight natively integrated into the global linear system <span class="bibtex-citation" id="id4">[<a class="reference internal" href="../../bibliography.html#id24" title="Nathan Doumèche, Francis Bach, Éloi Bedek, Gérard Biau, Claire Boyer, and Yannig Goude. Forecasting time series with constraints. arXiv preprint arXiv:2502.10485, 2025.">Doumèche <em>et al.</em>, 2025</a>]</span>.</p>
+<p>Standard practice in Ordinary Least Squares (OLS) and traditional Ridge regression leaves the intercept unpenalized. This ensures that the solution remains invariant to translations of the target variable <span class="math notranslate nohighlight">\(Y\)</span>, and guarantees that the intercept simply evaluates to the mean of the response when the predictors are centered <span class="bibtex-citation" id="id3">[<a class="reference internal" href="../../bibliography.html#id40" title="Trevor Hastie, Robert Tibshirani, and Jerome Friedman. The Elements of Statistical Learning: Data Mining, Inference, and Prediction. Springer Science &amp; Business Media, 2009.">Hastie <em>et al.</em>, 2009</a>]</span>. However, the TAM algorithm abandons this separation to maintain maximum hardware efficiency and matrix uniformity. The bias is treated as a regularized weight natively integrated into the global linear system <span class="bibtex-citation" id="id4">[<a class="reference internal" href="../../bibliography.html#id26" title="Nathan Doumèche, Francis Bach, Éloi Bedek, Gérard Biau, Claire Boyer, and Yannig Goude. Forecasting time series with constraints. arXiv preprint arXiv:2502.10485, 2025.">Doumèche <em>et al.</em>, 2025</a>]</span>.</p>
 <p>To achieve this, the Offset is defined mathematically as a constant “phantom” linear effect, where the feature map evaluates to a vector of ones:</p>
 <div class="math-wrapper docutils container">
 <div class="math notranslate nohighlight">
 \[\phi_{offset}(x) = 1\]</div>
 </div>
-<p>Theoretically, applying a penalty <span class="math notranslate nohighlight">\(\lambda_{offset}\)</span> to this vector equates to placing a zero-mean Gaussian prior <span class="math notranslate nohighlight">\(\mathcal{N}(0, \lambda_{offset}^{-1})\)</span> strictly on the mean of the process <span class="bibtex-citation" id="id5">[<a class="reference internal" href="../../bibliography.html#id76" title="Carl Edward Rasmussen and Christopher KI Williams. Gaussian processes for machine learning. Volume 2. MIT press Cambridge, MA, 2006.">Rasmussen and Williams, 2006</a>]</span>. By adjusting this specific <span class="math notranslate nohighlight">\(\lambda\)</span> toward zero (e.g., <span class="math notranslate nohighlight">\(10^{-3}\)</span>), the prior variance approaches infinity. This seamlessly recovers the unpenalized, translation-invariant behavior of classical models (acting as an improper prior) while keeping the global algebraic resolution perfectly intact and OOM-safe.</p>
+<p>Theoretically, applying a penalty <span class="math notranslate nohighlight">\(\lambda_{offset}\)</span> to this vector equates to placing a zero-mean Gaussian prior <span class="math notranslate nohighlight">\(\mathcal{N}(0, \lambda_{offset}^{-1})\)</span> strictly on the mean of the process <span class="bibtex-citation" id="id5">[<a class="reference internal" href="../../bibliography.html#id78" title="Carl Edward Rasmussen and Christopher KI Williams. Gaussian processes for machine learning. Volume 2. MIT press Cambridge, MA, 2006.">Rasmussen and Williams, 2006</a>]</span>. By adjusting this specific <span class="math notranslate nohighlight">\(\lambda\)</span> toward zero (e.g., <span class="math notranslate nohighlight">\(10^{-3}\)</span>), the prior variance approaches infinity. This seamlessly recovers the unpenalized, translation-invariant behavior of classical models (acting as an improper prior) while keeping the global algebraic resolution perfectly intact and OOM-safe.</p>
 </section>
 </section>
 
@@ -379,7 +379,7 @@
         <div class="bottom-of-page">
           <div class="left-details">
             <div class="copyright">
-                Copyright &#169; 2026, Yann Allioux, Nathan Doumèche, Éloi Bedek
+                Copyright &#169; 2025-2026 Électricité de France (contributors: Yann Allioux); 2023-2025 Électricité de France, Sorbonne Université (contributors: Nathan Doumèche, Éloi Bedek)
             </div>
             Made with <a href="https://www.sphinx-doc.org/">Sphinx</a> and <a class="muted-link" href="https://pradyunsg.me">@pradyunsg</a>'s
             
@@ -421,7 +421,7 @@
       
     </aside>
   </div>
-</div><script src="../../_static/documentation_options.js?v=36f53d34"></script>
+</div><script src="../../_static/documentation_options.js?v=010db75e"></script>
     <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/scripts/furo.js?v=46bd48cc"></script>

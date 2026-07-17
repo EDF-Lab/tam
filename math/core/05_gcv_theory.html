@@ -7,7 +7,7 @@
         <link rel="prefetch" href="../../_static/logo.png" as="image">
 
     <!-- Generated with Sphinx 9.1.0 and Furo 2025.12.19 -->
-        <title>Hyperparameter Optimization: Generalized Cross-Validation (GCV) - TAM 1.2.5 documentation</title>
+        <title>Hyperparameter Optimization: Generalized Cross-Validation (GCV) - TAM 1.2.6 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=d111a655" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo-extensions.css?v=8dab3a3b" />
@@ -162,7 +162,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="../../index.html"><div class="brand">TAM 1.2.5 documentation</div></a>
+      <a href="../../index.html"><div class="brand">TAM 1.2.6 documentation</div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -186,7 +186,7 @@
     <img class="sidebar-logo" src="../../_static/logo.png" alt="Logo"/>
   </div>
   
-  <span class="sidebar-brand-text">TAM 1.2.5 documentation</span>
+  <span class="sidebar-brand-text">TAM 1.2.6 documentation</span>
   
 </a><form class="sidebar-search-container" method="get" action="../../search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
@@ -320,8 +320,8 @@
 <section id="the-bottleneck-of-k-fold-validation">
 <h2>The Bottleneck of K-Fold Validation<a class="headerlink" href="#the-bottleneck-of-k-fold-validation" title="Link to this heading">¶</a></h2>
 <p>Tuning hyperparameters (such as the penalty strength <span class="math notranslate nohighlight">\(\lambda\)</span>) traditionally requires K-Fold Cross Validation. For large-scale time series models involving Gigadata, retraining the system <span class="math notranslate nohighlight">\(K\)</span> times per parameter combination across a massive grid is prohibitively slow and computationally intractable.</p>
-<p>To solve this, the framework implements the <strong>Generalized Cross-Validation (GCV)</strong> theory <span class="bibtex-citation" id="id1">[<a class="reference internal" href="../../bibliography.html#id35" title="Gene H Golub, Michael Heath, and Grace Wahba. Generalized cross-validation as a method for choosing a good ridge parameter. Technometrics, 21(2):215–223, 1979.">Golub <em>et al.</em>, 1979</a>]</span>. GCV mathematically approximates the Leave-One-Out (LOO) validation error analytically in a single pass, completely bypassing the need for iterative data splitting.</p>
-<p>The fundamental goal of hyperparameter optimization is to satisfy the principle of Structural Risk Minimization (SRM). As defined by <span class="bibtex-citation" id="id2">[<a class="reference internal" href="../../bibliography.html#id73" title="Vladimir Vapnik. The nature of statistical learning theory. Springer science &amp; business media, 2013.">Vapnik, 2013</a>]</span>, minimizing empirical training error alone is insufficient; one must also minimize a bound on the structural complexity of the model to guarantee out-of-sample generalization. The GCV algorithm mathematically solves this SRM tradeoff by dynamically finding the optimal continuous penalty <span class="math notranslate nohighlight">\(\lambda\)</span> without requiring an explicit hold-out validation set.</p>
+<p>To solve this, the framework implements the <strong>Generalized Cross-Validation (GCV)</strong> theory <span class="bibtex-citation" id="id1">[<a class="reference internal" href="../../bibliography.html#id37" title="Gene H Golub, Michael Heath, and Grace Wahba. Generalized cross-validation as a method for choosing a good ridge parameter. Technometrics, 21(2):215–223, 1979.">Golub <em>et al.</em>, 1979</a>]</span>. GCV mathematically approximates the Leave-One-Out (LOO) validation error analytically in a single pass, completely bypassing the need for iterative data splitting.</p>
+<p>The fundamental goal of hyperparameter optimization is to satisfy the principle of Structural Risk Minimization (SRM). As defined by <span class="bibtex-citation" id="id2">[<a class="reference internal" href="../../bibliography.html#id75" title="Vladimir Vapnik. The nature of statistical learning theory. Springer science &amp; business media, 2013.">Vapnik, 2013</a>]</span>, minimizing empirical training error alone is insufficient; one must also minimize a bound on the structural complexity of the model to guarantee out-of-sample generalization. The GCV algorithm mathematically solves this SRM tradeoff by dynamically finding the optimal continuous penalty <span class="math notranslate nohighlight">\(\lambda\)</span> without requiring an explicit hold-out validation set.</p>
 </section>
 <hr class="docutils" />
 <section id="connecting-gcv-to-the-primal-matrices">
@@ -337,7 +337,7 @@
 \[\hat{Y} = \Phi \hat{\theta} = \left[ \Phi \left( \Phi^T \Lambda^T \Lambda \Phi + T P \right)^{-1} \Phi^T \Lambda^T \Lambda \right] Y\]</div>
 </div>
 <p><strong>1. The Smoothing Matrix (<span class="math notranslate nohighlight">\(S\)</span>):</strong>
-The bracketed term above maps the true targets <span class="math notranslate nohighlight">\(Y\)</span> to the predicted targets <span class="math notranslate nohighlight">\(\hat{Y}\)</span>. In statistical literature, this is known as the “Hat Matrix” or the Smoothing Matrix <span class="math notranslate nohighlight">\(S\)</span> <span class="bibtex-citation" id="id3">[<a class="reference internal" href="../../bibliography.html#id78" title="Simon N Wood. Stable and efficient multiple smoothing parameter estimation for generalized additive models. Journal of the American Statistical Association, 99(467):673–686, 2004.">Wood, 2004</a>]</span>:</p>
+The bracketed term above maps the true targets <span class="math notranslate nohighlight">\(Y\)</span> to the predicted targets <span class="math notranslate nohighlight">\(\hat{Y}\)</span>. In statistical literature, this is known as the “Hat Matrix” or the Smoothing Matrix <span class="math notranslate nohighlight">\(S\)</span> <span class="bibtex-citation" id="id3">[<a class="reference internal" href="../../bibliography.html#id80" title="Simon N Wood. Stable and efficient multiple smoothing parameter estimation for generalized additive models. Journal of the American Statistical Association, 99(467):673–686, 2004.">Wood, 2004</a>]</span>:</p>
 <div class="math-wrapper docutils container">
 <div class="math notranslate nohighlight">
 \[S = \Phi \left( \Phi^T \Lambda^T \Lambda \Phi + T P \right)^{-1} \Phi^T \Lambda^T \Lambda\]</div>
@@ -353,13 +353,13 @@ The <span class="math notranslate nohighlight">\(RSS\)</span> is simply the weig
 <section id="the-mathematical-demonstration-from-loo-to-gcv">
 <h2>The Mathematical Demonstration: From LOO to GCV<a class="headerlink" href="#the-mathematical-demonstration-from-loo-to-gcv" title="Link to this heading">¶</a></h2>
 <p>How does evaluating the smoothing matrix <span class="math notranslate nohighlight">\(S\)</span> replace data splitting?</p>
-<p>In classic Leave-One-Out Cross-Validation (LOOCV), the model is trained <span class="math notranslate nohighlight">\(n\)</span> times, leaving out one observation <span class="math notranslate nohighlight">\(i\)</span> each time to predict its value. Thanks to the Sherman-Morrison-Woodbury matrix identity, it is a proven theorem that LOOCV can be calculated exactly without any retraining, using only the diagonal elements of the smoothing matrix (<span class="math notranslate nohighlight">\(S_{ii}\)</span>) <span class="bibtex-citation" id="id4">[<a class="reference internal" href="../../bibliography.html#id35" title="Gene H Golub, Michael Heath, and Grace Wahba. Generalized cross-validation as a method for choosing a good ridge parameter. Technometrics, 21(2):215–223, 1979.">Golub <em>et al.</em>, 1979</a>]</span>:</p>
+<p>In classic Leave-One-Out Cross-Validation (LOOCV), the model is trained <span class="math notranslate nohighlight">\(n\)</span> times, leaving out one observation <span class="math notranslate nohighlight">\(i\)</span> each time to predict its value. Thanks to the Sherman-Morrison-Woodbury matrix identity, it is a proven theorem that LOOCV can be calculated exactly without any retraining, using only the diagonal elements of the smoothing matrix (<span class="math notranslate nohighlight">\(S_{ii}\)</span>) <span class="bibtex-citation" id="id4">[<a class="reference internal" href="../../bibliography.html#id37" title="Gene H Golub, Michael Heath, and Grace Wahba. Generalized cross-validation as a method for choosing a good ridge parameter. Technometrics, 21(2):215–223, 1979.">Golub <em>et al.</em>, 1979</a>]</span>:</p>
 <div class="math-wrapper docutils container">
 <div class="math notranslate nohighlight">
 \[LOOCV = \frac{1}{T} \sum_{i=1}^T \left( \frac{y_i - \hat{y}_i}{1 - S_{ii}} \right)^2\]</div>
 </div>
-<p>However, Golub, Heath, and Wahba <span class="bibtex-citation" id="id5">[<a class="reference internal" href="../../bibliography.html#id35" title="Gene H Golub, Michael Heath, and Grace Wahba. Generalized cross-validation as a method for choosing a good ridge parameter. Technometrics, 21(2):215–223, 1979.">Golub <em>et al.</em>, 1979</a>]</span> proved that LOOCV is not rotation-invariant and can become highly unstable if the design matrix is unbalanced (e.g., if a specific <span class="math notranslate nohighlight">\(S_{ii}\)</span> approaches 1).</p>
-<p>To fix this, <strong>Generalized Cross-Validation</strong> replaces the individual diagonal elements <span class="math notranslate nohighlight">\(S_{ii}\)</span> with their global average. The sum of the diagonal elements of a matrix is its trace, so the average is <span class="math notranslate nohighlight">\(\frac{1}{T} Tr(S)\)</span>. Substituting this average into the LOOCV formula yields the GCV objective <span class="bibtex-citation" id="id6">[<a class="reference internal" href="../../bibliography.html#id35" title="Gene H Golub, Michael Heath, and Grace Wahba. Generalized cross-validation as a method for choosing a good ridge parameter. Technometrics, 21(2):215–223, 1979.">Golub <em>et al.</em>, 1979</a>]</span>:</p>
+<p>However, Golub, Heath, and Wahba <span class="bibtex-citation" id="id5">[<a class="reference internal" href="../../bibliography.html#id37" title="Gene H Golub, Michael Heath, and Grace Wahba. Generalized cross-validation as a method for choosing a good ridge parameter. Technometrics, 21(2):215–223, 1979.">Golub <em>et al.</em>, 1979</a>]</span> proved that LOOCV is not rotation-invariant and can become highly unstable if the design matrix is unbalanced (e.g., if a specific <span class="math notranslate nohighlight">\(S_{ii}\)</span> approaches 1).</p>
+<p>To fix this, <strong>Generalized Cross-Validation</strong> replaces the individual diagonal elements <span class="math notranslate nohighlight">\(S_{ii}\)</span> with their global average. The sum of the diagonal elements of a matrix is its trace, so the average is <span class="math notranslate nohighlight">\(\frac{1}{T} Tr(S)\)</span>. Substituting this average into the LOOCV formula yields the GCV objective <span class="bibtex-citation" id="id6">[<a class="reference internal" href="../../bibliography.html#id37" title="Gene H Golub, Michael Heath, and Grace Wahba. Generalized cross-validation as a method for choosing a good ridge parameter. Technometrics, 21(2):215–223, 1979.">Golub <em>et al.</em>, 1979</a>]</span>:</p>
 <div class="math-wrapper docutils container">
 <div class="math notranslate nohighlight">
 \[GCV(\lambda) = \frac{\frac{1}{T} \sum_{i=1}^T (y_i - \hat{y}_i)^2}{\left(1 - \frac{1}{T} Tr(S)\right)^2} = \frac{\frac{1}{T} RSS}{\left(1 - \frac{1}{T} Tr(S)\right)^2}\]</div>
@@ -371,7 +371,7 @@ The <span class="math notranslate nohighlight">\(RSS\)</span> is simply the weig
 <div class="math notranslate nohighlight">
 \[GCV(\lambda) = \frac{\frac{1}{T} RSS}{\left(1 - \frac{\gamma}{T} Tr(S)\right)^2}\]</div>
 </div>
-<p>Where <span class="math notranslate nohighlight">\(\gamma\)</span> is an inflation multiplier (typically <span class="math notranslate nohighlight">\(\gamma = 1.4\)</span>). Standard GCV assumes independent and identically distributed (i.i.d.) noise. In chaotic time-series environments, errors are frequently autocorrelated, causing uncorrected GCV to severely overfit the noise. The <span class="math notranslate nohighlight">\(\gamma\)</span> parameter artificially inflates the penalty of the trace, forcing the solver to favor smoother, more robust functional mappings as theoretically justified by Kim and Gu <span class="bibtex-citation" id="id7">[<a class="reference internal" href="../../bibliography.html#id47" title="Young-Ju Kim and Chong Gu. Smoothing spline gaussian regression: more scalable computation via efficient approximation. Journal of The Royal Statistical Society Series B: Statistical Methodology, 66(2):337–356, 2004.">Kim and Gu, 2004</a>]</span>.</p>
+<p>Where <span class="math notranslate nohighlight">\(\gamma\)</span> is an inflation multiplier (typically <span class="math notranslate nohighlight">\(\gamma = 1.4\)</span>). Standard GCV assumes independent and identically distributed (i.i.d.) noise. In chaotic time-series environments, errors are frequently autocorrelated, causing uncorrected GCV to severely overfit the noise. The <span class="math notranslate nohighlight">\(\gamma\)</span> parameter artificially inflates the penalty of the trace, forcing the solver to favor smoother, more robust functional mappings as theoretically justified by Kim and Gu <span class="bibtex-citation" id="id7">[<a class="reference internal" href="../../bibliography.html#id49" title="Young-Ju Kim and Chong Gu. Smoothing spline gaussian regression: more scalable computation via efficient approximation. Journal of The Royal Statistical Society Series B: Statistical Methodology, 66(2):337–356, 2004.">Kim and Gu, 2004</a>]</span>.</p>
 </section>
 </section>
 <hr class="docutils" />
@@ -389,10 +389,10 @@ The <span class="math notranslate nohighlight">\(RSS\)</span> is simply the weig
 <hr class="docutils" />
 <section id="multiple-smoothing-parameters-msp-via-coordinate-descent">
 <h2>Multiple Smoothing Parameters (MSP) via Coordinate Descent<a class="headerlink" href="#multiple-smoothing-parameters-msp-via-coordinate-descent" title="Link to this heading">¶</a></h2>
-<p>Because TAM concatenates highly heterogeneous mathematical bases (e.g., mixing Splines with Fourier series and Random Features), applying a single global penalty <span class="math notranslate nohighlight">\(\lambda\)</span> is statistically invalid. The framework must optimize a different regularization parameter for <em>each</em> architectural block simultaneously <span class="bibtex-citation" id="id8">[<a class="reference internal" href="../../bibliography.html#id78" title="Simon N Wood. Stable and efficient multiple smoothing parameter estimation for generalized additive models. Journal of the American Statistical Association, 99(467):673–686, 2004.">Wood, 2004</a>]</span>.</p>
+<p>Because TAM concatenates highly heterogeneous mathematical bases (e.g., mixing Splines with Fourier series and Random Features), applying a single global penalty <span class="math notranslate nohighlight">\(\lambda\)</span> is statistically invalid. The framework must optimize a different regularization parameter for <em>each</em> architectural block simultaneously <span class="bibtex-citation" id="id8">[<a class="reference internal" href="../../bibliography.html#id80" title="Simon N Wood. Stable and efficient multiple smoothing parameter estimation for generalized additive models. Journal of the American Statistical Association, 99(467):673–686, 2004.">Wood, 2004</a>]</span>.</p>
 <p>While classical statistics recommends using a Newton-Raphson method based on exact analytical derivatives to solve Multiple Smoothing Parameters, calculating these higher-order derivative tensors requires massive memory allocations that frequently crash GPU VRAM.</p>
 <p><strong>The Engineering Compromise:</strong>
-To safely scale, TAM deploys a Multi-Start Discrete Coordinate Descent algorithm <span class="bibtex-citation" id="id9">[<a class="reference internal" href="../../bibliography.html#id82" title="Stephen J Wright. Coordinate descent algorithms. Mathematical programming, 151(1):3–34, 2015.">Wright, 2015</a>]</span>. Rather than computing the dense Hessian of the GCV landscape, the solver iteratively cycles through the parameter axes (one block-diagonal penalty at a time), calculating the GCV score using the cyclic trace trick until global convergence is achieved. This proves far more physically robust for navigating non-differentiable or highly complex feature spaces.</p>
+To safely scale, TAM deploys a Multi-Start Discrete Coordinate Descent algorithm <span class="bibtex-citation" id="id9">[<a class="reference internal" href="../../bibliography.html#id84" title="Stephen J Wright. Coordinate descent algorithms. Mathematical programming, 151(1):3–34, 2015.">Wright, 2015</a>]</span>. Rather than computing the dense Hessian of the GCV landscape, the solver iteratively cycles through the parameter axes (one block-diagonal penalty at a time), calculating the GCV score using the cyclic trace trick until global convergence is achieved. This proves far more physically robust for navigating non-differentiable or highly complex feature spaces.</p>
 </section>
 <hr class="docutils" />
 <section id="future-roadmap-matrix-free-gcv">
@@ -431,7 +431,7 @@ To safely scale, TAM deploys a Multi-Start Discrete Coordinate Descent algorithm
         <div class="bottom-of-page">
           <div class="left-details">
             <div class="copyright">
-                Copyright &#169; 2026, Yann Allioux, Nathan Doumèche, Éloi Bedek
+                Copyright &#169; 2025-2026 Électricité de France (contributors: Yann Allioux); 2023-2025 Électricité de France, Sorbonne Université (contributors: Nathan Doumèche, Éloi Bedek)
             </div>
             Made with <a href="https://www.sphinx-doc.org/">Sphinx</a> and <a class="muted-link" href="https://pradyunsg.me">@pradyunsg</a>'s
             
@@ -478,7 +478,7 @@ To safely scale, TAM deploys a Multi-Start Discrete Coordinate Descent algorithm
       
     </aside>
   </div>
-</div><script src="../../_static/documentation_options.js?v=36f53d34"></script>
+</div><script src="../../_static/documentation_options.js?v=010db75e"></script>
     <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/scripts/furo.js?v=46bd48cc"></script>

@@ -7,7 +7,7 @@
         <link rel="prefetch" href="../../_static/logo.png" as="image">
 
     <!-- Generated with Sphinx 9.1.0 and Furo 2025.12.19 -->
-        <title>Computational Complexity (\(\mathcal{O}(D^3+T D^2)\) vs \(\mathcal{O}(T^3)\)) - TAM 1.2.5 documentation</title>
+        <title>Computational Complexity (\(\mathcal{O}(D^3+T D^2)\) vs \(\mathcal{O}(T^3)\)) - TAM 1.2.6 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=d111a655" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo-extensions.css?v=8dab3a3b" />
@@ -162,7 +162,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="../../index.html"><div class="brand">TAM 1.2.5 documentation</div></a>
+      <a href="../../index.html"><div class="brand">TAM 1.2.6 documentation</div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -186,7 +186,7 @@
     <img class="sidebar-logo" src="../../_static/logo.png" alt="Logo"/>
   </div>
   
-  <span class="sidebar-brand-text">TAM 1.2.5 documentation</span>
+  <span class="sidebar-brand-text">TAM 1.2.6 documentation</span>
   
 </a><form class="sidebar-search-container" method="get" action="../../search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
@@ -320,7 +320,7 @@
 <hr class="docutils" />
 <section id="the-dual-bottleneck-mathcal-o-t-3">
 <h2>The Dual Bottleneck (<span class="math notranslate nohighlight">\(\mathcal{O}(T^3)\)</span>)<a class="headerlink" href="#the-dual-bottleneck-mathcal-o-t-3" title="Link to this heading">¶</a></h2>
-<p>Traditional Kernel Methods, popularized by Vapnik’s Support Vector Machines (SVM) <span class="bibtex-citation" id="id1">[<a class="reference internal" href="../../bibliography.html#id17" title="Corinna Cortes and Vladimir Vapnik. Support-vector networks. Machine learning, 20(3):273–297, 1995.">Cortes and Vapnik, 1995</a>, <a class="reference internal" href="../../bibliography.html#id73" title="Vladimir Vapnik. The nature of statistical learning theory. Springer science &amp; business media, 2013.">Vapnik, 2013</a>]</span>, rely on the Dual formulation and the ‘Kernel Trick’ to handle high-dimensional mappings implicitly. While mathematically elegant for finding maximum-margin hyperplanes, this requires explicitly computing and inverting an <span class="math notranslate nohighlight">\(T \times T\)</span> Gram matrix. This leads to an intractable <span class="math notranslate nohighlight">\(\mathcal{O}(T^3)\)</span> computational bottleneck, which the TAM framework completely bypasses via its Primal exact resolution.</p>
+<p>Traditional Kernel Methods, popularized by Vapnik’s Support Vector Machines (SVM) <span class="bibtex-citation" id="id1">[<a class="reference internal" href="../../bibliography.html#id19" title="Corinna Cortes and Vladimir Vapnik. Support-vector networks. Machine learning, 20(3):273–297, 1995.">Cortes and Vapnik, 1995</a>, <a class="reference internal" href="../../bibliography.html#id75" title="Vladimir Vapnik. The nature of statistical learning theory. Springer science &amp; business media, 2013.">Vapnik, 2013</a>]</span>, rely on the Dual formulation and the ‘Kernel Trick’ to handle high-dimensional mappings implicitly. While mathematically elegant for finding maximum-margin hyperplanes, this requires explicitly computing and inverting an <span class="math notranslate nohighlight">\(T \times T\)</span> Gram matrix. This leads to an intractable <span class="math notranslate nohighlight">\(\mathcal{O}(T^3)\)</span> computational bottleneck, which the TAM framework completely bypasses via its Primal exact resolution.</p>
 <p>This creates a crippling theoretical bottleneck. The memory complexity scales at <span class="math notranslate nohighlight">\(\mathcal{O}(T^2)\)</span> and the computational time complexity scales at <span class="math notranslate nohighlight">\(\mathcal{O}(T^3)\)</span>. For modern industrial applications involving millions of high-frequency time series observations (Gigadata), calculating this full dense space is a physical impossibility.</p>
 </section>
 <hr class="docutils" />
@@ -331,20 +331,20 @@
 <div class="math notranslate nohighlight">
 \[\hat{\theta}_g = \left( \Phi_g^\top \Lambda_g^\top \Lambda_g \Phi_g + T \cdot P \right)^{-1} \Phi_g^\top \Lambda_g^\top \Lambda_g Y_g\]</div>
 </div>
-<p>Because the framework operates strictly in this Primal space, the dimensionality of the system is dictated exclusively by the number of synthesized features <span class="math notranslate nohighlight">\(D\)</span> (the column width of <span class="math notranslate nohighlight">\(\Phi\)</span>), completely bypassing the <span class="math notranslate nohighlight">\(\mathcal{O}(T^3)\)</span> sample limit. As theoretically justified by Kim and Gu <span class="bibtex-citation" id="id2">[<a class="reference internal" href="../../bibliography.html#id47" title="Young-Ju Kim and Chong Gu. Smoothing spline gaussian regression: more scalable computation via efficient approximation. Journal of The Royal Statistical Society Series B: Statistical Methodology, 66(2):337–356, 2004.">Kim and Gu, 2004</a>]</span>, projecting the optimization problem onto a much smaller approximating space (<span class="math notranslate nohighlight">\(D \ll T\)</span>) allows for massive scalability without sacrificing asymptotic statistical efficiency.</p>
+<p>Because the framework operates strictly in this Primal space, the dimensionality of the system is dictated exclusively by the number of synthesized features <span class="math notranslate nohighlight">\(D\)</span> (the column width of <span class="math notranslate nohighlight">\(\Phi\)</span>), completely bypassing the <span class="math notranslate nohighlight">\(\mathcal{O}(T^3)\)</span> sample limit. As theoretically justified by Kim and Gu <span class="bibtex-citation" id="id2">[<a class="reference internal" href="../../bibliography.html#id49" title="Young-Ju Kim and Chong Gu. Smoothing spline gaussian regression: more scalable computation via efficient approximation. Journal of The Royal Statistical Society Series B: Statistical Methodology, 66(2):337–356, 2004.">Kim and Gu, 2004</a>]</span>, projecting the optimization problem onto a much smaller approximating space (<span class="math notranslate nohighlight">\(D \ll T\)</span>) allows for massive scalability without sacrificing asymptotic statistical efficiency.</p>
 <p>The computational cost of forming the covariance matrix is <span class="math notranslate nohighlight">\(\mathcal{O}(T D^2)\)</span>, and the direct inversion via Cholesky or LU decomposition costs <span class="math notranslate nohighlight">\(\mathcal{O}(D^3)\)</span>.</p>
 </section>
 <hr class="docutils" />
 <section id="matrix-free-bypassing-of-the-d-limit">
 <h2>Matrix-Free Bypassing of the <span class="math notranslate nohighlight">\(D\)</span> Limit<a class="headerlink" href="#matrix-free-bypassing-of-the-d-limit" title="Link to this heading">¶</a></h2>
 <p>While the Primal Shift solves the <span class="math notranslate nohighlight">\(T\)</span> bottleneck, building highly expressive models with Neural Tangent Kernels or deep Tensor Products can cause the feature dimension <span class="math notranslate nohighlight">\(D\)</span> to become massive. Materializing the <span class="math notranslate nohighlight">\(\Phi^\top \Phi\)</span> matrix requires <span class="math notranslate nohighlight">\(\mathcal{O}(D^2)\)</span> contiguous memory, which can easily exceed GPU VRAM limits.</p>
-<p>To break this final barrier, the framework utilizes the Matrix-Free Sparse Conjugate Gradient solver, as validated by Wu et al. for solving high-dimensional randomized features efficiently <span class="bibtex-citation" id="id3">[<a class="reference internal" href="../../bibliography.html#id83" title="Lingfei Wu, Ian EH Yen, Jie Chen, and Rui Yan. Revisiting random binning features: fast convergence and strong parallelizability. In Proceedings of the 22nd ACM SIGKDD International Conference on Knowledge Discovery and Data Mining, 1265–1274. 2016.">Wu <em>et al.</em>, 2016</a>]</span>.</p>
+<p>To break this final barrier, the framework utilizes the Matrix-Free Sparse Conjugate Gradient solver, as validated by Wu et al. for solving high-dimensional randomized features efficiently <span class="bibtex-citation" id="id3">[<a class="reference internal" href="../../bibliography.html#id85" title="Lingfei Wu, Ian EH Yen, Jie Chen, and Rui Yan. Revisiting random binning features: fast convergence and strong parallelizability. In Proceedings of the 22nd ACM SIGKDD International Conference on Knowledge Discovery and Data Mining, 1265–1274. 2016.">Wu <em>et al.</em>, 2016</a>]</span>.</p>
 <p>By evaluating the system dynamically through a mathematical closure <span class="math notranslate nohighlight">\(A_g v = \Phi_g^\top \Lambda_g^\top \Lambda_g (\Phi_g v) + T \cdot P v\)</span>, the matrix multiplications collapse sequentially. Since the inner product <span class="math notranslate nohighlight">\((\Phi_g v)\)</span> is computed first, the algorithm never explicitly forms the dense <span class="math notranslate nohighlight">\(D \times D\)</span> covariance matrix. This shifts the per-iteration time complexity down to purely <span class="math notranslate nohighlight">\(\mathcal{O}(T D)\)</span> and bounds the memory allocation linearly, allowing the exact resolution of effectively limitless dimensions strictly within the GPU caches.</p>
 </section>
 <hr class="docutils" />
 <section id="hardware-group-chunking-and-exact-determinism">
 <h2>Hardware Group-Chunking and Exact Determinism<a class="headerlink" href="#hardware-group-chunking-and-exact-determinism" title="Link to this heading">¶</a></h2>
-<p>When the system cannot fit entirely in memory even at <span class="math notranslate nohighlight">\(\mathcal{O}(T D)\)</span>, the data must be chunked. However, statistical stability demands exact resolution without the noise of iterative stochastic approximations. To guarantee perfect mathematical determinism and stability when estimating Multiple Smoothing Parameters face-to-face with Gigadata <span class="bibtex-citation" id="id4">[<a class="reference internal" href="../../bibliography.html#id78" title="Simon N Wood. Stable and efficient multiple smoothing parameter estimation for generalized additive models. Journal of the American Statistical Association, 99(467):673–686, 2004.">Wood, 2004</a>]</span>, the framework entirely forbids temporal slicing.</p>
+<p>When the system cannot fit entirely in memory even at <span class="math notranslate nohighlight">\(\mathcal{O}(T D)\)</span>, the data must be chunked. However, statistical stability demands exact resolution without the noise of iterative stochastic approximations. To guarantee perfect mathematical determinism and stability when estimating Multiple Smoothing Parameters face-to-face with Gigadata <span class="bibtex-citation" id="id4">[<a class="reference internal" href="../../bibliography.html#id80" title="Simon N Wood. Stable and efficient multiple smoothing parameter estimation for generalized additive models. Journal of the American Statistical Association, 99(467):673–686, 2004.">Wood, 2004</a>]</span>, the framework entirely forbids temporal slicing.</p>
 <p>Instead, the data is partitioned horizontally via <strong>Group-Chunking</strong>.</p>
 <p>By treating the problem as a 3D tensor (<span class="math notranslate nohighlight">\(\mathcal{X} \in \mathbb{R}^{G \times T \times D}\)</span>), the system dispatches mathematical blocks by independent groups (e.g., individual smart meters or distinct spatial regions). This confines the maximum spatial footprint to <span class="math notranslate nohighlight">\(\mathcal{O}(G_{chunk} \times T \times D)\)</span> while ensuring the entire history of any specific dynamic is parsed in a single atomic mathematical pass.</p>
 <blockquote>
@@ -354,7 +354,7 @@
 <hr class="docutils" />
 <section id="future-algorithmic-upgrades">
 <h2>Future Algorithmic Upgrades<a class="headerlink" href="#future-algorithmic-upgrades" title="Link to this heading">¶</a></h2>
-<p>While the coupling of Group-Chunking (for hardware acceleration) and Adaptive Jitter (for matrix stability) currently offers an optimal compromise to solve massive RKHS systems, a future iteration of the framework’s mathematical core aims to implement Block-QR or rank-1 Cholesky update/downdate algorithms. By mathematically rotating the existing decomposed matrix as new sliding-window data arrives, the online <span class="math notranslate nohighlight">\(\mathcal{O}(W D^2)\)</span> time complexity will collapse to strictly <span class="math notranslate nohighlight">\(\mathcal{O}(D^2)\)</span> per step. This would allow the framework to process data in chunks while entirely avoiding the explicit calculation of the <span class="math notranslate nohighlight">\(\Phi^\top \Lambda^\top \Lambda \Phi\)</span> cross-product, offering the flawless numerical stability demanded by <span class="bibtex-citation" id="id5">[<a class="reference internal" href="../../bibliography.html#id78" title="Simon N Wood. Stable and efficient multiple smoothing parameter estimation for generalized additive models. Journal of the American Statistical Association, 99(467):673–686, 2004.">Wood, 2004</a>]</span> on pathologically ill-conditioned datasets without needing artificial jitter.</p>
+<p>While the coupling of Group-Chunking (for hardware acceleration) and Adaptive Jitter (for matrix stability) currently offers an optimal compromise to solve massive RKHS systems, a future iteration of the framework’s mathematical core aims to implement Block-QR or rank-1 Cholesky update/downdate algorithms. By mathematically rotating the existing decomposed matrix as new sliding-window data arrives, the online <span class="math notranslate nohighlight">\(\mathcal{O}(W D^2)\)</span> time complexity will collapse to strictly <span class="math notranslate nohighlight">\(\mathcal{O}(D^2)\)</span> per step. This would allow the framework to process data in chunks while entirely avoiding the explicit calculation of the <span class="math notranslate nohighlight">\(\Phi^\top \Lambda^\top \Lambda \Phi\)</span> cross-product, offering the flawless numerical stability demanded by <span class="bibtex-citation" id="id5">[<a class="reference internal" href="../../bibliography.html#id80" title="Simon N Wood. Stable and efficient multiple smoothing parameter estimation for generalized additive models. Journal of the American Statistical Association, 99(467):673–686, 2004.">Wood, 2004</a>]</span> on pathologically ill-conditioned datasets without needing artificial jitter.</p>
 </section>
 </section>
 
@@ -387,7 +387,7 @@
         <div class="bottom-of-page">
           <div class="left-details">
             <div class="copyright">
-                Copyright &#169; 2026, Yann Allioux, Nathan Doumèche, Éloi Bedek
+                Copyright &#169; 2025-2026 Électricité de France (contributors: Yann Allioux); 2023-2025 Électricité de France, Sorbonne Université (contributors: Nathan Doumèche, Éloi Bedek)
             </div>
             Made with <a href="https://www.sphinx-doc.org/">Sphinx</a> and <a class="muted-link" href="https://pradyunsg.me">@pradyunsg</a>'s
             
@@ -430,7 +430,7 @@
       
     </aside>
   </div>
-</div><script src="../../_static/documentation_options.js?v=36f53d34"></script>
+</div><script src="../../_static/documentation_options.js?v=010db75e"></script>
     <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/scripts/furo.js?v=46bd48cc"></script>

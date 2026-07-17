@@ -1,7 +1,16 @@
 # TAM (Time series Additive Model)
 
 [🧪 `EXAMPLES`](EXAMPLES.md) | [📚 `THEORY`](THEORY.md) | [📄 `JOSS PAPER`](paper.md)
-
+  
+**Version:** 1.2.6  
+**License:** LGPL-3.0-or-later.  
+**Copyright (c):** 2023-2026 EDF (Electricité De France).  
+**Copyright (c):** 2023-2025 Sorbonne Université.  
+  
+**Active contributor:** Yann Allioux (2025-2026)  
+**Past contributors:**  Nathan Doumèche (2023-2025) and Éloi Bedek (2024-2025)  
+**Scientific advisor:** Yannig Goude  
+  
 [![PyPI Version](https://img.shields.io/pypi/v/tam-ml.svg)](https://pypi.org/project/tam-ml/)
 [![Powered by PyTorch](https://img.shields.io/badge/PyTorch-Core-ee4c2c.svg)](https://pytorch.org/)
 [![CI Pipeline](https://img.shields.io/badge/CI-Passing-success.svg)](#) 
@@ -159,9 +168,24 @@ If you use these packages in your research, please cite them using their permane
 ```bibtex
 @misc{tam2026package,
   title={TAM: Time series Additive Model (v1.2.3)},
-  author={Allioux, Yann and Doumeche, Nathan and Bedek, Eloi},
+  author={Allioux, Yann and Goude, Yannig},
   year={2026},
-  doi={10.5281/zenodo.20543272}
+  doi={10.5281/zenodo.20543272},
+  note={With foundational WeaKL research by Nathan Doumèche, and tensorisation and adaptive model contributions by Éloi Bedek}
+}
+```
+
+* **FORCE Dataset:** [https://doi.org/10.5281/zenodo.21109134](https://doi.org/10.5281/zenodo.21109134)
+
+**FORCE Dataset**
+```bibtex
+@dataset{force2026dataset,
+  title={FORCE Dataset: French Open Research Catalogue of Energy - 2026 Snapshot},
+  author={Allioux, Yann and Goude, Yannig},
+  year={2026},
+  publisher={Zenodo},
+  doi={10.5281/zenodo.21109134},
+  note={With a contribution of Nathan Doumèche during his thesis}
 }
 ```
 

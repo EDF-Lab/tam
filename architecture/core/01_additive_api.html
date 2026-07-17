@@ -7,7 +7,7 @@
         <link rel="prefetch" href="../../_static/logo.png" as="image">
 
     <!-- Generated with Sphinx 9.1.0 and Furo 2025.12.19 -->
-        <title>The Additive API and Object-Oriented Architecture - TAM 1.2.5 documentation</title>
+        <title>The Additive API and Object-Oriented Architecture - TAM 1.2.6 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=d111a655" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo-extensions.css?v=8dab3a3b" />
@@ -162,7 +162,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="../../index.html"><div class="brand">TAM 1.2.5 documentation</div></a>
+      <a href="../../index.html"><div class="brand">TAM 1.2.6 documentation</div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -186,7 +186,7 @@
     <img class="sidebar-logo" src="../../_static/logo.png" alt="Logo"/>
   </div>
   
-  <span class="sidebar-brand-text">TAM 1.2.5 documentation</span>
+  <span class="sidebar-brand-text">TAM 1.2.6 documentation</span>
   
 </a><form class="sidebar-search-container" method="get" action="../../search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
@@ -315,12 +315,12 @@
 <li><p><strong>Theory introduction:</strong> <a class="reference internal" href="../../THEORY.html"><span class="std std-doc">See the Intro</span></a></p></li>
 <li><p><strong>Related mathematical theory:</strong> <a class="reference internal" href="../../math/core/01_primal_model.html"><span class="std std-doc">See the Mathematical Theory</span></a></p></li>
 </ul>
-<p>This chapter details the overarching software engineering pipeline of the TAM framework. It explains how high-level user formulas are parsed, routed, and translated into robust linear algebra operations across the primary orchestration scripts (<code class="docutils literal notranslate"><span class="pre">utils.py</span></code>, <code class="docutils literal notranslate"><span class="pre">_base.py</span></code>, <code class="docutils literal notranslate"><span class="pre">_factory.py</span></code>, and <code class="docutils literal notranslate"><span class="pre">additive.py</span></code>), structurally grounded in the Primal resolution theory <span class="bibtex-citation" id="id1">[<a class="reference internal" href="../../bibliography.html#id24" title="Nathan Doumèche, Francis Bach, Éloi Bedek, Gérard Biau, Claire Boyer, and Yannig Goude. Forecasting time series with constraints. arXiv preprint arXiv:2502.10485, 2025.">Doumèche <em>et al.</em>, 2025</a>]</span>.</p>
+<p>This chapter details the overarching software engineering pipeline of the TAM framework. It explains how high-level user formulas are parsed, routed, and translated into robust linear algebra operations across the primary orchestration scripts (<code class="docutils literal notranslate"><span class="pre">utils.py</span></code>, <code class="docutils literal notranslate"><span class="pre">_base.py</span></code>, <code class="docutils literal notranslate"><span class="pre">_factory.py</span></code>, and <code class="docutils literal notranslate"><span class="pre">additive.py</span></code>), structurally grounded in the Primal resolution theory <span class="bibtex-citation" id="id1">[<a class="reference internal" href="../../bibliography.html#id26" title="Nathan Doumèche, Francis Bach, Éloi Bedek, Gérard Biau, Claire Boyer, and Yannig Goude. Forecasting time series with constraints. arXiv preprint arXiv:2502.10485, 2025.">Doumèche <em>et al.</em>, 2025</a>]</span>.</p>
 <p>To avoid redundancy, low-level data padding, hardware dispatching, and specific effect implementations are delegated to their respective documentation files.</p>
 <section id="global-configurations-utils-py">
 <h2>Global Configurations (<code class="docutils literal notranslate"><span class="pre">utils.py</span></code>)<a class="headerlink" href="#global-configurations-utils-py" title="Link to this heading">¶</a></h2>
 <p>Before any model is instantiated, the framework establishes a unified global configuration via <code class="docutils literal notranslate"><span class="pre">utils.py</span></code>.</p>
-<p>To maintain mathematical determinism in the exact Primal inversion and guarantee convergence <span class="bibtex-citation" id="id2">[<a class="reference internal" href="../../bibliography.html#id24" title="Nathan Doumèche, Francis Bach, Éloi Bedek, Gérard Biau, Claire Boyer, and Yannig Goude. Forecasting time series with constraints. arXiv preprint arXiv:2502.10485, 2025.">Doumèche <em>et al.</em>, 2025</a>]</span>, the framework dynamically forces PyTorch and NumPy to utilize 64-bit precision (<code class="docutils literal notranslate"><span class="pre">float64</span></code>) where the hardware supports it. This initialization acts as the absolute source of truth for the device (<code class="docutils literal notranslate"><span class="pre">TORCH_DEVICE</span></code>) and the precision target (<code class="docutils literal notranslate"><span class="pre">NUMPY_DTYPE</span></code>) across the entire architecture.</p>
+<p>To maintain mathematical determinism in the exact Primal inversion and guarantee convergence <span class="bibtex-citation" id="id2">[<a class="reference internal" href="../../bibliography.html#id26" title="Nathan Doumèche, Francis Bach, Éloi Bedek, Gérard Biau, Claire Boyer, and Yannig Goude. Forecasting time series with constraints. arXiv preprint arXiv:2502.10485, 2025.">Doumèche <em>et al.</em>, 2025</a>]</span>, the framework dynamically forces PyTorch and NumPy to utilize 64-bit precision (<code class="docutils literal notranslate"><span class="pre">float64</span></code>) where the hardware supports it. This initialization acts as the absolute source of truth for the device (<code class="docutils literal notranslate"><span class="pre">TORCH_DEVICE</span></code>) and the precision target (<code class="docutils literal notranslate"><span class="pre">NUMPY_DTYPE</span></code>) across the entire architecture.</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">.hardware</span><span class="w"> </span><span class="kn">import</span> <span class="n">hw</span>
 <span class="n">TORCH_DEVICE</span> <span class="o">=</span> <span class="n">hw</span><span class="o">.</span><span class="n">device</span>
 
@@ -340,7 +340,7 @@
 <ul class="simple">
 <li><p>It explicitly manages state definitions (<code class="docutils literal notranslate"><span class="pre">coefficients_</span></code>, <code class="docutils literal notranslate"><span class="pre">norm_params_</span></code>).</p></li>
 <li><p>It standardizes the temporal alignment and handling of missing groups. <em>(For exact tensor padding logic, refer to the <a class="reference internal" href="02_data_pipeline.html"><span class="std std-doc">Data Pipeline</span></a>).</em></p></li>
-<li><p>It defines the continuous optimization problem logically, forcing child classes to implement the specific construction of the design matrix <span class="math notranslate nohighlight">\(\Phi\)</span> and the penalty matrix <span class="math notranslate nohighlight">\(P\)</span> required to stabilize the regularized normal equations <span class="bibtex-citation" id="id3">[<a class="reference internal" href="../../bibliography.html#id42" title="Arthur E Hoerl and Robert W Kennard. Ridge regression: biased estimation for nonorthogonal problems. Technometrics, 12(1):55–67, 1970.">Hoerl and Kennard, 1970</a>]</span>.</p></li>
+<li><p>It defines the continuous optimization problem logically, forcing child classes to implement the specific construction of the design matrix <span class="math notranslate nohighlight">\(\Phi\)</span> and the penalty matrix <span class="math notranslate nohighlight">\(P\)</span> required to stabilize the regularized normal equations <span class="bibtex-citation" id="id3">[<a class="reference internal" href="../../bibliography.html#id44" title="Arthur E Hoerl and Robert W Kennard. Ridge regression: biased estimation for nonorthogonal problems. Technometrics, 12(1):55–67, 1970.">Hoerl and Kennard, 1970</a>]</span>.</p></li>
 </ul>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">BaseTAM</span><span class="p">(</span><span class="n">ABC</span><span class="p">):</span>
 <span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
@@ -504,10 +504,15 @@
 <span class="sd">        Initializes the StaticTAM model.</span>
 
 <span class="sd">        Args:</span>
-<span class="sd">            formula: R-style formula defining the model structure </span>
+<span class="sd">            formula: R-style formula defining the model structure</span>
 <span class="sd">                     (e.g., &quot;Y ~ s(x) + l(t)&quot;).</span>
 <span class="sd">            group_col: Column name used for grouping data (e.g., &#39;ID&#39;).</span>
-<span class="sd">            date_col: Column name for time indexing.</span>
+<span class="sd">            date_col: Column name for time indexing. Defaults to None, in which</span>
+<span class="sd">                case rows are tensorized in whatever order they were passed in.</span>
+<span class="sd">                For formulas with temporal terms (lags, trend, or any term whose</span>
+<span class="sd">                penalty assumes row-adjacency means chronological adjacency),</span>
+<span class="sd">                you must pass date_col explicitly to guarantee correct results</span>
+<span class="sd">                on data that isn&#39;t already sorted by time.</span>
 <span class="sd">            default_alpha_p: Default log10(lambda_p) regularization strength.</span>
 <span class="sd">            _internal_effects_list: (Internal) Used for restoring state during grid search.</span>
 <span class="sd">            _internal_features_config: (Internal) Used for restoring state during grid search.</span>
@@ -586,7 +591,7 @@
         <span class="n">final_decomposed_effects</span> <span class="o">=</span> <span class="n">smart_decompose</span><span class="p">(</span><span class="n">x_predict</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">coefficients_</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">effects_list_</span><span class="p">)</span>
 
         <span class="n">decomposed_df</span> <span class="o">=</span> <span class="n">_reassemble_decomposed_predictions</span><span class="p">(</span>
-            <span class="n">balanced_data</span><span class="p">,</span> <span class="n">final_decomposed_effects</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">group_col_</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">unique_groups_</span>
+            <span class="n">balanced_data</span><span class="p">,</span> <span class="n">final_decomposed_effects</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">group_col_</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">unique_groups_</span><span class="p">,</span> <span class="n">date_col</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">date_col_</span>
         <span class="p">)</span>
 
         <span class="k">return</span> <span class="n">_cleanup_dummies</span><span class="p">(</span><span class="n">decomposed_df</span><span class="p">[</span><span class="n">mask</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">group_col_</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">date_col_</span><span class="p">)</span>
@@ -599,7 +604,7 @@
 <p>To safely scale to Gigadata without exhausting computational time, <code class="docutils literal notranslate"><span class="pre">StaticTAM</span></code> divides hyperparameter tuning into two distinct structural methods.</p>
 <section id="the-continuous-algebraic-solver-gcv">
 <h3>The Continuous Algebraic Solver (GCV)<a class="headerlink" href="#the-continuous-algebraic-solver-gcv" title="Link to this heading">¶</a></h3>
-<p>For continuous structural penalties (the <span class="math notranslate nohighlight">\(\lambda\)</span> regularization weights), iterative searching is mathematically obsolete. The <code class="docutils literal notranslate"><span class="pre">auto_fit</span></code> method routes the training data to the Generalized Cross-Validation (GCV) dispatcher. This computes the optimal Multiple Smoothing Parameters analytically via the cyclic trace trick <span class="bibtex-citation" id="id4">[<a class="reference internal" href="../../bibliography.html#id35" title="Gene H Golub, Michael Heath, and Grace Wahba. Generalized cross-validation as a method for choosing a good ridge parameter. Technometrics, 21(2):215–223, 1979.">Golub <em>et al.</em>, 1979</a>]</span>.</p>
+<p>For continuous structural penalties (the <span class="math notranslate nohighlight">\(\lambda\)</span> regularization weights), iterative searching is mathematically obsolete. The <code class="docutils literal notranslate"><span class="pre">auto_fit</span></code> method routes the training data to the Generalized Cross-Validation (GCV) dispatcher. This computes the optimal Multiple Smoothing Parameters analytically via the cyclic trace trick <span class="bibtex-citation" id="id4">[<a class="reference internal" href="../../bibliography.html#id37" title="Gene H Golub, Michael Heath, and Grace Wahba. Generalized cross-validation as a method for choosing a good ridge parameter. Technometrics, 21(2):215–223, 1979.">Golub <em>et al.</em>, 1979</a>]</span>.</p>
 <p><em>(For the implementation details and block-diagonal routing logic of this solver, see the <a class="reference internal" href="05_gcv_implementation.html"><span class="std std-doc">GCV Implementation Guide</span></a>).</em></p>
 </section>
 <section id="the-discrete-architectural-solver-coordinate-descent">
@@ -796,7 +801,7 @@
         <div class="bottom-of-page">
           <div class="left-details">
             <div class="copyright">
-                Copyright &#169; 2026, Yann Allioux, Nathan Doumèche, Éloi Bedek
+                Copyright &#169; 2025-2026 Électricité de France (contributors: Yann Allioux); 2023-2025 Électricité de France, Sorbonne Université (contributors: Nathan Doumèche, Éloi Bedek)
             </div>
             Made with <a href="https://www.sphinx-doc.org/">Sphinx</a> and <a class="muted-link" href="https://pradyunsg.me">@pradyunsg</a>'s
             
@@ -848,7 +853,7 @@
       
     </aside>
   </div>
-</div><script src="../../_static/documentation_options.js?v=36f53d34"></script>
+</div><script src="../../_static/documentation_options.js?v=010db75e"></script>
     <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/scripts/furo.js?v=46bd48cc"></script>

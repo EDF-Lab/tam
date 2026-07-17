@@ -7,7 +7,7 @@
         <link rel="prefetch" href="../../_static/logo.png" as="image">
 
     <!-- Generated with Sphinx 9.1.0 and Furo 2025.12.19 -->
-        <title>Linear Algebra: Direct vs. Iterative Solvers - TAM 1.2.5 documentation</title>
+        <title>Linear Algebra: Direct vs. Iterative Solvers - TAM 1.2.6 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=d111a655" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo-extensions.css?v=8dab3a3b" />
@@ -162,7 +162,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="../../index.html"><div class="brand">TAM 1.2.5 documentation</div></a>
+      <a href="../../index.html"><div class="brand">TAM 1.2.6 documentation</div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -186,7 +186,7 @@
     <img class="sidebar-logo" src="../../_static/logo.png" alt="Logo"/>
   </div>
   
-  <span class="sidebar-brand-text">TAM 1.2.5 documentation</span>
+  <span class="sidebar-brand-text">TAM 1.2.6 documentation</span>
   
 </a><form class="sidebar-search-container" method="get" action="../../search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
@@ -329,8 +329,8 @@
 <ul class="simple">
 <li><p><span class="math notranslate nohighlight">\(\Phi_g^\top\Lambda_g^\top\Lambda_g\Phi_g\)</span> is the weighted Gram matrix (acting as the Hessian of the empirical risk) for group <span class="math notranslate nohighlight">\(g\)</span>, where <span class="math notranslate nohighlight">\(\Lambda_g\)</span> is the diagonal matrix of sample weight square roots.</p></li>
 <li><p><span class="math notranslate nohighlight">\(\Phi_g^\top\Lambda_g^\top\Lambda_g Y_g\)</span> is the weighted feature-target cross-correlation vector for group <span class="math notranslate nohighlight">\(g\)</span>.</p></li>
-<li><p><span class="math notranslate nohighlight">\(P\)</span> is the block-diagonal structural penalty matrix. In the context of Regularization Networks, this matrix acts as the explicit regularization operator <span class="math notranslate nohighlight">\(P\)</span>, mapped to a dot product space to mathematically enforce the smoothness and flatness of the estimated function <span class="bibtex-citation" id="id1">[<a class="reference internal" href="../../bibliography.html#id68" title="Alex J Smola and Bernhard Schölkopf. A tutorial on support vector regression. Statistics and computing, 14(3):199–222, 2004.">Smola and Schölkopf, 2004</a>]</span>.</p></li>
-<li><p><span class="math notranslate nohighlight">\(T\)</span> is the number of time steps per group, acting as the exact scaling factor for the Tikhonov penalty term <span class="bibtex-citation" id="id2">[<a class="reference internal" href="../../bibliography.html#id73" title="Vladimir Vapnik. The nature of statistical learning theory. Springer science &amp; business media, 2013.">Vapnik, 2013</a>, <a class="reference internal" href="../../bibliography.html#id70" title="Andrey Nikolayevich Tikhonov and others. On the stability of inverse problems. Dokl. Akad. Nauk SSSR, 39(5):195–198, 1943.">Tikhonov and others, 1943</a>, <a class="reference internal" href="../../bibliography.html#id38" title="Trevor Hastie, Robert Tibshirani, and Jerome Friedman. The Elements of Statistical Learning: Data Mining, Inference, and Prediction. Springer Science &amp; Business Media, 2009.">Hastie <em>et al.</em>, 2009</a>]</span>.</p></li>
+<li><p><span class="math notranslate nohighlight">\(P\)</span> is the block-diagonal structural penalty matrix. In the context of Regularization Networks, this matrix acts as the explicit regularization operator <span class="math notranslate nohighlight">\(P\)</span>, mapped to a dot product space to mathematically enforce the smoothness and flatness of the estimated function <span class="bibtex-citation" id="id1">[<a class="reference internal" href="../../bibliography.html#id70" title="Alex J Smola and Bernhard Schölkopf. A tutorial on support vector regression. Statistics and computing, 14(3):199–222, 2004.">Smola and Schölkopf, 2004</a>]</span>.</p></li>
+<li><p><span class="math notranslate nohighlight">\(T\)</span> is the number of time steps per group, acting as the exact scaling factor for the Tikhonov penalty term <span class="bibtex-citation" id="id2">[<a class="reference internal" href="../../bibliography.html#id75" title="Vladimir Vapnik. The nature of statistical learning theory. Springer science &amp; business media, 2013.">Vapnik, 2013</a>, <a class="reference internal" href="../../bibliography.html#id72" title="Andrey Nikolayevich Tikhonov and others. On the stability of inverse problems. Dokl. Akad. Nauk SSSR, 39(5):195–198, 1943.">Tikhonov and others, 1943</a>, <a class="reference internal" href="../../bibliography.html#id40" title="Trevor Hastie, Robert Tibshirani, and Jerome Friedman. The Elements of Statistical Learning: Data Mining, Inference, and Prediction. Springer Science &amp; Business Media, 2009.">Hastie <em>et al.</em>, 2009</a>]</span>.</p></li>
 </ul>
 <blockquote>
 <div><p><strong>Architecture Context:</strong> To see how these equations are converted into batched tensor multiplications over the temporal or group dimensions without triggering memory faults, refer to the PyTorch implementation in <a class="reference internal" href="../../architecture/core/03_math_dispatcher.html"><span class="std std-doc">PyTorch Math Dispatcher</span></a>.</p>
@@ -347,7 +347,7 @@
 <section id="the-matrix-free-iterative-alternative">
 <h2>The Matrix-Free Iterative Alternative<a class="headerlink" href="#the-matrix-free-iterative-alternative" title="Link to this heading">¶</a></h2>
 <p>To bypass the physical memory limit of the direct solver, the framework implements a dynamic dispatching system that routes massive topologies to a <strong>Sparse Conjugate Gradient (CG)</strong> solver.</p>
-<p>As theoretically justified by Wu et al. <span class="bibtex-citation" id="id3">[<a class="reference internal" href="../../bibliography.html#id83" title="Lingfei Wu, Ian EH Yen, Jie Chen, and Rui Yan. Revisiting random binning features: fast convergence and strong parallelizability. In Proceedings of the 22nd ACM SIGKDD International Conference on Knowledge Discovery and Data Mining, 1265–1274. 2016.">Wu <em>et al.</em>, 2016</a>]</span>, attempting to materialize dense matrices for high-dimensional randomized features is highly inefficient. Instead, the Conjugate Gradient method allows the framework to solve the linear system without ever constructing the <span class="math notranslate nohighlight">\(D \times D\)</span> covariance matrix in memory.</p>
+<p>As theoretically justified by Wu et al. <span class="bibtex-citation" id="id3">[<a class="reference internal" href="../../bibliography.html#id85" title="Lingfei Wu, Ian EH Yen, Jie Chen, and Rui Yan. Revisiting random binning features: fast convergence and strong parallelizability. In Proceedings of the 22nd ACM SIGKDD International Conference on Knowledge Discovery and Data Mining, 1265–1274. 2016.">Wu <em>et al.</em>, 2016</a>]</span>, attempting to materialize dense matrices for high-dimensional randomized features is highly inefficient. Instead, the Conjugate Gradient method allows the framework to solve the linear system without ever constructing the <span class="math notranslate nohighlight">\(D \times D\)</span> covariance matrix in memory.</p>
 <p>The algorithm relies entirely on evaluating matrix-vector products. The exact closure <span class="math notranslate nohighlight">\(Av\)</span> dynamically computes the product on the fly:</p>
 <div class="math-wrapper docutils container">
 <div class="math notranslate nohighlight">
@@ -358,14 +358,14 @@
 <hr class="docutils" />
 <section id="the-convergence-crisis-and-the-preconditioner-roadmap">
 <h2>The Convergence Crisis and the Preconditioner Roadmap<a class="headerlink" href="#the-convergence-crisis-and-the-preconditioner-roadmap" title="Link to this heading">¶</a></h2>
-<p>While the Matrix-Free approach is mathematically elegant, utilizing a standard Conjugate Gradient on highly heterogeneous dictionaries is theoretically dangerous. As established by LeCun et al. regarding the conditioning of Hessian matrices <span class="bibtex-citation" id="id4">[<a class="reference internal" href="../../bibliography.html#id49" title="Yann LeCun, Léon Bottou, Genevieve B Orr, and Klaus-Robert Müller. Efficient backprop. In Neural Networks: Tricks of the Trade, pages 9–50. Springer, 1998.">LeCun <em>et al.</em>, 1998</a>]</span>, and confirmed in classical numerical analysis <span class="bibtex-citation" id="id5">[<a class="reference internal" href="../../bibliography.html#id34" title="Gene H Golub and Charles F Van Loan. Matrix computations. The Johns Hopkins University Press, 1996.">Golub and Van Loan, 1996</a>]</span>, the convergence speed of the CG algorithm is strictly bound by the condition number of the matrix, <span class="math notranslate nohighlight">\(\kappa(A)\)</span>. If the matrix is ill-conditioned-an exceptionally common scenario when mixing continuous splines with discrete categorical bases-the convergence rate collapses.</p>
+<p>While the Matrix-Free approach is mathematically elegant, utilizing a standard Conjugate Gradient on highly heterogeneous dictionaries is theoretically dangerous. As established by LeCun et al. regarding the conditioning of Hessian matrices <span class="bibtex-citation" id="id4">[<a class="reference internal" href="../../bibliography.html#id51" title="Yann LeCun, Léon Bottou, Genevieve B Orr, and Klaus-Robert Müller. Efficient backprop. In Neural Networks: Tricks of the Trade, pages 9–50. Springer, 1998.">LeCun <em>et al.</em>, 1998</a>]</span>, and confirmed in classical numerical analysis <span class="bibtex-citation" id="id5">[<a class="reference internal" href="../../bibliography.html#id36" title="Gene H Golub and Charles F Van Loan. Matrix computations. The Johns Hopkins University Press, 1996.">Golub and Van Loan, 1996</a>]</span>, the convergence speed of the CG algorithm is strictly bound by the condition number of the matrix, <span class="math notranslate nohighlight">\(\kappa(A)\)</span>. If the matrix is ill-conditioned-an exceptionally common scenario when mixing continuous splines with discrete categorical bases-the convergence rate collapses.</p>
 <p><strong>The Adaptive Jitter:</strong>
 To counter this vulnerability and guarantee strict determinism (Float64), the framework currently injects an adaptive Jitter directly into the evaluation of the <span class="math notranslate nohighlight">\(Av\)</span> product:</p>
 <div class="math-wrapper docutils container">
 <div class="math notranslate nohighlight">
 \[\delta I = 10^{-6} \times T \times I\]</div>
 </div>
-<p>This acts as a microscopic, baseline Ridge regularization <span class="bibtex-citation" id="id6">[<a class="reference internal" href="../../bibliography.html#id42" title="Arthur E Hoerl and Robert W Kennard. Ridge regression: biased estimation for nonorthogonal problems. Technometrics, 12(1):55–67, 1970.">Hoerl and Kennard, 1970</a>]</span>. While this “numerical anvil” forcefully guarantees the positive-definiteness of the matrix and stabilizes the Krylov subspace, it fundamentally deviates from the purity of classic preconditioning methods.</p>
+<p>This acts as a microscopic, baseline Ridge regularization <span class="bibtex-citation" id="id6">[<a class="reference internal" href="../../bibliography.html#id44" title="Arthur E Hoerl and Robert W Kennard. Ridge regression: biased estimation for nonorthogonal problems. Technometrics, 12(1):55–67, 1970.">Hoerl and Kennard, 1970</a>]</span>. While this “numerical anvil” forcefully guarantees the positive-definiteness of the matrix and stabilizes the Krylov subspace, it fundamentally deviates from the purity of classic preconditioning methods.</p>
 <p><strong>Update Roadmap (PCG):</strong>
 The mathematical implementation must evolve towards a Preconditioned Conjugate Gradient (PCG). The addition of a diagonal preconditioner (Jacobi)-which involves estimating and dividing by the diagonal of the implicit matrix-is an operation with a negligible memory cost of <span class="math notranslate nohighlight">\(\mathcal{O}(D)\)</span>. This theoretical upgrade will allow the removal of the massive Jitter while drastically dividing the number of iterations required to solve extreme systems (<span class="math notranslate nohighlight">\(D &gt; 7500\)</span>), aligning the framework perfectly with the mathematical state-of-the-art for iterative solvers.</p>
 </section>
@@ -400,7 +400,7 @@ The mathematical implementation must evolve towards a Preconditioned Conjugate G
         <div class="bottom-of-page">
           <div class="left-details">
             <div class="copyright">
-                Copyright &#169; 2026, Yann Allioux, Nathan Doumèche, Éloi Bedek
+                Copyright &#169; 2025-2026 Électricité de France (contributors: Yann Allioux); 2023-2025 Électricité de France, Sorbonne Université (contributors: Nathan Doumèche, Éloi Bedek)
             </div>
             Made with <a href="https://www.sphinx-doc.org/">Sphinx</a> and <a class="muted-link" href="https://pradyunsg.me">@pradyunsg</a>'s
             
@@ -442,7 +442,7 @@ The mathematical implementation must evolve towards a Preconditioned Conjugate G
       
     </aside>
   </div>
-</div><script src="../../_static/documentation_options.js?v=36f53d34"></script>
+</div><script src="../../_static/documentation_options.js?v=010db75e"></script>
     <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/scripts/furo.js?v=46bd48cc"></script>

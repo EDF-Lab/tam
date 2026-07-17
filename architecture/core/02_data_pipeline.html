@@ -7,7 +7,7 @@
         <link rel="prefetch" href="../../_static/logo.png" as="image">
 
     <!-- Generated with Sphinx 9.1.0 and Furo 2025.12.19 -->
-        <title>The Engineering of Normalization and Padding - TAM 1.2.5 documentation</title>
+        <title>The Engineering of Normalization and Padding - TAM 1.2.6 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=d111a655" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo-extensions.css?v=8dab3a3b" />
@@ -162,7 +162,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="../../index.html"><div class="brand">TAM 1.2.5 documentation</div></a>
+      <a href="../../index.html"><div class="brand">TAM 1.2.6 documentation</div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -186,7 +186,7 @@
     <img class="sidebar-logo" src="../../_static/logo.png" alt="Logo"/>
   </div>
   
-  <span class="sidebar-brand-text">TAM 1.2.5 documentation</span>
+  <span class="sidebar-brand-text">TAM 1.2.6 documentation</span>
   
 </a><form class="sidebar-search-container" method="get" action="../../search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
@@ -318,7 +318,7 @@
 <p>This chapter covers the technical aspects of data preparation. It explains how the theoretical principles of N-Dim Broadcasting are implemented in Python via PyTorch and Pandas, ensuring numerical stability and compatibility with massively parallel GPU architectures.</p>
 <section id="tensor-uniformization-group-balancing">
 <h2>Tensor Uniformization: Group Balancing<a class="headerlink" href="#tensor-uniformization-group-balancing" title="Link to this heading">¶</a></h2>
-<p>The Primal solver operates exclusively on structured tensors of shape <span class="math notranslate nohighlight">\((G \times N \times D)\)</span> for base static training. A major technical constraint emerges when dealing with panel data econometrics <span class="bibtex-citation" id="id1">[<a class="reference internal" href="../../bibliography.html#id91" title="Manuel Arellano. Panel data econometrics. OUP Oxford, 2003.">Arellano, 2003</a>]</span>: in reality, isolated time series (groups) rarely share the exact same length <span class="math notranslate nohighlight">\(N\)</span>.</p>
+<p>The Primal solver operates exclusively on structured tensors of shape <span class="math notranslate nohighlight">\((G \times N \times D)\)</span> for base static training. A major technical constraint emerges when dealing with panel data econometrics <span class="bibtex-citation" id="id1">[<a class="reference internal" href="../../bibliography.html#id93" title="Manuel Arellano. Panel data econometrics. OUP Oxford, 2003.">Arellano, 2003</a>]</span>: in reality, isolated time series (groups) rarely share the exact same length <span class="math notranslate nohighlight">\(N\)</span>.</p>
 <p>The <code class="docutils literal notranslate"><span class="pre">utils.py</span></code> script resolves this issue via the <code class="docutils literal notranslate"><span class="pre">_balance_groups</span></code> function, which enforces the mathematical uniformity of the temporal dimension through two distinct strategies:</p>
 <ul class="simple">
 <li><p><strong>The <code class="docutils literal notranslate"><span class="pre">drop</span></code> method (Truncation):</strong> Truncates all series to the length of the shortest series present in the dataset, formally guaranteeing a perfectly balanced panel.</p></li>
@@ -360,7 +360,7 @@
         <span class="k">return</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">(</span><span class="kc">True</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="n">dataset</span><span class="o">.</span><span class="n">index</span><span class="p">),</span> <span class="n">dataset</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
 
     <span class="k">if</span> <span class="n">method</span> <span class="o">==</span> <span class="s1">&#39;drop&#39;</span><span class="p">:</span>
-        <span class="n">balanced_df</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">groupby</span><span class="p">(</span><span class="n">group_col</span><span class="p">)</span><span class="o">.</span><span class="n">head</span><span class="p">(</span><span class="n">min_count</span><span class="p">)</span>
+        <span class="n">balanced_df</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">sort_values</span><span class="p">(</span><span class="n">date_col</span><span class="p">)</span><span class="o">.</span><span class="n">groupby</span><span class="p">(</span><span class="n">group_col</span><span class="p">)</span><span class="o">.</span><span class="n">head</span><span class="p">(</span><span class="n">min_count</span><span class="p">)</span>
         <span class="n">mask</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">index</span><span class="o">.</span><span class="n">isin</span><span class="p">(</span><span class="n">balanced_df</span><span class="o">.</span><span class="n">index</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">mask</span><span class="p">,</span> <span class="n">balanced_df</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
 
@@ -382,7 +382,7 @@
             <span class="k">if</span> <span class="n">group_df</span><span class="o">.</span><span class="n">empty</span><span class="p">:</span> 
                 <span class="k">continue</span>
             
-            <span class="n">last_row</span> <span class="o">=</span> <span class="n">group_df</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">:]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+            <span class="n">last_row</span> <span class="o">=</span> <span class="n">group_df</span><span class="o">.</span><span class="n">sort_values</span><span class="p">(</span><span class="n">date_col</span><span class="p">)</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">:]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
             
             <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_missing</span><span class="p">):</span>
                 <span class="n">last_row</span><span class="p">[</span><span class="n">date_col</span><span class="p">]</span> <span class="o">=</span> <span class="n">fake_date</span>
@@ -407,7 +407,7 @@
 </section>
 <section id="affine-normalization-and-3d-stacking">
 <h2>Affine Normalization and 3D Stacking<a class="headerlink" href="#affine-normalization-and-3d-stacking" title="Link to this heading">¶</a></h2>
-<p>Once balanced, the data must be projected into the mathematical <span class="math notranslate nohighlight">\([-1, 1]\)</span> interval. This affine transformation is not merely for numerical scaling; it is a strict geometric requirement. Orthogonal bases like Chebyshev polynomials are only mathematically stable and bounded on the <span class="math notranslate nohighlight">\([-1, 1]\)</span> domain, preventing the catastrophic Runge phenomenon <span class="bibtex-citation" id="id2">[<a class="reference internal" href="../../bibliography.html#id62" title="Theodore J. Rivlin. The Chebyshev Polynomials. John Wiley &amp; Sons, 2nd edition, 1990.">Rivlin, 1990</a>]</span>. Furthermore, standardizing the input space guarantees that the resulting global covariance matrix remains numerically well-conditioned during the exact Primal inversion <span class="bibtex-citation" id="id3">[<a class="reference internal" href="../../bibliography.html#id49" title="Yann LeCun, Léon Bottou, Genevieve B Orr, and Klaus-Robert Müller. Efficient backprop. In Neural Networks: Tricks of the Trade, pages 9–50. Springer, 1998.">LeCun <em>et al.</em>, 1998</a>]</span>.</p>
+<p>Once balanced, the data must be projected into the mathematical <span class="math notranslate nohighlight">\([-1, 1]\)</span> interval. This affine transformation is not merely for numerical scaling; it is a strict geometric requirement. Orthogonal bases like Chebyshev polynomials are only mathematically stable and bounded on the <span class="math notranslate nohighlight">\([-1, 1]\)</span> domain, preventing the catastrophic Runge phenomenon <span class="bibtex-citation" id="id2">[<a class="reference internal" href="../../bibliography.html#id64" title="Theodore J. Rivlin. The Chebyshev Polynomials. John Wiley &amp; Sons, 2nd edition, 1990.">Rivlin, 1990</a>]</span>. Furthermore, standardizing the input space guarantees that the resulting global covariance matrix remains numerically well-conditioned during the exact Primal inversion <span class="bibtex-citation" id="id3">[<a class="reference internal" href="../../bibliography.html#id51" title="Yann LeCun, Léon Bottou, Genevieve B Orr, and Klaus-Robert Müller. Efficient backprop. In Neural Networks: Tricks of the Trade, pages 9–50. Springer, 1998.">LeCun <em>et al.</em>, 1998</a>]</span>.</p>
 <p>Instead of looping through groups in Python, the <code class="docutils literal notranslate"><span class="pre">_transform_data_stacked</span></code> function uses vectorized Pandas operations to apply the affine transformation:</p>
 <div class="math-wrapper docutils container">
 <div class="math notranslate nohighlight">
@@ -420,6 +420,7 @@
     <span class="n">group_col</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
     <span class="n">norm_params</span><span class="p">:</span> <span class="n">Dict</span><span class="p">,</span>
     <span class="n">unique_groups</span><span class="p">:</span> <span class="n">List</span><span class="p">,</span>
+    <span class="n">date_col</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">target_col</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]]:</span>
 <span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
@@ -452,7 +453,10 @@
         <span class="k">if</span> <span class="n">group_name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">norm_params</span><span class="p">:</span>
             <span class="k">continue</span>
             
-        <span class="n">group_data</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="n">data</span><span class="p">[</span><span class="n">group_col</span><span class="p">]</span> <span class="o">==</span> <span class="n">group_name</span><span class="p">]</span><span class="o">.</span><span class="n">reset_index</span><span class="p">(</span><span class="n">drop</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="n">group_data</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="n">data</span><span class="p">[</span><span class="n">group_col</span><span class="p">]</span> <span class="o">==</span> <span class="n">group_name</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">date_col</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">group_data</span> <span class="o">=</span> <span class="n">group_data</span><span class="o">.</span><span class="n">sort_values</span><span class="p">(</span><span class="n">date_col</span><span class="p">)</span>
+        <span class="n">group_data</span> <span class="o">=</span> <span class="n">group_data</span><span class="o">.</span><span class="n">reset_index</span><span class="p">(</span><span class="n">drop</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">group_data</span><span class="o">.</span><span class="n">empty</span><span class="p">:</span>
             <span class="k">continue</span>
 
@@ -483,8 +487,8 @@
 </section>
 <section id="vectorized-sliding-windows-adaptive-online">
 <h2>Vectorized Sliding Windows (Adaptive Online)<a class="headerlink" href="#vectorized-sliding-windows-adaptive-online" title="Link to this heading">¶</a></h2>
-<p>For the Adaptive meta-learner, managing the continuous shift of historical bounds is essential for online GAM selection and adaptation to concept drift <span class="bibtex-citation" id="id4">[<a class="reference internal" href="../../bibliography.html#id89" title="Keshav Das, Julie Keisler, Margaux Brégère, and Amaury Durand. Automl algorithms for online generalized additive model selection: application to electricity demand forecasting. arXiv preprint arXiv:2503.24019, 2025.">Das <em>et al.</em>, 2025</a>]</span>. Constructing rolling historical windows iteratively in Python would create a massive CPU bottleneck.</p>
-<p>The <code class="docutils literal notranslate"><span class="pre">_transform_data_adaptive</span></code> function bypasses this by utilizing advanced PyTorch tensor indexing to formalize the adaptive online approach natively on the hardware <span class="bibtex-citation" id="id5">[<a class="reference internal" href="../../bibliography.html#id24" title="Nathan Doumèche, Francis Bach, Éloi Bedek, Gérard Biau, Claire Boyer, and Yannig Goude. Forecasting time series with constraints. arXiv preprint arXiv:2502.10485, 2025.">Doumèche <em>et al.</em>, 2025</a>]</span>.</p>
+<p>For the Adaptive meta-learner, managing the continuous shift of historical bounds is essential for online GAM selection and adaptation to concept drift <span class="bibtex-citation" id="id4">[<a class="reference internal" href="../../bibliography.html#id91" title="Keshav Das, Julie Keisler, Margaux Brégère, and Amaury Durand. Automl algorithms for online generalized additive model selection: application to electricity demand forecasting. arXiv preprint arXiv:2503.24019, 2025.">Das <em>et al.</em>, 2025</a>]</span>. Constructing rolling historical windows iteratively in Python would create a massive CPU bottleneck.</p>
+<p>The <code class="docutils literal notranslate"><span class="pre">_transform_data_adaptive</span></code> function bypasses this by utilizing advanced PyTorch tensor indexing to formalize the adaptive online approach natively on the hardware <span class="bibtex-citation" id="id5">[<a class="reference internal" href="../../bibliography.html#id26" title="Nathan Doumèche, Francis Bach, Éloi Bedek, Gérard Biau, Claire Boyer, and Yannig Goude. Forecasting time series with constraints. arXiv preprint arXiv:2502.10485, 2025.">Doumèche <em>et al.</em>, 2025</a>]</span>.</p>
 <ul class="simple">
 <li><p><strong>Index Calculation:</strong> It calculates the valid starting points by stepping backward from the end of the series.</p></li>
 <li><p><strong>Offset Broadcasting:</strong> It builds 1D <code class="docutils literal notranslate"><span class="pre">train_offsets</span></code> and <code class="docutils literal notranslate"><span class="pre">predict_offsets</span></code> tensors using <code class="docutils literal notranslate"><span class="pre">torch.arange</span></code>.</p></li>
@@ -500,7 +504,8 @@
     <span class="n">update_interval_periods</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
     <span class="n">training_window_periods</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
     <span class="n">steps_per_period</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
-    <span class="n">horizon_steps</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span>
+    <span class="n">horizon_steps</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span>
+    <span class="n">date_col</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]:</span>
 <span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Prepares data for adaptive learning using vectorized sliding window indexing.</span>
@@ -539,7 +544,10 @@
         <span class="k">if</span> <span class="n">group_name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">norm_params</span><span class="p">:</span>
             <span class="k">continue</span>
             
-        <span class="n">data_group</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="n">data</span><span class="p">[</span><span class="n">group_col</span><span class="p">]</span> <span class="o">==</span> <span class="n">group_name</span><span class="p">]</span><span class="o">.</span><span class="n">reset_index</span><span class="p">(</span><span class="n">drop</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="n">data_group</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="n">data</span><span class="p">[</span><span class="n">group_col</span><span class="p">]</span> <span class="o">==</span> <span class="n">group_name</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">date_col</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">data_group</span> <span class="o">=</span> <span class="n">data_group</span><span class="o">.</span><span class="n">sort_values</span><span class="p">(</span><span class="n">date_col</span><span class="p">)</span>
+        <span class="n">data_group</span> <span class="o">=</span> <span class="n">data_group</span><span class="o">.</span><span class="n">reset_index</span><span class="p">(</span><span class="n">drop</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
         
         <span class="n">params</span> <span class="o">=</span> <span class="n">norm_params</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">group_name</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">params</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span> <span class="k">continue</span>
@@ -614,7 +622,8 @@
     <span class="n">predictions_stacked</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
     <span class="n">group_col</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
     <span class="n">unique_groups</span><span class="p">:</span> <span class="n">List</span><span class="p">,</span>
-    <span class="n">target_col</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">target_col</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">date_col</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
 <span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Reassembles stacked tensor predictions back into the original DataFrame structure.</span>
@@ -634,7 +643,10 @@
     
     <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">group_name</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">unique_groups</span><span class="p">):</span>
         <span class="n">group_indices_full</span> <span class="o">=</span> <span class="n">original_data</span><span class="o">.</span><span class="n">index</span><span class="p">[</span><span class="n">original_data</span><span class="p">[</span><span class="n">group_col</span><span class="p">]</span> <span class="o">==</span> <span class="n">group_name</span><span class="p">]</span>
-        
+
+        <span class="k">if</span> <span class="n">date_col</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">date_col</span> <span class="ow">in</span> <span class="n">original_data</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
+            <span class="n">group_indices_full</span> <span class="o">=</span> <span class="n">original_data</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">group_indices_full</span><span class="p">]</span><span class="o">.</span><span class="n">sort_values</span><span class="p">(</span><span class="n">date_col</span><span class="p">)</span><span class="o">.</span><span class="n">index</span>
+
         <span class="k">if</span> <span class="n">i</span> <span class="o">&gt;=</span> <span class="n">predictions_stacked</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]:</span>
             <span class="k">continue</span>
 
@@ -664,6 +676,28 @@
     <span class="k">return</span> <span class="n">result_df</span>
 </pre></div>
 </div>
+</section>
+<section id="chronological-tensor-alignment-reassembly-protection">
+<h2>🛡️ Chronological Tensor Alignment &amp; Reassembly Protection<a class="headerlink" href="#chronological-tensor-alignment-reassembly-protection" title="Link to this heading">¶</a></h2>
+<p>A critical architectural requirement for Generalized Additive Models handling sequential data (like autoregressive lags or temporal splines) is that row-adjacency in the PyTorch tensor must strictly equal chronological adjacency. If a user passes a shuffled Pandas DataFrame to the model, the structural penalty matrix (<span class="math notranslate nohighlight">\(P\)</span>) would penalize random noise instead of chronological differences, causing catastrophic optimization failure.</p>
+<p>To guarantee mathematical safety, the data pipeline enforces a strict two-way sorting mechanism using <code class="docutils literal notranslate"><span class="pre">date_col</span></code>:</p>
+<section id="pre-tensorization-sort-transform-data-stacked">
+<h3>1. Pre-Tensorization Sort (<code class="docutils literal notranslate"><span class="pre">_transform_data_stacked</span></code>)<a class="headerlink" href="#pre-tensorization-sort-transform-data-stacked" title="Link to this heading">¶</a></h3>
+<p>Before projecting empirical data into the RKHS feature map (<span class="math notranslate nohighlight">\(\Phi\)</span>), the pipeline intercepts the per-group Pandas DataFrame and forces a chronological sort:
+<code class="docutils literal notranslate"><span class="pre">group_data</span> <span class="pre">=</span> <span class="pre">data[data[group_col]</span> <span class="pre">==</span> <span class="pre">group_name].sort_values(date_col).reset_index(drop=True)</span></code>
+This guarantees that the resulting 3D Tensor <code class="docutils literal notranslate"><span class="pre">[Groups,</span> <span class="pre">Time,</span> <span class="pre">Features]</span></code> is structurally perfect for the downstream GPU solvers, regardless of the input data’s initial condition.</p>
+</section>
+<section id="reassembly-index-protection-reassemble-predictions">
+<h3>2. Reassembly Index Protection (<code class="docutils literal notranslate"><span class="pre">_reassemble_predictions</span></code>)<a class="headerlink" href="#reassembly-index-protection-reassemble-predictions" title="Link to this heading">¶</a></h3>
+<p>When the GPU finishes resolving the coefficients and returns the predicted tensor, the pipeline must map these chronological predictions back onto the user’s original (potentially shuffled) DataFrame.
+To prevent silent row-scrambling (zipping sorted tensors to unsorted indices), the pipeline dynamically reconstructs the chronological index array prior to assignment:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">if</span> <span class="n">date_col</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">date_col</span> <span class="ow">in</span> <span class="n">original_data</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
+    <span class="n">group_indices_full</span> <span class="o">=</span> <span class="n">original_data</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">group_indices_full</span><span class="p">]</span><span class="o">.</span><span class="n">sort_values</span><span class="p">(</span><span class="n">date_col</span><span class="p">)</span><span class="o">.</span><span class="n">index</span>
+
+</pre></div>
+</div>
+<p>This bidirectional safeguard completely neutralizes order-sensitivity vulnerabilities. If the user provides cross-sectional data with no temporal component (<code class="docutils literal notranslate"><span class="pre">date_col=None</span></code>), the pipeline defaults to the internal <code class="docutils literal notranslate"><span class="pre">__dummy_date__</span></code> mechanic, locking the tensors to the user’s exact input sequence.</p>
+</section>
 </section>
 </section>
 
@@ -696,7 +730,7 @@
         <div class="bottom-of-page">
           <div class="left-details">
             <div class="copyright">
-                Copyright &#169; 2026, Yann Allioux, Nathan Doumèche, Éloi Bedek
+                Copyright &#169; 2025-2026 Électricité de France (contributors: Yann Allioux); 2023-2025 Électricité de France, Sorbonne Université (contributors: Nathan Doumèche, Éloi Bedek)
             </div>
             Made with <a href="https://www.sphinx-doc.org/">Sphinx</a> and <a class="muted-link" href="https://pradyunsg.me">@pradyunsg</a>'s
             
@@ -727,6 +761,11 @@
 <li><a class="reference internal" href="#affine-normalization-and-3d-stacking">Affine Normalization and 3D Stacking</a></li>
 <li><a class="reference internal" href="#vectorized-sliding-windows-adaptive-online">Vectorized Sliding Windows (Adaptive Online)</a></li>
 <li><a class="reference internal" href="#reassembly-and-decomposition">Reassembly and Decomposition</a></li>
+<li><a class="reference internal" href="#chronological-tensor-alignment-reassembly-protection">🛡️ Chronological Tensor Alignment &amp; Reassembly Protection</a><ul>
+<li><a class="reference internal" href="#pre-tensorization-sort-transform-data-stacked">1. Pre-Tensorization Sort (<code class="docutils literal notranslate"><span class="pre">_transform_data_stacked</span></code>)</a></li>
+<li><a class="reference internal" href="#reassembly-index-protection-reassemble-predictions">2. Reassembly Index Protection (<code class="docutils literal notranslate"><span class="pre">_reassemble_predictions</span></code>)</a></li>
+</ul>
+</li>
 </ul>
 </li>
 </ul>
@@ -738,7 +777,7 @@
       
     </aside>
   </div>
-</div><script src="../../_static/documentation_options.js?v=36f53d34"></script>
+</div><script src="../../_static/documentation_options.js?v=010db75e"></script>
     <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/scripts/furo.js?v=46bd48cc"></script>

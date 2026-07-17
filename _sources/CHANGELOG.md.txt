@@ -15,6 +15,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > **[0.0.6]** corresponds to the legacy `weakl` package available on PyPI.
 
 ---
+## [1.2.6] - 2026-07-17
+
+### Added
+- Added SPDX license identifiers (`LGPL-3.0-or-later`) and standardized file headers with proper authorship and copyright attribution across the entire codebase (2026-07-01).
+
+### Changed
+- **Major Data Upgrade:** Replaced the legacy `dataset_national.csv` with the new **FORCE** (French Open Research Catalogue of Energy) dataset. The library now defaults to this high-performance, harmonized dataset for baseline benchmarking and examples.
+
+### Fixed
+- **Critical Tensor Alignment Bug (`group_col`):** Fixed an order-sensitivity vulnerability in the tensor stacking and DataFrame reassembly layers. The framework now enforces strict chronological sorting (via `date_col`) before building 3D tensors, preventing penalty matrix corruption on non-sequential data. Additionally, it now safely maps chronological PyTorch predictions back to shuffled Pandas indices, guaranteeing row-to-row integrity.
+
 ## [1.2.5] - 2026-06-24
 
 ### Added
@@ -164,6 +175,7 @@ This version introduced the Formula API and the first object-oriented refactorin
 ### Added
 * Initial project setup based on the original `weakl` v0.0.6 package.
 
+[1.2.6]: https://github.com/EDF-Lab/tam/releases/tag/v1.2.6
 [1.2.5]: https://github.com/EDF-Lab/tam/releases/tag/v1.2.5
 [1.2.4]: https://github.com/EDF-Lab/tam/releases/tag/v1.2.4
 [1.2.3]: https://github.com/EDF-Lab/tam/releases/tag/v1.2.3

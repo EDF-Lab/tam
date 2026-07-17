@@ -7,7 +7,7 @@
         <link rel="prefetch" href="../../_static/logo.png" as="image">
 
     <!-- Generated with Sphinx 9.1.0 and Furo 2025.12.19 -->
-        <title>The Spectral Dictionary: PyTorch Implementations &amp; Factory Assembly - TAM 1.2.5 documentation</title>
+        <title>The Spectral Dictionary: PyTorch Implementations &amp; Factory Assembly - TAM 1.2.6 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=d111a655" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo-extensions.css?v=8dab3a3b" />
@@ -162,7 +162,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="../../index.html"><div class="brand">TAM 1.2.5 documentation</div></a>
+      <a href="../../index.html"><div class="brand">TAM 1.2.6 documentation</div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -186,7 +186,7 @@
     <img class="sidebar-logo" src="../../_static/logo.png" alt="Logo"/>
   </div>
   
-  <span class="sidebar-brand-text">TAM 1.2.5 documentation</span>
+  <span class="sidebar-brand-text">TAM 1.2.6 documentation</span>
   
 </a><form class="sidebar-search-container" method="get" action="../../search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
@@ -325,7 +325,7 @@
 </ol>
 <section id="the-base-contract-and-factory-assembly">
 <h2>The Base Contract and Factory Assembly<a class="headerlink" href="#the-base-contract-and-factory-assembly" title="Link to this heading">¶</a></h2>
-<p>Every mathematical basis inherits from the abstract <code class="docutils literal notranslate"><span class="pre">BaseEffect</span></code> class. This ensures the core solver remains agnostic to the underlying topology, rigorously satisfying Aronszajn’s conditions for a valid Reproducing Kernel Hilbert Space (RKHS) <span class="bibtex-citation" id="id1">[<a class="reference internal" href="../../bibliography.html#id7" title="Nachman Aronszajn. Theory of reproducing kernels. Transactions of the American mathematical society, 68(3):337–404, 1950.">Aronszajn, 1950</a>]</span>.</p>
+<p>Every mathematical basis inherits from the abstract <code class="docutils literal notranslate"><span class="pre">BaseEffect</span></code> class. This ensures the core solver remains agnostic to the underlying topology, rigorously satisfying Aronszajn’s conditions for a valid Reproducing Kernel Hilbert Space (RKHS) <span class="bibtex-citation" id="id1">[<a class="reference internal" href="../../bibliography.html#id9" title="Nachman Aronszajn. Theory of reproducing kernels. Transactions of the American mathematical society, 68(3):337–404, 1950.">Aronszajn, 1950</a>]</span>.</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span>    <span class="nd">@abstractmethod</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">get_n_coeffs</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Returns the dimension of the feature space.&quot;&quot;&quot;</span>
@@ -426,7 +426,7 @@
 </pre></div>
 </div>
 <p><strong>2. Feature Map &amp; 3. Penalty Matrix</strong>
-The linear effect applies direct spatial scaling, and its penalty is a standard Ridge (<span class="math notranslate nohighlight">\(L_2\)</span>) scalar to stabilize the coefficients <span class="bibtex-citation" id="id2">[<a class="reference internal" href="../../bibliography.html#id42" title="Arthur E Hoerl and Robert W Kennard. Ridge regression: biased estimation for nonorthogonal problems. Technometrics, 12(1):55–67, 1970.">Hoerl and Kennard, 1970</a>]</span>.</p>
+The linear effect applies direct spatial scaling, and its penalty is a standard Ridge (<span class="math notranslate nohighlight">\(L_2\)</span>) scalar to stabilize the coefficients <span class="bibtex-citation" id="id2">[<a class="reference internal" href="../../bibliography.html#id44" title="Arthur E Hoerl and Robert W Kennard. Ridge regression: biased estimation for nonorthogonal problems. Technometrics, 12(1):55–67, 1970.">Hoerl and Kennard, 1970</a>]</span>.</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">LinearEffect</span><span class="p">(</span><span class="n">BaseEffect</span><span class="p">):</span>
 <span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Implements a simple Linear effect mapping directly to the scaled input space.&quot;&quot;&quot;</span>
 
@@ -481,7 +481,7 @@ Evaluates batched trigonometric functions, dynamically scaling angular frequenci
 </pre></div>
 </div>
 <p><strong>3. Penalty Matrix</strong>
-Builds the purely diagonal Sobolev norm penalty scaled by <span class="math notranslate nohighlight">\(k^{2s}\)</span>, acting as an exact analytical low-pass filter <span class="bibtex-citation" id="id3">[<a class="reference internal" href="../../bibliography.html#id24" title="Nathan Doumèche, Francis Bach, Éloi Bedek, Gérard Biau, Claire Boyer, and Yannig Goude. Forecasting time series with constraints. arXiv preprint arXiv:2502.10485, 2025.">Doumèche <em>et al.</em>, 2025</a>]</span>.</p>
+Builds the purely diagonal Sobolev norm penalty scaled by <span class="math notranslate nohighlight">\(k^{2s}\)</span>, acting as an exact analytical low-pass filter <span class="bibtex-citation" id="id3">[<a class="reference internal" href="../../bibliography.html#id26" title="Nathan Doumèche, Francis Bach, Éloi Bedek, Gérard Biau, Claire Boyer, and Yannig Goude. Forecasting time series with constraints. arXiv preprint arXiv:2502.10485, 2025.">Doumèche <em>et al.</em>, 2025</a>]</span>.</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span>    <span class="k">def</span><span class="w"> </span><span class="nf">build_penalty_matrix</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
 <span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Diagonal Sobolev penalty for Real Fourier Basis.&quot;&quot;&quot;</span>
         <span class="n">freqs</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">m</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">TORCH_DEVICE</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">get_default_dtype</span><span class="p">())</span>
@@ -547,7 +547,7 @@ Constructs the structural penalty natively using consecutive finite difference m
 </pre></div>
 </div>
 <p><strong>2. Feature Map</strong>
-Evaluates the stable Chebyshev recurrence relation iteratively in-place. This bounds the global polynomial interpolation and explicitly mitigates Runge’s phenomenon <span class="bibtex-citation" id="id4">[<a class="reference internal" href="../../bibliography.html#id62" title="Theodore J. Rivlin. The Chebyshev Polynomials. John Wiley &amp; Sons, 2nd edition, 1990.">Rivlin, 1990</a>]</span>.</p>
+Evaluates the stable Chebyshev recurrence relation iteratively in-place. This bounds the global polynomial interpolation and explicitly mitigates Runge’s phenomenon <span class="bibtex-citation" id="id4">[<a class="reference internal" href="../../bibliography.html#id64" title="Theodore J. Rivlin. The Chebyshev Polynomials. John Wiley &amp; Sons, 2nd edition, 1990.">Rivlin, 1990</a>]</span>.</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span>    <span class="k">def</span><span class="w"> </span><span class="nf">build_feature_map</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
 <span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Builds the Chebyshev design matrix via stable recurrence.</span>
@@ -680,7 +680,7 @@ Routes structurally: isotropic Ridge for <code class="docutils literal notransla
 </pre></div>
 </div>
 <p><strong>2. Feature Map</strong>
-Computes pairwise Euclidean distances to centroids natively via <code class="docutils literal notranslate"><span class="pre">torch.cdist</span></code> before applying the Gaussian or Matérn kernel <span class="bibtex-citation" id="id5">[<a class="reference internal" href="../../bibliography.html#id76" title="Carl Edward Rasmussen and Christopher KI Williams. Gaussian processes for machine learning. Volume 2. MIT press Cambridge, MA, 2006.">Rasmussen and Williams, 2006</a>]</span>.</p>
+Computes pairwise Euclidean distances to centroids natively via <code class="docutils literal notranslate"><span class="pre">torch.cdist</span></code> before applying the Gaussian or Matérn kernel <span class="bibtex-citation" id="id5">[<a class="reference internal" href="../../bibliography.html#id78" title="Carl Edward Rasmussen and Christopher KI Williams. Gaussian processes for machine learning. Volume 2. MIT press Cambridge, MA, 2006.">Rasmussen and Williams, 2006</a>]</span>.</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span>    <span class="k">def</span><span class="w"> </span><span class="nf">build_feature_map</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x_col</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
 <span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Builds the continuous Radial Basis Function (RBF) kernel feature map.</span>
@@ -772,7 +772,7 @@ Applies an isotropic identity penalty over the spatial prototypes.</p>
 </pre></div>
 </div>
 <p><strong>2. Feature Map</strong>
-Leverages massive <code class="docutils literal notranslate"><span class="pre">.unsqueeze()</span></code> tensor broadcasting to compute the entire time-scale grid for the Ricker wavelet in a single pass <span class="bibtex-citation" id="id6">[<a class="reference internal" href="../../bibliography.html#id72" title="Christopher Torrence and Gilbert P Compo. A practical guide to wavelet analysis. Bulletin of the American Meteorological society, 79(1):61–78, 1998.">Torrence and Compo, 1998</a>]</span>.</p>
+Leverages massive <code class="docutils literal notranslate"><span class="pre">.unsqueeze()</span></code> tensor broadcasting to compute the entire time-scale grid for the Ricker wavelet in a single pass <span class="bibtex-citation" id="id6">[<a class="reference internal" href="../../bibliography.html#id74" title="Christopher Torrence and Gilbert P Compo. A practical guide to wavelet analysis. Bulletin of the American Meteorological society, 79(1):61–78, 1998.">Torrence and Compo, 1998</a>]</span>.</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span>    <span class="k">def</span><span class="w"> </span><span class="nf">build_feature_map</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x_col</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Builds the pure-tensor Wavelet feature map.&quot;&quot;&quot;</span>
         <span class="c1"># Detect if this is a 1-sample dummy tensor used for memory estimation</span>
@@ -801,7 +801,7 @@ Leverages massive <code class="docutils literal notranslate"><span class="pre">.
 </pre></div>
 </div>
 <p><strong>3. Penalty Matrix</strong>
-Enforces the sparsity prior via a scale-dependent diagonal “whitening” penalty to isolate transient shocks <span class="bibtex-citation" id="id7">[<a class="reference internal" href="../../bibliography.html#id22" title="David L Donoho and Iain M Johnstone. Ideal spatial adaptation by wavelet shrinkage. biometrika, 81(3):425–455, 1994.">Donoho and Johnstone, 1994</a>]</span>.</p>
+Enforces the sparsity prior via a scale-dependent diagonal “whitening” penalty to isolate transient shocks <span class="bibtex-citation" id="id7">[<a class="reference internal" href="../../bibliography.html#id24" title="David L Donoho and Iain M Johnstone. Ideal spatial adaptation by wavelet shrinkage. biometrika, 81(3):425–455, 1994.">Donoho and Johnstone, 1994</a>]</span>.</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span>    <span class="k">def</span><span class="w"> </span><span class="nf">build_penalty_matrix</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
 <span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Builds the scale-dependent penalty matrix.</span>
@@ -936,7 +936,7 @@ Applies an isotropic Ridge penalty (<span class="math notranslate nohighlight">\
 </pre></div>
 </div>
 <p><strong>2. Feature Map</strong>
-Converts Oblivious Trees into sparse Euclidean bit-strings, modeling Random Binning Features <span class="bibtex-citation" id="id8">[<a class="reference internal" href="../../bibliography.html#id83" title="Lingfei Wu, Ian EH Yen, Jie Chen, and Rui Yan. Revisiting random binning features: fast convergence and strong parallelizability. In Proceedings of the 22nd ACM SIGKDD International Conference on Knowledge Discovery and Data Mining, 1265–1274. 2016.">Wu <em>et al.</em>, 2016</a>]</span>. Scales the output destructively in-place using <code class="docutils literal notranslate"><span class="pre">.mul_()</span></code> to safely bypass memory limits.</p>
+Converts Oblivious Trees into sparse Euclidean bit-strings, modeling Random Binning Features <span class="bibtex-citation" id="id8">[<a class="reference internal" href="../../bibliography.html#id85" title="Lingfei Wu, Ian EH Yen, Jie Chen, and Rui Yan. Revisiting random binning features: fast convergence and strong parallelizability. In Proceedings of the 22nd ACM SIGKDD International Conference on Knowledge Discovery and Data Mining, 1265–1274. 2016.">Wu <em>et al.</em>, 2016</a>]</span>. Scales the output destructively in-place using <code class="docutils literal notranslate"><span class="pre">.mul_()</span></code> to safely bypass memory limits.</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span>    <span class="k">def</span><span class="w"> </span><span class="nf">build_feature_map</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x_col</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
 <span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Projects inputs into the sparse bit-string Primal representation natively on GPU.</span>
@@ -1292,7 +1292,7 @@ Delegates the feature extraction entirely to the underlying differentiable topol
 </pre></div>
 </div>
 <p><strong>3. Penalty Matrix</strong>
-Enforces the explicit linear differential operator by constructing the analytic stiffness matrix <span class="math notranslate nohighlight">\(P\)</span>, circumventing the instability of PINNs via exact Physics-Informed Kernel Learning <span class="bibtex-citation" id="id9">[<a class="reference internal" href="../../bibliography.html#id27" title="Nathan Doumèche, Francis Bach, Gérard Biau, and Claire Boyer. Physics-informed kernel learning. Journal of Machine Learning Research, 26(124):1–39, 2025.">Doumèche <em>et al.</em>, 2025</a>]</span>.</p>
+Enforces the explicit linear differential operator by constructing the analytic stiffness matrix <span class="math notranslate nohighlight">\(P\)</span>, circumventing the instability of PINNs via exact Physics-Informed Kernel Learning <span class="bibtex-citation" id="id9">[<a class="reference internal" href="../../bibliography.html#id29" title="Nathan Doumèche, Francis Bach, Gérard Biau, and Claire Boyer. Physics-informed kernel learning. Journal of Machine Learning Research, 26(124):1–39, 2025.">Doumèche <em>et al.</em>, 2025</a>]</span>.</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span>    <span class="k">def</span><span class="w"> </span><span class="nf">build_penalty_matrix</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Builds the Stiffness Matrix P such that f^T P f approximates the integral of (L(f))^2.&quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">basis_type</span> <span class="o">==</span> <span class="s1">&#39;spline&#39;</span><span class="p">:</span>
@@ -1686,7 +1686,7 @@ Constructs the block-diagonal encapsulation of the anisotropic sparsity-adaptive
         <div class="bottom-of-page">
           <div class="left-details">
             <div class="copyright">
-                Copyright &#169; 2026, Yann Allioux, Nathan Doumèche, Éloi Bedek
+                Copyright &#169; 2025-2026 Électricité de France (contributors: Yann Allioux); 2023-2025 Électricité de France, Sorbonne Université (contributors: Nathan Doumèche, Éloi Bedek)
             </div>
             Made with <a href="https://www.sphinx-doc.org/">Sphinx</a> and <a class="muted-link" href="https://pradyunsg.me">@pradyunsg</a>'s
             
@@ -1742,7 +1742,7 @@ Constructs the block-diagonal encapsulation of the anisotropic sparsity-adaptive
       
     </aside>
   </div>
-</div><script src="../../_static/documentation_options.js?v=36f53d34"></script>
+</div><script src="../../_static/documentation_options.js?v=010db75e"></script>
     <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/scripts/furo.js?v=46bd48cc"></script>

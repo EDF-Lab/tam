@@ -7,7 +7,7 @@
         <link rel="prefetch" href="../../_static/logo.png" as="image">
 
     <!-- Generated with Sphinx 9.1.0 and Furo 2025.12.19 -->
-        <title>The Wavelet Effect (Ricker) - TAM 1.2.5 documentation</title>
+        <title>The Wavelet Effect (Ricker) - TAM 1.2.6 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=d111a655" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo-extensions.css?v=8dab3a3b" />
@@ -162,7 +162,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="../../index.html"><div class="brand">TAM 1.2.5 documentation</div></a>
+      <a href="../../index.html"><div class="brand">TAM 1.2.6 documentation</div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -186,7 +186,7 @@
     <img class="sidebar-logo" src="../../_static/logo.png" alt="Logo"/>
   </div>
   
-  <span class="sidebar-brand-text">TAM 1.2.5 documentation</span>
+  <span class="sidebar-brand-text">TAM 1.2.6 documentation</span>
   
 </a><form class="sidebar-search-container" method="get" action="../../search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
@@ -318,22 +318,22 @@
 <section id="foundational-theory-time-frequency-localization">
 <h2>Foundational Theory: Time-Frequency Localization<a class="headerlink" href="#foundational-theory-time-frequency-localization" title="Link to this heading">¶</a></h2>
 <p>Classical spectral bases, such as the <code class="docutils literal notranslate"><span class="pre">FourierEffect</span></code>, are globally supported across the entire temporal domain. While exceptionally powerful for extracting rigid, deterministic seasonalities, Fourier transforms struggle with non-stationary singularities, such as sudden structural shocks, local transients, or brief operational anomalies. Modeling these transients with global sine waves induces severe “ringing” artifacts (Gibbs phenomenon) across the entire time series.</p>
-<p>While wavelets are proven forecasters <span class="bibtex-citation" id="id1">[<a class="reference internal" href="../../bibliography.html#id6" title="Umberto Amato, Anestis Antoniadis, Italia De Feis, Yannig Goude, and Audrey Lagache. Forecasting high resolution electricity demand data with additive models including smooth and jagged components. International Journal of Forecasting, 37(1):171–185, 2021.">Amato <em>et al.</em>, 2021</a>]</span>, TAM bypasses traditional discrete, sequential pipelines by constructing an <strong>Continuous Wavelet Transform dictionary</strong> <span class="bibtex-citation" id="id2">[<a class="reference internal" href="../../bibliography.html#id72" title="Christopher Torrence and Gilbert P Compo. A practical guide to wavelet analysis. Bulletin of the American Meteorological society, 79(1):61–78, 1998.">Torrence and Compo, 1998</a>, <a class="reference internal" href="../../bibliography.html#id52" title="Stéphane Mallat. A wavelet tour of signal processing. Elsevier, 1999.">Mallat, 1999</a>]</span>. Unlike Fourier harmonics, wavelets possess compact or rapidly decaying support, allowing them to perfectly isolate local shocks without mathematically corrupting distant time steps.</p>
+<p>While wavelets are proven forecasters <span class="bibtex-citation" id="id1">[<a class="reference internal" href="../../bibliography.html#id8" title="Umberto Amato, Anestis Antoniadis, Italia De Feis, Yannig Goude, and Audrey Lagache. Forecasting high resolution electricity demand data with additive models including smooth and jagged components. International Journal of Forecasting, 37(1):171–185, 2021.">Amato <em>et al.</em>, 2021</a>]</span>, TAM bypasses traditional discrete, sequential pipelines by constructing an <strong>Continuous Wavelet Transform dictionary</strong> <span class="bibtex-citation" id="id2">[<a class="reference internal" href="../../bibliography.html#id74" title="Christopher Torrence and Gilbert P Compo. A practical guide to wavelet analysis. Bulletin of the American Meteorological society, 79(1):61–78, 1998.">Torrence and Compo, 1998</a>, <a class="reference internal" href="../../bibliography.html#id54" title="Stéphane Mallat. A wavelet tour of signal processing. Elsevier, 1999.">Mallat, 1999</a>]</span>. Unlike Fourier harmonics, wavelets possess compact or rapidly decaying support, allowing them to perfectly isolate local shocks without mathematically corrupting distant time steps.</p>
 </section>
 <section id="formula-definition-the-continuous-wavelet-grid-phi">
 <h2>Formula Definition: The Continuous Wavelet Grid (<span class="math notranslate nohighlight">\(\Phi\)</span>)<a class="headerlink" href="#formula-definition-the-continuous-wavelet-grid-phi" title="Link to this heading">¶</a></h2>
-<p>To construct the finite-dimensional feature map, the input variable <span class="math notranslate nohighlight">\(x\)</span> (strictly normalized to the domain <span class="math notranslate nohighlight">\([-1, 1]\)</span>) is mapped against a pre-defined bidimensional grid of scales (dilations) and locations (translations), following standard Continuous Wavelet Transform (CWT) protocols <span class="bibtex-citation" id="id3">[<a class="reference internal" href="../../bibliography.html#id72" title="Christopher Torrence and Gilbert P Compo. A practical guide to wavelet analysis. Bulletin of the American Meteorological society, 79(1):61–78, 1998.">Torrence and Compo, 1998</a>]</span>:</p>
+<p>To construct the finite-dimensional feature map, the input variable <span class="math notranslate nohighlight">\(x\)</span> (strictly normalized to the domain <span class="math notranslate nohighlight">\([-1, 1]\)</span>) is mapped against a pre-defined bidimensional grid of scales (dilations) and locations (translations), following standard Continuous Wavelet Transform (CWT) protocols <span class="bibtex-citation" id="id3">[<a class="reference internal" href="../../bibliography.html#id74" title="Christopher Torrence and Gilbert P Compo. A practical guide to wavelet analysis. Bulletin of the American Meteorological society, 79(1):61–78, 1998.">Torrence and Compo, 1998</a>]</span>:</p>
 <ul class="simple">
 <li><p><strong>Locations (<span class="math notranslate nohighlight">\(b\)</span>)</strong>: A set of <span class="math notranslate nohighlight">\(n_{locations}\)</span> linearly spaced centers across the empirical <span class="math notranslate nohighlight">\([-1, 1]\)</span> interval.</p></li>
 <li><p><strong>Scales (<span class="math notranslate nohighlight">\(a\)</span>)</strong>: A set of <span class="math notranslate nohighlight">\(n_{scales}\)</span> logarithmically spaced dilations, ranging from <span class="math notranslate nohighlight">\(0.01\)</span> (capturing high-frequency, narrow spikes) to <span class="math notranslate nohighlight">\(1.0\)</span> (capturing low-frequency, broad waves).</p></li>
 </ul>
 <p>For each specific combination of scale <span class="math notranslate nohighlight">\(a_i\)</span> and location <span class="math notranslate nohighlight">\(b_j\)</span>, the input is shifted and scaled to compute the localized dimensionless context <span class="math notranslate nohighlight">\(t = \frac{x - b_j}{a_i}\)</span>.</p>
-<p>The framework explicitly evaluates the <strong>Ricker Wavelet</strong>. Originally derived to model the laws of propagation for seismic shocks <span class="bibtex-citation" id="id4">[<a class="reference internal" href="../../bibliography.html#id61" title="Norman Ricker. The form and laws of propagation of seismic wavelets. In World Petroleum Congress, WPC–4039. WPC, 1951.">Ricker, 1951</a>]</span>, it corresponds mathematically to the negative normalized second derivative of a Gaussian function:</p>
+<p>The framework explicitly evaluates the <strong>Ricker Wavelet</strong>. Originally derived to model the laws of propagation for seismic shocks <span class="bibtex-citation" id="id4">[<a class="reference internal" href="../../bibliography.html#id63" title="Norman Ricker. The form and laws of propagation of seismic wavelets. In World Petroleum Congress, WPC–4039. WPC, 1951.">Ricker, 1951</a>]</span>, it corresponds mathematically to the negative normalized second derivative of a Gaussian function:</p>
 <div class="math-wrapper docutils container">
 <div class="math notranslate nohighlight">
 \[\psi(t) = (1 - t^2) e^{-t^2 / 2}\]</div>
 </div>
-<p>To rigorously guarantee that wavelets across all scales maintain constant spectral energy (a fundamental requirement for operating within a valid Reproducing Kernel Hilbert Space), the TAM tensor engine strictly scales the projection by the <span class="math notranslate nohighlight">\(L_2\)</span> normalization factor <span class="math notranslate nohighlight">\(1/\sqrt{a_i}\)</span> <span class="bibtex-citation" id="id5">[<a class="reference internal" href="../../bibliography.html#id52" title="Stéphane Mallat. A wavelet tour of signal processing. Elsevier, 1999.">Mallat, 1999</a>]</span>.</p>
+<p>To rigorously guarantee that wavelets across all scales maintain constant spectral energy (a fundamental requirement for operating within a valid Reproducing Kernel Hilbert Space), the TAM tensor engine strictly scales the projection by the <span class="math notranslate nohighlight">\(L_2\)</span> normalization factor <span class="math notranslate nohighlight">\(1/\sqrt{a_i}\)</span> <span class="bibtex-citation" id="id5">[<a class="reference internal" href="../../bibliography.html#id54" title="Stéphane Mallat. A wavelet tour of signal processing. Elsevier, 1999.">Mallat, 1999</a>]</span>.</p>
 <p>The explicit finite-dimensional feature map extracted for the Primal matrix <span class="math notranslate nohighlight">\(\Phi\)</span> is the concatenated block of these normalized wavelet evaluations across the entire grid:</p>
 <div class="math-wrapper docutils container">
 <div class="math notranslate nohighlight">
@@ -342,14 +342,14 @@
 </section>
 <section id="the-scale-dependent-structural-penalty-p">
 <h2>The Scale-Dependent Structural Penalty (<span class="math notranslate nohighlight">\(P\)</span>)<a class="headerlink" href="#the-scale-dependent-structural-penalty-p" title="Link to this heading">¶</a></h2>
-<p>A dense grid of localized wavelets is exceptionally prone to overfitting, particularly to high-frequency stochastic noise. The foundational theory of <strong>Wavelet Shrinkage</strong> <span class="bibtex-citation" id="id6">[<a class="reference internal" href="../../bibliography.html#id22" title="David L Donoho and Iain M Johnstone. Ideal spatial adaptation by wavelet shrinkage. biometrika, 81(3):425–455, 1994.">Donoho and Johnstone, 1994</a>]</span> dictates that to achieve ideal spatial adaptation, wavelet coefficients must be aggressively thresholded, shrinking small, noisy coefficients exactly to zero.</p>
+<p>A dense grid of localized wavelets is exceptionally prone to overfitting, particularly to high-frequency stochastic noise. The foundational theory of <strong>Wavelet Shrinkage</strong> <span class="bibtex-citation" id="id6">[<a class="reference internal" href="../../bibliography.html#id24" title="David L Donoho and Iain M Johnstone. Ideal spatial adaptation by wavelet shrinkage. biometrika, 81(3):425–455, 1994.">Donoho and Johnstone, 1994</a>]</span> dictates that to achieve ideal spatial adaptation, wavelet coefficients must be aggressively thresholded, shrinking small, noisy coefficients exactly to zero.</p>
 <p>Because TAM operates via an exact, closed-form Ridge (<span class="math notranslate nohighlight">\(L_2\)</span>) resolution rather than iterative <span class="math notranslate nohighlight">\(L_1\)</span> thresholding (Lasso), it mathematically adapts Wavelet Shrinkage into a continuous, <strong>scale-dependent structural penalty</strong>. This penalization acts as a “whitening” operator that aggressively suppresses small-scale (high-frequency) basis functions unless they are strongly supported by the empirical loss gradient.</p>
 <p>The structural penalty sub-matrix <span class="math notranslate nohighlight">\(P_{wavelet}\)</span> is defined as a strictly diagonal matrix where the penalty multiplier is inversely proportional to the squared scale <span class="math notranslate nohighlight">\(a_i^2\)</span>:</p>
 <div class="math-wrapper docutils container">
 <div class="math notranslate nohighlight">
 \[P_{wavelet} = \lambda \cdot \text{diag}\left( \frac{1}{a_i^2} \right)\]</div>
 </div>
-<p>Where <span class="math notranslate nohighlight">\(\lambda\)</span> is the global regularization strength. As <span class="math notranslate nohighlight">\(a_i \to 0\)</span> (narrow, high-frequency spikes), the penalty scales toward infinity. This algebraically enforces a rigorous sparsity prior, ensuring the model only activates high-frequency wavelets for genuine, statistically significant structural shocks, exactly mimicking the oracle performance proven by Donoho and Johnstone <span class="bibtex-citation" id="id7">[<a class="reference internal" href="../../bibliography.html#id22" title="David L Donoho and Iain M Johnstone. Ideal spatial adaptation by wavelet shrinkage. biometrika, 81(3):425–455, 1994.">Donoho and Johnstone, 1994</a>]</span>.</p>
+<p>Where <span class="math notranslate nohighlight">\(\lambda\)</span> is the global regularization strength. As <span class="math notranslate nohighlight">\(a_i \to 0\)</span> (narrow, high-frequency spikes), the penalty scales toward infinity. This algebraically enforces a rigorous sparsity prior, ensuring the model only activates high-frequency wavelets for genuine, statistically significant structural shocks, exactly mimicking the oracle performance proven by Donoho and Johnstone <span class="bibtex-citation" id="id7">[<a class="reference internal" href="../../bibliography.html#id24" title="David L Donoho and Iain M Johnstone. Ideal spatial adaptation by wavelet shrinkage. biometrika, 81(3):425–455, 1994.">Donoho and Johnstone, 1994</a>]</span>.</p>
 </section>
 <section id="rkhs-eligibility-exact-resolution">
 <h2>RKHS Eligibility &amp; Exact Resolution<a class="headerlink" href="#rkhs-eligibility-exact-resolution" title="Link to this heading">¶</a></h2>
@@ -387,7 +387,7 @@
         <div class="bottom-of-page">
           <div class="left-details">
             <div class="copyright">
-                Copyright &#169; 2026, Yann Allioux, Nathan Doumèche, Éloi Bedek
+                Copyright &#169; 2025-2026 Électricité de France (contributors: Yann Allioux); 2023-2025 Électricité de France, Sorbonne Université (contributors: Nathan Doumèche, Éloi Bedek)
             </div>
             Made with <a href="https://www.sphinx-doc.org/">Sphinx</a> and <a class="muted-link" href="https://pradyunsg.me">@pradyunsg</a>'s
             
@@ -429,7 +429,7 @@
       
     </aside>
   </div>
-</div><script src="../../_static/documentation_options.js?v=36f53d34"></script>
+</div><script src="../../_static/documentation_options.js?v=010db75e"></script>
     <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/scripts/furo.js?v=46bd48cc"></script>

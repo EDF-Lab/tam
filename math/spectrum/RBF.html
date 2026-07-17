@@ -7,7 +7,7 @@
         <link rel="prefetch" href="../../_static/logo.png" as="image">
 
     <!-- Generated with Sphinx 9.1.0 and Furo 2025.12.19 -->
-        <title>The Radial Basis Function (RBF) Effect - TAM 1.2.5 documentation</title>
+        <title>The Radial Basis Function (RBF) Effect - TAM 1.2.6 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=d111a655" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo-extensions.css?v=8dab3a3b" />
@@ -162,7 +162,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="../../index.html"><div class="brand">TAM 1.2.5 documentation</div></a>
+      <a href="../../index.html"><div class="brand">TAM 1.2.6 documentation</div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -186,7 +186,7 @@
     <img class="sidebar-logo" src="../../_static/logo.png" alt="Logo"/>
   </div>
   
-  <span class="sidebar-brand-text">TAM 1.2.5 documentation</span>
+  <span class="sidebar-brand-text">TAM 1.2.6 documentation</span>
   
 </a><form class="sidebar-search-container" method="get" action="../../search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
@@ -331,7 +331,7 @@ Evaluated via the bandwidth parameter <span class="math notranslate nohighlight"
 \[K_{Gauss}(x, c) = \exp(-\gamma \|x - c\|_2^2)\]</div>
 </div>
 <p><strong>2. The Matérn Correlation Family:</strong>
-Evaluated using the modified Bessel function of the second kind <span class="math notranslate nohighlight">\(\mathcal{K}_\nu\)</span>, controlled by the explicit smoothness parameter <span class="math notranslate nohighlight">\(\nu\)</span> <span class="bibtex-citation" id="id1">[<a class="reference internal" href="../../bibliography.html#id36" title="Peter Guttorp and Tilmann Gneiting. Studies in the history of probability and statistics xlix on the matérn correlation family. Biometrika, 93(4):989–995, 2006.">Guttorp and Gneiting, 2006</a>]</span>:</p>
+Evaluated using the modified Bessel function of the second kind <span class="math notranslate nohighlight">\(\mathcal{K}_\nu\)</span>, controlled by the explicit smoothness parameter <span class="math notranslate nohighlight">\(\nu\)</span> <span class="bibtex-citation" id="id1">[<a class="reference internal" href="../../bibliography.html#id38" title="Peter Guttorp and Tilmann Gneiting. Studies in the history of probability and statistics xlix on the matérn correlation family. Biometrika, 93(4):989–995, 2006.">Guttorp and Gneiting, 2006</a>]</span>:</p>
 <div class="math-wrapper docutils container">
 <div class="math notranslate nohighlight">
 \[K_{Matern}(x, c) = \frac{2^{1-\nu}}{\Gamma(\nu)} \left(\sqrt{2\nu \gamma} \|x - c\|_2\right)^\nu \mathcal{K}_\nu\left(\sqrt{2\nu \gamma} \|x - c\|_2\right)\]</div>
@@ -340,17 +340,17 @@ Evaluated using the modified Bessel function of the second kind <span class="mat
 <section id="theoretical-critique-gaussian-vs-matern">
 <h2>Theoretical Critique: Gaussian vs. Matérn<a class="headerlink" href="#theoretical-critique-gaussian-vs-matern" title="Link to this heading">¶</a></h2>
 <p>While the Gaussian kernel is the default choice in standard machine learning, it possesses a severe theoretical flaw when applied to real-world physical systems.</p>
-<p><strong>The Infinite Differentiability Fallacy:</strong> The Gaussian kernel assumes that the underlying data-generating process possesses infinitely mean-square differentiable sample paths <span class="bibtex-citation" id="id2">[<a class="reference internal" href="../../bibliography.html#id76" title="Carl Edward Rasmussen and Christopher KI Williams. Gaussian processes for machine learning. Volume 2. MIT press Cambridge, MA, 2006.">Rasmussen and Williams, 2006</a>]</span>. For chaotic physical processes (e.g., electricity load, atmospheric temperature, or wind speeds), this assumption is highly unrealistic and forces the model to generate surfaces that are excessively smooth.</p>
-<p>By contrast, the Matérn class provides rigorous control over the differentiability of the spatial field via the <span class="math notranslate nohighlight">\(\nu\)</span> parameter. A process with a Matérn covariance is <span class="math notranslate nohighlight">\(\lceil \nu - 1 \rceil\)</span> times mean-square differentiable <span class="bibtex-citation" id="id3">[<a class="reference internal" href="../../bibliography.html#id76" title="Carl Edward Rasmussen and Christopher KI Williams. Gaussian processes for machine learning. Volume 2. MIT press Cambridge, MA, 2006.">Rasmussen and Williams, 2006</a>, <a class="reference internal" href="../../bibliography.html#id36" title="Peter Guttorp and Tilmann Gneiting. Studies in the history of probability and statistics xlix on the matérn correlation family. Biometrika, 93(4):989–995, 2006.">Guttorp and Gneiting, 2006</a>]</span>. This allows the TAM framework to exactly match the fractional Sobolev regularity of the underlying physical phenomenon.</p>
+<p><strong>The Infinite Differentiability Fallacy:</strong> The Gaussian kernel assumes that the underlying data-generating process possesses infinitely mean-square differentiable sample paths <span class="bibtex-citation" id="id2">[<a class="reference internal" href="../../bibliography.html#id78" title="Carl Edward Rasmussen and Christopher KI Williams. Gaussian processes for machine learning. Volume 2. MIT press Cambridge, MA, 2006.">Rasmussen and Williams, 2006</a>]</span>. For chaotic physical processes (e.g., electricity load, atmospheric temperature, or wind speeds), this assumption is highly unrealistic and forces the model to generate surfaces that are excessively smooth.</p>
+<p>By contrast, the Matérn class provides rigorous control over the differentiability of the spatial field via the <span class="math notranslate nohighlight">\(\nu\)</span> parameter. A process with a Matérn covariance is <span class="math notranslate nohighlight">\(\lceil \nu - 1 \rceil\)</span> times mean-square differentiable <span class="bibtex-citation" id="id3">[<a class="reference internal" href="../../bibliography.html#id78" title="Carl Edward Rasmussen and Christopher KI Williams. Gaussian processes for machine learning. Volume 2. MIT press Cambridge, MA, 2006.">Rasmussen and Williams, 2006</a>, <a class="reference internal" href="../../bibliography.html#id38" title="Peter Guttorp and Tilmann Gneiting. Studies in the history of probability and statistics xlix on the matérn correlation family. Biometrika, 93(4):989–995, 2006.">Guttorp and Gneiting, 2006</a>]</span>. This allows the TAM framework to exactly match the fractional Sobolev regularity of the underlying physical phenomenon.</p>
 </section>
 <section id="structural-truncation-the-screening-effect-critique">
 <h2>Structural Truncation &amp; The Screening Effect (Critique)<a class="headerlink" href="#structural-truncation-the-screening-effect-critique" title="Link to this heading">¶</a></h2>
 <p>In standard Gaussian Processes, the RBF network is evaluated across all <span class="math notranslate nohighlight">\(N\)</span> empirical observations, requiring an intractable <span class="math notranslate nohighlight">\(\mathcal{O}(N^3)\)</span> dense Dual covariance inversion. The TAM framework explicitly truncates this space by projecting the continuous kernel strictly onto <span class="math notranslate nohighlight">\(M\)</span> localized centroids (<span class="math notranslate nohighlight">\(M \ll N\)</span>).</p>
 <p><em>Is this truncation mathematically optimal?</em></p>
-<p>Michael Stein’s research on the <strong>Screening Effect</strong> proves that optimal linear predictors can be constructed using only a localized subset of nearest observations, <em>provided</em> that the kernel’s spectral density does not decay faster than algebraically <span class="bibtex-citation" id="id4">[<a class="reference internal" href="../../bibliography.html#id69" title="Michael L Stein. The screening effect in kriging. The Annals of Statistics, 30(1):298–323, 2002.">Stein, 2002</a>]</span>.</p>
+<p>Michael Stein’s research on the <strong>Screening Effect</strong> proves that optimal linear predictors can be constructed using only a localized subset of nearest observations, <em>provided</em> that the kernel’s spectral density does not decay faster than algebraically <span class="bibtex-citation" id="id4">[<a class="reference internal" href="../../bibliography.html#id71" title="Michael L Stein. The screening effect in kriging. The Annals of Statistics, 30(1):298–323, 2002.">Stein, 2002</a>]</span>.</p>
 <ul class="simple">
-<li><p><strong>The Gaussian Failure:</strong> Because the spectral density of the Gaussian kernel decays exponentially at high frequencies, it violates the mathematical conditions required for the screening effect <span class="bibtex-citation" id="id5">[<a class="reference internal" href="../../bibliography.html#id69" title="Michael L Stein. The screening effect in kriging. The Annals of Statistics, 30(1):298–323, 2002.">Stein, 2002</a>]</span>. Consequently, truncating a Gaussian RBF network to a sparse subset of <span class="math notranslate nohighlight">\(M\)</span> centers introduces severe approximation errors and structural instability.</p></li>
-<li><p><strong>The Matérn Solution:</strong> The spectral density of the Matérn kernel decays algebraically. Therefore, the screening effect mathematically holds <span class="bibtex-citation" id="id6">[<a class="reference internal" href="../../bibliography.html#id69" title="Michael L Stein. The screening effect in kriging. The Annals of Statistics, 30(1):298–323, 2002.">Stein, 2002</a>]</span>. Truncating the Matérn RBF network to a finite Primal basis of <span class="math notranslate nohighlight">\(M\)</span> centers is not merely a computational heuristic; it is a theoretically protected approximation that retains near-optimal predictive efficiency.</p></li>
+<li><p><strong>The Gaussian Failure:</strong> Because the spectral density of the Gaussian kernel decays exponentially at high frequencies, it violates the mathematical conditions required for the screening effect <span class="bibtex-citation" id="id5">[<a class="reference internal" href="../../bibliography.html#id71" title="Michael L Stein. The screening effect in kriging. The Annals of Statistics, 30(1):298–323, 2002.">Stein, 2002</a>]</span>. Consequently, truncating a Gaussian RBF network to a sparse subset of <span class="math notranslate nohighlight">\(M\)</span> centers introduces severe approximation errors and structural instability.</p></li>
+<li><p><strong>The Matérn Solution:</strong> The spectral density of the Matérn kernel decays algebraically. Therefore, the screening effect mathematically holds <span class="bibtex-citation" id="id6">[<a class="reference internal" href="../../bibliography.html#id71" title="Michael L Stein. The screening effect in kriging. The Annals of Statistics, 30(1):298–323, 2002.">Stein, 2002</a>]</span>. Truncating the Matérn RBF network to a finite Primal basis of <span class="math notranslate nohighlight">\(M\)</span> centers is not merely a computational heuristic; it is a theoretically protected approximation that retains near-optimal predictive efficiency.</p></li>
 </ul>
 </section>
 <section id="rkhs-eligibility-optimal-penalization">
@@ -360,7 +360,7 @@ Evaluated using the modified Bessel function of the second kind <span class="mat
 <div class="math notranslate nohighlight">
 \[P_{rbf} = \lambda I_M\]</div>
 </div>
-<p>Both the Gaussian and Matérn functions are strictly positive definite, shift-invariant kernels. By Aronszajn’s theorem, they natively generate well-defined Reproducing Kernel Hilbert Spaces <span class="bibtex-citation" id="id7">[<a class="reference internal" href="../../bibliography.html#id7" title="Nachman Aronszajn. Theory of reproducing kernels. Transactions of the American mathematical society, 68(3):337–404, 1950.">Aronszajn, 1950</a>]</span>. Equipping the finite-dimensional prototype projection with the strictly positive isotropic penalty rigorously bounds the hypothesis space, perfectly isolating the null space and satisfying all Mercer conditions.</p>
+<p>Both the Gaussian and Matérn functions are strictly positive definite, shift-invariant kernels. By Aronszajn’s theorem, they natively generate well-defined Reproducing Kernel Hilbert Spaces <span class="bibtex-citation" id="id7">[<a class="reference internal" href="../../bibliography.html#id9" title="Nachman Aronszajn. Theory of reproducing kernels. Transactions of the American mathematical society, 68(3):337–404, 1950.">Aronszajn, 1950</a>]</span>. Equipping the finite-dimensional prototype projection with the strictly positive isotropic penalty rigorously bounds the hypothesis space, perfectly isolating the null space and satisfying all Mercer conditions.</p>
 </section>
 <section id="theoretical-integration-hardware-translation">
 <h2>Theoretical Integration &amp; Hardware Translation<a class="headerlink" href="#theoretical-integration-hardware-translation" title="Link to this heading">¶</a></h2>
@@ -404,7 +404,7 @@ Evaluated using the modified Bessel function of the second kind <span class="mat
         <div class="bottom-of-page">
           <div class="left-details">
             <div class="copyright">
-                Copyright &#169; 2026, Yann Allioux, Nathan Doumèche, Éloi Bedek
+                Copyright &#169; 2025-2026 Électricité de France (contributors: Yann Allioux); 2023-2025 Électricité de France, Sorbonne Université (contributors: Nathan Doumèche, Éloi Bedek)
             </div>
             Made with <a href="https://www.sphinx-doc.org/">Sphinx</a> and <a class="muted-link" href="https://pradyunsg.me">@pradyunsg</a>'s
             
@@ -447,7 +447,7 @@ Evaluated using the modified Bessel function of the second kind <span class="mat
       
     </aside>
   </div>
-</div><script src="../../_static/documentation_options.js?v=36f53d34"></script>
+</div><script src="../../_static/documentation_options.js?v=010db75e"></script>
     <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/scripts/furo.js?v=46bd48cc"></script>

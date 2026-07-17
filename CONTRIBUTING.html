@@ -7,7 +7,7 @@
         <link rel="prefetch" href="_static/logo.png" as="image">
 
     <!-- Generated with Sphinx 9.1.0 and Furo 2025.12.19 -->
-        <title>🤝 Contributing to Time series Additive Model (TAM) - TAM 1.2.5 documentation</title>
+        <title>🤝 Contributing to Time series Additive Model (TAM) - TAM 1.2.6 documentation</title>
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=d111a655" />
     <link rel="stylesheet" type="text/css" href="_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="_static/styles/furo-extensions.css?v=8dab3a3b" />
@@ -162,7 +162,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="index.html"><div class="brand">TAM 1.2.5 documentation</div></a>
+      <a href="index.html"><div class="brand">TAM 1.2.6 documentation</div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -186,7 +186,7 @@
     <img class="sidebar-logo" src="_static/logo.png" alt="Logo"/>
   </div>
   
-  <span class="sidebar-brand-text">TAM 1.2.5 documentation</span>
+  <span class="sidebar-brand-text">TAM 1.2.6 documentation</span>
   
 </a><form class="sidebar-search-container" method="get" action="search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
@@ -347,6 +347,7 @@
 <li><p><strong>Docstrings:</strong> We use <strong>Google-style docstrings</strong>. Ensure your functions and classes are fully documented, as Sphinx uses <code class="docutils literal notranslate"><span class="pre">autodoc</span></code> and <code class="docutils literal notranslate"><span class="pre">napoleon</span></code> to generate the API reference automatically.</p></li>
 <li><p><strong>Type Hinting:</strong> Use strict Python type hints (<code class="docutils literal notranslate"><span class="pre">typing</span></code>) for all function arguments and return types.</p></li>
 <li><p><strong>No Math in Code Comments:</strong> Keep inline Python comments focused strictly on software engineering (e.g., tensor shapes <code class="docutils literal notranslate"><span class="pre">#</span> <span class="pre">Shape:</span> <span class="pre">[B,</span> <span class="pre">T,</span> <span class="pre">D]</span></code>, VRAM allocation, PyTorch workarounds). Leave the mathematical proofs to the <code class="docutils literal notranslate"><span class="pre">math/</span></code> Markdown files.</p></li>
+<li><p><strong>Chronological Tensor Alignment:</strong> When projecting Pandas DataFrames into PyTorch tensors for time-series formulas, row-adjacency must equal chronological adjacency. Always apply <code class="docutils literal notranslate"><span class="pre">.sort_values(date_col)</span></code> before tensor stacking or truncating (e.g., before <code class="docutils literal notranslate"><span class="pre">.groupby().head()</span></code>), and re-sort the target Pandas indices chronologically before mapping tensor predictions back, to prevent silent row-scrambling on unsorted input.</p></li>
 </ul>
 </section>
 <section id="submitting-a-pull-request-pr">
@@ -392,7 +393,7 @@
         <div class="bottom-of-page">
           <div class="left-details">
             <div class="copyright">
-                Copyright &#169; 2026, Yann Allioux, Nathan Doumèche, Éloi Bedek
+                Copyright &#169; 2025-2026 Électricité de France (contributors: Yann Allioux); 2023-2025 Électricité de France, Sorbonne Université (contributors: Nathan Doumèche, Éloi Bedek)
             </div>
             Made with <a href="https://www.sphinx-doc.org/">Sphinx</a> and <a class="muted-link" href="https://pradyunsg.me">@pradyunsg</a>'s
             
@@ -437,7 +438,7 @@
       
     </aside>
   </div>
-</div><script src="_static/documentation_options.js?v=36f53d34"></script>
+</div><script src="_static/documentation_options.js?v=010db75e"></script>
     <script src="_static/doctools.js?v=fd6eb6e6"></script>
     <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="_static/scripts/furo.js?v=46bd48cc"></script>

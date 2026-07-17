@@ -7,7 +7,7 @@
         <link rel="prefetch" href="../../_static/logo.png" as="image">
 
     <!-- Generated with Sphinx 9.1.0 and Furo 2025.12.19 -->
-        <title>Physics-Informed Kernel Learning (PIKL) - TAM 1.2.5 documentation</title>
+        <title>Physics-Informed Kernel Learning (PIKL) - TAM 1.2.6 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=d111a655" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo-extensions.css?v=8dab3a3b" />
@@ -162,7 +162,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="../../index.html"><div class="brand">TAM 1.2.5 documentation</div></a>
+      <a href="../../index.html"><div class="brand">TAM 1.2.6 documentation</div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -186,7 +186,7 @@
     <img class="sidebar-logo" src="../../_static/logo.png" alt="Logo"/>
   </div>
   
-  <span class="sidebar-brand-text">TAM 1.2.5 documentation</span>
+  <span class="sidebar-brand-text">TAM 1.2.6 documentation</span>
   
 </a><form class="sidebar-search-container" method="get" action="../../search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
@@ -315,15 +315,15 @@
 <li><p><strong>Theory introduction:</strong> <a class="reference internal" href="../../THEORY.html"><span class="std std-doc">See the Intro</span></a></p></li>
 <li><p><strong>Related code architecture:</strong> <a class="reference internal" href="../../architecture/core/06_the_spectrum_api.html"><span class="std std-doc">See the Code Architecture</span></a></p></li>
 </ul>
-<p>The TAM framework integrates prior physical knowledge directly into the statistical learning process. Unlike standard Physics-Informed Neural Networks (PINNs), which rely on non-convex optimization via stochastic gradient descent <span class="bibtex-citation" id="id1">[<a class="reference internal" href="../../bibliography.html#id59" title="Maziar Raissi, Paris Perdikaris, and George E Karniadakis. Physics-informed neural networks: a deep learning framework for solving forward and inverse problems involving nonlinear partial differential equations. Journal of Computational physics, 378:686–707, 2019.">Raissi <em>et al.</em>, 2019</a>]</span>, this framework formulates the physical constraint as an exact, convex penalty mapped directly into the Primal space <span class="bibtex-citation" id="id2">[<a class="reference internal" href="../../bibliography.html#id27" title="Nathan Doumèche, Francis Bach, Gérard Biau, and Claire Boyer. Physics-informed kernel learning. Journal of Machine Learning Research, 26(124):1–39, 2025.">Doumèche <em>et al.</em>, 2025</a>]</span>.</p>
+<p>The TAM framework integrates prior physical knowledge directly into the statistical learning process. Unlike standard Physics-Informed Neural Networks (PINNs), which rely on non-convex optimization via stochastic gradient descent <span class="bibtex-citation" id="id1">[<a class="reference internal" href="../../bibliography.html#id61" title="Maziar Raissi, Paris Perdikaris, and George E Karniadakis. Physics-informed neural networks: a deep learning framework for solving forward and inverse problems involving nonlinear partial differential equations. Journal of Computational physics, 378:686–707, 2019.">Raissi <em>et al.</em>, 2019</a>]</span>, this framework formulates the physical constraint as an exact, convex penalty mapped directly into the Primal space <span class="bibtex-citation" id="id2">[<a class="reference internal" href="../../bibliography.html#id29" title="Nathan Doumèche, Francis Bach, Gérard Biau, and Claire Boyer. Physics-informed kernel learning. Journal of Machine Learning Research, 26(124):1–39, 2025.">Doumèche <em>et al.</em>, 2025</a>]</span>.</p>
 <section id="theoretical-critique-the-optimization-failure-of-pinns">
 <h2>Theoretical Critique: The Optimization Failure of PINNs<a class="headerlink" href="#theoretical-critique-the-optimization-failure-of-pinns" title="Link to this heading">¶</a></h2>
-<p>The canonical approach to physics-informed machine learning, PINNs <span class="bibtex-citation" id="id3">[<a class="reference internal" href="../../bibliography.html#id59" title="Maziar Raissi, Paris Perdikaris, and George E Karniadakis. Physics-informed neural networks: a deep learning framework for solving forward and inverse problems involving nonlinear partial differential equations. Journal of Computational physics, 378:686–707, 2019.">Raissi <em>et al.</em>, 2019</a>]</span>, attempts to enforce differential equations by adding the PDE residual to the neural network’s empirical loss function. However, this creates a notoriously pathological optimization landscape.</p>
-<p>As noted in the PIKL literature <span class="bibtex-citation" id="id4">[<a class="reference internal" href="../../bibliography.html#id27" title="Nathan Doumèche, Francis Bach, Gérard Biau, and Claire Boyer. Physics-informed kernel learning. Journal of Machine Learning Research, 26(124):1–39, 2025.">Doumèche <em>et al.</em>, 2025</a>]</span>, enforcing physical laws via backpropagation requires computing continuous second or third-order derivatives of the network with respect to its inputs during every training step. This process is computationally expensive, highly sensitive to initialization, and frequently succumbs to gradient pathologies (e.g., stiffness between the data loss and the physics loss), leading to convergence failures. By abandoning gradient descent entirely in favor of an exact, closed-form kernel regression solver, TAM perfectly guarantees global optimality and eliminates the need for iterative physics-loss balancing.</p>
+<p>The canonical approach to physics-informed machine learning, PINNs <span class="bibtex-citation" id="id3">[<a class="reference internal" href="../../bibliography.html#id61" title="Maziar Raissi, Paris Perdikaris, and George E Karniadakis. Physics-informed neural networks: a deep learning framework for solving forward and inverse problems involving nonlinear partial differential equations. Journal of Computational physics, 378:686–707, 2019.">Raissi <em>et al.</em>, 2019</a>]</span>, attempts to enforce differential equations by adding the PDE residual to the neural network’s empirical loss function. However, this creates a notoriously pathological optimization landscape.</p>
+<p>As noted in the PIKL literature <span class="bibtex-citation" id="id4">[<a class="reference internal" href="../../bibliography.html#id29" title="Nathan Doumèche, Francis Bach, Gérard Biau, and Claire Boyer. Physics-informed kernel learning. Journal of Machine Learning Research, 26(124):1–39, 2025.">Doumèche <em>et al.</em>, 2025</a>]</span>, enforcing physical laws via backpropagation requires computing continuous second or third-order derivatives of the network with respect to its inputs during every training step. This process is computationally expensive, highly sensitive to initialization, and frequently succumbs to gradient pathologies (e.g., stiffness between the data loss and the physics loss), leading to convergence failures. By abandoning gradient descent entirely in favor of an exact, closed-form kernel regression solver, TAM perfectly guarantees global optimality and eliminates the need for iterative physics-loss balancing.</p>
 </section>
 <section id="the-theoretical-justification-from-rkhs-to-the-primal-space">
 <h2>The Theoretical Justification: From RKHS to the Primal Space<a class="headerlink" href="#the-theoretical-justification-from-rkhs-to-the-primal-space" title="Link to this heading">¶</a></h2>
-<p>The connections between partial differential equations and kernel methods are mathematically well-established in functional analysis and meshless methods <span class="bibtex-citation" id="id5">[<a class="reference internal" href="../../bibliography.html#id63" title="Robert Schaback and Holger Wendland. Kernel techniques: from machine learning to meshless methods. Acta numerica, 15:543–639, 2006.">Schaback and Wendland, 2006</a>]</span>. Building on this foundation, Doumèche et al. proved that for any linear partial differential equation, the Physics-Informed Kernel Learning (PIKL) problem can be solved exactly by redefining the norm of the Reproducing Kernel Hilbert Space (RKHS) <span class="bibtex-citation" id="id6">[<a class="reference internal" href="../../bibliography.html#id27" title="Nathan Doumèche, Francis Bach, Gérard Biau, and Claire Boyer. Physics-informed kernel learning. Journal of Machine Learning Research, 26(124):1–39, 2025.">Doumèche <em>et al.</em>, 2025</a>]</span>.</p>
+<p>The connections between partial differential equations and kernel methods are mathematically well-established in functional analysis and meshless methods <span class="bibtex-citation" id="id5">[<a class="reference internal" href="../../bibliography.html#id65" title="Robert Schaback and Holger Wendland. Kernel techniques: from machine learning to meshless methods. Acta numerica, 15:543–639, 2006.">Schaback and Wendland, 2006</a>]</span>. Building on this foundation, Doumèche et al. proved that for any linear partial differential equation, the Physics-Informed Kernel Learning (PIKL) problem can be solved exactly by redefining the norm of the Reproducing Kernel Hilbert Space (RKHS) <span class="bibtex-citation" id="id6">[<a class="reference internal" href="../../bibliography.html#id29" title="Nathan Doumèche, Francis Bach, Gérard Biau, and Claire Boyer. Physics-informed kernel learning. Journal of Machine Learning Research, 26(124):1–39, 2025.">Doumèche <em>et al.</em>, 2025</a>]</span>.</p>
 <p>To embed a physical linear operator <span class="math notranslate nohighlight">\(\mathcal{L}\)</span>, the regularized empirical risk minimization problem is formulated as:</p>
 <div class="math-wrapper docutils container">
 <div class="math notranslate nohighlight">
@@ -341,7 +341,7 @@
 <p>The construction of the penalty matrix <span class="math notranslate nohighlight">\(P\)</span> depends strictly on how the continuous operator <span class="math notranslate nohighlight">\(\mathcal{L}\)</span> interacts with the chosen functional basis.</p>
 <section id="the-fourier-basis-spectral-diagonalization">
 <h3>1. The Fourier Basis (Spectral Diagonalization)<a class="headerlink" href="#the-fourier-basis-spectral-diagonalization" title="Link to this heading">¶</a></h3>
-<p>Doumèche originally focused on Fourier expansions because complex exponentials are the natural eigenfunctions of constant-coefficient differential operators <span class="bibtex-citation" id="id7">[<a class="reference internal" href="../../bibliography.html#id27" title="Nathan Doumèche, Francis Bach, Gérard Biau, and Claire Boyer. Physics-informed kernel learning. Journal of Machine Learning Research, 26(124):1–39, 2025.">Doumèche <em>et al.</em>, 2025</a>]</span>.</p>
+<p>Doumèche originally focused on Fourier expansions because complex exponentials are the natural eigenfunctions of constant-coefficient differential operators <span class="bibtex-citation" id="id7">[<a class="reference internal" href="../../bibliography.html#id29" title="Nathan Doumèche, Francis Bach, Gérard Biau, and Claire Boyer. Physics-informed kernel learning. Journal of Machine Learning Research, 26(124):1–39, 2025.">Doumèche <em>et al.</em>, 2025</a>]</span>.</p>
 <p>Applying the continuous operator <span class="math notranslate nohighlight">\(\mathcal{L} = \sum w_n \frac{d^n}{dt^n}\)</span> to a Fourier basis element <span class="math notranslate nohighlight">\(e^{i\omega t}\)</span> yields:</p>
 <div class="math-wrapper docutils container">
 <div class="math notranslate nohighlight">
@@ -398,7 +398,7 @@ If the framework utilizes the deep, multi-layer NNGP approximation formalized in
 <div class="math notranslate nohighlight">
 \[m \frac{d^2f}{dt^2} + c \frac{df}{dt} + k f = 0\]</div>
 </div>
-<p>In standard PINNs, enforcing this requires computing second-order gradients via backpropagation during every training step, which is notoriously unstable <span class="bibtex-citation" id="id8">[<a class="reference internal" href="../../bibliography.html#id59" title="Maziar Raissi, Paris Perdikaris, and George E Karniadakis. Physics-informed neural networks: a deep learning framework for solving forward and inverse problems involving nonlinear partial differential equations. Journal of Computational physics, 378:686–707, 2019.">Raissi <em>et al.</em>, 2019</a>]</span>.</p>
+<p>In standard PINNs, enforcing this requires computing second-order gradients via backpropagation during every training step, which is notoriously unstable <span class="bibtex-citation" id="id8">[<a class="reference internal" href="../../bibliography.html#id61" title="Maziar Raissi, Paris Perdikaris, and George E Karniadakis. Physics-informed neural networks: a deep learning framework for solving forward and inverse problems involving nonlinear partial differential equations. Journal of Computational physics, 378:686–707, 2019.">Raissi <em>et al.</em>, 2019</a>]</span>.</p>
 <p>In the TAM framework, we translate this into the linear operator <span class="math notranslate nohighlight">\(\mathcal{L}\)</span> with weights <span class="math notranslate nohighlight">\(w_0 = k\)</span>, <span class="math notranslate nohighlight">\(w_1 = c\)</span>, and <span class="math notranslate nohighlight">\(w_2 = m\)</span>.</p>
 <p>If we evaluate this using the Fourier basis, the characteristic polynomial penalty <span class="math notranslate nohighlight">\(P_{jj}\)</span> at frequency <span class="math notranslate nohighlight">\(\omega_j\)</span> becomes:</p>
 <div class="math-wrapper docutils container">
@@ -460,7 +460,7 @@ This means the matrix inversion mathematically forces the statistical model to s
         <div class="bottom-of-page">
           <div class="left-details">
             <div class="copyright">
-                Copyright &#169; 2026, Yann Allioux, Nathan Doumèche, Éloi Bedek
+                Copyright &#169; 2025-2026 Électricité de France (contributors: Yann Allioux); 2023-2025 Électricité de France, Sorbonne Université (contributors: Nathan Doumèche, Éloi Bedek)
             </div>
             Made with <a href="https://www.sphinx-doc.org/">Sphinx</a> and <a class="muted-link" href="https://pradyunsg.me">@pradyunsg</a>'s
             
@@ -508,7 +508,7 @@ This means the matrix inversion mathematically forces the statistical model to s
       
     </aside>
   </div>
-</div><script src="../../_static/documentation_options.js?v=36f53d34"></script>
+</div><script src="../../_static/documentation_options.js?v=010db75e"></script>
     <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/scripts/furo.js?v=46bd48cc"></script>

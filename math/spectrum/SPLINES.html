@@ -7,7 +7,7 @@
         <link rel="prefetch" href="../../_static/logo.png" as="image">
 
     <!-- Generated with Sphinx 9.1.0 and Furo 2025.12.19 -->
-        <title>The Spline Effect (P-Splines) - TAM 1.2.5 documentation</title>
+        <title>The Spline Effect (P-Splines) - TAM 1.2.6 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=d111a655" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo-extensions.css?v=8dab3a3b" />
@@ -162,7 +162,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="../../index.html"><div class="brand">TAM 1.2.5 documentation</div></a>
+      <a href="../../index.html"><div class="brand">TAM 1.2.6 documentation</div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -186,7 +186,7 @@
     <img class="sidebar-logo" src="../../_static/logo.png" alt="Logo"/>
   </div>
   
-  <span class="sidebar-brand-text">TAM 1.2.5 documentation</span>
+  <span class="sidebar-brand-text">TAM 1.2.6 documentation</span>
   
 </a><form class="sidebar-search-container" method="get" action="../../search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
@@ -317,14 +317,14 @@
 </ul>
 <section id="foundational-theory-continuous-vs-discrete-splines">
 <h2>Foundational Theory: Continuous vs. Discrete Splines<a class="headerlink" href="#foundational-theory-continuous-vs-discrete-splines" title="Link to this heading">¶</a></h2>
-<p>In the original formulation of Generalized Additive Models (GAMs) <span class="bibtex-citation" id="id1">[<a class="reference internal" href="../../bibliography.html#id40" title="Trevor J Hastie. Generalized additive models. Statistical models in S, pages 249–307, 2017.">Hastie, 2017</a>]</span>, non-linear relationships are estimated using flexible smoothing functions. The mathematically optimal solution to this problem is the continuous Smoothing Spline, which operates within a Reproducing Kernel Hilbert Space (RKHS) by penalizing the continuous integral of squared second derivatives <span class="bibtex-citation" id="id2">[<a class="reference internal" href="../../bibliography.html#id74" title="Grace Wahba. Spline models for observational data. SIAM, 1990.">Wahba, 1990</a>]</span>.</p>
+<p>In the original formulation of Generalized Additive Models (GAMs) <span class="bibtex-citation" id="id1">[<a class="reference internal" href="../../bibliography.html#id42" title="Trevor J Hastie. Generalized additive models. Statistical models in S, pages 249–307, 2017.">Hastie, 2017</a>]</span>, non-linear relationships are estimated using flexible smoothing functions. The mathematically optimal solution to this problem is the continuous Smoothing Spline, which operates within a Reproducing Kernel Hilbert Space (RKHS) by penalizing the continuous integral of squared second derivatives <span class="bibtex-citation" id="id2">[<a class="reference internal" href="../../bibliography.html#id76" title="Grace Wahba. Spline models for observational data. SIAM, 1990.">Wahba, 1990</a>]</span>.</p>
 <p>However, exact continuous Smoothing Splines theoretically require placing a knot at every single unique data point. This results in a dense Dual <span class="math notranslate nohighlight">\(\mathcal{O}(N_{total}^3)\)</span> Gram matrix inversion that completely paralyzes standard hardware on Gigadata.</p>
-<p>To resolve this computational bottleneck, the TAM framework abandons the continuous integral approach and instead utilizes the discrete <strong>P-spline (Penalized B-spline)</strong> formulation pioneered by <span class="bibtex-citation" id="id3">[<a class="reference internal" href="../../bibliography.html#id28" title="Paul HC Eilers and Brian D Marx. Flexible smoothing with b-splines and penalties. Statistical science, 11(2):89–121, 1996.">Eilers and Marx, 1996</a>, <a class="reference internal" href="../../bibliography.html#id80" title="Simon N Wood. Generalized additive models: an introduction with R. chapman and hall/CRC, 2017.">Wood, 2017</a>]</span>. P-splines entirely decouple the knot dimension <span class="math notranslate nohighlight">\(K\)</span> from the sample size <span class="math notranslate nohighlight">\(N_{total}\)</span> (<span class="math notranslate nohighlight">\(K \ll N_{total}\)</span>), explicitly truncating the continuous problem into a highly efficient, finite-dimensional Primal space <span class="math notranslate nohighlight">\(\mathcal{O}(N_{total} K^2)\)</span>.</p>
+<p>To resolve this computational bottleneck, the TAM framework abandons the continuous integral approach and instead utilizes the discrete <strong>P-spline (Penalized B-spline)</strong> formulation pioneered by <span class="bibtex-citation" id="id3">[<a class="reference internal" href="../../bibliography.html#id30" title="Paul HC Eilers and Brian D Marx. Flexible smoothing with b-splines and penalties. Statistical science, 11(2):89–121, 1996.">Eilers and Marx, 1996</a>, <a class="reference internal" href="../../bibliography.html#id82" title="Simon N Wood. Generalized additive models: an introduction with R. chapman and hall/CRC, 2017.">Wood, 2017</a>]</span>. P-splines entirely decouple the knot dimension <span class="math notranslate nohighlight">\(K\)</span> from the sample size <span class="math notranslate nohighlight">\(N_{total}\)</span> (<span class="math notranslate nohighlight">\(K \ll N_{total}\)</span>), explicitly truncating the continuous problem into a highly efficient, finite-dimensional Primal space <span class="math notranslate nohighlight">\(\mathcal{O}(N_{total} K^2)\)</span>.</p>
 </section>
 <section id="formula-definition-b-spline-basis-phi">
 <h2>Formula Definition: B-Spline Basis (<span class="math notranslate nohighlight">\(\Phi\)</span>)<a class="headerlink" href="#formula-definition-b-spline-basis-phi" title="Link to this heading">¶</a></h2>
 <p>To construct the finite-dimensional feature map, the continuous domain <span class="math notranslate nohighlight">\(\mathcal{X}\)</span> is partitioned by a sequence of <span class="math notranslate nohighlight">\(K\)</span> fixed knots <span class="math notranslate nohighlight">\(\tau\)</span>. The input data is then projected into the Primal space using a basis of strictly local B-splines.</p>
-<p>In the <code class="docutils literal notranslate"><span class="pre">_spline.py</span></code> implementation, this is evaluated entirely on the GPU without slow python loops by natively executing the classical <strong>Cox-de Boor recursion formula</strong> <span class="bibtex-citation" id="id4">[<a class="reference internal" href="../../bibliography.html#id19" title="Carl De Boor. A practical guide to splines. Volume 27. springer New York, 1978.">De Boor, 1978</a>]</span>. A B-spline of degree zero (order <span class="math notranslate nohighlight">\(m=1\)</span>) is defined as a simple step function over the knot interval:</p>
+<p>In the <code class="docutils literal notranslate"><span class="pre">_spline.py</span></code> implementation, this is evaluated entirely on the GPU without slow python loops by natively executing the classical <strong>Cox-de Boor recursion formula</strong> <span class="bibtex-citation" id="id4">[<a class="reference internal" href="../../bibliography.html#id21" title="Carl De Boor. A practical guide to splines. Volume 27. springer New York, 1978.">De Boor, 1978</a>]</span>. A B-spline of degree zero (order <span class="math notranslate nohighlight">\(m=1\)</span>) is defined as a simple step function over the knot interval:</p>
 <div class="math-wrapper docutils container">
 <div class="math notranslate nohighlight">
 \[\begin{split}B_{i,1}(x) = \begin{cases} 1 &amp; \text{if } \tau_i \le x &lt; \tau_{i+1} \\ 0 &amp; \text{otherwise} \end{cases}\end{split}\]</div>
@@ -342,19 +342,19 @@
 </section>
 <section id="the-discrete-difference-penalty-p">
 <h2>The Discrete Difference Penalty (<span class="math notranslate nohighlight">\(P\)</span>)<a class="headerlink" href="#the-discrete-difference-penalty-p" title="Link to this heading">¶</a></h2>
-<p>Because the B-spline basis is strictly local, evaluating the continuous derivative integrals required by Wahba’s formulation <span class="bibtex-citation" id="id5">[<a class="reference internal" href="../../bibliography.html#id74" title="Grace Wahba. Spline models for observational data. SIAM, 1990.">Wahba, 1990</a>]</span> is computationally wasteful. Eilers and Marx proved that applying a discrete difference operator directly to adjacent B-spline coefficients serves as a perfect algebraic proxy for the continuous derivative penalty <span class="bibtex-citation" id="id6">[<a class="reference internal" href="../../bibliography.html#id28" title="Paul HC Eilers and Brian D Marx. Flexible smoothing with b-splines and penalties. Statistical science, 11(2):89–121, 1996.">Eilers and Marx, 1996</a>]</span>.</p>
+<p>Because the B-spline basis is strictly local, evaluating the continuous derivative integrals required by Wahba’s formulation <span class="bibtex-citation" id="id5">[<a class="reference internal" href="../../bibliography.html#id76" title="Grace Wahba. Spline models for observational data. SIAM, 1990.">Wahba, 1990</a>]</span> is computationally wasteful. Eilers and Marx proved that applying a discrete difference operator directly to adjacent B-spline coefficients serves as a perfect algebraic proxy for the continuous derivative penalty <span class="bibtex-citation" id="id6">[<a class="reference internal" href="../../bibliography.html#id30" title="Paul HC Eilers and Brian D Marx. Flexible smoothing with b-splines and penalties. Statistical science, 11(2):89–121, 1996.">Eilers and Marx, 1996</a>]</span>.</p>
 <p>In <code class="docutils literal notranslate"><span class="pre">_spline.py</span></code>, TAM executes this by generating an identity matrix and recursively applying <code class="docutils literal notranslate"><span class="pre">torch.diff</span></code> according to the requested <code class="docutils literal notranslate"><span class="pre">penalty_order</span></code> (<span class="math notranslate nohighlight">\(d\)</span>). If <span class="math notranslate nohighlight">\(d=2\)</span>, the penalty enforces a proxy for the second derivative (penalizing abrupt changes in slope).</p>
 <p>Let <span class="math notranslate nohighlight">\(\Delta_d\)</span> represent the discrete difference operator matrix of order <span class="math notranslate nohighlight">\(d\)</span>. The strictly convex, block-diagonal structural penalty matrix <span class="math notranslate nohighlight">\(P_{spline}\)</span> is explicitly constructed as:</p>
 <div class="math-wrapper docutils container">
 <div class="math notranslate nohighlight">
 \[P_{spline} = \lambda (\Delta_d^\top \Delta_d)\]</div>
 </div>
-<p>This formulation rigorously conserves the fundamental moments of the data (mean and variance) without the boundary bias typical of standard neural networks <span class="bibtex-citation" id="id7">[<a class="reference internal" href="../../bibliography.html#id28" title="Paul HC Eilers and Brian D Marx. Flexible smoothing with b-splines and penalties. Statistical science, 11(2):89–121, 1996.">Eilers and Marx, 1996</a>]</span>, and is a cornerstone of modern GAM theory <span class="bibtex-citation" id="id8">[<a class="reference internal" href="../../bibliography.html#id80" title="Simon N Wood. Generalized additive models: an introduction with R. chapman and hall/CRC, 2017.">Wood, 2017</a>]</span>.</p>
+<p>This formulation rigorously conserves the fundamental moments of the data (mean and variance) without the boundary bias typical of standard neural networks <span class="bibtex-citation" id="id7">[<a class="reference internal" href="../../bibliography.html#id30" title="Paul HC Eilers and Brian D Marx. Flexible smoothing with b-splines and penalties. Statistical science, 11(2):89–121, 1996.">Eilers and Marx, 1996</a>]</span>, and is a cornerstone of modern GAM theory <span class="bibtex-citation" id="id8">[<a class="reference internal" href="../../bibliography.html#id82" title="Simon N Wood. Generalized additive models: an introduction with R. chapman and hall/CRC, 2017.">Wood, 2017</a>]</span>.</p>
 </section>
 <section id="boundary-extrapolation-operational-safety">
 <h2>Boundary Extrapolation &amp; Operational Safety<a class="headerlink" href="#boundary-extrapolation-operational-safety" title="Link to this heading">¶</a></h2>
 <p>A known pathology of unconstrained polynomial basis expansions is Runge’s phenomenon, catastrophic oscillatory explosions when evaluating data points outside the training domain (Out-of-Distribution).</p>
-<p>Original GAM frameworks mitigated this using Natural Cubic Splines, which enforce linearity beyond the outermost boundary knots <span class="bibtex-citation" id="id9">[<a class="reference internal" href="../../bibliography.html#id40" title="Trevor J Hastie. Generalized additive models. Statistical models in S, pages 249–307, 2017.">Hastie, 2017</a>]</span>. The <code class="docutils literal notranslate"><span class="pre">SplineEffect</span></code> natively supports this operational safety protocol via its <code class="docutils literal notranslate"><span class="pre">extrapolate</span></code> parameter. When <code class="docutils literal notranslate"><span class="pre">extrapolate='linear'</span></code> is triggered, <code class="docutils literal notranslate"><span class="pre">_spline.py</span></code> utilizes PyTorch finite differences at the boundary knots to compute the exact Jacobian (gradient) of the spline surface, explicitly projecting a stable, first-order Taylor extension infinitely outward.</p>
+<p>Original GAM frameworks mitigated this using Natural Cubic Splines, which enforce linearity beyond the outermost boundary knots <span class="bibtex-citation" id="id9">[<a class="reference internal" href="../../bibliography.html#id42" title="Trevor J Hastie. Generalized additive models. Statistical models in S, pages 249–307, 2017.">Hastie, 2017</a>]</span>. The <code class="docutils literal notranslate"><span class="pre">SplineEffect</span></code> natively supports this operational safety protocol via its <code class="docutils literal notranslate"><span class="pre">extrapolate</span></code> parameter. When <code class="docutils literal notranslate"><span class="pre">extrapolate='linear'</span></code> is triggered, <code class="docutils literal notranslate"><span class="pre">_spline.py</span></code> utilizes PyTorch finite differences at the boundary knots to compute the exact Jacobian (gradient) of the spline surface, explicitly projecting a stable, first-order Taylor extension infinitely outward.</p>
 </section>
 <section id="the-engineering-novelty">
 <h2>The Engineering Novelty<a class="headerlink" href="#the-engineering-novelty" title="Link to this heading">¶</a></h2>
@@ -391,7 +391,7 @@
         <div class="bottom-of-page">
           <div class="left-details">
             <div class="copyright">
-                Copyright &#169; 2026, Yann Allioux, Nathan Doumèche, Éloi Bedek
+                Copyright &#169; 2025-2026 Électricité de France (contributors: Yann Allioux); 2023-2025 Électricité de France, Sorbonne Université (contributors: Nathan Doumèche, Éloi Bedek)
             </div>
             Made with <a href="https://www.sphinx-doc.org/">Sphinx</a> and <a class="muted-link" href="https://pradyunsg.me">@pradyunsg</a>'s
             
@@ -434,7 +434,7 @@
       
     </aside>
   </div>
-</div><script src="../../_static/documentation_options.js?v=36f53d34"></script>
+</div><script src="../../_static/documentation_options.js?v=010db75e"></script>
     <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/scripts/furo.js?v=46bd48cc"></script>
