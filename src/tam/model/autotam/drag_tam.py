@@ -1,4 +1,7 @@
-#: <dragtam_module_doc>
+# SPDX-FileCopyrightText: 2025-2026 EDF (Electricité De France)
+# SPDX-License-Identifier: LGPL-3.0-or-later
+# Author : Yann Allioux
+
 """
 Evolutionary Optimizer (DragTAM) for TAM.
 
@@ -7,7 +10,6 @@ mathematical islands. It acts as an Estimation of Distribution Algorithm (EDA),
 utilizing a Bayesian Knowledge Graph to track the empirical success of terms, 
 inform component sampling, and execute parsimonious pruning of bloated genomes.
 """
-#: </dragtam_module_doc>
 
 #: <dragtam_imports>
 import pandas as pd

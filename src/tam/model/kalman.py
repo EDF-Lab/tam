@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2025-2026 EDF (Electricité De France)
+# SPDX-License-Identifier: LGPL-3.0-or-later
+# Author : Yann Allioux
+
 r"""
 Implements the Kalman TAM (KalmanTAM) Meta-Learner.
 
@@ -439,7 +443,8 @@ class KalmanTAM:
             preds_denorm.squeeze(-1).cpu(),
             self.group_col_, 
             prepared_data["unique_groups"], 
-            self.target_col_
+            self.target_col_,
+            date_col=self.date_col_
         )
         
         res_col = f"Estimated{self.target_col_}"
@@ -522,7 +527,8 @@ class KalmanTAM:
             predictions_denorm.squeeze(-1).cpu(),
             self.group_col_,
             unique_groups_pred,
-            self.target_col_
+            self.target_col_,
+            date_col=self.date_col_
         )
 
         res_col = f"Estimated{self.target_col_}"

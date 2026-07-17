@@ -1,4 +1,7 @@
-#: <effect_selector_module_doc>
+# SPDX-FileCopyrightText: 2025-2026 EDF (Electricité De France)
+# SPDX-License-Identifier: LGPL-3.0-or-later
+# Author : Yann Allioux
+
 """
 Effect Selector for Automated TAM (AutoTAM).
 
@@ -12,7 +15,6 @@ have in a formula. This prevents formula bloat, maintains Partial Dependence Plo
 interpretability, and avoids design matrix singularities during Conjugate Gradient descent.
 
 """
-#: </effect_selector_module_doc>
 
 #: <effect_selector_imports>
 import pandas as pd

@@ -76,3 +76,25 @@ The `_reassemble_decomposed_predictions` function reverses the stacking process.
 :start-after: "#: <reassemble>"
 :end-before: "#: </reassemble>"
 ```
+
+## 🛡️ Chronological Tensor Alignment & Reassembly Protection
+
+A critical architectural requirement for Generalized Additive Models handling sequential data (like autoregressive lags or temporal splines) is that row-adjacency in the PyTorch tensor must strictly equal chronological adjacency. If a user passes a shuffled Pandas DataFrame to the model, the structural penalty matrix ($P$) would penalize random noise instead of chronological differences, causing catastrophic optimization failure.
+
+To guarantee mathematical safety, the data pipeline enforces a strict two-way sorting mechanism using `date_col`:
+
+### 1. Pre-Tensorization Sort (`_transform_data_stacked`)
+Before projecting empirical data into the RKHS feature map ($\Phi$), the pipeline intercepts the per-group Pandas DataFrame and forces a chronological sort:
+`group_data = data[data[group_col] == group_name].sort_values(date_col).reset_index(drop=True)`
+This guarantees that the resulting 3D Tensor `[Groups, Time, Features]` is structurally perfect for the downstream GPU solvers, regardless of the input data's initial condition.
+
+### 2. Reassembly Index Protection (`_reassemble_predictions`)
+When the GPU finishes resolving the coefficients and returns the predicted tensor, the pipeline must map these chronological predictions back onto the user's original (potentially shuffled) DataFrame. 
+To prevent silent row-scrambling (zipping sorted tensors to unsorted indices), the pipeline dynamically reconstructs the chronological index array prior to assignment:
+```python
+if date_col is not None and date_col in original_data.columns:
+    group_indices_full = original_data.loc[group_indices_full].sort_values(date_col).index
+
+```
+
+This bidirectional safeguard completely neutralizes order-sensitivity vulnerabilities. If the user provides cross-sectional data with no temporal component (`date_col=None`), the pipeline defaults to the internal `__dummy_date__` mechanic, locking the tensors to the user's exact input sequence.

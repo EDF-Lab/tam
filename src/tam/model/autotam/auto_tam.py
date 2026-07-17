@@ -1,4 +1,7 @@
-#: <auto_tam_module_doc>
+# SPDX-FileCopyrightText: 2025-2026 EDF (Electricité De France)
+# SPDX-License-Identifier: LGPL-3.0-or-later
+# Author : Yann Allioux
+
 """
 AutoTAM Orchestrator (TAM AutoML Layer).
 
@@ -6,7 +9,6 @@ This module manages the end-to-end automated machine learning flow for time-seri
 It acts as the central execution engine, coordinating data topology mapping, evolutionary 
 search, state-space expansions (Kalman/Adaptive), and Minimax aggregation (OPERA).
 """
-#: </auto_tam_module_doc>
 
 #: <auto_tam_imports>
 import pandas as pd

@@ -1,4 +1,7 @@
-#: <expert_expander_module_doc>
+# SPDX-FileCopyrightText: 2025-2026 EDF (Electricité De France)
+# SPDX-License-Identifier: LGPL-3.0-or-later
+# Author : Yann Allioux
+
 """
 Expert Expander for Automated TAM (AutoTAM).
 
@@ -6,7 +9,6 @@ Expands the top formulas from each evolutionary island into full
 static and dynamic state-spaces, including Kalman Filters and 
 Adaptive Error Correction Models (ECMs).
 """
-#: </expert_expander_module_doc>
 
 #: <expert_expander_imports>
 import pandas as pd

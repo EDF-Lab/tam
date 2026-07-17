@@ -1,3 +1,8 @@
+# SPDX-FileCopyrightText: 2023-2026 EDF (Electricité De France) et Sorbonne Université
+# SPDX-FileCopyrightText: 2023-2025 Sorbonne Université
+# SPDX-License-Identifier: LGPL-3.0-or-later
+# Authors : Yann Allioux, Nathan Doumèche, Éloi Bedek
+
 r"""
 Implements the Adaptive TAM (AdaptiveTAM) model.
 
@@ -220,7 +225,8 @@ class AdaptiveTAM:
             update_interval_periods=self.update_interval_periods_,
             training_window_periods=self.training_window_periods_,
             steps_per_period=self.steps_per_period_,
-            horizon_steps=self.horizon_steps_
+            horizon_steps=self.horizon_steps_,
+            date_col=self.date_col_
         )
         
         self.simulation_data_ = (
@@ -326,7 +332,8 @@ class AdaptiveTAM:
             predictions_stacked=predictions_cpu,
             group_col=self.group_col_,
             unique_groups=self.unique_groups_, 
-            target_col=self.target_col_
+            target_col=self.target_col_,
+            date_col=self.date_col_
         )
 
         max_res = np.float32(data_bm[self.target_col_].max())
@@ -453,7 +460,8 @@ class AdaptiveTAM:
             predictions_stacked=res_pred_tensor.squeeze(-1).cpu(),
             group_col=self.group_col_,
             unique_groups=unique_groups_pred,
-            target_col=self.target_col_
+            target_col=self.target_col_,
+            date_col=self.date_col_
         )
         
         # --- 4. Safety Bounding and Reassembly ---
@@ -577,7 +585,8 @@ class AdaptiveTAM:
                 predictions_stacked=predictions_stacked,
                 group_col=self.group_col_,
                 unique_groups=self.unique_groups_, 
-                target_col=self.target_col_
+                target_col=self.target_col_,
+            date_col=self.date_col_
             )
 
             max_res = np.float32(data_bm[self.target_col_].max())

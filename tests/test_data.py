@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2025-2026 EDF (Electricité De France)
+# SPDX-License-Identifier: LGPL-3.0-or-later
+# Author : Yann Allioux
+
 r"""
 Unit tests for the data tensorization layer in ``tam.model._data``.
 
@@ -110,3 +114,43 @@ def test_reassemble_decomposed_predictions_adds_effect_columns():
     assert "effect_temp" in out.columns
     assert out.loc[df["gid"] == "A", "effect_temp"].iloc[0] == 1.0
     assert out.loc[df["gid"] == "B", "effect_temp"].iloc[0] == 2.0
+
+
+def test_transform_data_stacked_respects_date_sort():
+    """Verifies that the stacking layer chronologically sorts the data, neutralizing row-scrambling bugs."""
+    df_shuffled = pd.DataFrame({
+        "gid": ["A", "A", "A"],
+        "date": pd.to_datetime(["2020-01-03", "2020-01-01", "2020-01-02"]),
+        "temp": [30.0, 10.0, 20.0],
+    })
+    params, groups = _fit_normalization_params(df_shuffled, features=["temp"], group_col="gid")
+    
+    x, _ = _transform_data_stacked(df_shuffled, ["temp"], "gid", params, groups, date_col="date")
+
+    assert np.isclose(x[0, 0, 0].item(), -1.0) # Jan 1
+    assert np.isclose(x[0, 1, 0].item(), 0.0)  # Jan 2
+    assert np.isclose(x[0, 2, 0].item(), 1.0)  # Jan 3
+
+
+def test_reassemble_safely_aligns_shuffled_index():
+    """Verifies that chronologically ordered tensors correctly map back to shuffled DataFrame indices."""
+    df_shuffled = pd.DataFrame({
+        "gid": ["A", "A", "A"],
+        "date": pd.to_datetime(["2020-01-03", "2020-01-01", "2020-01-02"]),
+        "load": [0.0, 0.0, 0.0]
+    }, index=[99, 42, 7]) 
+
+    preds_chronological = torch.tensor([[100.0, 200.0, 300.0]], dtype=torch.get_default_dtype())
+    
+    out = _reassemble_predictions(
+        original_data=df_shuffled, 
+        predictions_stacked=preds_chronological, 
+        group_col="gid", 
+        unique_groups=["A"], 
+        target_col="load", 
+        date_col="date"
+    )
+    
+    assert out.loc[out["date"] == pd.to_datetime("2020-01-01"), "Estimatedload"].iloc[0] == 100.0
+    assert out.loc[out["date"] == pd.to_datetime("2020-01-02"), "Estimatedload"].iloc[0] == 200.0
+    assert out.loc[out["date"] == pd.to_datetime("2020-01-03"), "Estimatedload"].iloc[0] == 300.0

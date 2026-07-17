@@ -1,4 +1,7 @@
-#: <ensemble_selector_module_doc>
+# SPDX-FileCopyrightText: 2025-2026 EDF (Electricité De France)
+# SPDX-License-Identifier: LGPL-3.0-or-later
+# Author : Yann Allioux
+
 """
 Ensemble Selector for Automated TAM (AutoTAM).
 
@@ -7,7 +10,6 @@ It leverages the OPERA (Online Prediction by Expert Aggregation) algorithm to
 dynamically assign weights to the best models, creating robust federations and 
 apex ensembles resilient to structural breaks in time-series data.
 """
-#: </ensemble_selector_module_doc>
 
 #: <ensemble_selector_imports>
 import pandas as pd

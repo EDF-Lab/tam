@@ -1,3 +1,8 @@
+# SPDX-FileCopyrightText: 2023-2026 EDF (Electricité De France) et Sorbonne Université
+# SPDX-FileCopyrightText: 2023-2025 Sorbonne Université
+# SPDX-License-Identifier: LGPL-3.0-or-later
+# Authors : Yann Allioux, Nathan Doumèche, Éloi Bedek
+
 """
 Data Processing and Tensorization Module.
 
@@ -82,6 +87,7 @@ def _transform_data_stacked(
     group_col: str,
     norm_params: Dict,
     unique_groups: List,
+    date_col: Optional[str] = None,
     target_col: Optional[str] = None
 ) -> Tuple[torch.Tensor, Optional[torch.Tensor]]:
     r"""
@@ -114,7 +120,10 @@ def _transform_data_stacked(
         if group_name not in norm_params:
             continue
             
-        group_data = data[data[group_col] == group_name].reset_index(drop=True)
+        group_data = data[data[group_col] == group_name]
+        if date_col is not None:
+            group_data = group_data.sort_values(date_col)
+        group_data = group_data.reset_index(drop=True)
         if group_data.empty:
             continue
 
@@ -148,7 +157,8 @@ def _reassemble_predictions(
     predictions_stacked: torch.Tensor,
     group_col: str,
     unique_groups: List,
-    target_col: str
+    target_col: str,
+    date_col: Optional[str] = None
 ) -> pd.DataFrame:
     r"""
     Reassembles stacked tensor predictions back into the original DataFrame structure.
@@ -168,7 +178,10 @@ def _reassemble_predictions(
     
     for i, group_name in enumerate(unique_groups):
         group_indices_full = original_data.index[original_data[group_col] == group_name]
-        
+
+        if date_col is not None and date_col in original_data.columns:
+            group_indices_full = original_data.loc[group_indices_full].sort_values(date_col).index
+
         if i >= predictions_stacked.shape[0]:
             continue
 
@@ -203,7 +216,8 @@ def _reassemble_decomposed_predictions(
     original_data: pd.DataFrame,
     decomposed_effects: Dict[str, torch.Tensor],
     group_col: str,
-    unique_groups: List
+    unique_groups: List,
+    date_col: Optional[str] = None
 ) -> pd.DataFrame:
     r"""
     Reassembles decomposed feature effects into the DataFrame.
@@ -230,6 +244,9 @@ def _reassemble_decomposed_predictions(
                 continue
             
             group_mask = (result_df[group_col] == group_name)
+            if date_col is not None and date_col in result_df.columns:
+                sorted_indices = result_df[group_mask].sort_values(date_col).index
+                group_mask = result_df.index.isin(sorted_indices)
             group_len = group_mask.sum()
             
             if effect_tensor.dim() == 2:
@@ -266,7 +283,8 @@ def _transform_data_adaptive(
     update_interval_periods: int,
     training_window_periods: int,
     steps_per_period: int,
-    horizon_steps: int = 1
+    horizon_steps: int = 1,
+    date_col: Optional[str] = None
 ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
     r"""
     Prepares data for adaptive learning using vectorized sliding window indexing.
@@ -305,7 +323,10 @@ def _transform_data_adaptive(
         if group_name not in norm_params:
             continue
             
-        data_group = data[data[group_col] == group_name].reset_index(drop=True)
+        data_group = data[data[group_col] == group_name]
+        if date_col is not None:
+            data_group = data_group.sort_values(date_col)
+        data_group = data_group.reset_index(drop=True)
         
         params = norm_params.get(group_name)
         if params is None: continue

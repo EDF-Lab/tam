@@ -1,4 +1,7 @@
-#: <evolution_reporter_module_doc>
+# SPDX-FileCopyrightText: 2025-2026 EDF (Electricité De France)
+# SPDX-License-Identifier: LGPL-3.0-or-later
+# Author : Yann Allioux
+
 """
 Evolutionary Reporter & Diagnostics for TAM (AutoTAM).
 
@@ -17,7 +20,6 @@ Exports:
     7. AutoTAM_opera_weights_*.csv: Sequential trajectory of ensemble weights over time.
     8. AutoTAM_pdp_variance_*.csv: Global feature importance mapped via Partial Dependence.
 """
-#: </evolution_reporter_module_doc>
 
 #: <evolution_reporter_imports>
 import pandas as pd

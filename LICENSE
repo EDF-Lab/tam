@@ -1,6 +1,10 @@
 Time series Additive Model (TAM)
 
-Copyright (c) 2026 Yann Allioux, Nathan Doumèche, Éloi Bedek
+Copyright (c) 2025-2026 EDF (Electricité De France).
+Copyright (c) 2023-2025 EDF (Electricité De France) and Sorbonne Université.
+
+Lead Author: Yann Allioux
+Past Contributors: Nathan Doumèche (v0.0.6), Éloi Bedek (adaptative)
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Lesser General Public License as published by

@@ -24,8 +24,8 @@ identifiers:
 
 
 repository-code: "https://github.com/EDF-Lab/tam"
-version: 1.2.5
-date-released: 2026-06-24
+version: 1.2.6
+date-released: 2026-07-17
 
 keywords:
   - "Python"
@@ -37,4 +37,4 @@ keywords:
   - "Hierarchical Forecasting"
   - "Time Series"
 
-license: LGPL-3.0
+license: LGPL-3.0-or-later

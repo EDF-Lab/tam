@@ -1,3 +1,8 @@
+# SPDX-FileCopyrightText: 2023-2026 EDF (Electricité De France) et Sorbonne Université
+# SPDX-FileCopyrightText: 2023-2025 Sorbonne Université
+# SPDX-License-Identifier: LGPL-3.0-or-later
+# Authors : Yann Allioux, Nathan Doumèche
+
 r"""Implements the Fourier effect with Sobolev regularization.
 
 Projects data onto a truncated Fourier basis.

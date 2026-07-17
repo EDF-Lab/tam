@@ -1,11 +1,13 @@
-#: <performance_analyzer_module_doc>
+# SPDX-FileCopyrightText: 2025-2026 EDF (Electricité De France)
+# SPDX-License-Identifier: LGPL-3.0-or-later
+# Author : Yann Allioux
+
 """
 Performance Analyzer Module for AutoTAM.
 
 Provides statistical utilities to analyze prediction residuals, evaluate 
 model bias, and detect temporal performance degradation over time.
 """
-#: </performance_analyzer_module_doc>
 
 #: <performance_analyzer_imports>
 import numpy as np

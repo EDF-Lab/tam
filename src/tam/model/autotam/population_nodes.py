@@ -1,4 +1,7 @@
-#: <population_nodes_module_doc>
+# SPDX-FileCopyrightText: 2025-2026 EDF (Electricité De France)
+# SPDX-License-Identifier: LGPL-3.0-or-later
+# Author : Yann Allioux
+
 """
 Evolutionary Islands (Population Nodes) for AutoTAM.
 
@@ -10,7 +13,6 @@ This distributed "Island Model" approach ensures that highly diverse mathematica
 topologies are explored simultaneously during the evolutionary search, preventing 
 premature convergence on a single family of functions.
 """
-#: </population_nodes_module_doc>
 
 #: <population_nodes_imports>
 import random

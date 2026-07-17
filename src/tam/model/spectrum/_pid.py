@@ -1,4 +1,7 @@
-#: <module_doc>
+# SPDX-FileCopyrightText: 2025-2026 EDF (Electricité De France)
+# SPDX-License-Identifier: LGPL-3.0-or-later
+# Author : Yann Allioux
+
 r"""
 Proportional-Integral-Derivative (PID) Effect.
 
@@ -6,7 +9,6 @@ This module provides the `PIDEffect` class, which transforms an autoregressive
 target lag into a discrete PID controller. It explicitly models short-term 
 momentum and long-term accumulation, ensuring physically stable control dynamics.
 """
-#: </module_doc>
 
 import torch
 import torch.nn.functional as F

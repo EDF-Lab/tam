@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2025-2026 EDF (Electricité De France)
+# SPDX-License-Identifier: LGPL-3.0-or-later
+# Author : Yann Allioux
+
 r"""
 Tests for ``tam.evaluation.eval_plotting``, the benchmark dashboard and summary
 table. These exercise the plotting code paths to ensure they execute without

@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2025-2026 EDF (Electricité De France)
+# SPDX-License-Identifier: LGPL-3.0-or-later
+# Author : Yann Allioux
+
 r"""
 Tests for ``tam.model.spectrum._base_effects.BaseEffect``, the abstract base
 and its universal out-of-distribution (OOD) extrapolation wrapper.

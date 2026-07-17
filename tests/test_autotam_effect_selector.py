@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2025-2026 EDF (Electricité De France)
+# SPDX-License-Identifier: LGPL-3.0-or-later
+# Author : Yann Allioux
+
 r"""
 Unit tests for ``tam.model.autotam.effect_selector.EffectSelector``, builds the
 mathematically safe search space and enforces the Strict Covariate Lock.

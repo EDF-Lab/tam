@@ -1,4 +1,7 @@
-#: <feature_engineer_module_doc>
+# SPDX-FileCopyrightText: 2025-2026 EDF (Electricité De France)
+# SPDX-License-Identifier: LGPL-3.0-or-later
+# Author : Yann Allioux
+
 """
 Feature Engineer for Automated TAM (AutoTAM).
 
@@ -14,7 +17,6 @@ Furthermore, it utilizes stateful tracking to ensure that features generated and
 dropped during the training phase are identically replicated and purged during 
 inference, strictly preventing Target Leakage and Train-Test Skew.
 """
-#: </feature_engineer_module_doc>
 
 #: <feature_engineer_imports>
 import pandas as pd

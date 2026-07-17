@@ -1,3 +1,8 @@
+# SPDX-FileCopyrightText: 2023-2026 EDF (Electricité De France) et Sorbonne Université
+# SPDX-FileCopyrightText: 2023-2025 Sorbonne Université
+# SPDX-License-Identifier: LGPL-3.0-or-later
+# Authors : Yann Allioux, Nathan Doumèche
+
 """
 Implements the core Additive TAM (StaticTAM) model.
 
@@ -70,10 +75,15 @@ class StaticTAM(BaseTAM):
         Initializes the StaticTAM model.
 
         Args:
-            formula: R-style formula defining the model structure 
+            formula: R-style formula defining the model structure
                      (e.g., "Y ~ s(x) + l(t)").
             group_col: Column name used for grouping data (e.g., 'ID').
-            date_col: Column name for time indexing.
+            date_col: Column name for time indexing. Defaults to None, in which
+                case rows are tensorized in whatever order they were passed in.
+                For formulas with temporal terms (lags, trend, or any term whose
+                penalty assumes row-adjacency means chronological adjacency),
+                you must pass date_col explicitly to guarantee correct results
+                on data that isn't already sorted by time.
             default_alpha_p: Default log10(lambda_p) regularization strength.
             _internal_effects_list: (Internal) Used for restoring state during grid search.
             _internal_features_config: (Internal) Used for restoring state during grid search.
@@ -263,7 +273,8 @@ class StaticTAM(BaseTAM):
             group_col=self.group_col_,
             norm_params=self.norm_params_,
             target_col=current_target_col, 
-            unique_groups=self.unique_groups_
+            unique_groups=self.unique_groups_,
+            date_col=self.date_col_
         )
         
         if self.features_config_:
@@ -327,7 +338,7 @@ class StaticTAM(BaseTAM):
         final_decomposed_effects = smart_decompose(x_predict, self.coefficients_, self.effects_list_)
 
         decomposed_df = _reassemble_decomposed_predictions(
-            balanced_data, final_decomposed_effects, self.group_col_, self.unique_groups_
+            balanced_data, final_decomposed_effects, self.group_col_, self.unique_groups_, date_col=self.date_col_
         )
 
         return _cleanup_dummies(decomposed_df[mask], self.group_col_, self.date_col_)
@@ -651,7 +662,7 @@ class StaticTAM(BaseTAM):
         """
         Displays a quick reference guide for formula syntax in the console.
         """
-                
+
         data = [
             {
                 "Token": "l(x)", 

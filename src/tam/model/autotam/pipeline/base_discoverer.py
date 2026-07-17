@@ -1,11 +1,13 @@
-#: <base_discoverer_module_doc>
+# SPDX-FileCopyrightText: 2025-2026 EDF (Electricité De France)
+# SPDX-License-Identifier: LGPL-3.0-or-later
+# Author : Yann Allioux
+
 """
 Base Discoverer for Automated TAM (AutoTAM).
 
 Executes the evolutionary search process and extracts the top performing 
 formulas per mathematical island.
 """
-#: </base_discoverer_module_doc>
 
 #: <base_discoverer_imports>
 import pandas as pd

@@ -12,9 +12,15 @@ sys.path.insert(0, os.path.abspath('../../src/tam'))
 
 # -- Project Information -----------------------------------------------------
 project = 'TAM'
-copyright = '2026, Yann Allioux, Nathan Doumèche, Éloi Bedek'
+
+copyright = (
+    '2025-2026 Électricité de France (contributors: Yann Allioux); '
+    '2023-2025 Électricité de France, Sorbonne Université '
+    '(contributors: Nathan Doumèche, Éloi Bedek)'
+)
+
 author = 'Yann Allioux'
-release = '1.2.5'
+release = '1.2.6'
 
 # -- General Configuration ---------------------------------------------------
 extensions = [

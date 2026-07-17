@@ -1,4 +1,7 @@
-#: <parser_module_doc>
+# SPDX-FileCopyrightText: 2025-2026 EDF (Electricité De France)
+# SPDX-License-Identifier: LGPL-3.0-or-later
+# Author : Yann Allioux
+
 """
 Syntax Decoder for Automated TAM (AutoTAM).
 
@@ -9,7 +12,6 @@ By strictly parsing the Left-Hand Side (targets) and Right-Hand Side (features, 
 and pipeline macros), this module establishes the foundational boundaries of the 
 Evolutionary Search Space and provides the first layer of defense against Target Leakage.
 """
-#: </parser_module_doc>
 
 #: <parser_imports>
 import re

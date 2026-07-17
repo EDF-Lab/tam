@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2025-2026 EDF (Electricité De France)
+# SPDX-License-Identifier: LGPL-3.0-or-later
+# Author : Yann Allioux
+
 """Defines the base interface for all effects in the TAM spectrum.
 
 This module contains the abstract class that any effect (linear, spline, physics, etc.)

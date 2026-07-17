@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2025-2026 EDF (Electricité De France)
+# SPDX-License-Identifier: LGPL-3.0-or-later
+# Author : Yann Allioux
+
 r"""Implements Chebyshev polynomial effects.
 
 This module provides the `ChebyshevEffect` class, which projects input data

@@ -1,4 +1,7 @@
-#: <metrics_module_doc>
+# SPDX-FileCopyrightText: 2025-2026 EDF (Electricité De France)
+# SPDX-License-Identifier: LGPL-3.0-or-later
+# Author : Yann Allioux
+
 """
 Metrics Calculation Module for AutoTAM.
 
@@ -6,7 +9,6 @@ Provides a robust, purely NumPy-based suite of regression and forecasting
 evaluation metrics. It safely handles `NaN` and `Inf` values across 
 predictions to prevent scoring failures during evolutionary model selection.
 """
-#: </metrics_module_doc>
 
 #: <metrics_imports>
 import numpy as np

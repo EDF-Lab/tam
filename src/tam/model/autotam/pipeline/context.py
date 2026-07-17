@@ -1,4 +1,7 @@
-#: <context_module_doc>
+# SPDX-FileCopyrightText: 2025-2026 EDF (Electricité De France)
+# SPDX-License-Identifier: LGPL-3.0-or-later
+# Author : Yann Allioux
+
 """
 Pipeline Context for Automated TAM (AutoTAM).
 
@@ -7,7 +10,6 @@ It carries data splits, tracking metadata, and inferred physical parameters
 across all mathematical stages (Parsing, Profiling, Engineering, and Expansion) 
 to ensure a unified state without passing excessive arguments between classes.
 """
-#: </context_module_doc>
 
 #: <context_imports>
 import pandas as pd

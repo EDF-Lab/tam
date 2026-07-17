@@ -1,4 +1,7 @@
-#: <data_profiler_module_doc>
+# SPDX-FileCopyrightText: 2025-2026 EDF (Electricité De France)
+# SPDX-License-Identifier: LGPL-3.0-or-later
+# Author : Yann Allioux
+
 r"""
 Data Profiler for Automated TAM (AutoTAM).
 
@@ -9,7 +12,6 @@ To guarantee Reproducing Kernel Hilbert Space (RKHS) stability and completely pr
 2. Time-Based Resampling: Enforces continuous chronological frequencies (gap filling) to ensure that autoregressive lagged features strictly map to physical time.
 3. Cold-Start Safe: Retains global statistical bounds as fallbacks for completely unseen entities during the prediction phase.
 """
-#: </data_profiler_module_doc>
 
 #: <data_profiler_imports>
 import pandas as pd

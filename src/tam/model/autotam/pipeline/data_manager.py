@@ -1,11 +1,13 @@
-#: <data_manager_module_doc>
+# SPDX-FileCopyrightText: 2025-2026 EDF (Electricité De France)
+# SPDX-License-Identifier: LGPL-3.0-or-later
+# Author : Yann Allioux
+
 """
 Data Manager for Automated TAM (AutoTAM).
 
 Handles data topology, semantic parsing, chronological splitting, 
 and feature engineering for the AutoTAM pipeline.
 """
-#: </data_manager_module_doc>
 
 #: <data_manager_imports>
 import pandas as pd

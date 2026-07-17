@@ -1,3 +1,8 @@
+# SPDX-FileCopyrightText: 2023-2026 EDF (Electricité De France) et Sorbonne Université
+# SPDX-FileCopyrightText: 2023-2025 Sorbonne Université
+# SPDX-License-Identifier: LGPL-3.0-or-later
+# Authors : Yann Allioux, Nathan Doumèche
+
 r"""
 Utility functions for data loading, preprocessing, and formula parsing.
 
@@ -316,7 +321,7 @@ def _balance_groups(
         return pd.Series(True, index=dataset.index), dataset.copy()
 
     if method == 'drop':
-        balanced_df = dataset.groupby(group_col).head(min_count)
+        balanced_df = dataset.sort_values(date_col).groupby(group_col).head(min_count)
         mask = dataset.index.isin(balanced_df.index)
         return mask, balanced_df.copy()
 
@@ -338,7 +343,7 @@ def _balance_groups(
             if group_df.empty: 
                 continue
             
-            last_row = group_df.iloc[-1:].copy()
+            last_row = group_df.sort_values(date_col).iloc[-1:].copy()
             
             for _ in range(num_missing):
                 last_row[date_col] = fake_date

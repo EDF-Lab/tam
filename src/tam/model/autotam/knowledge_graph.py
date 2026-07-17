@@ -1,4 +1,7 @@
-#: <knowledge_graph_module_doc>
+# SPDX-FileCopyrightText: 2025-2026 EDF (Electricité De France)
+# SPDX-License-Identifier: LGPL-3.0-or-later
+# Author : Yann Allioux
+
 """
 Bayesian Knowledge Graph for Auto-ML Component Tracking.
 
@@ -11,7 +14,6 @@ Instead of blind random mutation, this graph enables the evolutionary engine
 to learn which feature-effect combinations yield the highest predictive power 
 with the lowest complexity penalties.
 """
-#: </knowledge_graph_module_doc>
 
 #: <knowledge_graph_imports>
 import math

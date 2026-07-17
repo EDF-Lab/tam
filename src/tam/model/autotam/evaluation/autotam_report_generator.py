@@ -1,4 +1,7 @@
-#: <autotam_report_generator_module_doc>
+# SPDX-FileCopyrightText: 2025-2026 EDF (Electricité De France)
+# SPDX-License-Identifier: LGPL-3.0-or-later
+# Author : Yann Allioux
+
 """
 Report Generator for Automated TAM (AutoTAM).
 
@@ -7,7 +10,6 @@ and compiles them into a comprehensive, multi-pane Matplotlib dashboard.
 It visualizes the evolutionary search trajectory, collinearity pruning, 
 and the composition of the final Minimax ensembles.
 """
-#: </autotam_report_generator_module_doc>
 
 #: <autotam_report_generator_imports>
 import os

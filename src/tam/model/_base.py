@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2025-2026 EDF (Electricité De France)
+# SPDX-License-Identifier: LGPL-3.0-or-later
+# Author : Yann Allioux
+
 r"""
 Abstract base class for TAM models.
 
@@ -274,7 +278,8 @@ class BaseTAM(ABC):
             predictions_stacked=predictions_stacked.squeeze(-1),
             group_col=self.group_col_,
             unique_groups=unique_groups_pred,
-            target_col=self.target_col_
+            target_col=self.target_col_,
+            date_col=self.date_col_
         )
 
         # --- Transitivity Cleanup ---
