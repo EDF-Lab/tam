@@ -20,7 +20,7 @@ copyright = (
 )
 
 author = 'Yann Allioux'
-release = '1.2.6'
+release = '1.3.0'
 
 # -- General Configuration ---------------------------------------------------
 extensions = [

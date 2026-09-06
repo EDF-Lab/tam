@@ -2,7 +2,7 @@
 
 [🧪 `EXAMPLES`](EXAMPLES.md) | [📚 `THEORY`](THEORY.md) | [📄 `JOSS PAPER`](paper.md)
   
-**Version:** 1.2.6  
+**Version:** 1.3.0  
 **License:** LGPL-3.0-or-later.  
 **Copyright (c):** 2023-2026 EDF (Electricité De France).  
 **Copyright (c):** 2023-2025 Sorbonne Université.  
@@ -17,7 +17,7 @@
 [![License: LGPL](https://img.shields.io/badge/License-LGPL-blue.svg)](https://opensource.org/licenses/LGPL-3.0)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
 [![GitHub Repo stars](https://img.shields.io/github/stars/EDF-Lab/tam?style=social)](https://github.com/EDF-Lab/tam)
-[![DOI: TAM](https://zenodo.org/badge/DOI/10.5281/zenodo.20543272.svg)](https://doi.org/10.5281/zenodo.20543272)
+[![DOI: TAM](https://zenodo.org/badge/DOI/10.5281/zenodo.20543271.svg)](https://doi.org/10.5281/zenodo.20543271)
 
 **The unified framework for interpretable, physics-informed, and high-performance time series forecasting.**
 
@@ -45,6 +45,7 @@ These modules form the mathematically proven, production-ready core of the frame
 * **Adaptive (`AdaptiveTAM`):** Corrects residuals in real-time using parallel sliding-windows to handle concept drift.
 * **Expertise (`OperaTAM`):** Aggregates external expert models dynamically with mathematical regret bounds.
 * **Evaluation (`BenchmarkTracker`):** Tracks temporal degradation, calculates NaN-safe metrics, and analyzes residual autocorrelation.
+* **Distributional & Uncertainty (`statistics`):** Non-Gaussian targets (Poisson, Gamma, Binomial), Location-Scale modeling, EM Mixtures, Gaussian Copulas, and rigorous risk bounding via Conformal Prediction (ACI) and Extreme Value Theory (EVT).
 
 -----
 
@@ -57,7 +58,6 @@ We actively collaborate with the academic community to push the boundaries of TA
 * **Hierarchy (`HierarchicalTAM`) (BETA):** Optimizes parent/child series simultaneously in the Primal space (National = Sum of Regions).
 * **AutoML (`AutoTAM`) (EXP):** Evolutionary Search to discover optimal GAM topologies using successive halving & parsimony pruning.
 * **Hybrid (`NeuralTAM`) (EXP):** Integrates Deep Neural Networks via orthogonal residual backfitting to capture extreme non-linearities.
-* **Safety (`SafetyTAM`) (EXP):** Provides statistically guaranteed confidence intervals via Adaptive Conformal Inference (ACI).
 
 -----
 
@@ -162,20 +162,20 @@ Read the full documentation:
 ## Citation
 
 If you use these packages in your research, please cite them using their permanent archives:
-* **TAM:** [https://doi.org/10.5281/zenodo.20543272](https://doi.org/10.5281/zenodo.20543272)
+* **TAM:** [https://doi.org/10.5281/zenodo.20543271](https://doi.org/10.5281/zenodo.20543271)
 
 **TAM**
 ```bibtex
 @misc{tam2026package,
-  title={TAM: Time series Additive Model (v1.2.3)},
+  title={TAM: Time series Additive Model (v1.3.0)},
   author={Allioux, Yann and Goude, Yannig},
   year={2026},
-  doi={10.5281/zenodo.20543272},
+  doi={10.5281/zenodo.22544995},
   note={With foundational WeaKL research by Nathan Doumèche, and tensorisation and adaptive model contributions by Éloi Bedek}
 }
 ```
 
-* **FORCE Dataset:** [https://doi.org/10.5281/zenodo.21109134](https://doi.org/10.5281/zenodo.21109134)
+* **FORCE Dataset:** [https://doi.org/10.5281/zenodo.21109133](https://doi.org/10.5281/zenodo.21109133)
 
 **FORCE Dataset**
 ```bibtex

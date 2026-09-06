@@ -12,7 +12,7 @@ data preparation, solves the primal optimization problem, and provides
 methods for hyperparameter tuning and model interpretation.
 """
 
-from typing import Dict, List, Any, Tuple, Optional
+from typing import Dict, List, Any, Tuple, Optional, Union, Sequence
 import re
 import torch
 import pandas as pd
@@ -23,6 +23,7 @@ from tam.common.utils import (
     _ensure_dummies, _cleanup_dummies
 )
 from ._base import BaseTAM
+from .safety import SafetyTAM
 from ._data import (
     _fit_normalization_params,
     _transform_data_stacked,
@@ -42,6 +43,9 @@ from .spectrum import (
     build_phi_from_effects,
     build_penalty_from_effects
 )
+from .statistics.estimation import build_strategy, _distributional, _mixture
+
+_TINY: float = 1e-12
 
 class StaticTAM(BaseTAM):
     """
@@ -64,12 +68,17 @@ class StaticTAM(BaseTAM):
 #: <init_additive>
     def __init__(
         self,
-        formula: str,
+        formula: Union[str, Dict[str, str]] = None,
         group_col: str = None,
         date_col: str = None,
         default_alpha_p: float = -9.0,
+        loss: Union[str, Dict[str, str]] = "l2",
+        loss_kwargs: Optional[dict] = None,
+        dist_kwargs: Optional[dict] = None,
+        mixture_components: Optional[int] = None,
+        mixture_kwargs: Optional[dict] = None,
         _internal_effects_list: Optional[List[BaseEffect]] = None,
-        _internal_features_config: Optional[dict] = None 
+        _internal_features_config: Optional[dict] = None
     ):
         """
         Initializes the StaticTAM model.
@@ -95,7 +104,55 @@ class StaticTAM(BaseTAM):
         self.default_alpha_p_ = default_alpha_p
         self.group_col_ = group_col or "__dummy_group__"
         self.date_col_ = date_col or "__dummy_date__"
-        
+        self.is_grid_search_template_ = False
+
+        dk = dist_kwargs or {}
+        # Extracted universally since both distributional and mixture modes use the target scale transformation.
+        self._log_target_ = bool(dk.get("log_target", True))
+        # Conformal state (set by calibrate_conformal; used by predict_intervals).
+        self._safety_ = None
+        self._conformal_studentized_ = False
+
+        # Distributional mode: a dict formula makes StaticTAM a thin location-scale container;
+        # the schedule and its predictions live in _distributional.py (sub-models hold the effects).
+        if isinstance(formula, dict):
+            if mixture_components is not None:
+                raise ValueError("mixture_components is incompatible with a distributional (dict) formula.")
+            self._mode_ = "distributional"
+            _distributional.init_config(
+                self, formula, loss, group_col, date_col, default_alpha_p,
+                tail_family=dk.get("tail_family", "auto"),
+                kurtosis_threshold=dk.get("kurtosis_threshold", 1.0),
+                scale_shrinkage=dk.get("scale_shrinkage", 0.0),
+                location_alpha_p=dk.get("location_alpha_p"),
+                scale_alpha_p=dk.get("scale_alpha_p"),
+            )
+            return
+        self._mode_ = "plain"
+
+        # Mixture (mixture_components=K): EM whose M-step is the weighted atom; schedule in _mixture.py.
+        mk = mixture_kwargs or {}
+        self._mixture_components_ = int(mixture_components) if mixture_components is not None else None
+        self._mixture_seed_ = int(mk.get("seed", 0))
+        self._mixture_n_init_ = max(int(mk.get("n_init", 1)), 1)
+        self._mixture_max_iter_ = int(mk.get("max_iter", 100))
+        self._mixture_tol_ = float(mk.get("tol", 1e-5))
+        self.component_coefficients_ = []
+        self.component_scales_ = np.zeros(0)
+        self.mixing_weights_ = np.zeros(0)
+        self.log_likelihood_ = -np.inf
+
+        # scalar-loss reweighting strategy. None (l2/gaussian/normal, or mixture mode) keeps the default
+        # single unweighted solve; any other loss builds an IRLS strategy from loss_kwargs.
+        self.loss_ = loss
+        if self._mixture_components_ is not None:
+            self._reweighting_strategy_ = None
+        else:
+            self._reweighting_strategy_ = (
+                None if str(loss).lower() in ("l2", "gaussian", "normal")
+                else build_strategy(loss, **(loss_kwargs or {}))
+            )
+
         if _internal_effects_list:
             self.effects_list_ = _internal_effects_list
             self.features_config_ = _internal_features_config
@@ -130,6 +187,132 @@ class StaticTAM(BaseTAM):
         else:
             raise ValueError("`formula` must be provided to initialize StaticTAM.")
 #: </init_additive>
+
+    def fit(self, data_train: pd.DataFrame, **schedule_kwargs) -> "StaticTAM":
+        """Fit, routing to the schedule implied by the constructor inputs.
+
+        Distributional (dict formula) -> distributional; mixture (mixture_components) -> EM; otherwise the
+        standard BaseTAM.fit (one exact solve for l2, else IRLS).
+        """
+        if getattr(self, "_mode_", "plain") == "distributional":
+            return _distributional.fit(self, data_train, **schedule_kwargs)
+        if getattr(self, "_mixture_components_", None) is not None:
+            return _mixture.fit(self, data_train)
+        return super().fit(data_train)
+
+    def predict(self, data: pd.DataFrame) -> pd.DataFrame:
+        """Predict, mapping GLM losses back to the mean scale via the inverse link.
+
+        For loss='l2' and the identity-link M-estimators (expectile / huber / student_t) the base
+        prediction is returned unchanged. For GLM losses (gamma / poisson / binomial) the estimate is
+        mapped from the link scale to the mean scale: mu = g^-1(eta).
+        """
+        if getattr(self, "_mode_", "plain") == "distributional":
+            raise RuntimeError(
+                "This is a distributional StaticTAM; use predict_median(), predict_quantiles(), "
+                "cdf() or anomaly_score() instead of predict()."
+            )
+        if getattr(self, "_mixture_components_", None) is not None:
+            raise RuntimeError(
+                "This is a mixture StaticTAM; use predict_mean(), component_means(), "
+                "responsibilities() or anomaly_score() instead of predict()."
+            )
+        predicted = super().predict(data)
+        strategy = getattr(self, "_reweighting_strategy_", None)
+        if strategy is not None and getattr(strategy, "is_glm", False):
+            estimated_column = f"Estimated{self.target_col_}"
+            if estimated_column in predicted.columns:
+                linear_predictor = torch.as_tensor(
+                    predicted[estimated_column].to_numpy(copy=True), dtype=torch.get_default_dtype()
+                )
+                predicted[estimated_column] = strategy.inverse_link(linear_predictor).cpu().numpy()
+        return predicted
+
+    # --- Distributional API: thin delegates to statistics.estimation._distributional ---
+    def _to_model_scale(self, y: np.ndarray) -> np.ndarray:
+        return _distributional._to_model_scale(self, y)
+
+    def _mu_sigma(self, data: pd.DataFrame) -> Tuple[np.ndarray, np.ndarray]:
+        return _distributional.mu_sigma(self, data)
+
+    def predict_median(self, data: pd.DataFrame) -> np.ndarray:
+        return _distributional.predict_median(self, data)
+
+    def predict_quantile(self, data: pd.DataFrame, tau: Union[float, Sequence[float]]) -> np.ndarray:
+        return _distributional.predict_quantile(self, data, tau)
+
+    def predict_quantiles(self, data: pd.DataFrame, taus: Sequence[float] = (0.05, 0.5, 0.95)) -> pd.DataFrame:
+        return _distributional.predict_quantiles(self, data, taus)
+
+    def cdf(self, data: pd.DataFrame) -> np.ndarray:
+        return _distributional.cdf(self, data)
+
+    def crps(self, data: pd.DataFrame, n_nodes: int = 64) -> np.ndarray:
+        return _distributional.crps(self, data, n_nodes)
+
+    def anomaly_score(self, data: pd.DataFrame):
+        """Distributional mode: a frame (z_score, tail_pvalue, ...). Mixture mode: the -log_density array."""
+        if getattr(self, "_mode_", "plain") == "distributional":
+            return _distributional.anomaly_score(self, data)
+        if getattr(self, "_mixture_components_", None) is not None:
+            return _mixture.anomaly_score(self, data)
+        raise RuntimeError("anomaly_score() requires a distributional (dict-formula) or mixture StaticTAM.")
+
+    # --- Mixture API: thin delegates to statistics.estimation._mixture ---
+    def predict_mean(self, data: pd.DataFrame) -> np.ndarray:
+        return _mixture.predict_mean(self, data)
+
+    def component_means(self, data: pd.DataFrame) -> np.ndarray:
+        return _mixture.component_means(self, data)
+
+    def responsibilities(self, data: pd.DataFrame) -> np.ndarray:
+        return _mixture.responsibilities(self, data)
+
+    def log_density(self, data: pd.DataFrame) -> np.ndarray:
+        return _mixture.log_density(self, data)
+
+    # --- Conformal wrappers: thin delegates to SafetyTAM (static) / risk.aci (streaming). No conformal
+    #     math here, this class only picks a point estimate / scale from its own predictions. ---
+    def _point_prediction(self, data: pd.DataFrame) -> np.ndarray:
+        """A single point-estimate array for conformal calibration, per mode."""
+        if self._mode_ == "distributional":
+            return self.predict_median(data)
+        if self._mixture_components_ is not None:
+            return self.predict_mean(data)
+        return self.predict(data)[f"Estimated{self.target_col_}"].to_numpy(dtype=float, copy=True)
+
+    def _conformal_scale(self, data: pd.DataFrame) -> np.ndarray:
+        """Response-scale one-sigma half-width (Q0.841 - Q0.159)/2 used to studentize conformal scores."""
+        lower = self.predict_quantile(data, 0.15865)
+        upper = self.predict_quantile(data, 0.84135)
+        return np.clip((upper - lower) / 2.0, _TINY, None)
+
+    def calibrate_conformal(self, calibration_data: pd.DataFrame, alpha: float = 0.1,
+                            studentized: bool = False) -> "StaticTAM":
+        """Calibrate a distribution-free conformal engine on a hold-out set (delegates to SafetyTAM)."""
+        y_true = calibration_data[self.target_col_].to_numpy()
+        y_pred = self._point_prediction(calibration_data)
+        self._conformal_studentized_ = bool(studentized and self._mode_ == "distributional")
+        scale = self._conformal_scale(calibration_data) if self._conformal_studentized_ else None
+        self._safety_ = SafetyTAM(alpha).calibrate(y_true, y_pred, scale=scale)
+        return self
+
+    def predict_intervals(self, data: pd.DataFrame, method: str = "static", gamma: float = 0.05,
+                          y_true_online: Optional[np.ndarray] = None) -> pd.DataFrame:
+        """Conformal prediction intervals around the point estimate (requires calibrate_conformal first)."""
+        if self._safety_ is None:
+            raise RuntimeError("Call calibrate_conformal() before predict_intervals().")
+        y_pred = self._point_prediction(data)
+        scale = self._conformal_scale(data) if getattr(self, "_conformal_studentized_", False) else None
+        if method == "static":
+            return self._safety_.predict_intervals(y_pred, y_true_online=y_true_online, scale=scale)
+        if method == "aci":
+            from .statistics.risk.aci import adaptive_conformal_intervals
+            return adaptive_conformal_intervals(
+                self._safety_.conformal_quantile, y_pred, y_true_online,
+                self._safety_.alpha_target, gamma=gamma, scale=scale,
+            )
+        raise ValueError("method must be 'static' or 'aci'.")
 
     def _extract_recursive_features(self, terms: List[Dict]) -> List[str]:
         """

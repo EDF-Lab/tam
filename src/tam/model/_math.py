@@ -25,19 +25,26 @@ from .spectrum import BaseEffect, OffsetEffect
 def _compute_weighted_covariances(
     phi: torch.Tensor,
     y_data: torch.Tensor,
-    loss_L_star_L: torch.Tensor
+    loss_L_star_L: torch.Tensor,
+    sample_weights: Optional[torch.Tensor] = None
 ) -> tuple:
     r"""
     Computes the loss-weighted covariance matrices (LHS and RHS of normal equations).
 
     Calculates:
-    - cov_X = Phi.H @ (L*L) @ Phi  (Weighted Feature Covariance)
-    - cov_XY = Phi.H @ (L*L) @ Y   (Weighted Feature-Target Covariance)
+    - cov_X = Phi.H @ W @ (L*L) @ Phi  (Weighted Feature Covariance)
+    - cov_XY = Phi.H @ W @ (L*L) @ Y   (Weighted Feature-Target Covariance)
+
+    loss_L_star_L weights the output channel (shape (d_out, d_out)); sample_weights is an optional
+    per-observation weight w (shape (..., n_samples, 1)) applied by a stable sqrt(W) row-scaling of both
+    Phi and Y - the atom of any reweighted / GLM fit. sample_weights=None reproduces the plain
+    least-squares path bit-for-bit.
 
     Args:
         phi: The design matrix. Shape: (..., n_samples, n_coeffs).
         y_data: The target tensor. Shape: (..., n_samples, d_out).
         loss_L_star_L: The loss-weighting matrix. Shape: (d_out, d_out).
+        sample_weights: Optional per-observation weights. Shape: (..., n_samples, 1). Non-negative.
 
     Returns:
         Tuple[torch.Tensor, torch.Tensor]: (cov_X, cov_XY)
@@ -46,14 +53,19 @@ def _compute_weighted_covariances(
     phi = phi.to(TORCH_DEVICE)
     y_data = y_data.to(TORCH_DEVICE)
     loss_L_star_L = loss_L_star_L.to(TORCH_DEVICE)
-    
+
     # Cast y_data to match phi's dtype
     y_data_aligned = y_data.to(phi.dtype)
+
+    if sample_weights is not None:
+        root_w = sample_weights.to(device=TORCH_DEVICE, dtype=phi.dtype).clamp_min(0).sqrt()
+        phi = phi * root_w
+        y_data_aligned = y_data_aligned * root_w
 
     #  Compute Weighted Y
     # y_weighted shape: (..., n_samples, d_out)
     y_weighted = y_data_aligned @ loss_L_star_L
-    
+
     #  Compute RHS: cov_XY = Phi^H @ Y_weighted
     cov_XY = phi.mT @ y_weighted
 

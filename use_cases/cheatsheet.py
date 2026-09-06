@@ -256,11 +256,14 @@ safety.calibrate(
 )
 
 test_idx = d_dict['test'].index
-df_safety = safety.predict_intervals(
-    y_pred=df.loc[test_idx[-30:], 'OOE_GlobalTAM'].values, 
-    y_true_online=df.loc[test_idx[-30:], 'y'].values, 
-    method='aci', 
-    gamma=0.05
+# The ACI loop was isolated out of SafetyTAM (a static engine) into risk.aci in v1.3.0;
+# it drives any calibrated radius provider, here the SafetyTAM finite-sample quantile.
+df_safety = ta.adaptive_conformal_intervals(
+    radius_fn=safety.conformal_quantile,
+    y_pred=df.loc[test_idx[-30:], 'OOE_GlobalTAM'].values,
+    y_true_online=df.loc[test_idx[-30:], 'y'].values,
+    alpha_target=safety.alpha_target,
+    gamma=0.05,
 )
 
 coverage = df_safety['Covered'].mean() * 100
@@ -359,3 +362,32 @@ show_trackers_plot(
     export_filename=f"dashboard_automl.png",
     forecast_smoothing="ME"
 )
+
+# ==============================================================================
+# 11. The Statistics & Risk Ecosystem (v1.3.0)
+# ==============================================================================
+print("\n" + "="*50 + "\n STATISTICS & RISK ECOSYSTEM (v1.3.0) \n" + "="*50)
+
+# 1) Robust regression (Huber M-estimator): bounded influence against outliers, fitted by IRLS.
+robust_model = ta.StaticTAM(formula="y ~ s(x1)", loss="huber").fit(d_dict['train'])
+robust_pred = robust_model.predict(d_dict['test'])["Estimatedy"].to_numpy()
+robust_rmse = float(np.sqrt(np.mean((d_dict['test']['y'].to_numpy() - robust_pred) ** 2)))
+print(f"Robust (Huber) test RMSE     : {robust_rmse:.2f}")
+
+# 2) Distributional (location-scale): a sharp, heteroscedastic conditional law with non-crossing quantiles.
+#    (log_target=False here because this synthetic target y is signed, not positive/lognormal.)
+dist_model = ta.StaticTAM(
+    formula={"mu": "y ~ s(x1)", "sigma": "~ s(x1)"},
+    dist_kwargs={"tail_family": "student_t", "log_target": False},
+).fit(d_dict['train'])
+print(f"Distributional tail family   : {dist_model.tail_family_}  (nu={dist_model.nu_})")
+quantiles = dist_model.predict_quantiles(d_dict['test'], [0.1, 0.5, 0.9])
+print(f"  predicted quantile columns : {list(quantiles.columns)}")
+
+# 3) Conformal wrap: finite-sample, distribution-free coverage around the distributional model (CQR).
+band = (ta.ConformalDistributionalTAM(dist_model, alpha=0.1)
+        .calibrate(d_dict['val'])
+        .predict_interval(d_dict['test']))
+actual = d_dict['test']['y'].to_numpy()
+cqr_coverage = float(((actual >= band['lower'].to_numpy()) & (actual <= band['upper'].to_numpy())).mean())
+print(f"Conformal (CQR) test coverage: {cqr_coverage:.2%}  (Target: 90%)")

@@ -16,7 +16,7 @@ authors:
 
 identifiers:
   - type: doi
-    value: 10.5281/zenodo.20543272
+    value: 10.5281/zenodo.20543271
     description: "Zenodo Software Archive"
   - type: doi
     value: 10.21105/joss.XXXXX # Placeholder for the JOSS DOI
@@ -24,8 +24,8 @@ identifiers:
 
 
 repository-code: "https://github.com/EDF-Lab/tam"
-version: 1.2.6
-date-released: 2026-07-17
+version: 1.3.0
+date-released: 2026-09-06
 
 keywords:
   - "Python"
@@ -36,5 +36,15 @@ keywords:
   - "Conformal Prediction"
   - "Hierarchical Forecasting"
   - "Time Series"
+  - "Non-Linear Interactions"
+  - "Uncertainty Quantification"
+  - "Anomaly Detection"
+  - "Robust Statistics"
+  - "Distributional Regression"
+  - "Extreme Value Theory (EVT)"
+  - "Gaussian Copulas"
+  - "Mixture Models"
+  - "Expectile Regression"
+  - "Interpretable Machine Learning"
 
 license: LGPL-3.0-or-later

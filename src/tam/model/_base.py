@@ -163,6 +163,38 @@ class BaseTAM(ABC):
         return torch.cat(predictions, dim=0)
 #: </predictive_chunking>
 
+#: <pwls_atom>
+    def _solve_pwls_step(
+        self,
+        x_data: torch.Tensor,
+        z_target: torch.Tensor,
+        weights: Optional[torch.Tensor] = None
+    ) -> torch.Tensor:
+        """Solve one penalized weighted least-squares system: the atom of every TAM fit.
+
+        Solves (Phi.T * W * Phi + n*S) * theta = Phi.T * W * z, where z_target is the (working) response
+        and weights is an optional per-observation weight w of shape (n_groups, n_samples, 1).
+        weights=None is the plain penalized solve (W = I). The reweighting loop calls this repeatedly with
+        updated (z, w); a plain Gaussian fit calls it once.
+
+        Args:
+            x_data: feature tensor (n_groups, n_samples, n_features).
+            z_target: (working) response (n_groups, n_samples, 1).
+            weights: optional per-observation weights (n_groups, n_samples, 1), non-negative.
+        """
+        penalty_M_star_M = self._build_penalty_matrix()
+        loss_L_star_L = self._build_loss_matrix()
+        return smart_solve(
+            x_data=x_data,
+            y_data=z_target,
+            effects_list=self.effects_list_,
+            penalty_matrix=penalty_M_star_M,
+            loss_matrix=loss_L_star_L,
+            num_samples=x_data.shape[1],
+            sample_weights=weights,
+        )
+#: </pwls_atom>
+
 #: <fit_method>
     def fit(self, data_train: pd.DataFrame) -> 'BaseTAM':
         r"""
@@ -210,22 +242,17 @@ class BaseTAM(ABC):
         if x_train.shape[0] == 0:
             raise ValueError("No valid training data found after balancing.")
             
-        num_samples_train = x_train.shape[1]
+        reweighting_strategy = getattr(self, "_reweighting_strategy_", None)
+        if reweighting_strategy is None:
+            self.coefficients_ = self._solve_pwls_step(x_train, y_train, weights=None)
+        else:
+            from .statistics.estimation._reweighting import reweighted_penalized_fit
+            self.coefficients_ = reweighted_penalized_fit(
+                self, x_train, y_train, reweighting_strategy,
+                max_iter=getattr(self, "_irls_max_iter_", 25),
+                tol=getattr(self, "_irls_tol_", 1e-6),
+            )
 
-        #  Static Matrix Construction
-        penalty_M_star_M = self._build_penalty_matrix()
-        loss_L_star_L = self._build_loss_matrix()
-
-        #  Dynamic Memory Routing & System Resolution
-        self.coefficients_ = smart_solve(
-            x_data=x_train,
-            y_data=y_train,
-            effects_list=self.effects_list_,
-            penalty_matrix=penalty_M_star_M,
-            loss_matrix=loss_L_star_L,
-            num_samples=num_samples_train
-        )
-        
         return self
 #: </fit_method>
 

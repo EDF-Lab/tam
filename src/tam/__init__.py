@@ -15,9 +15,17 @@ from .model.hierarchical import HierarchicalTAM
 from .model.neural import NeuralTAM
 from .model.safety import SafetyTAM
 from .model.autotam.auto_tam import AutoTAM
-from .evaluation.tracker import BenchmarkTracker 
+from .model.statistics import (
+    GaussianCopulaTAM,
+    ConformalDistributionalTAM,
+    GeneralizedParetoTail,
+    fit_gpd_tail,
+    adaptive_conformal_scores,
+    adaptive_conformal_intervals,
+)
+from .evaluation.tracker import BenchmarkTracker
 
-__version__ = "1.2.6"
+__version__ = "1.3.0"
 
 __all__ = [
     "StaticTAM",
@@ -28,6 +36,12 @@ __all__ = [
     "NeuralTAM",
     "SafetyTAM",
     "AutoTAM",
+    "GaussianCopulaTAM",
+    "ConformalDistributionalTAM",
+    "GeneralizedParetoTail",
+    "fit_gpd_tail",
+    "adaptive_conformal_scores",
+    "adaptive_conformal_intervals",
     "BenchmarkTracker",
     "__version__"
 ]

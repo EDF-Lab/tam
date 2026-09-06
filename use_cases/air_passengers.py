@@ -358,6 +358,29 @@ with intercept_and_save_plot(CASE_NAME, "effect_lag_log_passengers.png"):
 
 with intercept_and_save_plot(CASE_NAME, "effect_time_of_year.png"):
     plot_effect_with_model_and_data(model=model_tam_train, data=df_train_clean, effect='time_of_year')
+
+# --- Poisson GLM on raw 'value' ---
+start_poisson = time.time()
+formula_poisson = "value ~ c(time_of_year, n_cat=12, topo='fourier', ap=-8.0) + l(lag_log_passengers, ap=-30.0)"
+cols_tam_poisson = ["date", "value", "time_of_year", "lag_log_passengers"]
+
+model_poisson_fit = ta.StaticTAM(formula=formula_poisson, date_col='date', loss="poisson")
+model_poisson_fit.fit(data_dict['fit'][cols_tam_poisson].dropna())
+
+model_poisson_train = ta.StaticTAM(formula=formula_poisson, date_col='date', loss="poisson")
+model_poisson_train.fit(train_df[cols_tam_poisson].dropna())
+poisson_time_fit = time.time() - start_poisson
+
+start_poisson_pred = time.time()
+stage1_preds_poisson = pd.Series(index=df_stage1.index, dtype=float)
+stage1_preds_poisson.loc[df_stage1.dropna(subset=cols_tam_poisson).index] = model_poisson_fit.predict(df_stage1.dropna())["Estimatedvalue"].values
+
+stage2_preds_poisson = pd.Series(index=data_dict['test'].index, dtype=float)
+stage2_preds_poisson.loc[data_dict['test'].dropna(subset=cols_tam_poisson).index] = model_poisson_train.predict(data_dict['test'].dropna())["Estimatedvalue"].values
+
+# No np.exp() needed; the internal inverse log-link handles the transformation automatically
+poisson_full_preds = np.concatenate([stage1_preds_poisson.values, stage2_preds_poisson.values])
+track_and_evaluate("StaticTAM_Poisson", poisson_full_preds, poisson_time_fit, time.time() - start_poisson_pred, data_dict, trackers, target_col=TARGET_COL, metric=EVAL_METRIC)
 #: </additive_tam>
 
 #: <adaptive_tam>

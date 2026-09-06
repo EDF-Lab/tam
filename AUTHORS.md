@@ -16,9 +16,9 @@ The current TAM package is a full re-engineering and scientific extension of the
 **Lead Architect, Maintainer & Scientific Co-Author (TAM)**
 Primary author of the TAM software framework and co-author of its theoretical extensions.
 
-* **Software & Architecture:** Designed the modular `StaticTAM` OOP system, the Formula API, and the OOM-safe hardware dispatcher (matrix-free Sparse CG solvers, group-chunking).
-* **Modeling:** Extended the framework to meta concepts (`AdaptiveTAM`, `OperaTAM`, `KalmanTAM` (BETA), `HierarchicalTAM` (BETA), `NeuralTAM` (EXP) and `AutoTAM` (EXP)).
-* **Theoretical Extensions (TAM):** Formalized the "Spectrum" abstraction unifying heterogeneous bases (neural, wavelets, tensors with Kronecker, splines, Chebyshev, trees, radial basis functions, categorical, extended physics, Fourier and linear). Designed Neural Explicit Primal Tensorization (NEPT) and integrated control-theoretic structures (PID) into the Primal RKHS space.
+* **Software & Architecture:** Designed the modular `StaticTAM` OOP system, the Formula API, the OOM-safe hardware dispatcher (matrix-free Sparse CG solvers, group-chunking), and the "One Atom, Many Statistics" engine powering modular Iteratively Reweighted Least Squares (IRLS) and distributional schedules.
+* **Modeling:** Extended the framework to meta-learning and advanced risk concepts (`AdaptiveTAM`, `OperaTAM`, `GaussianCopulaTAM`, `ConformalDistributionalTAM`, `SafetyTAM`, `KalmanTAM` (BETA), `HierarchicalTAM` (BETA), `NeuralTAM` (EXP), and `AutoTAM` (EXP)).
+* **Theoretical Extensions (TAM):** Formalized the "Spectrum" abstraction unifying heterogeneous bases (neural, wavelets, tensors with Kronecker, splines, Chebyshev, trees, radial basis functions, categorical, extended physics, Fourier and linear). Designed Neural Explicit Primal Tensorization (NEPT) and integrated control-theoretic structures (PID) into the Primal RKHS space. Formulated the native integration of Location-Scale models, EM Mixtures, robust estimators, and rigorous uncertainty bounding (Adaptive Conformal Inference, Split Conformal, and Extreme Value Theory) directly over the primal optimization loop.
 
 ### **Nathan Doumèche**
 

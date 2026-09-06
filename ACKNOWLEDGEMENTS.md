@@ -23,4 +23,4 @@ This project came to life by implementing cutting-edge research in white-box mac
 
 ## 🌐 Extended Mathematical & Algorithmic Influences
 
-This framework is also built upon the mathematical foundations laid by the researchers cited in the references.bib file.
+This framework is also built upon the mathematical foundations laid by the researchers cited in the `references.bib` file, encompassing foundational breakthroughs in generalized linear models, robust statistics, extreme value theory, and conformal prediction.

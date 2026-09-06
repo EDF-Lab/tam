@@ -22,7 +22,7 @@ Reference:
 
 import torch
 import numpy as np
-from typing import List, Dict
+from typing import List, Dict, Optional
 
 from tam.common.hardware import hw
 from .spectrum import BaseEffect, build_phi_from_effects
@@ -31,45 +31,50 @@ from ._memory import can_fit_dense_matrix, get_safe_chunk_size
 
 #: <smart_solve_router>
 def smart_solve(
-    x_data: torch.Tensor, 
-    y_data: torch.Tensor, 
-    effects_list: List[BaseEffect], 
-    penalty_matrix: torch.Tensor, 
+    x_data: torch.Tensor,
+    y_data: torch.Tensor,
+    effects_list: List[BaseEffect],
+    penalty_matrix: torch.Tensor,
     loss_matrix: torch.Tensor,
-    num_samples: int
+    num_samples: int,
+    sample_weights: Optional[torch.Tensor] = None
 ) -> torch.Tensor:
     r"""
     Dynamically routes the mathematical resolution to the optimal solver.
+
+    sample_weights (optional, shape (n_groups, n_samples, 1)) supplies per-observation weights w for a
+    weighted / reweighted (GLM, expectile, robust) solve; None is the plain path.
     """
     run_device = x_data.device
     dummy_x = x_data[:, 0:1, :].to(run_device)
     dummy_phi = build_phi_from_effects(dummy_x, effects_list)
     total_d = dummy_phi.shape[-1]
     del dummy_x, dummy_phi
-    
+
     is_safe_for_direct_inversion = can_fit_dense_matrix(total_d, run_device, batch_size=1)
-    
+
     if is_safe_for_direct_inversion:
         return _run_chunked_direct_solver(
-            x_data, y_data, effects_list, penalty_matrix, loss_matrix, num_samples, total_d
-        )       
+            x_data, y_data, effects_list, penalty_matrix, loss_matrix, num_samples, total_d, sample_weights
+        )
     else:
         print(f"Notice: Feature dimension D={total_d} is massive.")
         print("Routing to matrix-free Conjugate Gradient (CG) solver to prevent VRAM exhaustion...")
         return _run_sparse_cg_solver(
-            x_data, y_data, effects_list, penalty_matrix, loss_matrix, num_samples
+            x_data, y_data, effects_list, penalty_matrix, loss_matrix, num_samples, sample_weights
             )
 #: </smart_solve_router>
 
 #: <chunked_direct_solver>
 def _run_chunked_direct_solver(
-    x_data: torch.Tensor, 
-    y_data: torch.Tensor, 
-    effects_list: List[BaseEffect], 
-    penalty_matrix: torch.Tensor, 
+    x_data: torch.Tensor,
+    y_data: torch.Tensor,
+    effects_list: List[BaseEffect],
+    penalty_matrix: torch.Tensor,
     loss_matrix: torch.Tensor,
     num_samples: int,
-    total_d: int
+    total_d: int,
+    sample_weights: Optional[torch.Tensor] = None
 ) -> torch.Tensor:
     r"""
     Executes an exact Direct Resolution using predictive Group Chunking 
@@ -94,8 +99,9 @@ def _run_chunked_direct_solver(
         try:
             x_sub = x_data[g_start:g_end].to(run_device)
             y_sub = y_data[g_start:g_end].to(run_device)
+            w_sub = sample_weights[g_start:g_end].to(run_device) if sample_weights is not None else None
             phi_sub = build_phi_from_effects(x_sub, effects_list)
-            cov_x_sub, cov_xy_sub = _compute_weighted_covariances(phi_sub, y_sub, loss_matrix)
+            cov_x_sub, cov_xy_sub = _compute_weighted_covariances(phi_sub, y_sub, loss_matrix, w_sub)
             coeffs_sub = solve_linear_system(cov_x_sub, cov_xy_sub, penalty_matrix, num_samples)
             all_coeffs.append(coeffs_sub.cpu())
             
@@ -121,16 +127,20 @@ def _run_chunked_direct_solver(
 
 #: <sparse_cg_solver>
 def _run_sparse_cg_solver(
-    x_data: torch.Tensor, 
-    y_data: torch.Tensor, 
-    effects_list: List[BaseEffect], 
-    penalty_matrix: torch.Tensor, 
+    x_data: torch.Tensor,
+    y_data: torch.Tensor,
+    effects_list: List[BaseEffect],
+    penalty_matrix: torch.Tensor,
     loss_matrix: torch.Tensor,
-    num_samples: int
+    num_samples: int,
+    sample_weights: Optional[torch.Tensor] = None
 ) -> torch.Tensor:
-    r"""
+    """
     Executes a matrix-free resolution using the Conjugate Gradient (CG) method.
     Uses strict Group-Chunking to guarantee Float64 deterministic scale-invariance.
+
+    With sample_weights the operator becomes Phi.T * W * (L.T*L) * Phi + n*P, applied via a sqrt(W)
+    row-scaling of Phi in both the RHS assembly and compute_Av.
     """
     run_device = x_data.device
     penalty_matrix = penalty_matrix.to(run_device)
@@ -155,13 +165,17 @@ def _run_sparse_cg_solver(
         try:
             x_chunk = x_data[g_start:g_end, :, :].to(run_device)
             y_chunk = y_data[g_start:g_end, :, :].to(run_device)
-            
+
             phi_chunk = build_phi_from_effects(x_chunk, effects_list)
             y_data_aligned = y_chunk.to(phi_chunk.dtype)
+            if sample_weights is not None:
+                root_w = sample_weights[g_start:g_end].to(device=run_device, dtype=phi_chunk.dtype).clamp_min(0).sqrt()
+                phi_chunk = phi_chunk * root_w
+                y_data_aligned = y_data_aligned * root_w
             y_weighted = y_data_aligned @ loss_matrix
-            
+
             cov_xy_total[g_start:g_end] = phi_chunk.mT @ y_weighted
-            
+
             del x_chunk, y_chunk, phi_chunk, y_data_aligned, y_weighted
             g_start += current_sub_batch_size
             
@@ -191,6 +205,9 @@ def _run_sparse_cg_solver(
                 x_chunk = x_data[g_start:g_end, :, :].to(run_device)
                 v_chunk = v[g_start:g_end, :, :]
                 phi_chunk = build_phi_from_effects(x_chunk, effects_list)
+                if sample_weights is not None:
+                    root_w = sample_weights[g_start:g_end].to(device=run_device, dtype=phi_chunk.dtype).clamp_min(0).sqrt()
+                    phi_chunk = phi_chunk * root_w
 
                 if loss_matrix.shape[0] == 1:
                     L_sqrt = loss_matrix[0, 0].sqrt()

@@ -35,6 +35,7 @@ Time series Additive Model (TAM) Official Documentation
    math/core/03_linear_system
    math/core/04_complexity
    math/core/05_gcv_theory
+   math/core/07_the_statistics_api
 
 .. raw:: latex
 
@@ -61,6 +62,20 @@ Time series Additive Model (TAM) Official Documentation
 
 .. raw:: latex
 
+   \part{Theory: The Statistics Engine}
+
+.. toctree::
+   :maxdepth: 2
+   :hidden:
+   :caption: 📊 Theory: The Statistics Engine
+
+   math/statistics/01_reweighted_estimation
+   math/statistics/02_distributional
+   math/statistics/03_mixture_copula
+   math/statistics/04_risk_conformal_evt
+
+.. raw:: latex
+
    \part{Theory: Meta-Models}
  
 .. toctree::
@@ -71,7 +86,6 @@ Time series Additive Model (TAM) Official Documentation
    math/meta/01_adaptive_online
    math/meta/02_kalman_filter
    math/meta/03_hierarchical_joint
-   math/meta/04_conformal_safety
    math/meta/05_opera_aggregation
    math/meta/06_deep_gam_backfitting   
    math/meta/07_statistical_diagnostics
@@ -94,6 +108,21 @@ Time series Additive Model (TAM) Official Documentation
    architecture/core/04_hardware_memory
    architecture/core/05_gcv_implementation
    architecture/core/06_the_spectrum_api
+   architecture/core/07_the_statistics_api
+
+.. raw:: latex
+
+   \part{Architecture: The Statistics Engine}
+
+.. toctree::
+   :maxdepth: 2
+   :hidden:
+   :caption: 🔬 Architecture: The Statistics Engine
+
+   architecture/statistics/01_reweighted_estimation_code
+   architecture/statistics/02_distributional_code
+   architecture/statistics/03_mixture_copula_code
+   architecture/statistics/04_risk_conformal_evt_code
 
 .. raw:: latex
 
@@ -107,7 +136,6 @@ Time series Additive Model (TAM) Official Documentation
    architecture/meta/01_adaptive_code
    architecture/meta/02_kalman_torchscript
    architecture/meta/03_hierarchical_code
-   architecture/meta/04_safety_code
    architecture/meta/05_opera_gpu
    architecture/meta/06_neural_hybrid
    architecture/meta/07_diagnostics_utils

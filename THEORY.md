@@ -23,6 +23,8 @@ $$\hat{\theta} = \left( \Phi^\top \Lambda^\top \Lambda \Phi + T \cdot P \right)^
 
 *(Note: This exact resolution is computed independently for each group $g \in G$ to preserve local time-series dynamics).*
 
+> **Beyond the Gaussian mean (v1.3.0).** For non-Gaussian targets, GLMs (Poisson, Gamma, Binomial), robust M-estimators (Huber, Student-t) and asymmetric expectiles, this *exact same* resolution is the inner atom of an **Iteratively Reweighted Least Squares (IRLS)** loop. At each iteration the diagonal $\Lambda$ and the response $Y$ are replaced by the statistically-derived **working weights** $W$ and **working response** $z$; the linear algebra never changes, only the schedule that feeds it. The default `loss="l2"` calls the atom once and is bit-identical to the equation above. See [The Statistics Dictionary](math/core/07_the_statistics_api.md).
+
 ---
 
 ## The Core and Meta Models
@@ -99,16 +101,32 @@ Real-world data is chaotic. Rather than polluting the exactness of the core engi
     * *Use case:* You want to embed a Deep Neural Network to capture complex residuals that standard physics missed. Calling `.fit()` automatically trains the parametric base model first, and then iteratively trains the neural effects.
     * *Code:* `ta.NeuralTAM(formula="y ~ n(x1, n_neurons=100, act='relu', n_hidden_layers=3) + s(x2)", date_col="date", epochs=1500, lr=0.001, batch_size=128)`
 
-* 🚧 **Uncertainty & Risk** $\rightarrow$ **`SafetyTAM`** (EXP)
-    * *Use case:* You need statistically guaranteed confidence intervals around your point predictions using Adaptive Conformal Inference (ACI).
-    * *Code:* `safety = ta.SafetyTAM(alpha=0.1); safety.calibrate(y_true, y_pred)`
-  * *Output:*
-      <br>
-      <img src="docs/source/_static/aci_safetytam.png" width="600" alt="SafetyTAM Adaptive Conformal Inference">
-
 * 🚧 **Automated Discovery (AutoML)** $\rightarrow$ **`AutoTAM`** (EXP)
     * *Use case:* You want an Evolutionary Engine to automatically discover the best formula topologies and hyperparameters for you.
     * *Code:* `AutoTAM(formula="y ~ AutoPipe(x1, x2, Lag_y)", n_experts=10, pop_size=50, use_opera=True)`
+
+### The Statistical & Risk Ecosystem (v1.3.0)
+
+The `statistics` layer reuses the single P-WLS atom for every non-Gaussian target, the structural "what" (the Spectrum) stays fixed while the statistical "how" (the schedule) changes. See [The Statistics Dictionary](math/core/07_the_statistics_api.md).
+
+* **Reweighting / GLMs & Robust** $\rightarrow$ a scalar `loss`
+    * *Use case:* A non-Gaussian mean (Poisson/Gamma/Binomial counts and rates) or a robust/asymmetric fit.
+    * *Code:* `ta.StaticTAM("y ~ s(x)", loss="poisson")`, or `loss="huber"` / `loss="expectile", loss_kwargs={"tau": 0.9}`.
+* **Distributional (Location-Scale)** $\rightarrow$ a `{param: formula}` dict
+    * *Use case:* A sharp, heteroscedastic conditional distribution with non-crossing quantiles.
+    * *Code:* `ta.StaticTAM({"mu": "y~x", "sigma": "~x"}, dist_kwargs={"tail_family": "student_t"})`
+* **EM Mixtures** $\rightarrow$ `mixture_components`
+    * *Use case:* Multi-modal / regime-mixture responses.
+    * *Code:* `ta.StaticTAM("y~x", mixture_components=2)`
+* **Gaussian Copula** $\rightarrow$ **`GaussianCopulaTAM`**
+    * *Use case:* Bind several distributional margins and score joint (multivariate) anomalies.
+    * *Code:* `ta.GaussianCopulaTAM({"m1": model1, "m2": model2})`
+* **Conformal Risk (CQR + Mondrian + ACI)** $\rightarrow$ **`ConformalDistributionalTAM`**
+    * *Use case:* Distribution-free, finite-sample coverage around a distributional model, adapting online under drift.
+    * *Code:* `ta.ConformalDistributionalTAM(model, alpha=0.1)`
+* **EVT & Epistemic** $\rightarrow$ **`fit_gpd_tail`** / **`posterior_prediction`**
+    * *Use case:* Asymptotically-justified extreme-tail scores, and parameter (epistemic) uncertainty bands.
+    * *Code:* `ta.fit_gpd_tail(model, data)` · `ta.model.posterior_prediction(model, train, new)`
 
 ## The "Spectrum" of Effects Cheatsheet
 
@@ -305,12 +323,14 @@ TAM enforces a strict **Mirror Architecture** in its documentation: every mathem
 * **Linear Systems:** [🧠 Theory](math/core/03_linear_system.md) | [💻 Architecture](architecture/core/03_math_dispatcher.md)
 * **Complexity & Hardware:** [🧠 Theory](math/core/04_complexity.md) | [💻 Architecture](architecture/core/04_hardware_memory.md)
 * **GCV & Auto-ML:** [🧠 Theory](math/core/05_gcv_theory.md) | [💻 Architecture](architecture/core/05_gcv_implementation.md)
+* **The Spectrum of Effects:** [💻 Architecture](architecture/core/06_the_spectrum_api.md)
+* **The Statistics Dictionary:** [🧠 Theory](math/core/07_the_statistics_api.md) | [💻 Architecture](architecture/core/07_the_statistics_api.md)
+
 
 ### 🛡️ Meta-Learners & Inference
 * **Adaptive Online Learning:** [🧠 Theory](math/meta/01_adaptive_online.md) | [💻 Architecture](architecture/meta/01_adaptive_code.md)
 * **Extended Kalman Filter** (BETA) : [🧠 Theory](math/meta/02_kalman_filter.md) | [💻 Architecture](architecture/meta/02_kalman_torchscript.md)
 * **Hierarchical Reconciliation** (BETA) : [🧠 Theory](math/meta/03_hierarchical_joint.md) | [💻 Architecture](architecture/meta/03_hierarchical_code.md)
-* **Conformal Safety (ACI)** (EXP) : [🧠 Theory](math/meta/04_conformal_safety.md) | [💻 Architecture](architecture/meta/04_safety_code.md)
 * **Expert Aggregation (Opera):** [🧠 Theory](math/meta/05_opera_aggregation.md) | [💻 Architecture](architecture/meta/05_opera_gpu.md)
 * **Deep-GAM Hybridization** (EXP) : [🧠 Theory](math/meta/06_deep_gam_backfitting.md) | [💻 Architecture](architecture/meta/06_neural_hybrid.md)
 * **Statistical Diagnostics** (EXP) : [🧠 Theory](math/meta/07_statistical_diagnostics.md) | [💻 Architecture](architecture/meta/07_diagnostics_utils.md)
