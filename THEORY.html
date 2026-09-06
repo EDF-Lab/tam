@@ -7,7 +7,7 @@
         <link rel="prefetch" href="_static/logo.png" as="image">
 
     <!-- Generated with Sphinx 9.1.0 and Furo 2025.12.19 -->
-        <title>📚 Theory Introduction of TAM and Cheatsheet - TAM 1.2.6 documentation</title>
+        <title>📚 Theory Introduction of TAM and Cheatsheet - TAM 1.3.0 documentation</title>
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=d111a655" />
     <link rel="stylesheet" type="text/css" href="_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="_static/styles/furo-extensions.css?v=8dab3a3b" />
@@ -162,7 +162,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="index.html"><div class="brand">TAM 1.2.6 documentation</div></a>
+      <a href="index.html"><div class="brand">TAM 1.3.0 documentation</div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -186,7 +186,7 @@
     <img class="sidebar-logo" src="_static/logo.png" alt="Logo"/>
   </div>
   
-  <span class="sidebar-brand-text">TAM 1.2.6 documentation</span>
+  <span class="sidebar-brand-text">TAM 1.3.0 documentation</span>
   
 </a><form class="sidebar-search-container" method="get" action="search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
@@ -206,6 +206,7 @@
 <li class="toctree-l1"><a class="reference internal" href="math/core/03_linear_system.html">Linear Algebra: Direct vs. Iterative Solvers</a></li>
 <li class="toctree-l1"><a class="reference internal" href="math/core/04_complexity.html">Computational Complexity (<span class="math notranslate nohighlight">\(\mathcal{O}(D^3+T D^2)\)</span> vs <span class="math notranslate nohighlight">\(\mathcal{O}(T^3)\)</span>)</a></li>
 <li class="toctree-l1"><a class="reference internal" href="math/core/05_gcv_theory.html">Hyperparameter Optimization: Generalized Cross-Validation (GCV)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="math/core/07_the_statistics_api.html">One Atom, Many Statistics: The Statistics API</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">🌈 Theory: The Spectrum Library</span></p>
 <ul>
@@ -223,12 +224,18 @@
 <li class="toctree-l1"><a class="reference internal" href="math/spectrum/PID.html">The PID Effect (Autoregressive Control Dynamics)</a></li>
 <li class="toctree-l1"><a class="reference internal" href="math/spectrum/LINEAR_TREE.html">The Linear Tree Effect (Varying-Coefficient Models)</a></li>
 </ul>
+<p class="caption" role="heading"><span class="caption-text">📊 Theory: The Statistics Engine</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="math/statistics/01_reweighted_estimation.html">Reweighted Estimation: GLMs, Expectiles &amp; Robust M-Estimators</a></li>
+<li class="toctree-l1"><a class="reference internal" href="math/statistics/02_distributional.html">Distributional (Location-Scale) Models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="math/statistics/03_mixture_copula.html">Mixtures &amp; Gaussian Copulas</a></li>
+<li class="toctree-l1"><a class="reference internal" href="math/statistics/04_risk_conformal_evt.html">Risk: Conformal, ACI, EVT &amp; Epistemic Uncertainty</a></li>
+</ul>
 <p class="caption" role="heading"><span class="caption-text">⚙️ Theory: Meta-Learners &amp; Inference</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="math/meta/01_adaptive_online.html">Adaptive Online Learning (AdaptiveTAM)</a></li>
 <li class="toctree-l1"><a class="reference internal" href="math/meta/02_kalman_filter.html">Dynamic Tracking via Extended Kalman Filtering [BETA]</a></li>
 <li class="toctree-l1"><a class="reference internal" href="math/meta/03_hierarchical_joint.html">Hierarchical Joint Optimization [BETA]</a></li>
-<li class="toctree-l1"><a class="reference internal" href="math/meta/04_conformal_safety.html">Uncertainty Quantification via Conformal Prediction [EXP]</a></li>
 <li class="toctree-l1"><a class="reference internal" href="math/meta/05_opera_aggregation.html">Online Prediction by Expert Aggregation (OPERA)</a></li>
 <li class="toctree-l1"><a class="reference internal" href="math/meta/06_deep_gam_backfitting.html">Deep-GAM Hybridization and Orthogonal Backfitting [EXP]</a></li>
 <li class="toctree-l1"><a class="reference internal" href="math/meta/07_statistical_diagnostics.html">Statistical Inference and Diagnostics (Glass-Box) [EXP]</a></li>
@@ -244,13 +251,20 @@
 <li class="toctree-l1"><a class="reference internal" href="architecture/core/04_hardware_memory.html">Hardware Memory Dispatch &amp; Anti-OOM Systems</a></li>
 <li class="toctree-l1"><a class="reference internal" href="architecture/core/05_gcv_implementation.html">Auto-ML via Generalized Cross-Validation (GCV)</a></li>
 <li class="toctree-l1"><a class="reference internal" href="architecture/core/06_the_spectrum_api.html">The Spectral Dictionary: PyTorch Implementations &amp; Factory Assembly</a></li>
+<li class="toctree-l1"><a class="reference internal" href="architecture/core/07_the_statistics_api.html">The Statistics API: One Atom, Many Schedules</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">🔬 Architecture: The Statistics Engine</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="architecture/statistics/01_reweighted_estimation_code.html">Reweighted Estimation: Strategy Pattern &amp; IRLS Driver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="architecture/statistics/02_distributional_code.html">Distributional (Location-Scale): Thin Delegation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="architecture/statistics/03_mixture_copula_code.html">Mixtures &amp; Copulas: EM over the Atom, and the Standalone Joiner</a></li>
+<li class="toctree-l1"><a class="reference internal" href="architecture/statistics/04_risk_conformal_evt_code.html">Risk: Static Conformal, Streaming ACI, EVT &amp; Epistemic</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">🛠️ Architecture: Advanced Orchestration</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="architecture/meta/01_adaptive_code.html">Online Error Correction (AdaptiveTAM)</a></li>
 <li class="toctree-l1"><a class="reference internal" href="architecture/meta/02_kalman_torchscript.html">Kalman TorchScript Optimizations &amp; Block Updates [BETA]</a></li>
 <li class="toctree-l1"><a class="reference internal" href="architecture/meta/03_hierarchical_code.html">Hierarchical Engineering &amp; Memory Assembly  [BETA]</a></li>
-<li class="toctree-l1"><a class="reference internal" href="architecture/meta/04_safety_code.html">Diagnostics, Visualization &amp; Utilities Engineering [EXP]</a></li>
 <li class="toctree-l1"><a class="reference internal" href="architecture/meta/05_opera_gpu.html">OPERA GPU Tensor Batching</a></li>
 <li class="toctree-l1"><a class="reference internal" href="architecture/meta/06_neural_hybrid.html">DeepGAM Engineering &amp; Sequential Encapsulation [EXP]</a></li>
 <li class="toctree-l1"><a class="reference internal" href="architecture/meta/07_diagnostics_utils.html">Diagnostics, Visualization &amp; Utilities Engineering  [EXP]</a></li>
@@ -329,6 +343,9 @@
 <li><p><strong><span class="math notranslate nohighlight">\(T\)</span> (Time Steps):</strong> The temporal sequence length per group. In the codebase, this corresponds to <code class="docutils literal notranslate"><span class="pre">num_samples</span></code>.</p></li>
 </ul>
 <p><em>(Note: This exact resolution is computed independently for each group <span class="math notranslate nohighlight">\(g \in G\)</span> to preserve local time-series dynamics).</em></p>
+<blockquote>
+<div><p><strong>Beyond the Gaussian mean (v1.3.0).</strong> For non-Gaussian targets, GLMs (Poisson, Gamma, Binomial), robust M-estimators (Huber, Student-t) and asymmetric expectiles, this <em>exact same</em> resolution is the inner atom of an <strong>Iteratively Reweighted Least Squares (IRLS)</strong> loop. At each iteration the diagonal <span class="math notranslate nohighlight">\(\Lambda\)</span> and the response <span class="math notranslate nohighlight">\(Y\)</span> are replaced by the statistically-derived <strong>working weights</strong> <span class="math notranslate nohighlight">\(W\)</span> and <strong>working response</strong> <span class="math notranslate nohighlight">\(z\)</span>; the linear algebra never changes, only the schedule that feeds it. The default <code class="docutils literal notranslate"><span class="pre">loss=&quot;l2&quot;</span></code> calls the atom once and is bit-identical to the equation above. See <a class="reference internal" href="math/core/07_the_statistics_api.html"><span class="std std-doc">The Statistics Dictionary</span></a>.</p>
+</div></blockquote>
 </section>
 <hr class="docutils" />
 <section id="the-core-and-meta-models">
@@ -339,16 +356,16 @@
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">tam</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">ta</span>
 
 <span class="c1"># Define baseline components (Continuous and Categorical with specific topologies)</span>
-<span class="n">base_cats</span> <span class="o">=</span> <span class="s2">&quot;+ c(x3, n_cat=7, topo=&#39;nominal&#39;) + c(x4, n_cat=12, topo=&#39;fourier&#39;) + c(x7, n_cat=2, topo=&#39;ordinal&#39;) + c(x10, n_cat=31, topo=&#39;nominal&#39;)&quot;</span>
-<span class="n">base_lin</span> <span class="o">=</span> <span class="s2">&quot;l(x1) + l(x2) + l(x5) + l(x6) + l(x8)&quot;</span>
+<span class="n">base_cats</span> <span class="o">=</span> <span class="s2">"+ c(x3, n_cat=7, topo='nominal') + c(x4, n_cat=12, topo='fourier') + c(x7, n_cat=2, topo='ordinal') + c(x10, n_cat=31, topo='nominal')"</span>
+<span class="n">base_lin</span> <span class="o">=</span> <span class="s2">"l(x1) + l(x2) + l(x5) + l(x6) + l(x8)"</span>
 
 <span class="c1"># Example 1: Physics-Informed Model (Explicit PDE injection)</span>
-<span class="n">f_physics</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;y ~ phys(x5, basis=&#39;spline&#39;, k=20, D1=0.5, D2=1.0) + s(x1, k=10) + s(x6, k=10) + s(Lag_y, k=15) </span><span class="si">{</span><span class="n">base_cats</span><span class="si">}</span><span class="s2">&quot;</span>
-<span class="n">model_phys</span> <span class="o">=</span> <span class="n">ta</span><span class="o">.</span><span class="n">StaticTAM</span><span class="p">(</span><span class="n">formula</span><span class="o">=</span><span class="n">f_physics</span><span class="p">,</span> <span class="n">date_col</span><span class="o">=</span><span class="s2">&quot;date&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">train_df</span><span class="p">)</span>
+<span class="n">f_physics</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">"y ~ phys(x5, basis='spline', k=20, D1=0.5, D2=1.0) + s(x1, k=10) + s(x6, k=10) + s(Lag_y, k=15) </span><span class="si">{</span><span class="n">base_cats</span><span class="si">}</span><span class="s2">"</span>
+<span class="n">model_phys</span> <span class="o">=</span> <span class="n">ta</span><span class="o">.</span><span class="n">StaticTAM</span><span class="p">(</span><span class="n">formula</span><span class="o">=</span><span class="n">f_physics</span><span class="p">,</span> <span class="n">date_col</span><span class="o">=</span><span class="s2">"date"</span><span class="p">)</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">train_df</span><span class="p">)</span>
 
 <span class="c1"># Example 2: Spatial Tensor Interaction &amp; Wavelets</span>
-<span class="n">f_tensor</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;y ~ te(s(x1, k=15), f(x8, m=10), ap=-30) + te(s(x2, k=10), s(x6, k=10)) + w(Lag_y, n_scales=4, n_locations=10) </span><span class="si">{</span><span class="n">base_cats</span><span class="si">}</span><span class="s2">&quot;</span>
-<span class="n">model_tensor</span> <span class="o">=</span> <span class="n">ta</span><span class="o">.</span><span class="n">StaticTAM</span><span class="p">(</span><span class="n">formula</span><span class="o">=</span><span class="n">f_tensor</span><span class="p">,</span> <span class="n">date_col</span><span class="o">=</span><span class="s2">&quot;date&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">train_df</span><span class="p">)</span>
+<span class="n">f_tensor</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">"y ~ te(s(x1, k=15), f(x8, m=10), ap=-30) + te(s(x2, k=10), s(x6, k=10)) + w(Lag_y, n_scales=4, n_locations=10) </span><span class="si">{</span><span class="n">base_cats</span><span class="si">}</span><span class="s2">"</span>
+<span class="n">model_tensor</span> <span class="o">=</span> <span class="n">ta</span><span class="o">.</span><span class="n">StaticTAM</span><span class="p">(</span><span class="n">formula</span><span class="o">=</span><span class="n">f_tensor</span><span class="p">,</span> <span class="n">date_col</span><span class="o">=</span><span class="s2">"date"</span><span class="p">)</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">train_df</span><span class="p">)</span>
 
 <span class="c1"># Predictions are generated instantly</span>
 <span class="n">predictions</span> <span class="o">=</span> <span class="n">model_phys</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">test_df</span><span class="p">)</span>
@@ -373,7 +390,7 @@
 <li><p><strong>Option 1: Residual Tracking</strong></p>
 <ul>
 <li><p><em>Code:</em></p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">ta</span><span class="o">.</span><span class="n">AdaptiveTAM</span><span class="p">(</span><span class="n">base_model</span><span class="o">=</span><span class="n">m</span><span class="p">,</span> <span class="n">adaptive_formula</span><span class="o">=</span><span class="s2">&quot;Residualy ~ l(Lag_Residual)&quot;</span><span class="p">,</span> <span class="n">update_interval_periods</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">training_window_periods</span><span class="o">=</span><span class="mi">28</span><span class="p">,</span> <span class="n">steps_per_period</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">horizon_steps</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">ta</span><span class="o">.</span><span class="n">AdaptiveTAM</span><span class="p">(</span><span class="n">base_model</span><span class="o">=</span><span class="n">m</span><span class="p">,</span> <span class="n">adaptive_formula</span><span class="o">=</span><span class="s2">"Residualy ~ l(Lag_Residual)"</span><span class="p">,</span> <span class="n">update_interval_periods</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">training_window_periods</span><span class="o">=</span><span class="mi">28</span><span class="p">,</span> <span class="n">steps_per_period</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">horizon_steps</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
 </pre></div>
 </div>
 </li>
@@ -383,7 +400,7 @@
 <li><p><strong>Option 2: Dynamic Recalibration (Targeting <code class="docutils literal notranslate"><span class="pre">y</span></code>)</strong></p>
 <ul>
 <li><p><em>Code:</em></p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">ta</span><span class="o">.</span><span class="n">AdaptiveTAM</span><span class="p">(</span><span class="n">base_model</span><span class="o">=</span><span class="n">m</span><span class="p">,</span> <span class="n">adaptive_formula</span><span class="o">=</span><span class="s2">&quot;y ~ l(Lag_Residual)&quot;</span><span class="p">,</span> <span class="n">update_interval_periods</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">training_window_periods</span><span class="o">=</span><span class="mi">28</span><span class="p">,</span> <span class="n">steps_per_period</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">horizon_steps</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">add_base_effects</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">ta</span><span class="o">.</span><span class="n">AdaptiveTAM</span><span class="p">(</span><span class="n">base_model</span><span class="o">=</span><span class="n">m</span><span class="p">,</span> <span class="n">adaptive_formula</span><span class="o">=</span><span class="s2">"y ~ l(Lag_Residual)"</span><span class="p">,</span> <span class="n">update_interval_periods</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">training_window_periods</span><span class="o">=</span><span class="mi">28</span><span class="p">,</span> <span class="n">steps_per_period</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">horizon_steps</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">add_base_effects</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 </pre></div>
 </div>
 </li>
@@ -396,7 +413,7 @@
 <ul>
 <li><p><em>Use case:</em> You need to continuously track evolving coefficients step-by-step using an Extended Kalman Filter. The formula target MUST match the target of your base model if you use <code class="docutils literal notranslate"><span class="pre">add_base_effects=True</span></code> to automatically track the drift of the original physics.</p></li>
 <li><p><em>Code:</em></p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">ta</span><span class="o">.</span><span class="n">KalmanTAM</span><span class="p">(</span><span class="n">base_model</span><span class="o">=</span><span class="n">m</span><span class="p">,</span> <span class="n">kalman_formula</span><span class="o">=</span><span class="s2">&quot;y ~ l(Lag_Residual)&quot;</span><span class="p">,</span> <span class="n">date_col</span><span class="o">=</span><span class="s2">&quot;date&quot;</span><span class="p">,</span> <span class="n">horizon_steps</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">process_noise_var</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span> <span class="n">observation_noise_var</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">use_decomposition</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">ta</span><span class="o">.</span><span class="n">KalmanTAM</span><span class="p">(</span><span class="n">base_model</span><span class="o">=</span><span class="n">m</span><span class="p">,</span> <span class="n">kalman_formula</span><span class="o">=</span><span class="s2">"y ~ l(Lag_Residual)"</span><span class="p">,</span> <span class="n">date_col</span><span class="o">=</span><span class="s2">"date"</span><span class="p">,</span> <span class="n">horizon_steps</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">process_noise_var</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span> <span class="n">observation_noise_var</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">use_decomposition</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 </pre></div>
 </div>
 </li>
@@ -429,19 +446,52 @@
 <li><p><em>Code:</em> <code class="docutils literal notranslate"><span class="pre">ta.NeuralTAM(formula=&quot;y</span> <span class="pre">~</span> <span class="pre">n(x1,</span> <span class="pre">n_neurons=100,</span> <span class="pre">act='relu',</span> <span class="pre">n_hidden_layers=3)</span> <span class="pre">+</span> <span class="pre">s(x2)&quot;,</span> <span class="pre">date_col=&quot;date&quot;,</span> <span class="pre">epochs=1500,</span> <span class="pre">lr=0.001,</span> <span class="pre">batch_size=128)</span></code></p></li>
 </ul>
 </li>
-<li><p>🚧 <strong>Uncertainty &amp; Risk</strong> <span class="math notranslate nohighlight">\(\rightarrow\)</span> <strong><code class="docutils literal notranslate"><span class="pre">SafetyTAM</span></code></strong> (EXP)</p>
-<ul class="simple">
-<li><p><em>Use case:</em> You need statistically guaranteed confidence intervals around your point predictions using Adaptive Conformal Inference (ACI).</p></li>
-<li><p><em>Code:</em> <code class="docutils literal notranslate"><span class="pre">safety</span> <span class="pre">=</span> <span class="pre">ta.SafetyTAM(alpha=0.1);</span> <span class="pre">safety.calibrate(y_true,</span> <span class="pre">y_pred)</span></code></p></li>
-<li><p><em>Output:</em>
-<br>
-<img src="_static/aci_safetytam.png" width="600" alt="SafetyTAM Adaptive Conformal Inference"></p></li>
-</ul>
-</li>
 <li><p>🚧 <strong>Automated Discovery (AutoML)</strong> <span class="math notranslate nohighlight">\(\rightarrow\)</span> <strong><code class="docutils literal notranslate"><span class="pre">AutoTAM</span></code></strong> (EXP)</p>
 <ul class="simple">
 <li><p><em>Use case:</em> You want an Evolutionary Engine to automatically discover the best formula topologies and hyperparameters for you.</p></li>
 <li><p><em>Code:</em> <code class="docutils literal notranslate"><span class="pre">AutoTAM(formula=&quot;y</span> <span class="pre">~</span> <span class="pre">AutoPipe(x1,</span> <span class="pre">x2,</span> <span class="pre">Lag_y)&quot;,</span> <span class="pre">n_experts=10,</span> <span class="pre">pop_size=50,</span> <span class="pre">use_opera=True)</span></code></p></li>
+</ul>
+</li>
+</ul>
+</section>
+<section id="the-statistical-risk-ecosystem-v1-3-0">
+<h3>The Statistical &amp; Risk Ecosystem (v1.3.0)<a class="headerlink" href="#the-statistical-risk-ecosystem-v1-3-0" title="Link to this heading">¶</a></h3>
+<p>The <code class="docutils literal notranslate"><span class="pre">statistics</span></code> layer reuses the single P-WLS atom for every non-Gaussian target, the structural “what” (the Spectrum) stays fixed while the statistical “how” (the schedule) changes. See <a class="reference internal" href="math/core/07_the_statistics_api.html"><span class="std std-doc">The Statistics Dictionary</span></a>.</p>
+<ul class="simple">
+<li><p><strong>Reweighting / GLMs &amp; Robust</strong> <span class="math notranslate nohighlight">\(\rightarrow\)</span> a scalar <code class="docutils literal notranslate"><span class="pre">loss</span></code></p>
+<ul>
+<li><p><em>Use case:</em> A non-Gaussian mean (Poisson/Gamma/Binomial counts and rates) or a robust/asymmetric fit.</p></li>
+<li><p><em>Code:</em> <code class="docutils literal notranslate"><span class="pre">ta.StaticTAM(&quot;y</span> <span class="pre">~</span> <span class="pre">s(x)&quot;,</span> <span class="pre">loss=&quot;poisson&quot;)</span></code>, or <code class="docutils literal notranslate"><span class="pre">loss=&quot;huber&quot;</span></code> / <code class="docutils literal notranslate"><span class="pre">loss=&quot;expectile&quot;,</span> <span class="pre">loss_kwargs={&quot;tau&quot;:</span> <span class="pre">0.9}</span></code>.</p></li>
+</ul>
+</li>
+<li><p><strong>Distributional (Location-Scale)</strong> <span class="math notranslate nohighlight">\(\rightarrow\)</span> a <code class="docutils literal notranslate"><span class="pre">{param:</span> <span class="pre">formula}</span></code> dict</p>
+<ul>
+<li><p><em>Use case:</em> A sharp, heteroscedastic conditional distribution with non-crossing quantiles.</p></li>
+<li><p><em>Code:</em> <code class="docutils literal notranslate"><span class="pre">ta.StaticTAM({&quot;mu&quot;:</span> <span class="pre">&quot;y~x&quot;,</span> <span class="pre">&quot;sigma&quot;:</span> <span class="pre">&quot;~x&quot;},</span> <span class="pre">dist_kwargs={&quot;tail_family&quot;:</span> <span class="pre">&quot;student_t&quot;})</span></code></p></li>
+</ul>
+</li>
+<li><p><strong>EM Mixtures</strong> <span class="math notranslate nohighlight">\(\rightarrow\)</span> <code class="docutils literal notranslate"><span class="pre">mixture_components</span></code></p>
+<ul>
+<li><p><em>Use case:</em> Multi-modal / regime-mixture responses.</p></li>
+<li><p><em>Code:</em> <code class="docutils literal notranslate"><span class="pre">ta.StaticTAM(&quot;y~x&quot;,</span> <span class="pre">mixture_components=2)</span></code></p></li>
+</ul>
+</li>
+<li><p><strong>Gaussian Copula</strong> <span class="math notranslate nohighlight">\(\rightarrow\)</span> <strong><code class="docutils literal notranslate"><span class="pre">GaussianCopulaTAM</span></code></strong></p>
+<ul>
+<li><p><em>Use case:</em> Bind several distributional margins and score joint (multivariate) anomalies.</p></li>
+<li><p><em>Code:</em> <code class="docutils literal notranslate"><span class="pre">ta.GaussianCopulaTAM({&quot;m1&quot;:</span> <span class="pre">model1,</span> <span class="pre">&quot;m2&quot;:</span> <span class="pre">model2})</span></code></p></li>
+</ul>
+</li>
+<li><p><strong>Conformal Risk (CQR + Mondrian + ACI)</strong> <span class="math notranslate nohighlight">\(\rightarrow\)</span> <strong><code class="docutils literal notranslate"><span class="pre">ConformalDistributionalTAM</span></code></strong></p>
+<ul>
+<li><p><em>Use case:</em> Distribution-free, finite-sample coverage around a distributional model, adapting online under drift.</p></li>
+<li><p><em>Code:</em> <code class="docutils literal notranslate"><span class="pre">ta.ConformalDistributionalTAM(model,</span> <span class="pre">alpha=0.1)</span></code></p></li>
+</ul>
+</li>
+<li><p><strong>EVT &amp; Epistemic</strong> <span class="math notranslate nohighlight">\(\rightarrow\)</span> <strong><code class="docutils literal notranslate"><span class="pre">fit_gpd_tail</span></code></strong> / <strong><code class="docutils literal notranslate"><span class="pre">posterior_prediction</span></code></strong></p>
+<ul>
+<li><p><em>Use case:</em> Asymptotically-justified extreme-tail scores, and parameter (epistemic) uncertainty bands.</p></li>
+<li><p><em>Code:</em> <code class="docutils literal notranslate"><span class="pre">ta.fit_gpd_tail(model,</span> <span class="pre">data)</span></code> · <code class="docutils literal notranslate"><span class="pre">ta.model.posterior_prediction(model,</span> <span class="pre">train,</span> <span class="pre">new)</span></code></p></li>
 </ul>
 </li>
 </ul>
@@ -663,6 +713,8 @@
 <li><p><strong>Linear Systems:</strong> <a class="reference internal" href="math/core/03_linear_system.html"><span class="std std-doc">🧠 Theory</span></a> | <a class="reference internal" href="architecture/core/03_math_dispatcher.html"><span class="std std-doc">💻 Architecture</span></a></p></li>
 <li><p><strong>Complexity &amp; Hardware:</strong> <a class="reference internal" href="math/core/04_complexity.html"><span class="std std-doc">🧠 Theory</span></a> | <a class="reference internal" href="architecture/core/04_hardware_memory.html"><span class="std std-doc">💻 Architecture</span></a></p></li>
 <li><p><strong>GCV &amp; Auto-ML:</strong> <a class="reference internal" href="math/core/05_gcv_theory.html"><span class="std std-doc">🧠 Theory</span></a> | <a class="reference internal" href="architecture/core/05_gcv_implementation.html"><span class="std std-doc">💻 Architecture</span></a></p></li>
+<li><p><strong>The Spectrum of Effects:</strong> <a class="reference internal" href="architecture/core/06_the_spectrum_api.html"><span class="std std-doc">💻 Architecture</span></a></p></li>
+<li><p><strong>The Statistics Dictionary:</strong> <a class="reference internal" href="math/core/07_the_statistics_api.html"><span class="std std-doc">🧠 Theory</span></a> | <a class="reference internal" href="architecture/core/07_the_statistics_api.html"><span class="std std-doc">💻 Architecture</span></a></p></li>
 </ul>
 </section>
 <section id="meta-learners-inference">
@@ -671,7 +723,6 @@
 <li><p><strong>Adaptive Online Learning:</strong> <a class="reference internal" href="math/meta/01_adaptive_online.html"><span class="std std-doc">🧠 Theory</span></a> | <a class="reference internal" href="architecture/meta/01_adaptive_code.html"><span class="std std-doc">💻 Architecture</span></a></p></li>
 <li><p><strong>Extended Kalman Filter</strong> (BETA) : <a class="reference internal" href="math/meta/02_kalman_filter.html"><span class="std std-doc">🧠 Theory</span></a> | <a class="reference internal" href="architecture/meta/02_kalman_torchscript.html"><span class="std std-doc">💻 Architecture</span></a></p></li>
 <li><p><strong>Hierarchical Reconciliation</strong> (BETA) : <a class="reference internal" href="math/meta/03_hierarchical_joint.html"><span class="std std-doc">🧠 Theory</span></a> | <a class="reference internal" href="architecture/meta/03_hierarchical_code.html"><span class="std std-doc">💻 Architecture</span></a></p></li>
-<li><p><strong>Conformal Safety (ACI)</strong> (EXP) : <a class="reference internal" href="math/meta/04_conformal_safety.html"><span class="std std-doc">🧠 Theory</span></a> | <a class="reference internal" href="architecture/meta/04_safety_code.html"><span class="std std-doc">💻 Architecture</span></a></p></li>
 <li><p><strong>Expert Aggregation (Opera):</strong> <a class="reference internal" href="math/meta/05_opera_aggregation.html"><span class="std std-doc">🧠 Theory</span></a> | <a class="reference internal" href="architecture/meta/05_opera_gpu.html"><span class="std std-doc">💻 Architecture</span></a></p></li>
 <li><p><strong>Deep-GAM Hybridization</strong> (EXP) : <a class="reference internal" href="math/meta/06_deep_gam_backfitting.html"><span class="std std-doc">🧠 Theory</span></a> | <a class="reference internal" href="architecture/meta/06_neural_hybrid.html"><span class="std std-doc">💻 Architecture</span></a></p></li>
 <li><p><strong>Statistical Diagnostics</strong> (EXP) : <a class="reference internal" href="math/meta/07_statistical_diagnostics.html"><span class="std std-doc">🧠 Theory</span></a> | <a class="reference internal" href="architecture/meta/07_diagnostics_utils.html"><span class="std std-doc">💻 Architecture</span></a></p></li>
@@ -751,6 +802,7 @@
 <li><a class="reference internal" href="#the-core-and-meta-models">The Core and Meta Models</a><ul>
 <li><a class="reference internal" href="#the-core-model">The Core Model</a></li>
 <li><a class="reference internal" href="#the-meta-models-cheatsheet">The Meta-Models Cheatsheet</a></li>
+<li><a class="reference internal" href="#the-statistical-risk-ecosystem-v1-3-0">The Statistical &amp; Risk Ecosystem (v1.3.0)</a></li>
 </ul>
 </li>
 <li><a class="reference internal" href="#the-spectrum-of-effects-cheatsheet">The “Spectrum” of Effects Cheatsheet</a><ul>
@@ -792,7 +844,7 @@
       
     </aside>
   </div>
-</div><script src="_static/documentation_options.js?v=010db75e"></script>
+</div><script src="_static/documentation_options.js?v=1f29e9d3"></script>
     <script src="_static/doctools.js?v=fd6eb6e6"></script>
     <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="_static/scripts/furo.js?v=46bd48cc"></script>

@@ -7,7 +7,7 @@
         <link rel="prefetch" href="../../_static/logo.png" as="image">
 
     <!-- Generated with Sphinx 9.1.0 and Furo 2025.12.19 -->
-        <title>Hardware Memory Dispatch &amp; Anti-OOM Systems - TAM 1.2.6 documentation</title>
+        <title>Hardware Memory Dispatch &amp; Anti-OOM Systems - TAM 1.3.0 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=d111a655" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo-extensions.css?v=8dab3a3b" />
@@ -162,7 +162,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="../../index.html"><div class="brand">TAM 1.2.6 documentation</div></a>
+      <a href="../../index.html"><div class="brand">TAM 1.3.0 documentation</div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -186,7 +186,7 @@
     <img class="sidebar-logo" src="../../_static/logo.png" alt="Logo"/>
   </div>
   
-  <span class="sidebar-brand-text">TAM 1.2.6 documentation</span>
+  <span class="sidebar-brand-text">TAM 1.3.0 documentation</span>
   
 </a><form class="sidebar-search-container" method="get" action="../../search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
@@ -206,6 +206,7 @@
 <li class="toctree-l1"><a class="reference internal" href="../../math/core/03_linear_system.html">Linear Algebra: Direct vs. Iterative Solvers</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../math/core/04_complexity.html">Computational Complexity (<span class="math notranslate nohighlight">\(\mathcal{O}(D^3+T D^2)\)</span> vs <span class="math notranslate nohighlight">\(\mathcal{O}(T^3)\)</span>)</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../math/core/05_gcv_theory.html">Hyperparameter Optimization: Generalized Cross-Validation (GCV)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../math/core/07_the_statistics_api.html">One Atom, Many Statistics: The Statistics API</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">🌈 Theory: The Spectrum Library</span></p>
 <ul>
@@ -223,12 +224,18 @@
 <li class="toctree-l1"><a class="reference internal" href="../../math/spectrum/PID.html">The PID Effect (Autoregressive Control Dynamics)</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../math/spectrum/LINEAR_TREE.html">The Linear Tree Effect (Varying-Coefficient Models)</a></li>
 </ul>
+<p class="caption" role="heading"><span class="caption-text">📊 Theory: The Statistics Engine</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../math/statistics/01_reweighted_estimation.html">Reweighted Estimation: GLMs, Expectiles &amp; Robust M-Estimators</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../math/statistics/02_distributional.html">Distributional (Location-Scale) Models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../math/statistics/03_mixture_copula.html">Mixtures &amp; Gaussian Copulas</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../math/statistics/04_risk_conformal_evt.html">Risk: Conformal, ACI, EVT &amp; Epistemic Uncertainty</a></li>
+</ul>
 <p class="caption" role="heading"><span class="caption-text">⚙️ Theory: Meta-Learners &amp; Inference</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="../../math/meta/01_adaptive_online.html">Adaptive Online Learning (AdaptiveTAM)</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../math/meta/02_kalman_filter.html">Dynamic Tracking via Extended Kalman Filtering [BETA]</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../math/meta/03_hierarchical_joint.html">Hierarchical Joint Optimization [BETA]</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../math/meta/04_conformal_safety.html">Uncertainty Quantification via Conformal Prediction [EXP]</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../math/meta/05_opera_aggregation.html">Online Prediction by Expert Aggregation (OPERA)</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../math/meta/06_deep_gam_backfitting.html">Deep-GAM Hybridization and Orthogonal Backfitting [EXP]</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../math/meta/07_statistical_diagnostics.html">Statistical Inference and Diagnostics (Glass-Box) [EXP]</a></li>
@@ -244,13 +251,20 @@
 <li class="toctree-l1 current current-page"><a class="current reference internal" href="#">Hardware Memory Dispatch &amp; Anti-OOM Systems</a></li>
 <li class="toctree-l1"><a class="reference internal" href="05_gcv_implementation.html">Auto-ML via Generalized Cross-Validation (GCV)</a></li>
 <li class="toctree-l1"><a class="reference internal" href="06_the_spectrum_api.html">The Spectral Dictionary: PyTorch Implementations &amp; Factory Assembly</a></li>
+<li class="toctree-l1"><a class="reference internal" href="07_the_statistics_api.html">The Statistics API: One Atom, Many Schedules</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">🔬 Architecture: The Statistics Engine</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../statistics/01_reweighted_estimation_code.html">Reweighted Estimation: Strategy Pattern &amp; IRLS Driver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../statistics/02_distributional_code.html">Distributional (Location-Scale): Thin Delegation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../statistics/03_mixture_copula_code.html">Mixtures &amp; Copulas: EM over the Atom, and the Standalone Joiner</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../statistics/04_risk_conformal_evt_code.html">Risk: Static Conformal, Streaming ACI, EVT &amp; Epistemic</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">🛠️ Architecture: Advanced Orchestration</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="../meta/01_adaptive_code.html">Online Error Correction (AdaptiveTAM)</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../meta/02_kalman_torchscript.html">Kalman TorchScript Optimizations &amp; Block Updates [BETA]</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../meta/03_hierarchical_code.html">Hierarchical Engineering &amp; Memory Assembly  [BETA]</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../meta/04_safety_code.html">Diagnostics, Visualization &amp; Utilities Engineering [EXP]</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../meta/05_opera_gpu.html">OPERA GPU Tensor Batching</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../meta/06_neural_hybrid.html">DeepGAM Engineering &amp; Sequential Encapsulation [EXP]</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../meta/07_diagnostics_utils.html">Diagnostics, Visualization &amp; Utilities Engineering  [EXP]</a></li>
@@ -328,7 +342,7 @@
         <span class="n">context</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> 
         <span class="n">allow_cpu_fallback</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">]:</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">"""</span>
 <span class="sd">        Handles Out-Of-Memory events by clearing cache and reducing batch sizes.</span>
 <span class="sd">        </span>
 <span class="sd">        Args:</span>
@@ -338,26 +352,26 @@
 <span class="sd">            </span>
 <span class="sd">        Returns:</span>
 <span class="sd">            Tuple[int, torch.device]: The new safe batch size and compute device.</span>
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">empty_cache</span><span class="p">()</span>
 
         <span class="k">if</span> <span class="n">current_batch</span> <span class="o">&lt;=</span> <span class="mi">1</span><span class="p">:</span>
-            <span class="k">if</span> <span class="n">allow_cpu_fallback</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">backend</span> <span class="o">!=</span> <span class="s2">&quot;cpu&quot;</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">allow_cpu_fallback</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">backend</span> <span class="o">!=</span> <span class="s2">"cpu"</span><span class="p">:</span>
                 <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
-                    <span class="sa">f</span><span class="s2">&quot;[OOM] VRAM exhausted during </span><span class="si">{</span><span class="n">context</span><span class="si">}</span><span class="s2">. &quot;</span>
-                    <span class="s2">&quot;Falling back to CPU execution.&quot;</span>
+                    <span class="sa">f</span><span class="s2">"[OOM] VRAM exhausted during </span><span class="si">{</span><span class="n">context</span><span class="si">}</span><span class="s2">. "</span>
+                    <span class="s2">"Falling back to CPU execution."</span>
                 <span class="p">)</span>
-                <span class="k">return</span> <span class="n">current_batch</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="s2">&quot;cpu&quot;</span><span class="p">)</span>
+                <span class="k">return</span> <span class="n">current_batch</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="s2">"cpu"</span><span class="p">)</span>
             <span class="k">else</span><span class="p">:</span>
                 <span class="k">raise</span> <span class="ne">MemoryError</span><span class="p">(</span>
-                    <span class="sa">f</span><span class="s2">&quot;Memory exhausted during </span><span class="si">{</span><span class="n">context</span><span class="si">}</span><span class="s2"> on </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">backend</span><span class="si">}</span><span class="s2">. &quot;</span>
-                    <span class="s2">&quot;Batch size 1 is too large to process.&quot;</span>
+                    <span class="sa">f</span><span class="s2">"Memory exhausted during </span><span class="si">{</span><span class="n">context</span><span class="si">}</span><span class="s2"> on </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">backend</span><span class="si">}</span><span class="s2">. "</span>
+                    <span class="s2">"Batch size 1 is too large to process."</span>
                 <span class="p">)</span>
 
         <span class="n">new_batch</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">current_batch</span> <span class="o">//</span> <span class="mi">2</span><span class="p">)</span>
         <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
-            <span class="sa">f</span><span class="s2">&quot;[OOM] Alert during </span><span class="si">{</span><span class="n">context</span><span class="si">}</span><span class="s2"> on </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">backend</span><span class="si">}</span><span class="s2">: &quot;</span>
-            <span class="sa">f</span><span class="s2">&quot;Reducing batch from </span><span class="si">{</span><span class="n">current_batch</span><span class="si">}</span><span class="s2"> to </span><span class="si">{</span><span class="n">new_batch</span><span class="si">}</span><span class="s2">.&quot;</span>
+            <span class="sa">f</span><span class="s2">"[OOM] Alert during </span><span class="si">{</span><span class="n">context</span><span class="si">}</span><span class="s2"> on </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">backend</span><span class="si">}</span><span class="s2">: "</span>
+            <span class="sa">f</span><span class="s2">"Reducing batch from </span><span class="si">{</span><span class="n">current_batch</span><span class="si">}</span><span class="s2"> to </span><span class="si">{</span><span class="n">new_batch</span><span class="si">}</span><span class="s2">."</span>
         <span class="p">)</span>
         
         <span class="k">return</span> <span class="n">new_batch</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">device</span>
@@ -382,7 +396,7 @@
     <span class="n">safety_factor</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">4.0</span><span class="p">,</span>
     <span class="n">max_safe_d</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">7500</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
-<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">    Evaluates if a dense Covariance Matrix inversion can safely execute in VRAM.</span>
 
 <span class="sd">    Inverting a matrix via LU or Cholesky decomposition requires allocating the </span>
@@ -399,7 +413,7 @@
 
 <span class="sd">    Returns:</span>
 <span class="sd">        bool: True if the exact direct solver is safe to use; False otherwise.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
     <span class="c1">#  Hard threshold for numerical stability and acceptable direct-inversion compute time</span>
     <span class="k">if</span> <span class="n">total_d</span> <span class="o">&gt;</span> <span class="n">max_safe_d</span><span class="p">:</span>
         <span class="k">return</span> <span class="kc">False</span>
@@ -424,33 +438,37 @@
 <p>Despite predictive calculations, unpredictable memory spikes can still occur during tensor decompositions or highly concurrent batching. The <code class="docutils literal notranslate"><span class="pre">_dispatcher.py</span></code> script shields these vulnerable linear algebra blocks inside robust <code class="docutils literal notranslate"><span class="pre">try/except</span></code> fallback loops.</p>
 <p>If a <code class="docutils literal notranslate"><span class="pre">torch.OutOfMemoryError</span></code> is caught during the chunked processing of a group, the loop immediately invokes <code class="docutils literal notranslate"><span class="pre">hw.handle_oom()</span></code>. The dispatcher then smoothly re-attempts the exact same calculation with the halved batch size returned by the hardware manager, guaranteeing eventual convergence regardless of the hardware’s scale.</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">def</span><span class="w"> </span><span class="nf">smart_solve</span><span class="p">(</span>
-    <span class="n">x_data</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> 
-    <span class="n">y_data</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> 
-    <span class="n">effects_list</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">BaseEffect</span><span class="p">],</span> 
-    <span class="n">penalty_matrix</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> 
+    <span class="n">x_data</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+    <span class="n">y_data</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+    <span class="n">effects_list</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">BaseEffect</span><span class="p">],</span>
+    <span class="n">penalty_matrix</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
     <span class="n">loss_matrix</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
-    <span class="n">num_samples</span><span class="p">:</span> <span class="nb">int</span>
+    <span class="n">num_samples</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">sample_weights</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
-<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">    Dynamically routes the mathematical resolution to the optimal solver.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+
+<span class="sd">    sample_weights (optional, shape (n_groups, n_samples, 1)) supplies per-observation weights w for a</span>
+<span class="sd">    weighted / reweighted (GLM, expectile, robust) solve; None is the plain path.</span>
+<span class="sd">    """</span>
     <span class="n">run_device</span> <span class="o">=</span> <span class="n">x_data</span><span class="o">.</span><span class="n">device</span>
     <span class="n">dummy_x</span> <span class="o">=</span> <span class="n">x_data</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">:</span><span class="mi">1</span><span class="p">,</span> <span class="p">:]</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">run_device</span><span class="p">)</span>
     <span class="n">dummy_phi</span> <span class="o">=</span> <span class="n">build_phi_from_effects</span><span class="p">(</span><span class="n">dummy_x</span><span class="p">,</span> <span class="n">effects_list</span><span class="p">)</span>
     <span class="n">total_d</span> <span class="o">=</span> <span class="n">dummy_phi</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
     <span class="k">del</span> <span class="n">dummy_x</span><span class="p">,</span> <span class="n">dummy_phi</span>
-    
+
     <span class="n">is_safe_for_direct_inversion</span> <span class="o">=</span> <span class="n">can_fit_dense_matrix</span><span class="p">(</span><span class="n">total_d</span><span class="p">,</span> <span class="n">run_device</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
-    
+
     <span class="k">if</span> <span class="n">is_safe_for_direct_inversion</span><span class="p">:</span>
         <span class="k">return</span> <span class="n">_run_chunked_direct_solver</span><span class="p">(</span>
-            <span class="n">x_data</span><span class="p">,</span> <span class="n">y_data</span><span class="p">,</span> <span class="n">effects_list</span><span class="p">,</span> <span class="n">penalty_matrix</span><span class="p">,</span> <span class="n">loss_matrix</span><span class="p">,</span> <span class="n">num_samples</span><span class="p">,</span> <span class="n">total_d</span>
-        <span class="p">)</span>       
+            <span class="n">x_data</span><span class="p">,</span> <span class="n">y_data</span><span class="p">,</span> <span class="n">effects_list</span><span class="p">,</span> <span class="n">penalty_matrix</span><span class="p">,</span> <span class="n">loss_matrix</span><span class="p">,</span> <span class="n">num_samples</span><span class="p">,</span> <span class="n">total_d</span><span class="p">,</span> <span class="n">sample_weights</span>
+        <span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
-        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Notice: Feature dimension D=</span><span class="si">{</span><span class="n">total_d</span><span class="si">}</span><span class="s2"> is massive.&quot;</span><span class="p">)</span>
-        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Routing to matrix-free Conjugate Gradient (CG) solver to prevent VRAM exhaustion...&quot;</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Notice: Feature dimension D=</span><span class="si">{</span><span class="n">total_d</span><span class="si">}</span><span class="s2"> is massive."</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">"Routing to matrix-free Conjugate Gradient (CG) solver to prevent VRAM exhaustion..."</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">_run_sparse_cg_solver</span><span class="p">(</span>
-            <span class="n">x_data</span><span class="p">,</span> <span class="n">y_data</span><span class="p">,</span> <span class="n">effects_list</span><span class="p">,</span> <span class="n">penalty_matrix</span><span class="p">,</span> <span class="n">loss_matrix</span><span class="p">,</span> <span class="n">num_samples</span>
+            <span class="n">x_data</span><span class="p">,</span> <span class="n">y_data</span><span class="p">,</span> <span class="n">effects_list</span><span class="p">,</span> <span class="n">penalty_matrix</span><span class="p">,</span> <span class="n">loss_matrix</span><span class="p">,</span> <span class="n">num_samples</span><span class="p">,</span> <span class="n">sample_weights</span>
             <span class="p">)</span>
 </pre></div>
 </div>
@@ -463,10 +481,10 @@
 <li><p><strong>In-Place Bounding:</strong> The binary leaf allocations naturally produce massive tensors. Instead of allocating a secondary normalized tensor to apply the <span class="math notranslate nohighlight">\(1/\sqrt{B}\)</span> RKHS bound, the framework strictly enforces an in-place mutation using <code class="docutils literal notranslate"><span class="pre">.mul_(self.scale)</span></code>. This minor optimization physically prevents PyTorch from allocating an extra redundant gigabyte in VRAM.</p></li>
 </ul>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span>    <span class="k">def</span><span class="w"> </span><span class="nf">build_feature_map</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x_col</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Projects inputs into the sparse bit-string Primal representation natively on GPU.</span>
 <span class="sd">        Computes the mutually exclusive indicator functions for every tree simultaneously.</span>
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="c1"># 1. Architectural Shape Normalization (The Ultimate Router)</span>
         <span class="k">if</span> <span class="n">x_col</span><span class="o">.</span><span class="n">dim</span><span class="p">()</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
             <span class="c1"># 1D: From OOD Wrapper (Univariate) -&gt; [N_ood]</span>
@@ -553,14 +571,14 @@
 </ul>
 <p>This architectural choice forces the global linear algebra engine to utilize specialized sparse sub-routines, mathematically eliminating the storage of zeros and entirely circumventing the <span class="math notranslate nohighlight">\(\mathcal{O}(D^2)\)</span> physical allocation limitation.</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span>    <span class="k">def</span><span class="w"> </span><span class="nf">build_penalty_matrix</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Constructs the optimal structural penalty sub-matrix.</span>
 <span class="sd">        </span>
 <span class="sd">        If sparsity_alpha &gt; 0, the penalty dynamically adapts to the empirical </span>
 <span class="sd">        data density of each specific leaf. Starved leaves receive massive penalties </span>
 <span class="sd">        to prevent overfitting, while dense leaves receive standard shrinkage.</span>
-<span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">sparsity_alpha</span> <span class="o">&gt;</span> <span class="mf">0.0</span> <span class="ow">and</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;empirical_counts&#39;</span><span class="p">):</span>
+<span class="sd">        """</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">sparsity_alpha</span> <span class="o">&gt;</span> <span class="mf">0.0</span> <span class="ow">and</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">'empirical_counts'</span><span class="p">):</span>
             <span class="c1"># Calculate Anisotropic Penalty based on empirical data counts</span>
             <span class="n">C_i</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">empirical_counts</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">TORCH_DEVICE</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span>
             <span class="n">C_bar</span> <span class="o">=</span> <span class="n">C_i</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
@@ -581,7 +599,7 @@
         <span class="n">indices</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">total_leaves</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">TORCH_DEVICE</span><span class="p">)</span>
         <span class="n">indices</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span><span class="n">indices</span><span class="p">,</span> <span class="n">indices</span><span class="p">],</span> <span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
         
-        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">sparse</span><span class="p">,</span> <span class="s1">&#39;check_sparse_tensor_invariants&#39;</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">sparse</span><span class="p">,</span> <span class="s1">'check_sparse_tensor_invariants'</span><span class="p">):</span>
             <span class="k">with</span> <span class="n">torch</span><span class="o">.</span><span class="n">sparse</span><span class="o">.</span><span class="n">check_sparse_tensor_invariants</span><span class="p">(</span><span class="kc">False</span><span class="p">):</span>
                 <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">sparse_coo_tensor</span><span class="p">(</span>
                     <span class="n">indices</span><span class="p">,</span> 
@@ -672,7 +690,7 @@
       
     </aside>
   </div>
-</div><script src="../../_static/documentation_options.js?v=010db75e"></script>
+</div><script src="../../_static/documentation_options.js?v=1f29e9d3"></script>
     <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/scripts/furo.js?v=46bd48cc"></script>

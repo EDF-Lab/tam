@@ -7,7 +7,7 @@
         <link rel="prefetch" href="_static/logo.png" as="image">
 
     <!-- Generated with Sphinx 9.1.0 and Furo 2025.12.19 -->
-        <title>References - TAM 1.2.6 documentation</title>
+        <title>References - TAM 1.3.0 documentation</title>
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=d111a655" />
     <link rel="stylesheet" type="text/css" href="_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="_static/styles/furo-extensions.css?v=8dab3a3b" />
@@ -162,7 +162,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="index.html"><div class="brand">TAM 1.2.6 documentation</div></a>
+      <a href="index.html"><div class="brand">TAM 1.3.0 documentation</div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -186,7 +186,7 @@
     <img class="sidebar-logo" src="_static/logo.png" alt="Logo"/>
   </div>
   
-  <span class="sidebar-brand-text">TAM 1.2.6 documentation</span>
+  <span class="sidebar-brand-text">TAM 1.3.0 documentation</span>
   
 </a><form class="sidebar-search-container" method="get" action="search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
@@ -206,6 +206,7 @@
 <li class="toctree-l1"><a class="reference internal" href="math/core/03_linear_system.html">Linear Algebra: Direct vs. Iterative Solvers</a></li>
 <li class="toctree-l1"><a class="reference internal" href="math/core/04_complexity.html">Computational Complexity (<span class="math notranslate nohighlight">\(\mathcal{O}(D^3+T D^2)\)</span> vs <span class="math notranslate nohighlight">\(\mathcal{O}(T^3)\)</span>)</a></li>
 <li class="toctree-l1"><a class="reference internal" href="math/core/05_gcv_theory.html">Hyperparameter Optimization: Generalized Cross-Validation (GCV)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="math/core/07_the_statistics_api.html">One Atom, Many Statistics: The Statistics API</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">🌈 Theory: The Spectrum Library</span></p>
 <ul>
@@ -223,12 +224,18 @@
 <li class="toctree-l1"><a class="reference internal" href="math/spectrum/PID.html">The PID Effect (Autoregressive Control Dynamics)</a></li>
 <li class="toctree-l1"><a class="reference internal" href="math/spectrum/LINEAR_TREE.html">The Linear Tree Effect (Varying-Coefficient Models)</a></li>
 </ul>
+<p class="caption" role="heading"><span class="caption-text">📊 Theory: The Statistics Engine</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="math/statistics/01_reweighted_estimation.html">Reweighted Estimation: GLMs, Expectiles &amp; Robust M-Estimators</a></li>
+<li class="toctree-l1"><a class="reference internal" href="math/statistics/02_distributional.html">Distributional (Location-Scale) Models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="math/statistics/03_mixture_copula.html">Mixtures &amp; Gaussian Copulas</a></li>
+<li class="toctree-l1"><a class="reference internal" href="math/statistics/04_risk_conformal_evt.html">Risk: Conformal, ACI, EVT &amp; Epistemic Uncertainty</a></li>
+</ul>
 <p class="caption" role="heading"><span class="caption-text">⚙️ Theory: Meta-Learners &amp; Inference</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="math/meta/01_adaptive_online.html">Adaptive Online Learning (AdaptiveTAM)</a></li>
 <li class="toctree-l1"><a class="reference internal" href="math/meta/02_kalman_filter.html">Dynamic Tracking via Extended Kalman Filtering [BETA]</a></li>
 <li class="toctree-l1"><a class="reference internal" href="math/meta/03_hierarchical_joint.html">Hierarchical Joint Optimization [BETA]</a></li>
-<li class="toctree-l1"><a class="reference internal" href="math/meta/04_conformal_safety.html">Uncertainty Quantification via Conformal Prediction [EXP]</a></li>
 <li class="toctree-l1"><a class="reference internal" href="math/meta/05_opera_aggregation.html">Online Prediction by Expert Aggregation (OPERA)</a></li>
 <li class="toctree-l1"><a class="reference internal" href="math/meta/06_deep_gam_backfitting.html">Deep-GAM Hybridization and Orthogonal Backfitting [EXP]</a></li>
 <li class="toctree-l1"><a class="reference internal" href="math/meta/07_statistical_diagnostics.html">Statistical Inference and Diagnostics (Glass-Box) [EXP]</a></li>
@@ -244,13 +251,20 @@
 <li class="toctree-l1"><a class="reference internal" href="architecture/core/04_hardware_memory.html">Hardware Memory Dispatch &amp; Anti-OOM Systems</a></li>
 <li class="toctree-l1"><a class="reference internal" href="architecture/core/05_gcv_implementation.html">Auto-ML via Generalized Cross-Validation (GCV)</a></li>
 <li class="toctree-l1"><a class="reference internal" href="architecture/core/06_the_spectrum_api.html">The Spectral Dictionary: PyTorch Implementations &amp; Factory Assembly</a></li>
+<li class="toctree-l1"><a class="reference internal" href="architecture/core/07_the_statistics_api.html">The Statistics API: One Atom, Many Schedules</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">🔬 Architecture: The Statistics Engine</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="architecture/statistics/01_reweighted_estimation_code.html">Reweighted Estimation: Strategy Pattern &amp; IRLS Driver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="architecture/statistics/02_distributional_code.html">Distributional (Location-Scale): Thin Delegation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="architecture/statistics/03_mixture_copula_code.html">Mixtures &amp; Copulas: EM over the Atom, and the Standalone Joiner</a></li>
+<li class="toctree-l1"><a class="reference internal" href="architecture/statistics/04_risk_conformal_evt_code.html">Risk: Static Conformal, Streaming ACI, EVT &amp; Epistemic</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">🛠️ Architecture: Advanced Orchestration</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="architecture/meta/01_adaptive_code.html">Online Error Correction (AdaptiveTAM)</a></li>
 <li class="toctree-l1"><a class="reference internal" href="architecture/meta/02_kalman_torchscript.html">Kalman TorchScript Optimizations &amp; Block Updates [BETA]</a></li>
 <li class="toctree-l1"><a class="reference internal" href="architecture/meta/03_hierarchical_code.html">Hierarchical Engineering &amp; Memory Assembly  [BETA]</a></li>
-<li class="toctree-l1"><a class="reference internal" href="architecture/meta/04_safety_code.html">Diagnostics, Visualization &amp; Utilities Engineering [EXP]</a></li>
 <li class="toctree-l1"><a class="reference internal" href="architecture/meta/05_opera_gpu.html">OPERA GPU Tensor Batching</a></li>
 <li class="toctree-l1"><a class="reference internal" href="architecture/meta/06_neural_hybrid.html">DeepGAM Engineering &amp; Sequential Encapsulation [EXP]</a></li>
 <li class="toctree-l1"><a class="reference internal" href="architecture/meta/07_diagnostics_utils.html">Diagnostics, Visualization &amp; Utilities Engineering  [EXP]</a></li>
@@ -584,160 +598,220 @@
 <span class="label"><span class="fn-bracket">[</span>68<span class="fn-bracket">]</span></span>
 <p>Achim Zeileis, Torsten Hothorn, and Kurt Hornik. Model-based recursive partitioning. <em>Journal of Computational and Graphical Statistics</em>, 17(2):492–514, 2008.</p>
 </div>
-<div class="citation" id="id33" role="doc-biblioentry">
+<div class="citation" id="id115" role="doc-biblioentry">
 <span class="label"><span class="fn-bracket">[</span>69<span class="fn-bracket">]</span></span>
-<p>Pierre Gaillard, Yannig Goude, Laurent Plagne, Thibaut Dubois, and Benoit Thieurmel. Opera, a r package, online prediction by expert aggregation (v1.1). 2016.</p>
+<p>John Ashworth Nelder and Robert WM Wedderburn. Generalized linear models. <em>Journal of the Royal Statistical Society Series A: Statistics in Society</em>, 135(3):370–384, 1972.</p>
 </div>
-<div class="citation" id="id17" role="doc-biblioentry">
+<div class="citation" id="id123" role="doc-biblioentry">
 <span class="label"><span class="fn-bracket">[</span>70<span class="fn-bracket">]</span></span>
-<p>Nicolo Cesa-Bianchi and Gábor Lugosi. <em>Prediction, learning, and games</em>. Cambridge university press, 2006.</p>
+<p>Peter J Green. Iteratively reweighted least squares for maximum likelihood estimation, and some robust and resistant alternatives. <em>Journal of the Royal Statistical Society: Series B (Methodological)</em>, 46(2):149–170, 1984.</p>
 </div>
-<div class="citation" id="id107" role="doc-biblioentry">
+<div class="citation" id="id111" role="doc-biblioentry">
 <span class="label"><span class="fn-bracket">[</span>71<span class="fn-bracket">]</span></span>
-<p>Rob J Hyndman and Anne B Koehler. Another look at measures of forecast accuracy. <em>International journal of forecasting</em>, 22(4):679–688, 2006.</p>
+<p>Peter J Huber. Robust estimation of a location parameter. <em>The Annals of Mathematical Statistics</em>, 35(1):73–101, 1964.</p>
 </div>
-<div class="citation" id="id108" role="doc-biblioentry">
+<div class="citation" id="id110" role="doc-biblioentry">
 <span class="label"><span class="fn-bracket">[</span>72<span class="fn-bracket">]</span></span>
-<p>Tianfeng Chai and Roland R Draxler. Root mean square error (rmse) or mean absolute error (mae)?–arguments against avoiding rmse in the literature. <em>Geoscientific model development</em>, 7(3):1247–1250, 2014.</p>
+<p>Whitney K Newey and James L Powell. Asymmetric least squares estimation and testing. <em>Econometrica: Journal of the Econometric Society</em>, pages 819–847, 1987.</p>
 </div>
-<div class="citation" id="id95" role="doc-biblioentry">
+<div class="citation" id="id116" role="doc-biblioentry">
 <span class="label"><span class="fn-bracket">[</span>73<span class="fn-bracket">]</span></span>
-<p>James Durbin and Geoffrey S Watson. Testing for serial correlation in least squares regression: i. <em>Biometrika</em>, 37(3/4):409–428, 1950.</p>
+<p>M Chris Jones. Expectiles and m-quantiles are quantiles. <em>Statistics &amp; Probability Letters</em>, 20(2):149–153, 1994.</p>
 </div>
-<div class="citation" id="id93" role="doc-biblioentry">
+<div class="citation" id="id117" role="doc-biblioentry">
 <span class="label"><span class="fn-bracket">[</span>74<span class="fn-bracket">]</span></span>
-<p>Manuel Arellano. <em>Panel data econometrics</em>. OUP Oxford, 2003.</p>
+<p>Qiwli Yao and Howell Tong. Asymmetric least squares regression estimation: a nonparametric approach. <em>Journal of nonparametric statistics</em>, 6(2-3):273–292, 1996.</p>
 </div>
-<div class="citation" id="id91" role="doc-biblioentry">
+<div class="citation" id="id109" role="doc-biblioentry">
 <span class="label"><span class="fn-bracket">[</span>75<span class="fn-bracket">]</span></span>
-<p>Keshav Das, Julie Keisler, Margaux Brégère, and Amaury Durand. Automl algorithms for online generalized additive model selection: application to electricity demand forecasting. <em>arXiv preprint arXiv:2503.24019</em>, 2025.</p>
+<p>Robert A Rigby and D Mikis Stasinopoulos. Generalized additive models for location, scale and shape. <em>Journal of the Royal Statistical Society Series C: Applied Statistics</em>, 54(3):507–554, 2005.</p>
 </div>
-<div class="citation" id="id4" role="doc-biblioentry">
+<div class="citation" id="id114" role="doc-biblioentry">
 <span class="label"><span class="fn-bracket">[</span>76<span class="fn-bracket">]</span></span>
-<p>Yann Allioux and Yannig Goude. Force: french open research catalogue of energy (v1.1.1). 2026. With a contribution of Nathan Doumèche during his thesis. <a class="reference external" href="https://doi.org/10.5281/zenodo.21108937">doi:10.5281/zenodo.21108937</a>.</p>
+<p>Arthur P Dempster, Nan M Laird, and Donald B Rubin. Maximum likelihood from incomplete data via the em algorithm. <em>Journal of the royal statistical society: series B (methodological)</em>, 39(1):1–22, 1977.</p>
 </div>
-<div class="citation" id="id5" role="doc-biblioentry">
+<div class="citation" id="id112" role="doc-biblioentry">
 <span class="label"><span class="fn-bracket">[</span>77<span class="fn-bracket">]</span></span>
-<p>Yann Allioux and Yannig Goude. Force dataset: french open research catalogue of energy - 2026 snapshot. 2026. With a contribution of Nathan Doumèche during his thesis. <a class="reference external" href="https://doi.org/10.5281/zenodo.21109134">doi:10.5281/zenodo.21109134</a>.</p>
-</div>
-<div class="citation" id="id6" role="doc-biblioentry">
-<span class="label"><span class="fn-bracket">[</span>78<span class="fn-bracket">]</span></span>
-<p>Yann Allioux and Yannig Goude. Tam: time series additive model (v1.2.3). 2026. With foundational WeaKL research by Nathan Doumèche, and tensorisation and adaptive model contributions by Éloi Bedek. <a class="reference external" href="https://doi.org/10.5281/zenodo.20543272">doi:10.5281/zenodo.20543272</a>.</p>
-</div>
-<div class="citation" id="id7" role="doc-biblioentry">
-<span class="label"><span class="fn-bracket">[</span>79<span class="fn-bracket">]</span></span>
-<p>Yann Allioux, Athir Hamadieh, Louis Viennot, Ismaïl El Azzaoui, Antoine Gourbilleau, and Joseph de Vilmarest. viking_kalman: variational bayesian variance tracking in python, a fast implementation of the r viking package (v0.1.0). 2026. <a class="reference external" href="https://doi.org/10.5281/zenodo.20171756">doi:10.5281/zenodo.20171756</a>.</p>
-</div>
-<div class="citation" id="id22" role="doc-biblioentry">
-<span class="label"><span class="fn-bracket">[</span>80<span class="fn-bracket">]</span></span>
-<p>Joseph De Vilmarest and Yannig Goude. State-space models for online post-covid electricity load forecasting competition. <em>IEEE Open Access Journal of Power and Energy</em>, 9:192–201, 2022.</p>
-</div>
-<div class="citation" id="id23" role="doc-biblioentry">
-<span class="label"><span class="fn-bracket">[</span>81<span class="fn-bracket">]</span></span>
-<p>Joseph de Vilmarest and Olivier Wintenberger. Viking: variational bayesian variance tracking. <em>Statistical Inference for Stochastic Processes</em>, 27(3):839–860, 2024.</p>
-</div>
-<div class="citation" id="id25" role="doc-biblioentry">
-<span class="label"><span class="fn-bracket">[</span>82<span class="fn-bracket">]</span></span>
-<p>Nathan Doumèche. Weakl: weak kernel learner (v0.0.6). 2026.</p>
-</div>
-<div class="citation" id="id27" role="doc-biblioentry">
-<span class="label"><span class="fn-bracket">[</span>83<span class="fn-bracket">]</span></span>
-<p>Nathan Doumèche, Yannig Goude, Stefania Rubrichi, and Yann Allioux. Human spatial dynamics for electricity demand forecasting. <em>IEEE Transactions on Power Systems</em>, 2025.</p>
-</div>
-<div class="citation" id="id28" role="doc-biblioentry">
-<span class="label"><span class="fn-bracket">[</span>84<span class="fn-bracket">]</span></span>
-<p>Nathan Doumèche, Yannig Goude, and Yann Allioux. Human spatial dynamics for electricity demand forecasting: the case of france during the 2022 energy crisis. October 2023. URL: <a class="reference external" href="https://doi.org/10.5281/zenodo.10041368">https://doi.org/10.5281/zenodo.10041368</a>, <a class="reference external" href="https://doi.org/10.5281/zenodo.10041368">doi:10.5281/zenodo.10041368</a>.</p>
-</div>
-<div class="citation" id="id31" role="doc-biblioentry">
-<span class="label"><span class="fn-bracket">[</span>85<span class="fn-bracket">]</span></span>
-<p>Mostafa Farrokhabadi, Jethro Browell, Yi Wang, Stephen Makonin, Wencong Su, and Hamidreza Zareipour. Day-ahead electricity demand forecasting competition: post-covid paradigm. <em>IEEE Open Access Journal of Power and Energy</em>, 9:185–191, 2022.</p>
-</div>
-<div class="citation" id="id32" role="doc-biblioentry">
-<span class="label"><span class="fn-bracket">[</span>86<span class="fn-bracket">]</span></span>
-<p>Pierre Gaillard, Yannig Goude, and Raphaël Nedellec. Additive models and robust aggregation for gefcom2014 probabilistic electric load and electricity price forecasting. <em>International Journal of forecasting</em>, 32(3):1038–1050, 2016.</p>
-</div>
-<div class="citation" id="id48" role="doc-biblioentry">
-<span class="label"><span class="fn-bracket">[</span>87<span class="fn-bracket">]</span></span>
-<p>R. E. Kalman. A new approach to linear filtering and prediction problems. <em>Journal of Basic Engineering</em>, 82(1):35–45, 03 1960. URL: <a class="reference external" href="https://doi.org/10.1115/1.3662552">https://doi.org/10.1115/1.3662552</a>, <a class="reference external" href="https://arxiv.org/abs/https://asmedigitalcollection.asme.org/fluidsengineering/article-pdf/82/1/35/5518977/35_1.pdf">arXiv:https://asmedigitalcollection.asme.org/fluidsengineering/article-pdf/82/1/35/5518977/35_1.pdf</a>, <a class="reference external" href="https://doi.org/10.1115/1.3662552">doi:10.1115/1.3662552</a>.</p>
-</div>
-<div class="citation" id="id60" role="doc-biblioentry">
-<span class="label"><span class="fn-bracket">[</span>88<span class="fn-bracket">]</span></span>
-<p>Jingang Qu, David Holzmüller, Gaël Varoquaux, and Marine Le Morvan. Tabicl: a tabular foundation model for in-context learning on large data. <em>arXiv preprint arXiv:2502.05564</em>, 2025.</p>
-</div>
-<div class="citation" id="id69" role="doc-biblioentry">
-<span class="label"><span class="fn-bracket">[</span>89<span class="fn-bracket">]</span></span>
-<p>Skipper Seabold, Josef Perktold, and others. Statsmodels: econometric and statistical modeling with python. <em>scipy</em>, 7(1):92–96, 2010.</p>
-</div>
-<div class="citation" id="id77" role="doc-biblioentry">
-<span class="label"><span class="fn-bracket">[</span>90<span class="fn-bracket">]</span></span>
-<p>Shanika L Wickramasuriya, George Athanasopoulos, and Rob J Hyndman. Optimal forecast reconciliation for hierarchical and grouped time series through trace minimization. <em>Journal of the American Statistical Association</em>, 114(526):804–819, 2019.</p>
-</div>
-<div class="citation" id="id83" role="doc-biblioentry">
-<span class="label"><span class="fn-bracket">[</span>91<span class="fn-bracket">]</span></span>
-<p>Simon N Wood, Zheyuan Li, Gavin Shaddick, and Nicole H Augustin. Generalized additive models for gigadata: modeling the uk black smoke network daily data. <em>Journal of the American Statistical Association</em>, 112(519):1199–1210, 2017.</p>
-</div>
-<div class="citation" id="id88" role="doc-biblioentry">
-<span class="label"><span class="fn-bracket">[</span>92<span class="fn-bracket">]</span></span>
-<p>Joseph De Vilmarest and Olivier Wintenberger. Stochastic online optimization using kalman recursion. <em>Journal of Machine Learning Research</em>, 22(223):1–55, 2021.</p>
-</div>
-<div class="citation" id="id89" role="doc-biblioentry">
-<span class="label"><span class="fn-bracket">[</span>93<span class="fn-bracket">]</span></span>
-<p>Adam Paszke, Sam Gross, Francisco Massa, Adam Lerer, James Bradbury, Gregory Chanan, Trevor Killeen, Zeming Lin, Natalia Gimelshein, Luca Antiga, and others. Pytorch: an imperative style, high-performance deep learning library. <em>Advances in neural information processing systems</em>, 2019.</p>
-</div>
-<div class="citation" id="id90" role="doc-biblioentry">
-<span class="label"><span class="fn-bracket">[</span>94<span class="fn-bracket">]</span></span>
-<p>daniel servén, Charlie Brummitt, Franz Király, JodesL, Denise Schmitz, Zachariah Carmichael, Alejandro Ouslan, Fräntz Miccoli, IlyesD, Jonathan Taylor, Joseph Egan, Luc Lapenta, Lucas Servén Marín, Shishin Mo, Shushank Ranjan, Stephen Anthony Rose, Thomas Kraxner, Umberto Fasci, Viktor Szépe, Yasser El Haddar, hlink, Hassan Abedi, and nicoleta-kyo. Dswah/pygam: v0.12.0. December 2025. URL: <a class="reference external" href="https://doi.org/10.5281/zenodo.17981758">https://doi.org/10.5281/zenodo.17981758</a>, <a class="reference external" href="https://doi.org/10.5281/zenodo.17981758">doi:10.5281/zenodo.17981758</a>.</p>
-</div>
-<div class="citation" id="id92" role="doc-biblioentry">
-<span class="label"><span class="fn-bracket">[</span>95<span class="fn-bracket">]</span></span>
-<p>Amandine Pierrot and Yannig Goude. Short-term electricity load forecasting with generalized additive models. <em>Proceedings of ISAP power</em>, 2011.</p>
-</div>
-<div class="citation" id="id94" role="doc-biblioentry">
-<span class="label"><span class="fn-bracket">[</span>96<span class="fn-bracket">]</span></span>
-<p>James Durbin and Siem Jan Koopman. <em>Time series analysis by state space methods</em>. Oxford University Press (UK), 2012.</p>
-</div>
-<div class="citation" id="id96" role="doc-biblioentry">
-<span class="label"><span class="fn-bracket">[</span>97<span class="fn-bracket">]</span></span>
-<p>Max A Woodbury. <em>Inverting modified matrices</em>. Department of Statistics, Princeton University, 1950. Mathematical foundation of the Woodbury matrix identity (Sherman-Morrison-Woodbury formula), justifying the low-rank update inversion optimization.</p>
-</div>
-<div class="citation" id="id97" role="doc-biblioentry">
-<span class="label"><span class="fn-bracket">[</span>98<span class="fn-bracket">]</span></span>
-<p>Harold V Henderson and Shayle R Searle. On deriving the inverse of a sum of matrices. <em>SIAM review</em>, 23(1):53–60, 1981. Modern review and formal proof of the Woodbury identity used to stabilize the Kalman gain matrix inversion.</p>
-</div>
-<div class="citation" id="id98" role="doc-biblioentry">
-<span class="label"><span class="fn-bracket">[</span>99<span class="fn-bracket">]</span></span>
-<p>William W Hager. Updating the inverse of a matrix. <em>SIAM review</em>, 31(2):221–239, 1989.</p>
-</div>
-<div class="citation" id="id99" role="doc-biblioentry">
-<span class="label"><span class="fn-bracket">[</span>100<span class="fn-bracket">]</span></span>
-<p>Ali H Sayed. <em>Adaptive filters</em>. John Wiley &amp; Sons, 2011.</p>
-</div>
-<div class="citation" id="id100" role="doc-biblioentry">
-<span class="label"><span class="fn-bracket">[</span>101<span class="fn-bracket">]</span></span>
-<p>Margaux Brégère and Malo Huard. Online hierarchical forecasting for power consumption data. <em>International Journal of Forecasting</em>, 38(1):339–351, 2022. Key reference for online hierarchical forecasting in the energy sector. Illustrates the post-hoc reconciliation approach, in contrast to the joint learning proposed here.</p>
-</div>
-<div class="citation" id="id101" role="doc-biblioentry">
-<span class="label"><span class="fn-bracket">[</span>102<span class="fn-bracket">]</span></span>
-<p>Guillaume Principato, Gilles Stoltz, Yvenn Amara-Ouali, Yannig Goude, Bachir Hamrouche, and Jean-Michel Poggi. Conformal prediction for hierarchical data. <em>arXiv preprint arXiv:2411.13479</em>, 2024. Demonstrates that naive application of conformal prediction level-by-level breaks hierarchical coherence and proposes interval reconciliation algorithms.</p>
+<p>Abe Sklar. Fonctions de répartition à n dimensions et leurs marges. <em>Publ. inst. statist. univ. Paris</em>, 8:229–231, 1959.</p>
 </div>
 <div class="citation" id="id102" role="doc-biblioentry">
-<span class="label"><span class="fn-bracket">[</span>103<span class="fn-bracket">]</span></span>
+<span class="label"><span class="fn-bracket">[</span>78<span class="fn-bracket">]</span></span>
 <p>Anastasios N Angelopoulos and Stephen Bates. Conformal prediction: a gentle introduction. <em>Foundations and Trends in Machine Learning</em>, 16(4):494–591, 2023. Standard pedagogical reference for the &quot;Split Conformal&quot; method implemented in the base version of SafetyTAM.</p>
 </div>
+<div class="citation" id="id118" role="doc-biblioentry">
+<span class="label"><span class="fn-bracket">[</span>79<span class="fn-bracket">]</span></span>
+<p>Vladimir Vovk, Alexander Gammerman, and Glenn Shafer. <em>Algorithmic learning in a random world</em>. Springer, 2005.</p>
+</div>
+<div class="citation" id="id119" role="doc-biblioentry">
+<span class="label"><span class="fn-bracket">[</span>80<span class="fn-bracket">]</span></span>
+<p>Jing Lei, Max G’Sell, Alessandro Rinaldo, Ryan J Tibshirani, and Larry Wasserman. Distribution-free predictive inference for regression. <em>Journal of the American Statistical Association</em>, 113(523):1094–1111, 2018.</p>
+</div>
+<div class="citation" id="id120" role="doc-biblioentry">
+<span class="label"><span class="fn-bracket">[</span>81<span class="fn-bracket">]</span></span>
+<p>Yaniv Romano, Evan Patterson, and Emmanuel Candes. Conformalized quantile regression. <em>Advances in neural information processing systems</em>, 2019.</p>
+</div>
 <div class="citation" id="id103" role="doc-biblioentry">
-<span class="label"><span class="fn-bracket">[</span>104<span class="fn-bracket">]</span></span>
+<span class="label"><span class="fn-bracket">[</span>82<span class="fn-bracket">]</span></span>
 <p>Guillaume Principato and Gilles Stoltz. Blackwell's approachability for sequential conformal inference. <em>arXiv preprint arXiv:2510.15824</em>, 2025. Addresses the issue of exchangeability violation in time series (data drift) and proposes dynamic coverage rate adjustment methods.</p>
 </div>
 <div class="citation" id="id104" role="doc-biblioentry">
-<span class="label"><span class="fn-bracket">[</span>105<span class="fn-bracket">]</span></span>
+<span class="label"><span class="fn-bracket">[</span>83<span class="fn-bracket">]</span></span>
 <p>Isaac Gibbs and Emmanuel Candes. Adaptive conformal inference under distribution shift. <em>Advances in Neural Information Processing Systems</em>, 34:1660–1672, 2021. Introduces the ACI (Adaptive Conformal Inference) algorithm implemented in SafetyTAM for online risk level adjustment.</p>
 </div>
-<div class="citation" id="id105" role="doc-biblioentry">
+<div class="citation" id="id113" role="doc-biblioentry">
+<span class="label"><span class="fn-bracket">[</span>84<span class="fn-bracket">]</span></span>
+<p>James Pickands III. Statistical inference using extreme order statistics. <em>the Annals of Statistics</em>, pages 119–131, 1975.</p>
+</div>
+<div class="citation" id="id121" role="doc-biblioentry">
+<span class="label"><span class="fn-bracket">[</span>85<span class="fn-bracket">]</span></span>
+<p>August A Balkema and Laurens De Haan. Residual life time at great age. <em>The Annals of probability</em>, pages 792–804, 1974.</p>
+</div>
+<div class="citation" id="id122" role="doc-biblioentry">
+<span class="label"><span class="fn-bracket">[</span>86<span class="fn-bracket">]</span></span>
+<p>Grace Wahba. Bayesian “confidence intervals” for the cross-validated smoothing spline. <em>Journal of the Royal Statistical Society: Series B (Methodological)</em>, 45(1):133–150, 1983.</p>
+</div>
+<div class="citation" id="id101" role="doc-biblioentry">
+<span class="label"><span class="fn-bracket">[</span>87<span class="fn-bracket">]</span></span>
+<p>Guillaume Principato, Gilles Stoltz, Yvenn Amara-Ouali, Yannig Goude, Bachir Hamrouche, and Jean-Michel Poggi. Conformal prediction for hierarchical data. <em>arXiv preprint arXiv:2411.13479</em>, 2024. Demonstrates that naive application of conformal prediction level-by-level breaks hierarchical coherence and proposes interval reconciliation algorithms.</p>
+</div>
+<div class="citation" id="id33" role="doc-biblioentry">
+<span class="label"><span class="fn-bracket">[</span>88<span class="fn-bracket">]</span></span>
+<p>Pierre Gaillard, Yannig Goude, Laurent Plagne, Thibaut Dubois, and Benoit Thieurmel. Opera, a r package, online prediction by expert aggregation (v1.1). 2016.</p>
+</div>
+<div class="citation" id="id17" role="doc-biblioentry">
+<span class="label"><span class="fn-bracket">[</span>89<span class="fn-bracket">]</span></span>
+<p>Nicolo Cesa-Bianchi and Gábor Lugosi. <em>Prediction, learning, and games</em>. Cambridge university press, 2006.</p>
+</div>
+<div class="citation" id="id107" role="doc-biblioentry">
+<span class="label"><span class="fn-bracket">[</span>90<span class="fn-bracket">]</span></span>
+<p>Rob J Hyndman and Anne B Koehler. Another look at measures of forecast accuracy. <em>International journal of forecasting</em>, 22(4):679–688, 2006.</p>
+</div>
+<div class="citation" id="id108" role="doc-biblioentry">
+<span class="label"><span class="fn-bracket">[</span>91<span class="fn-bracket">]</span></span>
+<p>Tianfeng Chai and Roland R Draxler. Root mean square error (rmse) or mean absolute error (mae)?–arguments against avoiding rmse in the literature. <em>Geoscientific model development</em>, 7(3):1247–1250, 2014.</p>
+</div>
+<div class="citation" id="id95" role="doc-biblioentry">
+<span class="label"><span class="fn-bracket">[</span>92<span class="fn-bracket">]</span></span>
+<p>James Durbin and Geoffrey S Watson. Testing for serial correlation in least squares regression: i. <em>Biometrika</em>, 37(3/4):409–428, 1950.</p>
+</div>
+<div class="citation" id="id93" role="doc-biblioentry">
+<span class="label"><span class="fn-bracket">[</span>93<span class="fn-bracket">]</span></span>
+<p>Manuel Arellano. <em>Panel data econometrics</em>. OUP Oxford, 2003.</p>
+</div>
+<div class="citation" id="id91" role="doc-biblioentry">
+<span class="label"><span class="fn-bracket">[</span>94<span class="fn-bracket">]</span></span>
+<p>Keshav Das, Julie Keisler, Margaux Brégère, and Amaury Durand. Automl algorithms for online generalized additive model selection: application to electricity demand forecasting. <em>arXiv preprint arXiv:2503.24019</em>, 2025.</p>
+</div>
+<div class="citation" id="id4" role="doc-biblioentry">
+<span class="label"><span class="fn-bracket">[</span>95<span class="fn-bracket">]</span></span>
+<p>Yann Allioux and Yannig Goude. Force: french open research catalogue of energy (v1.1.1). 2026. With a contribution of Nathan Doumèche during his thesis. <a class="reference external" href="https://doi.org/10.5281/zenodo.21108937">doi:10.5281/zenodo.21108937</a>.</p>
+</div>
+<div class="citation" id="id5" role="doc-biblioentry">
+<span class="label"><span class="fn-bracket">[</span>96<span class="fn-bracket">]</span></span>
+<p>Yann Allioux and Yannig Goude. Force dataset: french open research catalogue of energy - 2026 snapshot. 2026. With a contribution of Nathan Doumèche during his thesis. <a class="reference external" href="https://doi.org/10.5281/zenodo.21109134">doi:10.5281/zenodo.21109134</a>.</p>
+</div>
+<div class="citation" id="id6" role="doc-biblioentry">
+<span class="label"><span class="fn-bracket">[</span>97<span class="fn-bracket">]</span></span>
+<p>Yann Allioux and Yannig Goude. Tam: time series additive model (v1.3.0). 2026. With foundational WeaKL research by Nathan Doumèche, and tensorisation and adaptive model contributions by Éloi Bedek. <a class="reference external" href="https://doi.org/10.5281/zenodo.22544995">doi:10.5281/zenodo.22544995</a>.</p>
+</div>
+<div class="citation" id="id7" role="doc-biblioentry">
+<span class="label"><span class="fn-bracket">[</span>98<span class="fn-bracket">]</span></span>
+<p>Yann Allioux, Athir Hamadieh, Louis Viennot, Ismaïl El Azzaoui, Antoine Gourbilleau, and Joseph de Vilmarest. viking_kalman: variational bayesian variance tracking in python, a fast implementation of the r viking package (v0.1.0). 2026. <a class="reference external" href="https://doi.org/10.5281/zenodo.20171756">doi:10.5281/zenodo.20171756</a>.</p>
+</div>
+<div class="citation" id="id22" role="doc-biblioentry">
+<span class="label"><span class="fn-bracket">[</span>99<span class="fn-bracket">]</span></span>
+<p>Joseph De Vilmarest and Yannig Goude. State-space models for online post-covid electricity load forecasting competition. <em>IEEE Open Access Journal of Power and Energy</em>, 9:192–201, 2022.</p>
+</div>
+<div class="citation" id="id23" role="doc-biblioentry">
+<span class="label"><span class="fn-bracket">[</span>100<span class="fn-bracket">]</span></span>
+<p>Joseph de Vilmarest and Olivier Wintenberger. Viking: variational bayesian variance tracking. <em>Statistical Inference for Stochastic Processes</em>, 27(3):839–860, 2024.</p>
+</div>
+<div class="citation" id="id25" role="doc-biblioentry">
+<span class="label"><span class="fn-bracket">[</span>101<span class="fn-bracket">]</span></span>
+<p>Nathan Doumèche. Weakl: weak kernel learner (v0.0.6). 2026.</p>
+</div>
+<div class="citation" id="id27" role="doc-biblioentry">
+<span class="label"><span class="fn-bracket">[</span>102<span class="fn-bracket">]</span></span>
+<p>Nathan Doumèche, Yannig Goude, Stefania Rubrichi, and Yann Allioux. Human spatial dynamics for electricity demand forecasting. <em>IEEE Transactions on Power Systems</em>, 2025.</p>
+</div>
+<div class="citation" id="id28" role="doc-biblioentry">
+<span class="label"><span class="fn-bracket">[</span>103<span class="fn-bracket">]</span></span>
+<p>Nathan Doumèche, Yannig Goude, and Yann Allioux. Human spatial dynamics for electricity demand forecasting: the case of france during the 2022 energy crisis. October 2023. URL: <a class="reference external" href="https://doi.org/10.5281/zenodo.10041368">https://doi.org/10.5281/zenodo.10041368</a>, <a class="reference external" href="https://doi.org/10.5281/zenodo.10041368">doi:10.5281/zenodo.10041368</a>.</p>
+</div>
+<div class="citation" id="id31" role="doc-biblioentry">
+<span class="label"><span class="fn-bracket">[</span>104<span class="fn-bracket">]</span></span>
+<p>Mostafa Farrokhabadi, Jethro Browell, Yi Wang, Stephen Makonin, Wencong Su, and Hamidreza Zareipour. Day-ahead electricity demand forecasting competition: post-covid paradigm. <em>IEEE Open Access Journal of Power and Energy</em>, 9:185–191, 2022.</p>
+</div>
+<div class="citation" id="id32" role="doc-biblioentry">
+<span class="label"><span class="fn-bracket">[</span>105<span class="fn-bracket">]</span></span>
+<p>Pierre Gaillard, Yannig Goude, and Raphaël Nedellec. Additive models and robust aggregation for gefcom2014 probabilistic electric load and electricity price forecasting. <em>International Journal of forecasting</em>, 32(3):1038–1050, 2016.</p>
+</div>
+<div class="citation" id="id48" role="doc-biblioentry">
 <span class="label"><span class="fn-bracket">[</span>106<span class="fn-bracket">]</span></span>
+<p>R. E. Kalman. A new approach to linear filtering and prediction problems. <em>Journal of Basic Engineering</em>, 82(1):35–45, 03 1960. URL: <a class="reference external" href="https://doi.org/10.1115/1.3662552">https://doi.org/10.1115/1.3662552</a>, <a class="reference external" href="https://arxiv.org/abs/https://asmedigitalcollection.asme.org/fluidsengineering/article-pdf/82/1/35/5518977/35_1.pdf">arXiv:https://asmedigitalcollection.asme.org/fluidsengineering/article-pdf/82/1/35/5518977/35_1.pdf</a>, <a class="reference external" href="https://doi.org/10.1115/1.3662552">doi:10.1115/1.3662552</a>.</p>
+</div>
+<div class="citation" id="id60" role="doc-biblioentry">
+<span class="label"><span class="fn-bracket">[</span>107<span class="fn-bracket">]</span></span>
+<p>Jingang Qu, David Holzmüller, Gaël Varoquaux, and Marine Le Morvan. Tabicl: a tabular foundation model for in-context learning on large data. <em>arXiv preprint arXiv:2502.05564</em>, 2025.</p>
+</div>
+<div class="citation" id="id69" role="doc-biblioentry">
+<span class="label"><span class="fn-bracket">[</span>108<span class="fn-bracket">]</span></span>
+<p>Skipper Seabold, Josef Perktold, and others. Statsmodels: econometric and statistical modeling with python. <em>scipy</em>, 7(1):92–96, 2010.</p>
+</div>
+<div class="citation" id="id77" role="doc-biblioentry">
+<span class="label"><span class="fn-bracket">[</span>109<span class="fn-bracket">]</span></span>
+<p>Shanika L Wickramasuriya, George Athanasopoulos, and Rob J Hyndman. Optimal forecast reconciliation for hierarchical and grouped time series through trace minimization. <em>Journal of the American Statistical Association</em>, 114(526):804–819, 2019.</p>
+</div>
+<div class="citation" id="id83" role="doc-biblioentry">
+<span class="label"><span class="fn-bracket">[</span>110<span class="fn-bracket">]</span></span>
+<p>Simon N Wood, Zheyuan Li, Gavin Shaddick, and Nicole H Augustin. Generalized additive models for gigadata: modeling the uk black smoke network daily data. <em>Journal of the American Statistical Association</em>, 112(519):1199–1210, 2017.</p>
+</div>
+<div class="citation" id="id88" role="doc-biblioentry">
+<span class="label"><span class="fn-bracket">[</span>111<span class="fn-bracket">]</span></span>
+<p>Joseph De Vilmarest and Olivier Wintenberger. Stochastic online optimization using kalman recursion. <em>Journal of Machine Learning Research</em>, 22(223):1–55, 2021.</p>
+</div>
+<div class="citation" id="id89" role="doc-biblioentry">
+<span class="label"><span class="fn-bracket">[</span>112<span class="fn-bracket">]</span></span>
+<p>Adam Paszke, Sam Gross, Francisco Massa, Adam Lerer, James Bradbury, Gregory Chanan, Trevor Killeen, Zeming Lin, Natalia Gimelshein, Luca Antiga, and others. Pytorch: an imperative style, high-performance deep learning library. <em>Advances in neural information processing systems</em>, 2019.</p>
+</div>
+<div class="citation" id="id90" role="doc-biblioentry">
+<span class="label"><span class="fn-bracket">[</span>113<span class="fn-bracket">]</span></span>
+<p>daniel servén, Charlie Brummitt, Franz Király, JodesL, Denise Schmitz, Zachariah Carmichael, Alejandro Ouslan, Fräntz Miccoli, IlyesD, Jonathan Taylor, Joseph Egan, Luc Lapenta, Lucas Servén Marín, Shishin Mo, Shushank Ranjan, Stephen Anthony Rose, Thomas Kraxner, Umberto Fasci, Viktor Szépe, Yasser El Haddar, hlink, Hassan Abedi, and nicoleta-kyo. Dswah/pygam: v0.12.0. December 2025. URL: <a class="reference external" href="https://doi.org/10.5281/zenodo.17981758">https://doi.org/10.5281/zenodo.17981758</a>, <a class="reference external" href="https://doi.org/10.5281/zenodo.17981758">doi:10.5281/zenodo.17981758</a>.</p>
+</div>
+<div class="citation" id="id92" role="doc-biblioentry">
+<span class="label"><span class="fn-bracket">[</span>114<span class="fn-bracket">]</span></span>
+<p>Amandine Pierrot and Yannig Goude. Short-term electricity load forecasting with generalized additive models. <em>Proceedings of ISAP power</em>, 2011.</p>
+</div>
+<div class="citation" id="id94" role="doc-biblioentry">
+<span class="label"><span class="fn-bracket">[</span>115<span class="fn-bracket">]</span></span>
+<p>James Durbin and Siem Jan Koopman. <em>Time series analysis by state space methods</em>. Oxford University Press (UK), 2012.</p>
+</div>
+<div class="citation" id="id96" role="doc-biblioentry">
+<span class="label"><span class="fn-bracket">[</span>116<span class="fn-bracket">]</span></span>
+<p>Max A Woodbury. <em>Inverting modified matrices</em>. Department of Statistics, Princeton University, 1950. Mathematical foundation of the Woodbury matrix identity (Sherman-Morrison-Woodbury formula), justifying the low-rank update inversion optimization.</p>
+</div>
+<div class="citation" id="id97" role="doc-biblioentry">
+<span class="label"><span class="fn-bracket">[</span>117<span class="fn-bracket">]</span></span>
+<p>Harold V Henderson and Shayle R Searle. On deriving the inverse of a sum of matrices. <em>SIAM review</em>, 23(1):53–60, 1981. Modern review and formal proof of the Woodbury identity used to stabilize the Kalman gain matrix inversion.</p>
+</div>
+<div class="citation" id="id98" role="doc-biblioentry">
+<span class="label"><span class="fn-bracket">[</span>118<span class="fn-bracket">]</span></span>
+<p>William W Hager. Updating the inverse of a matrix. <em>SIAM review</em>, 31(2):221–239, 1989.</p>
+</div>
+<div class="citation" id="id99" role="doc-biblioentry">
+<span class="label"><span class="fn-bracket">[</span>119<span class="fn-bracket">]</span></span>
+<p>Ali H Sayed. <em>Adaptive filters</em>. John Wiley &amp; Sons, 2011.</p>
+</div>
+<div class="citation" id="id100" role="doc-biblioentry">
+<span class="label"><span class="fn-bracket">[</span>120<span class="fn-bracket">]</span></span>
+<p>Margaux Brégère and Malo Huard. Online hierarchical forecasting for power consumption data. <em>International Journal of Forecasting</em>, 38(1):339–351, 2022. Key reference for online hierarchical forecasting in the energy sector. Illustrates the post-hoc reconciliation approach, in contrast to the joint learning proposed here.</p>
+</div>
+<div class="citation" id="id105" role="doc-biblioentry">
+<span class="label"><span class="fn-bracket">[</span>121<span class="fn-bracket">]</span></span>
 <p>Christopher M Bishop and Nasser M Nasrabadi. <em>Pattern recognition and machine learning</em>. Volume 4. Springer, 2006. Justifies the Bayesian interpretation of Ridge regression and uncertainty calculation via the inverse Hessian.</p>
 </div>
 <div class="citation" id="id106" role="doc-biblioentry">
-<span class="label"><span class="fn-bracket">[</span>107<span class="fn-bracket">]</span></span>
+<span class="label"><span class="fn-bracket">[</span>122<span class="fn-bracket">]</span></span>
 <p>Dimitris N Politis and Joseph P Romano. The stationary bootstrap. <em>Journal of the American Statistical association</em>, 89(428):1303–1313, 1994. Theoretical foundation of Block Bootstrap for time series. Justifies contiguous block resampling to preserve residual autocorrelation.</p>
 </div>
 </div>
@@ -785,7 +859,7 @@
       
     </aside>
   </div>
-</div><script src="_static/documentation_options.js?v=010db75e"></script>
+</div><script src="_static/documentation_options.js?v=1f29e9d3"></script>
     <script src="_static/doctools.js?v=fd6eb6e6"></script>
     <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="_static/scripts/furo.js?v=46bd48cc"></script>

@@ -167,8 +167,10 @@ TAM/
     │   │   │                            # Scope scripts: _math.py, _dispatcher.py
     │   │   ├── 04_complexity.md         # Proof of O(N D²) vs O(N³) complexity. 
     │   │   │                            # Scope scripts: _math.py, _dispatcher.py
-    │   │   └── 05_gcv_theory.md         # Golub's trace, Tikhonov regularization. 
-    │   │                                # Scope scripts: _dispatcher_gcv.py
+    │   │   ├── 05_gcv_theory.md         # Golub's trace, Tikhonov regularization. 
+    │   │   │                            # Scope scripts: _dispatcher_gcv.py
+    │   │   └── 07_the_statistics_api.md # One Atom, Many Statistics: the P-WLS atom + IRLS/distributional contract.
+    │   │                                # Scope scripts: _base.py (_solve_pwls_step), statistics/estimation/_base_strategy.py
     │   │
     │   ├── spectrum/        # -> Mathematical definition of Bases (Formulas for Φ and P)
     │   │   ├── LINEAR.md                # Scope scripts: _linear.py
@@ -185,6 +187,16 @@ TAM/
     │   │   ├── PID.md                   # Scope scripts: _pid.py and model/bode.py  
     │   │   └── CROSS_TENSOR.md          # Scope scripts: _tensor.py 
     │   │
+    │   ├── statistics/      # -> Theory of the Statistics Engine
+    │   │   ├── 01_reweighted_estimation.md  # IRLS, GLMs, Expectiles, Robust M-Estimators.
+    │   │   │                                # Scope: statistics/estimation/{_glm,_expectile,_robust,_factory,_reweighting}.py
+    │   │   ├── 02_distributional.md         # Location-Scale (distributional) models & schedules.
+    │   │   │                                # Scope: statistics/estimation/_distributional.py
+    │   │   ├── 03_mixture_copula.md         # EM Mixtures and Gaussian Copulas.
+    │   │   │                                # Scope: statistics/estimation/_mixture.py, distributions/copula.py
+    │   │   └── 04_risk_conformal_evt.md     # Split Conformal, ACI, EVT, and Epistemic uncertainty.
+    │   │                                    # Scope: safety.py, statistics/risk/{conformal,aci,extremes,uncertainty}.py
+    │   │
     │   └── meta/            # -> Theory of Meta-Learning algorithms
     │       ├── 01_adaptive_online.md         # Sliding windows theory and concept drift. 
     │       │                                 # Scope scripts: adaptive.py
@@ -192,8 +204,6 @@ TAM/
     │       │                                 # Scope scripts: kalman.py
     │       ├── 03_hierarchical_joint.md      # Joint optimization under constraints (Parent = Sum). 
     │       │                                 # Scope scripts: hierarchical.py
-    │       ├── 04_conformal_safety.md        # Conformal prediction (Split, ACI by Gibbs & Candès). 
-    │       │                                 # Scope scripts: safety.py
     │       ├── 05_opera_aggregation.md       # Expert aggregation, regret bounds, Cesa-Bianchi. 
     │       │                                 # Scope scripts: opera.py
     │       ├── 06_deep_gam_backfitting.md    # Orthogonal backfitting per group (Hybridization). 
@@ -221,8 +231,20 @@ TAM/
         │   │                            # Scope scripts: hardware.py, _memory.py, _dispatcher.py (catch OOM), _tree.py (sparse COO), utils.py
         │   ├── 05_gcv_implementation.md # Discrete coordinate descent and block matrices.
         │   │                            # Scope scripts: _dispatcher_gcv.py
-        │   └── 06_the_spectrum_api.md   # Spectrum of core mathematic projection basis. 
-        │                                # Scope scripts contained in model/spectrum folder
+        │   ├── 06_the_spectrum_api.md   # Spectrum of core mathematic projection basis. 
+        │   │                            # Scope scripts contained in model/spectrum folder
+        │   └── 07_the_statistics_api.md # The IRLS and distributional API contract (One Atom, Many Statistics).
+        │                                # Scope scripts: statistics/__init__.py, estimation/_base_strategy.py, _factory.py
+        │
+        ├── statistics/      # -> Implementation of the Statistics Engine
+        │   ├── 01_reweighted_estimation_code.md  # Strategy pattern for losses + the IRLS driver.
+        │   │                                     # Scope: statistics/estimation/{_base_strategy,_glm,_expectile,_robust,_factory,_reweighting}.py
+        │   ├── 02_distributional_code.md         # Thin additive.py routing to the location-scale schedule.
+        │   │                                     # Scope: statistics/estimation/_distributional.py, additive.py (routing)
+        │   ├── 03_mixture_copula_code.md         # EM over the weighted atom; the standalone copula joiner.
+        │   │                                     # Scope: statistics/estimation/_mixture.py, distributions/copula.py
+        │   └── 04_risk_conformal_evt_code.md     # SafetyTAM, ACI, conformal wrapper, EVT & posterior.
+        │                                         # Scope: safety.py, statistics/risk/{conformal,aci,extremes,uncertainty}.py
         │
         └── meta/            # -> Implementation of Wrappers / Meta-Models
             ├── 01_adaptive_code.md      # Vectorized sliding windows. 
@@ -231,8 +253,6 @@ TAM/
             │                            # Scope scripts: kalman.py
             ├── 03_hierarchical_code.md  # Creation of global sparse L^T L loss matrices. 
             │                            # Scope scripts: hierarchical.py
-            ├── 04_safety_code.md        # Tensor calculation of quantiles and residual tracker. 
-            │                            # Scope scripts: safety.py
             ├── 05_opera_gpu.md          # 3D Tensor Batching (Groups, Time, Experts) on GPU. 
             │                            # Scope scripts: opera.py
             ├── 06_neural_hybrid.md      # Integration of nn.Sequential in the backfitting loop. 

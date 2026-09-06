@@ -7,7 +7,7 @@
         <link rel="prefetch" href="_static/logo.png" as="image">
 
     <!-- Generated with Sphinx 9.1.0 and Furo 2025.12.19 -->
-        <title>TAM (Time series Additive Model) - TAM 1.2.6 documentation</title>
+        <title>TAM (Time series Additive Model) - TAM 1.3.0 documentation</title>
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=d111a655" />
     <link rel="stylesheet" type="text/css" href="_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="_static/styles/furo-extensions.css?v=8dab3a3b" />
@@ -162,7 +162,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="index.html"><div class="brand">TAM 1.2.6 documentation</div></a>
+      <a href="index.html"><div class="brand">TAM 1.3.0 documentation</div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -186,7 +186,7 @@
     <img class="sidebar-logo" src="_static/logo.png" alt="Logo"/>
   </div>
   
-  <span class="sidebar-brand-text">TAM 1.2.6 documentation</span>
+  <span class="sidebar-brand-text">TAM 1.3.0 documentation</span>
   
 </a><form class="sidebar-search-container" method="get" action="search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
@@ -206,6 +206,7 @@
 <li class="toctree-l1"><a class="reference internal" href="math/core/03_linear_system.html">Linear Algebra: Direct vs. Iterative Solvers</a></li>
 <li class="toctree-l1"><a class="reference internal" href="math/core/04_complexity.html">Computational Complexity (<span class="math notranslate nohighlight">\(\mathcal{O}(D^3+T D^2)\)</span> vs <span class="math notranslate nohighlight">\(\mathcal{O}(T^3)\)</span>)</a></li>
 <li class="toctree-l1"><a class="reference internal" href="math/core/05_gcv_theory.html">Hyperparameter Optimization: Generalized Cross-Validation (GCV)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="math/core/07_the_statistics_api.html">One Atom, Many Statistics: The Statistics API</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">🌈 Theory: The Spectrum Library</span></p>
 <ul>
@@ -223,12 +224,18 @@
 <li class="toctree-l1"><a class="reference internal" href="math/spectrum/PID.html">The PID Effect (Autoregressive Control Dynamics)</a></li>
 <li class="toctree-l1"><a class="reference internal" href="math/spectrum/LINEAR_TREE.html">The Linear Tree Effect (Varying-Coefficient Models)</a></li>
 </ul>
+<p class="caption" role="heading"><span class="caption-text">📊 Theory: The Statistics Engine</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="math/statistics/01_reweighted_estimation.html">Reweighted Estimation: GLMs, Expectiles &amp; Robust M-Estimators</a></li>
+<li class="toctree-l1"><a class="reference internal" href="math/statistics/02_distributional.html">Distributional (Location-Scale) Models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="math/statistics/03_mixture_copula.html">Mixtures &amp; Gaussian Copulas</a></li>
+<li class="toctree-l1"><a class="reference internal" href="math/statistics/04_risk_conformal_evt.html">Risk: Conformal, ACI, EVT &amp; Epistemic Uncertainty</a></li>
+</ul>
 <p class="caption" role="heading"><span class="caption-text">⚙️ Theory: Meta-Learners &amp; Inference</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="math/meta/01_adaptive_online.html">Adaptive Online Learning (AdaptiveTAM)</a></li>
 <li class="toctree-l1"><a class="reference internal" href="math/meta/02_kalman_filter.html">Dynamic Tracking via Extended Kalman Filtering [BETA]</a></li>
 <li class="toctree-l1"><a class="reference internal" href="math/meta/03_hierarchical_joint.html">Hierarchical Joint Optimization [BETA]</a></li>
-<li class="toctree-l1"><a class="reference internal" href="math/meta/04_conformal_safety.html">Uncertainty Quantification via Conformal Prediction [EXP]</a></li>
 <li class="toctree-l1"><a class="reference internal" href="math/meta/05_opera_aggregation.html">Online Prediction by Expert Aggregation (OPERA)</a></li>
 <li class="toctree-l1"><a class="reference internal" href="math/meta/06_deep_gam_backfitting.html">Deep-GAM Hybridization and Orthogonal Backfitting [EXP]</a></li>
 <li class="toctree-l1"><a class="reference internal" href="math/meta/07_statistical_diagnostics.html">Statistical Inference and Diagnostics (Glass-Box) [EXP]</a></li>
@@ -244,13 +251,20 @@
 <li class="toctree-l1"><a class="reference internal" href="architecture/core/04_hardware_memory.html">Hardware Memory Dispatch &amp; Anti-OOM Systems</a></li>
 <li class="toctree-l1"><a class="reference internal" href="architecture/core/05_gcv_implementation.html">Auto-ML via Generalized Cross-Validation (GCV)</a></li>
 <li class="toctree-l1"><a class="reference internal" href="architecture/core/06_the_spectrum_api.html">The Spectral Dictionary: PyTorch Implementations &amp; Factory Assembly</a></li>
+<li class="toctree-l1"><a class="reference internal" href="architecture/core/07_the_statistics_api.html">The Statistics API: One Atom, Many Schedules</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">🔬 Architecture: The Statistics Engine</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="architecture/statistics/01_reweighted_estimation_code.html">Reweighted Estimation: Strategy Pattern &amp; IRLS Driver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="architecture/statistics/02_distributional_code.html">Distributional (Location-Scale): Thin Delegation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="architecture/statistics/03_mixture_copula_code.html">Mixtures &amp; Copulas: EM over the Atom, and the Standalone Joiner</a></li>
+<li class="toctree-l1"><a class="reference internal" href="architecture/statistics/04_risk_conformal_evt_code.html">Risk: Static Conformal, Streaming ACI, EVT &amp; Epistemic</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">🛠️ Architecture: Advanced Orchestration</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="architecture/meta/01_adaptive_code.html">Online Error Correction (AdaptiveTAM)</a></li>
 <li class="toctree-l1"><a class="reference internal" href="architecture/meta/02_kalman_torchscript.html">Kalman TorchScript Optimizations &amp; Block Updates [BETA]</a></li>
 <li class="toctree-l1"><a class="reference internal" href="architecture/meta/03_hierarchical_code.html">Hierarchical Engineering &amp; Memory Assembly  [BETA]</a></li>
-<li class="toctree-l1"><a class="reference internal" href="architecture/meta/04_safety_code.html">Diagnostics, Visualization &amp; Utilities Engineering [EXP]</a></li>
 <li class="toctree-l1"><a class="reference internal" href="architecture/meta/05_opera_gpu.html">OPERA GPU Tensor Batching</a></li>
 <li class="toctree-l1"><a class="reference internal" href="architecture/meta/06_neural_hybrid.html">DeepGAM Engineering &amp; Sequential Encapsulation [EXP]</a></li>
 <li class="toctree-l1"><a class="reference internal" href="architecture/meta/07_diagnostics_utils.html">Diagnostics, Visualization &amp; Utilities Engineering  [EXP]</a></li>
@@ -311,7 +325,7 @@
           <section class="tex2jax_ignore mathjax_ignore" id="tam-time-series-additive-model">
 <h1>TAM (Time series Additive Model)<a class="headerlink" href="#tam-time-series-additive-model" title="Link to this heading">¶</a></h1>
 <p><a class="reference internal" href="EXAMPLES.html"><span class="std std-doc">🧪 <code class="docutils literal notranslate"><span class="pre">EXAMPLES</span></code></span></a> | <a class="reference internal" href="THEORY.html"><span class="std std-doc">📚 <code class="docutils literal notranslate"><span class="pre">THEORY</span></code></span></a> | <a class="reference internal" href="#paper.md"><span class="xref myst">📄 <code class="docutils literal notranslate"><span class="pre">JOSS</span> <span class="pre">PAPER</span></code></span></a></p>
-<p><strong>Version:</strong> 1.2.6<br />
+<p><strong>Version:</strong> 1.3.0<br />
 <strong>License:</strong> LGPL-3.0-or-later.<br />
 <strong>Copyright (c):</strong> 2023-2026 EDF (Electricité De France).<br />
 <strong>Copyright (c):</strong> 2023-2025 Sorbonne Université.</p>
@@ -324,7 +338,7 @@
 <a class="reference external" href="https://opensource.org/licenses/LGPL-3.0"><img alt="License: LGPL" src="https://img.shields.io/badge/License-LGPL-blue.svg" /></a>
 <a class="reference external" href="https://www.python.org/downloads/"><img alt="Python 3.10+" src="https://img.shields.io/badge/python-3.10+-blue.svg" /></a>
 <a class="reference external" href="https://github.com/EDF-Lab/tam"><img alt="GitHub Repo stars" src="https://img.shields.io/github/stars/EDF-Lab/tam?style=social" /></a>
-<a class="reference external" href="https://doi.org/10.5281/zenodo.20543272"><img alt="DOI: TAM" src="https://zenodo.org/badge/DOI/10.5281/zenodo.20543272.svg" /></a></p>
+<a class="reference external" href="https://doi.org/10.5281/zenodo.20543271"><img alt="DOI: TAM" src="https://zenodo.org/badge/DOI/10.5281/zenodo.20543271.svg" /></a></p>
 <p><strong>The unified framework for interpretable, physics-informed, and high-performance time series forecasting.</strong></p>
 <p>TAM gives you the transparency of standard statistical models (like linear regression and splines) with the raw processing power and scale of deep learning. Build your model using simple formula syntax, and our engine will resolve it efficiently on modern GPU architectures via PyTorch, featuring a glass-box architecture with isolated, interpretable components, robust memory management, and exact mathematical resolution.</p>
 <hr class="docutils" />
@@ -348,6 +362,7 @@
 <li><p><strong>Adaptive (<code class="docutils literal notranslate"><span class="pre">AdaptiveTAM</span></code>):</strong> Corrects residuals in real-time using parallel sliding-windows to handle concept drift.</p></li>
 <li><p><strong>Expertise (<code class="docutils literal notranslate"><span class="pre">OperaTAM</span></code>):</strong> Aggregates external expert models dynamically with mathematical regret bounds.</p></li>
 <li><p><strong>Evaluation (<code class="docutils literal notranslate"><span class="pre">BenchmarkTracker</span></code>):</strong> Tracks temporal degradation, calculates NaN-safe metrics, and analyzes residual autocorrelation.</p></li>
+<li><p><strong>Distributional &amp; Uncertainty (<code class="docutils literal notranslate"><span class="pre">statistics</span></code>):</strong> Non-Gaussian targets (Poisson, Gamma, Binomial), Location-Scale modeling, EM Mixtures, Gaussian Copulas, and rigorous risk bounding via Conformal Prediction (ACI) and Extreme Value Theory (EVT).</p></li>
 </ul>
 </section>
 <hr class="docutils" />
@@ -360,7 +375,6 @@
 <li><p><strong>Hierarchy (<code class="docutils literal notranslate"><span class="pre">HierarchicalTAM</span></code>) (BETA):</strong> Optimizes parent/child series simultaneously in the Primal space (National = Sum of Regions).</p></li>
 <li><p><strong>AutoML (<code class="docutils literal notranslate"><span class="pre">AutoTAM</span></code>) (EXP):</strong> Evolutionary Search to discover optimal GAM topologies using successive halving &amp; parsimony pruning.</p></li>
 <li><p><strong>Hybrid (<code class="docutils literal notranslate"><span class="pre">NeuralTAM</span></code>) (EXP):</strong> Integrates Deep Neural Networks via orthogonal residual backfitting to capture extreme non-linearities.</p></li>
-<li><p><strong>Safety (<code class="docutils literal notranslate"><span class="pre">SafetyTAM</span></code>) (EXP):</strong> Provides statistically guaranteed confidence intervals via Adaptive Conformal Inference (ACI).</p></li>
 </ul>
 </section>
 <hr class="docutils" />
@@ -402,32 +416,32 @@
 <span class="kn">from</span><span class="w"> </span><span class="nn">importlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">resources</span>
 
 <span class="c1"># 1. Load Data</span>
-<span class="n">df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="n">resources</span><span class="o">.</span><span class="n">files</span><span class="p">(</span><span class="s1">&#39;tam.data&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">joinpath</span><span class="p">(</span><span class="s1">&#39;airpassengers.csv&#39;</span><span class="p">))</span><span class="o">.</span><span class="n">dropna</span><span class="p">()</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
-<span class="n">df</span><span class="p">[</span><span class="s1">&#39;date&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">to_datetime</span><span class="p">(</span><span class="n">df</span><span class="p">[</span><span class="s1">&#39;date&#39;</span><span class="p">])</span>
-<span class="n">d_dict</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;train&#39;</span><span class="p">:</span> <span class="n">df</span><span class="o">.</span><span class="n">iloc</span><span class="p">[:</span><span class="o">-</span><span class="mi">24</span><span class="p">],</span> <span class="s1">&#39;test&#39;</span><span class="p">:</span> <span class="n">df</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="o">-</span><span class="mi">24</span><span class="p">:]}</span>
+<span class="n">df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="n">resources</span><span class="o">.</span><span class="n">files</span><span class="p">(</span><span class="s1">'tam.data'</span><span class="p">)</span><span class="o">.</span><span class="n">joinpath</span><span class="p">(</span><span class="s1">'airpassengers.csv'</span><span class="p">))</span><span class="o">.</span><span class="n">dropna</span><span class="p">()</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+<span class="n">df</span><span class="p">[</span><span class="s1">'date'</span><span class="p">]</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">to_datetime</span><span class="p">(</span><span class="n">df</span><span class="p">[</span><span class="s1">'date'</span><span class="p">])</span>
+<span class="n">d_dict</span> <span class="o">=</span> <span class="p">{</span><span class="s1">'train'</span><span class="p">:</span> <span class="n">df</span><span class="o">.</span><span class="n">iloc</span><span class="p">[:</span><span class="o">-</span><span class="mi">24</span><span class="p">],</span> <span class="s1">'test'</span><span class="p">:</span> <span class="n">df</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="o">-</span><span class="mi">24</span><span class="p">:]}</span>
 
 <span class="c1"># 2. Define competing architectures via formulas</span>
-<span class="n">f1</span> <span class="o">=</span> <span class="s2">&quot;log_passengers ~ c(month, topo=&#39;fourier&#39;, ap=-8.0) + l(lag_log_passengers, ap=-30.0)&quot;</span>
-<span class="n">f2</span> <span class="o">=</span> <span class="s2">&quot;log_passengers ~ n(month) + l(lag_log_passengers, ap=-30.0)&quot;</span>
+<span class="n">f1</span> <span class="o">=</span> <span class="s2">"log_passengers ~ c(month, topo='fourier', ap=-8.0) + l(lag_log_passengers, ap=-30.0)"</span>
+<span class="n">f2</span> <span class="o">=</span> <span class="s2">"log_passengers ~ n(month) + l(lag_log_passengers, ap=-30.0)"</span>
 
 <span class="c1"># 3. Fit and predict standard models</span>
-<span class="n">df</span><span class="p">[</span><span class="s1">&#39;E1&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">ta</span><span class="o">.</span><span class="n">StaticTAM</span><span class="p">(</span><span class="n">formula</span><span class="o">=</span><span class="n">f1</span><span class="p">,</span> <span class="n">date_col</span><span class="o">=</span><span class="s2">&quot;date&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">d_dict</span><span class="p">[</span><span class="s1">&#39;train&#39;</span><span class="p">])</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">df</span><span class="p">)[</span><span class="s2">&quot;Estimatedlog_passengers&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">values</span>
-<span class="n">df</span><span class="p">[</span><span class="s1">&#39;E2&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">ta</span><span class="o">.</span><span class="n">StaticTAM</span><span class="p">(</span><span class="n">formula</span><span class="o">=</span><span class="n">f2</span><span class="p">,</span> <span class="n">date_col</span><span class="o">=</span><span class="s2">&quot;date&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">d_dict</span><span class="p">[</span><span class="s1">&#39;train&#39;</span><span class="p">])</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">df</span><span class="p">)[</span><span class="s2">&quot;Estimatedlog_passengers&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">values</span>
+<span class="n">df</span><span class="p">[</span><span class="s1">'E1'</span><span class="p">]</span> <span class="o">=</span> <span class="n">ta</span><span class="o">.</span><span class="n">StaticTAM</span><span class="p">(</span><span class="n">formula</span><span class="o">=</span><span class="n">f1</span><span class="p">,</span> <span class="n">date_col</span><span class="o">=</span><span class="s2">"date"</span><span class="p">)</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">d_dict</span><span class="p">[</span><span class="s1">'train'</span><span class="p">])</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">df</span><span class="p">)[</span><span class="s2">"Estimatedlog_passengers"</span><span class="p">]</span><span class="o">.</span><span class="n">values</span>
+<span class="n">df</span><span class="p">[</span><span class="s1">'E2'</span><span class="p">]</span> <span class="o">=</span> <span class="n">ta</span><span class="o">.</span><span class="n">StaticTAM</span><span class="p">(</span><span class="n">formula</span><span class="o">=</span><span class="n">f2</span><span class="p">,</span> <span class="n">date_col</span><span class="o">=</span><span class="s2">"date"</span><span class="p">)</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">d_dict</span><span class="p">[</span><span class="s1">'train'</span><span class="p">])</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">df</span><span class="p">)[</span><span class="s2">"Estimatedlog_passengers"</span><span class="p">]</span><span class="o">.</span><span class="n">values</span>
 
 <span class="c1"># 4. Dynamically aggregate experts using OperaTAM</span>
-<span class="n">opera</span> <span class="o">=</span> <span class="n">ta</span><span class="o">.</span><span class="n">OperaTAM</span><span class="p">(</span><span class="s2">&quot;log_passengers ~ l(E1) + l(E2)&quot;</span><span class="p">,</span> <span class="n">algorithm</span><span class="o">=</span><span class="s1">&#39;MLPOL&#39;</span><span class="p">,</span> <span class="n">date_col</span><span class="o">=</span><span class="s1">&#39;date&#39;</span><span class="p">,</span> <span class="n">horizon_steps</span><span class="o">=</span><span class="mi">12</span><span class="p">)</span>
-<span class="n">df</span><span class="p">[</span><span class="s1">&#39;OPERA&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">opera</span><span class="o">.</span><span class="n">predict_online</span><span class="p">(</span><span class="n">df</span><span class="p">)[</span><span class="s1">&#39;prediction_opera&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">values</span>
+<span class="n">opera</span> <span class="o">=</span> <span class="n">ta</span><span class="o">.</span><span class="n">OperaTAM</span><span class="p">(</span><span class="s2">"log_passengers ~ l(E1) + l(E2)"</span><span class="p">,</span> <span class="n">algorithm</span><span class="o">=</span><span class="s1">'MLPOL'</span><span class="p">,</span> <span class="n">date_col</span><span class="o">=</span><span class="s1">'date'</span><span class="p">,</span> <span class="n">horizon_steps</span><span class="o">=</span><span class="mi">12</span><span class="p">)</span>
+<span class="n">df</span><span class="p">[</span><span class="s1">'OPERA'</span><span class="p">]</span> <span class="o">=</span> <span class="n">opera</span><span class="o">.</span><span class="n">predict_online</span><span class="p">(</span><span class="n">df</span><span class="p">)[</span><span class="s1">'prediction_opera'</span><span class="p">]</span><span class="o">.</span><span class="n">values</span>
 
 <span class="c1"># Option B (Production): Train on history, apply frozen weights to the future</span>
-<span class="c1"># opera.fit(d_dict[&#39;train&#39;])</span>
-<span class="c1"># test_predictions = opera.predict(d_dict[&#39;test&#39;])</span>
+<span class="c1"># opera.fit(d_dict['train'])</span>
+<span class="c1"># test_predictions = opera.predict(d_dict['test'])</span>
 
 <span class="c1"># 5. Evaluate and plot</span>
-<span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">col</span> <span class="ow">in</span> <span class="p">[(</span><span class="s2">&quot;Expert 1&quot;</span><span class="p">,</span> <span class="s2">&quot;E1&quot;</span><span class="p">),</span> <span class="p">(</span><span class="s2">&quot;Expert 2&quot;</span><span class="p">,</span> <span class="s2">&quot;E2&quot;</span><span class="p">),</span> <span class="p">(</span><span class="s2">&quot;OPERA&quot;</span><span class="p">,</span> <span class="s2">&quot;OPERA&quot;</span><span class="p">)]:</span>
+<span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">col</span> <span class="ow">in</span> <span class="p">[(</span><span class="s2">"Expert 1"</span><span class="p">,</span> <span class="s2">"E1"</span><span class="p">),</span> <span class="p">(</span><span class="s2">"Expert 2"</span><span class="p">,</span> <span class="s2">"E2"</span><span class="p">),</span> <span class="p">(</span><span class="s2">"OPERA"</span><span class="p">,</span> <span class="s2">"OPERA"</span><span class="p">)]:</span>
     <span class="n">tr</span> <span class="o">=</span> <span class="n">ta</span><span class="o">.</span><span class="n">BenchmarkTracker</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
     <span class="n">tr</span><span class="o">.</span><span class="n">y_pred_full</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">df</span><span class="p">[</span><span class="n">col</span><span class="p">]</span><span class="o">.</span><span class="n">values</span><span class="p">)</span>
-    <span class="n">tr</span><span class="o">.</span><span class="n">slice_and_evaluate</span><span class="p">(</span><span class="n">d_dict</span><span class="p">,</span> <span class="n">target_col</span><span class="o">=</span><span class="s1">&#39;value&#39;</span><span class="p">)</span>
-    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;[</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">] Test MAPE: </span><span class="si">{</span><span class="n">tr</span><span class="o">.</span><span class="n">get_metric</span><span class="p">(</span><span class="s1">&#39;test&#39;</span><span class="p">,</span><span class="w"> </span><span class="s1">&#39;MAPE&#39;</span><span class="p">)</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2">%&quot;</span><span class="p">)</span>
+    <span class="n">tr</span><span class="o">.</span><span class="n">slice_and_evaluate</span><span class="p">(</span><span class="n">d_dict</span><span class="p">,</span> <span class="n">target_col</span><span class="o">=</span><span class="s1">'value'</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"[</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">] Test MAPE: </span><span class="si">{</span><span class="n">tr</span><span class="o">.</span><span class="n">get_metric</span><span class="p">(</span><span class="s1">'test'</span><span class="p">,</span><span class="w"> </span><span class="s1">'MAPE'</span><span class="p">)</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2">%"</span><span class="p">)</span>
 
 <span class="n">opera</span><span class="o">.</span><span class="n">plot_weights</span><span class="p">(</span><span class="n">df</span><span class="o">=</span><span class="n">df</span><span class="p">)</span>
 </pre></div>
@@ -462,20 +476,20 @@
 <h2>Citation<a class="headerlink" href="#citation" title="Link to this heading">¶</a></h2>
 <p>If you use these packages in your research, please cite them using their permanent archives:</p>
 <ul class="simple">
-<li><p><strong>TAM:</strong> <a class="reference external" href="https://doi.org/10.5281/zenodo.20543272">https://doi.org/10.5281/zenodo.20543272</a></p></li>
+<li><p><strong>TAM:</strong> <a class="reference external" href="https://doi.org/10.5281/zenodo.20543271">https://doi.org/10.5281/zenodo.20543271</a></p></li>
 </ul>
 <p><strong>TAM</strong></p>
 <div class="highlight-bibtex notranslate"><div class="highlight"><pre><span></span><span class="nc">@misc</span><span class="p">{</span><span class="nl">tam2026package</span><span class="p">,</span>
-<span class="w">  </span><span class="na">title</span><span class="p">=</span><span class="s">{TAM: Time series Additive Model (v1.2.3)}</span><span class="p">,</span>
+<span class="w">  </span><span class="na">title</span><span class="p">=</span><span class="s">{TAM: Time series Additive Model (v1.3.0)}</span><span class="p">,</span>
 <span class="w">  </span><span class="na">author</span><span class="p">=</span><span class="s">{Allioux, Yann and Goude, Yannig}</span><span class="p">,</span>
 <span class="w">  </span><span class="na">year</span><span class="p">=</span><span class="s">{2026}</span><span class="p">,</span>
-<span class="w">  </span><span class="na">doi</span><span class="p">=</span><span class="s">{10.5281/zenodo.20543272}</span><span class="p">,</span>
+<span class="w">  </span><span class="na">doi</span><span class="p">=</span><span class="s">{10.5281/zenodo.22544995}</span><span class="p">,</span>
 <span class="w">  </span><span class="na">note</span><span class="p">=</span><span class="s">{With foundational WeaKL research by Nathan Doumèche, and tensorisation and adaptive model contributions by Éloi Bedek}</span>
 <span class="p">}</span>
 </pre></div>
 </div>
 <ul class="simple">
-<li><p><strong>FORCE Dataset:</strong> <a class="reference external" href="https://doi.org/10.5281/zenodo.21109134">https://doi.org/10.5281/zenodo.21109134</a></p></li>
+<li><p><strong>FORCE Dataset:</strong> <a class="reference external" href="https://doi.org/10.5281/zenodo.21109133">https://doi.org/10.5281/zenodo.21109133</a></p></li>
 </ul>
 <p><strong>FORCE Dataset</strong></p>
 <div class="highlight-bibtex notranslate"><div class="highlight"><pre><span></span><span class="nc">@dataset</span><span class="p">{</span><span class="nl">force2026dataset</span><span class="p">,</span>
@@ -586,7 +600,7 @@
       
     </aside>
   </div>
-</div><script src="_static/documentation_options.js?v=010db75e"></script>
+</div><script src="_static/documentation_options.js?v=1f29e9d3"></script>
     <script src="_static/doctools.js?v=fd6eb6e6"></script>
     <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="_static/scripts/furo.js?v=46bd48cc"></script>

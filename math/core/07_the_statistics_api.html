@@ -3,11 +3,11 @@
   <head><meta charset="utf-8">
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
-<link rel="index" title="Index" href="../../genindex.html"><link rel="search" title="Search" href="../../search.html"><link rel="next" title="OPERA GPU Tensor Batching" href="05_opera_gpu.html"><link rel="prev" title="Hierarchical Engineering &amp; Memory Assembly [BETA]" href="03_hierarchical_code.html">
+<link rel="index" title="Index" href="../../genindex.html"><link rel="search" title="Search" href="../../search.html"><link rel="next" title="The Linear Effect (Ridge Regression)" href="../spectrum/LINEAR.html"><link rel="prev" title="Hyperparameter Optimization: Generalized Cross-Validation (GCV)" href="05_gcv_theory.html">
         <link rel="prefetch" href="../../_static/logo.png" as="image">
 
     <!-- Generated with Sphinx 9.1.0 and Furo 2025.12.19 -->
-        <title>Diagnostics, Visualization &amp; Utilities Engineering [EXP] - TAM 1.2.6 documentation</title>
+        <title>One Atom, Many Statistics: The Statistics API - TAM 1.3.0 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=d111a655" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo-extensions.css?v=8dab3a3b" />
@@ -162,7 +162,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="../../index.html"><div class="brand">TAM 1.2.6 documentation</div></a>
+      <a href="../../index.html"><div class="brand">TAM 1.3.0 documentation</div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -173,7 +173,7 @@
           <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
         </button>
       </div>
-      <label class="toc-overlay-icon toc-header-icon no-toc" for="__toc">
+      <label class="toc-overlay-icon toc-header-icon" for="__toc">
         <span class="icon"><svg><use href="#svg-toc"></use></svg></span>
       </label>
     </div>
@@ -186,7 +186,7 @@
     <img class="sidebar-logo" src="../../_static/logo.png" alt="Logo"/>
   </div>
   
-  <span class="sidebar-brand-text">TAM 1.2.6 documentation</span>
+  <span class="sidebar-brand-text">TAM 1.3.0 documentation</span>
   
 </a><form class="sidebar-search-container" method="get" action="../../search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
@@ -200,63 +200,77 @@
 <li class="toctree-l1"><a class="reference internal" href="../../THEORY.html">📚 Theory Introduction of TAM and Cheatsheet</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">🧠 Theory: The Core Engine</span></p>
-<ul>
-<li class="toctree-l1"><a class="reference internal" href="../../math/core/01_primal_model.html">The Exact Primal Resolution</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../math/core/02_tensorization.html">The Theory of N-Dim Broadcasting and Normalization</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../math/core/03_linear_system.html">Linear Algebra: Direct vs. Iterative Solvers</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../math/core/04_complexity.html">Computational Complexity (<span class="math notranslate nohighlight">\(\mathcal{O}(D^3+T D^2)\)</span> vs <span class="math notranslate nohighlight">\(\mathcal{O}(T^3)\)</span>)</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../math/core/05_gcv_theory.html">Hyperparameter Optimization: Generalized Cross-Validation (GCV)</a></li>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="01_primal_model.html">The Exact Primal Resolution</a></li>
+<li class="toctree-l1"><a class="reference internal" href="02_tensorization.html">The Theory of N-Dim Broadcasting and Normalization</a></li>
+<li class="toctree-l1"><a class="reference internal" href="03_linear_system.html">Linear Algebra: Direct vs. Iterative Solvers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="04_complexity.html">Computational Complexity (<span class="math notranslate nohighlight">\(\mathcal{O}(D^3+T D^2)\)</span> vs <span class="math notranslate nohighlight">\(\mathcal{O}(T^3)\)</span>)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="05_gcv_theory.html">Hyperparameter Optimization: Generalized Cross-Validation (GCV)</a></li>
+<li class="toctree-l1 current current-page"><a class="current reference internal" href="#">One Atom, Many Statistics: The Statistics API</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">🌈 Theory: The Spectrum Library</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="../../math/spectrum/LINEAR.html">The Linear Effect (Ridge Regression)</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../math/spectrum/SPLINES.html">The Spline Effect (P-Splines)</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../math/spectrum/FOURIER.html">The Fourier Effect (Sobolev Spectral Basis)</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../math/spectrum/WAVELETS.html">The Wavelet Effect (Ricker)</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../math/spectrum/CHEBYSHEV.html">The Chebyshev Effect (Polynomial Minimax Basis)</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../math/spectrum/TREE.html">The Tree Effect (Random Forests &amp; Binning Features)</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../math/spectrum/NEURAL.html">The Neural Effect (NEPT)</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../math/spectrum/RBF.html">The Radial Basis Function (RBF) Effect</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../math/spectrum/CATEGORICAL.html">The Categorical Effect (Discrete Topologies)</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../math/spectrum/CROSS_TENSOR.html">The Tensor Product Effect (Interactions)</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../math/spectrum/PHYSICS_PIKL.html">Physics-Informed Kernel Learning (PIKL)</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../math/spectrum/PID.html">The PID Effect (Autoregressive Control Dynamics)</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../math/spectrum/LINEAR_TREE.html">The Linear Tree Effect (Varying-Coefficient Models)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../spectrum/LINEAR.html">The Linear Effect (Ridge Regression)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../spectrum/SPLINES.html">The Spline Effect (P-Splines)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../spectrum/FOURIER.html">The Fourier Effect (Sobolev Spectral Basis)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../spectrum/WAVELETS.html">The Wavelet Effect (Ricker)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../spectrum/CHEBYSHEV.html">The Chebyshev Effect (Polynomial Minimax Basis)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../spectrum/TREE.html">The Tree Effect (Random Forests &amp; Binning Features)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../spectrum/NEURAL.html">The Neural Effect (NEPT)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../spectrum/RBF.html">The Radial Basis Function (RBF) Effect</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../spectrum/CATEGORICAL.html">The Categorical Effect (Discrete Topologies)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../spectrum/CROSS_TENSOR.html">The Tensor Product Effect (Interactions)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../spectrum/PHYSICS_PIKL.html">Physics-Informed Kernel Learning (PIKL)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../spectrum/PID.html">The PID Effect (Autoregressive Control Dynamics)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../spectrum/LINEAR_TREE.html">The Linear Tree Effect (Varying-Coefficient Models)</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">📊 Theory: The Statistics Engine</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../statistics/01_reweighted_estimation.html">Reweighted Estimation: GLMs, Expectiles &amp; Robust M-Estimators</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../statistics/02_distributional.html">Distributional (Location-Scale) Models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../statistics/03_mixture_copula.html">Mixtures &amp; Gaussian Copulas</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../statistics/04_risk_conformal_evt.html">Risk: Conformal, ACI, EVT &amp; Epistemic Uncertainty</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">⚙️ Theory: Meta-Learners &amp; Inference</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="../../math/meta/01_adaptive_online.html">Adaptive Online Learning (AdaptiveTAM)</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../math/meta/02_kalman_filter.html">Dynamic Tracking via Extended Kalman Filtering [BETA]</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../math/meta/03_hierarchical_joint.html">Hierarchical Joint Optimization [BETA]</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../math/meta/04_conformal_safety.html">Uncertainty Quantification via Conformal Prediction [EXP]</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../math/meta/05_opera_aggregation.html">Online Prediction by Expert Aggregation (OPERA)</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../math/meta/06_deep_gam_backfitting.html">Deep-GAM Hybridization and Orthogonal Backfitting [EXP]</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../math/meta/07_statistical_diagnostics.html">Statistical Inference and Diagnostics (Glass-Box) [EXP]</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../math/meta/08_auto_orchestrator.html">Evolutionary Orchestration and Multi-Fidelity AutoML</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../math/meta/09_auto_data_topology.html">AutoTAM Data Topology and Structural Safeguards [EXP]</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../math/meta/10_mlops_evaluation.html">Empirical Evaluation and MLOps Diagnostics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../meta/01_adaptive_online.html">Adaptive Online Learning (AdaptiveTAM)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../meta/02_kalman_filter.html">Dynamic Tracking via Extended Kalman Filtering [BETA]</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../meta/03_hierarchical_joint.html">Hierarchical Joint Optimization [BETA]</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../meta/05_opera_aggregation.html">Online Prediction by Expert Aggregation (OPERA)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../meta/06_deep_gam_backfitting.html">Deep-GAM Hybridization and Orthogonal Backfitting [EXP]</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../meta/07_statistical_diagnostics.html">Statistical Inference and Diagnostics (Glass-Box) [EXP]</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../meta/08_auto_orchestrator.html">Evolutionary Orchestration and Multi-Fidelity AutoML</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../meta/09_auto_data_topology.html">AutoTAM Data Topology and Structural Safeguards [EXP]</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../meta/10_mlops_evaluation.html">Empirical Evaluation and MLOps Diagnostics</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">💻 Architecture: Core Implementation</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="../core/01_additive_api.html">The Additive API and Object-Oriented Architecture</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../core/02_data_pipeline.html">The Engineering of Normalization and Padding</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../core/03_math_dispatcher.html">PyTorch Math Dispatcher &amp; Matrix-Free Solvers</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../core/04_hardware_memory.html">Hardware Memory Dispatch &amp; Anti-OOM Systems</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../core/05_gcv_implementation.html">Auto-ML via Generalized Cross-Validation (GCV)</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../core/06_the_spectrum_api.html">The Spectral Dictionary: PyTorch Implementations &amp; Factory Assembly</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/core/01_additive_api.html">The Additive API and Object-Oriented Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/core/02_data_pipeline.html">The Engineering of Normalization and Padding</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/core/03_math_dispatcher.html">PyTorch Math Dispatcher &amp; Matrix-Free Solvers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/core/04_hardware_memory.html">Hardware Memory Dispatch &amp; Anti-OOM Systems</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/core/05_gcv_implementation.html">Auto-ML via Generalized Cross-Validation (GCV)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/core/06_the_spectrum_api.html">The Spectral Dictionary: PyTorch Implementations &amp; Factory Assembly</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/core/07_the_statistics_api.html">The Statistics API: One Atom, Many Schedules</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">🔬 Architecture: The Statistics Engine</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/statistics/01_reweighted_estimation_code.html">Reweighted Estimation: Strategy Pattern &amp; IRLS Driver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/statistics/02_distributional_code.html">Distributional (Location-Scale): Thin Delegation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/statistics/03_mixture_copula_code.html">Mixtures &amp; Copulas: EM over the Atom, and the Standalone Joiner</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/statistics/04_risk_conformal_evt_code.html">Risk: Static Conformal, Streaming ACI, EVT &amp; Epistemic</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">🛠️ Architecture: Advanced Orchestration</span></p>
-<ul class="current">
-<li class="toctree-l1"><a class="reference internal" href="01_adaptive_code.html">Online Error Correction (AdaptiveTAM)</a></li>
-<li class="toctree-l1"><a class="reference internal" href="02_kalman_torchscript.html">Kalman TorchScript Optimizations &amp; Block Updates [BETA]</a></li>
-<li class="toctree-l1"><a class="reference internal" href="03_hierarchical_code.html">Hierarchical Engineering &amp; Memory Assembly  [BETA]</a></li>
-<li class="toctree-l1 current current-page"><a class="current reference internal" href="#">Diagnostics, Visualization &amp; Utilities Engineering [EXP]</a></li>
-<li class="toctree-l1"><a class="reference internal" href="05_opera_gpu.html">OPERA GPU Tensor Batching</a></li>
-<li class="toctree-l1"><a class="reference internal" href="06_neural_hybrid.html">DeepGAM Engineering &amp; Sequential Encapsulation [EXP]</a></li>
-<li class="toctree-l1"><a class="reference internal" href="07_diagnostics_utils.html">Diagnostics, Visualization &amp; Utilities Engineering  [EXP]</a></li>
-<li class="toctree-l1"><a class="reference internal" href="08_auto_orchestrator_code.html">Orchestrator Pipeline and Evolutionary Hub-and-Spoke Engine [EXP]</a></li>
-<li class="toctree-l1"><a class="reference internal" href="09_auto_data_topology_code.html">AutoTAM Data Topology: Stateful Architecture &amp; Pandas Vectorization [EXP]</a></li>
-<li class="toctree-l1"><a class="reference internal" href="10_mlops_tracking_code.html">MLOps Tracking and Empirical Benchmarking (Engineering)</a></li>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/meta/01_adaptive_code.html">Online Error Correction (AdaptiveTAM)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/meta/02_kalman_torchscript.html">Kalman TorchScript Optimizations &amp; Block Updates [BETA]</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/meta/03_hierarchical_code.html">Hierarchical Engineering &amp; Memory Assembly  [BETA]</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/meta/05_opera_gpu.html">OPERA GPU Tensor Batching</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/meta/06_neural_hybrid.html">DeepGAM Engineering &amp; Sequential Encapsulation [EXP]</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/meta/07_diagnostics_utils.html">Diagnostics, Visualization &amp; Utilities Engineering  [EXP]</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/meta/08_auto_orchestrator_code.html">Orchestrator Pipeline and Evolutionary Hub-and-Spoke Engine [EXP]</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/meta/09_auto_data_topology_code.html">AutoTAM Data Topology: Stateful Architecture &amp; Pandas Vectorization [EXP]</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/meta/10_mlops_tracking_code.html">MLOps Tracking and Empirical Benchmarking (Engineering)</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">🧪 Gallery of Examples &amp; Use Cases</span></p>
 <ul>
@@ -290,7 +304,7 @@
         </a>
         <div class="content-icon-container">
           <div class="view-this-page">
-  <a class="muted-link" href="../../_sources/architecture/meta/04_safety_code.md.txt" title="View this page">
+  <a class="muted-link" href="../../_sources/math/core/07_the_statistics_api.md.txt" title="View this page">
     <svg><use href="#svg-eye"></use></svg>
     <span class="visually-hidden">View this page</span>
   </a>
@@ -303,28 +317,37 @@
               <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
             </button>
           </div>
-          <label class="toc-overlay-icon toc-content-icon no-toc" for="__toc">
+          <label class="toc-overlay-icon toc-content-icon" for="__toc">
             <span class="icon"><svg><use href="#svg-toc"></use></svg></span>
           </label>
         </div>
         <article role="main" id="furo-main-content">
-          <section class="tex2jax_ignore mathjax_ignore" id="diagnostics-visualization-utilities-engineering-exp">
-<h1>Diagnostics, Visualization &amp; Utilities Engineering [EXP]<a class="headerlink" href="#diagnostics-visualization-utilities-engineering-exp" title="Link to this heading">¶</a></h1>
-<blockquote>
-<div><p>🧪 <strong>Experimental – Work in Progress</strong></p>
-</div></blockquote>
-<p>⚠️ <strong>Status: Incomplete / exploratory code</strong></p>
-<ul class="simple">
-<li><p>This module is under heavy development or prototyping</p></li>
-<li><p>It may be partially implemented or non-functional</p></li>
-<li><p>Behavior, correctness, and API are not guaranteed</p></li>
-<li><p>Provided for transparency and research exploration only</p></li>
-</ul>
+          <section class="tex2jax_ignore mathjax_ignore" id="one-atom-many-statistics-the-statistics-api">
+<h1>One Atom, Many Statistics: The Statistics API<a class="headerlink" href="#one-atom-many-statistics-the-statistics-api" title="Link to this heading">¶</a></h1>
 <p><strong>Navigation:</strong></p>
 <ul class="simple">
 <li><p><strong>Theory introduction:</strong> <a class="reference internal" href="../../THEORY.html"><span class="std std-doc">See the Intro</span></a></p></li>
-<li><p><strong>Related mathematical theory:</strong> <a class="reference internal" href="../../math/meta/04_conformal_safety.html"><span class="std std-doc">See the Mathematical Theory</span></a></p></li>
+<li><p><strong>Related implementation:</strong> <a class="reference internal" href="../../architecture/core/07_the_statistics_api.html"><span class="std std-doc">The Statistics API (architecture)</span></a></p></li>
 </ul>
+<p>Where the <a class="reference internal" href="../spectrum/LINEAR.html"><span class="std std-doc">Spectrum library</span></a> is a <em>heterogeneous</em> collection of bases, each effect a different <span class="math notranslate nohighlight">\(\Phi\)</span>/<span class="math notranslate nohighlight">\(P\)</span>, the Statistics layer is the mirror image: a <strong>single</strong> numerical primitive reused for <em>every</em> statistical target. This is the <strong>“One Atom, Many Statistics”</strong> philosophy.</p>
+<section id="the-atom">
+<h2>The Atom<a class="headerlink" href="#the-atom" title="Link to this heading">¶</a></h2>
+<p>Every fit reduces to one penalized weighted least-squares solve:</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[ \left(\Phi^\top W \Phi + n\,S\right)\theta = \Phi^\top W z. \]</div>
+</div>
+<p>A Gaussian mean fit calls it <strong>once</strong>; the default <code class="docutils literal notranslate"><span class="pre">loss=&quot;l2&quot;</span></code> (with <span class="math notranslate nohighlight">\(W=I\)</span>) is bit-identical to the ordinary least-squares solver. Every non-Gaussian target changes <strong>only</strong> the working response <span class="math notranslate nohighlight">\(z\)</span> and the per-observation weights <span class="math notranslate nohighlight">\(W = \mathrm{diag}(w_i)\)</span>, the high-performance linear algebra never changes, only the <em>schedule</em> that feeds it.</p>
+</section>
+<section id="the-three-schedules-and-the-risk-layer-above">
+<h2>The Three Schedules (and the Risk layer above)<a class="headerlink" href="#the-three-schedules-and-the-risk-layer-above" title="Link to this heading">¶</a></h2>
+<ol class="arabic simple">
+<li><p><strong>IRLS</strong>: GLMs (Poisson/Gamma/Binomial), robust M-estimators and expectiles: <span class="math notranslate nohighlight">\(z=\eta+(y-\mu)g'(\mu)\)</span>, <span class="math notranslate nohighlight">\(w=1/(g'(\mu)^2 V(\mu))\)</span>. See <a class="reference internal" href="../statistics/01_reweighted_estimation.html"><span class="std std-doc">Reweighted estimation</span></a>.</p></li>
+<li><p><strong>Location-scale (distributional)</strong>: a <code class="docutils literal notranslate"><span class="pre">{param:</span> <span class="pre">formula}</span></code> dict composes two sub-atoms (an L2 location on <span class="math notranslate nohighlight">\(\log y\)</span>, a Gamma scale on the squared residuals). See <a class="reference internal" href="../statistics/02_distributional.html"><span class="std std-doc">Distributional</span></a>.</p></li>
+<li><p><strong>EM mixture</strong>: the M-step is the weighted atom with responsibilities as weights. See <a class="reference internal" href="../statistics/03_mixture_copula.html"><span class="std std-doc">Mixtures &amp; copulas</span></a>.</p></li>
+</ol>
+<p>The post-fit <strong>risk</strong> bounds, conformal, ACI, EVT and epistemic uncertainty, operate on the predictions of any of these. See <a class="reference internal" href="../statistics/04_risk_conformal_evt.html"><span class="std std-doc">Risk: conformal / EVT</span></a>.</p>
+</section>
 </section>
 
         </article>
@@ -332,23 +355,23 @@
       <footer>
         
         <div class="related-pages">
-          <a class="next-page" href="05_opera_gpu.html">
+          <a class="next-page" href="../spectrum/LINEAR.html">
               <div class="page-info">
                 <div class="context">
                   <span>Next</span>
                 </div>
-                <div class="title">OPERA GPU Tensor Batching</div>
+                <div class="title">The Linear Effect (Ridge Regression)</div>
               </div>
               <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
             </a>
-          <a class="prev-page" href="03_hierarchical_code.html">
+          <a class="prev-page" href="05_gcv_theory.html">
               <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
               <div class="page-info">
                 <div class="context">
                   <span>Previous</span>
                 </div>
                 
-                <div class="title">Hierarchical Engineering &amp; Memory Assembly  [BETA]</div>
+                <div class="title">Hyperparameter Optimization: Generalized Cross-Validation (GCV)</div>
                 
               </div>
             </a>
@@ -370,15 +393,37 @@
         
       </footer>
     </div>
-    <aside class="toc-drawer no-toc">
+    <aside class="toc-drawer">
       
+      
+      <div class="toc-sticky toc-scroll">
+        <div class="toc-title-container">
+          <span class="toc-title">
+            On this page
+          </span>
+        </div>
+        <div class="toc-tree-container">
+          <div class="toc-tree">
+            <ul>
+<li><a class="reference internal" href="#">One Atom, Many Statistics: The Statistics API</a><ul>
+<li><a class="reference internal" href="#the-atom">The Atom</a></li>
+<li><a class="reference internal" href="#the-three-schedules-and-the-risk-layer-above">The Three Schedules (and the Risk layer above)</a></li>
+</ul>
+</li>
+</ul>
+
+          </div>
+        </div>
+      </div>
       
       
     </aside>
   </div>
-</div><script src="../../_static/documentation_options.js?v=010db75e"></script>
+</div><script src="../../_static/documentation_options.js?v=1f29e9d3"></script>
     <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/scripts/furo.js?v=46bd48cc"></script>
+    <script>window.MathJax = {"options": {"processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+    <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@4/tex-mml-chtml.js"></script>
     </body>
 </html>

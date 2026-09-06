@@ -15,6 +15,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > **[0.0.6]** corresponds to the legacy `weakl` package available on PyPI.
 
 ---
+## [1.3.0] - 2026-09-06
+
+### Added
+- **Statistics layer** (`tam.model.statistics`) : a modular "how" beside the structural spectrum "what", built on the single P-WLS atom (`BaseTAM._solve_pwls_step`), so the default `loss="l2"` path stays bit-identical to ordinary least squares.
+  - **Reweighting & estimation** (`estimation/`): GLM families (Gamma, Poisson, Binomial), asymmetric expectiles, and robust M-estimators (Huber, Student-t) via `StaticTAM(loss=...)`, driven by an IRLS schedule over the atom.
+  - **Distributional** location-scale fits via a dict formula/loss (`{"mu": ..., "sigma": ...}`), with automatic Normal/Student-t tail selection, `predict_quantiles`, `cdf`, `anomaly_score` and `crps`.
+  - **Mixture** of TAM regressions (`mixture_components=K`) fitted by EM whose M-step is the responsibility-weighted atom.
+  - **Gaussian copula** (`GaussianCopulaTAM`) binding several distributional margins.
+  - **Conformal & ACI** (`statistics.risk`): distribution-free CQR intervals, conformal p-values, Mondrian (stratified) calibration (`ConformalDistributionalTAM`) and streaming Adaptive Conformal Inference, on the static `SafetyTAM` engine.
+  - **EVT & epistemic uncertainty**: Generalized-Pareto tail scoring (`GeneralizedParetoTail`, `fit_gpd_tail`) and Bayesian posterior parameter uncertainty (`posterior_prediction`).
+
 ## [1.2.6] - 2026-07-17
 
 ### Added
@@ -175,6 +186,7 @@ This version introduced the Formula API and the first object-oriented refactorin
 ### Added
 * Initial project setup based on the original `weakl` v0.0.6 package.
 
+[1.3.0]: https://github.com/EDF-Lab/tam/releases/tag/v1.3.0
 [1.2.6]: https://github.com/EDF-Lab/tam/releases/tag/v1.2.6
 [1.2.5]: https://github.com/EDF-Lab/tam/releases/tag/v1.2.5
 [1.2.4]: https://github.com/EDF-Lab/tam/releases/tag/v1.2.4

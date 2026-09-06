@@ -7,7 +7,7 @@
         <link rel="prefetch" href="../../_static/logo.png" as="image">
 
     <!-- Generated with Sphinx 9.1.0 and Furo 2025.12.19 -->
-        <title>Auto-ML via Generalized Cross-Validation (GCV) - TAM 1.2.6 documentation</title>
+        <title>Auto-ML via Generalized Cross-Validation (GCV) - TAM 1.3.0 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=d111a655" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo-extensions.css?v=8dab3a3b" />
@@ -162,7 +162,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="../../index.html"><div class="brand">TAM 1.2.6 documentation</div></a>
+      <a href="../../index.html"><div class="brand">TAM 1.3.0 documentation</div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -186,7 +186,7 @@
     <img class="sidebar-logo" src="../../_static/logo.png" alt="Logo"/>
   </div>
   
-  <span class="sidebar-brand-text">TAM 1.2.6 documentation</span>
+  <span class="sidebar-brand-text">TAM 1.3.0 documentation</span>
   
 </a><form class="sidebar-search-container" method="get" action="../../search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
@@ -206,6 +206,7 @@
 <li class="toctree-l1"><a class="reference internal" href="../../math/core/03_linear_system.html">Linear Algebra: Direct vs. Iterative Solvers</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../math/core/04_complexity.html">Computational Complexity (<span class="math notranslate nohighlight">\(\mathcal{O}(D^3+T D^2)\)</span> vs <span class="math notranslate nohighlight">\(\mathcal{O}(T^3)\)</span>)</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../math/core/05_gcv_theory.html">Hyperparameter Optimization: Generalized Cross-Validation (GCV)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../math/core/07_the_statistics_api.html">One Atom, Many Statistics: The Statistics API</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">🌈 Theory: The Spectrum Library</span></p>
 <ul>
@@ -223,12 +224,18 @@
 <li class="toctree-l1"><a class="reference internal" href="../../math/spectrum/PID.html">The PID Effect (Autoregressive Control Dynamics)</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../math/spectrum/LINEAR_TREE.html">The Linear Tree Effect (Varying-Coefficient Models)</a></li>
 </ul>
+<p class="caption" role="heading"><span class="caption-text">📊 Theory: The Statistics Engine</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../math/statistics/01_reweighted_estimation.html">Reweighted Estimation: GLMs, Expectiles &amp; Robust M-Estimators</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../math/statistics/02_distributional.html">Distributional (Location-Scale) Models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../math/statistics/03_mixture_copula.html">Mixtures &amp; Gaussian Copulas</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../math/statistics/04_risk_conformal_evt.html">Risk: Conformal, ACI, EVT &amp; Epistemic Uncertainty</a></li>
+</ul>
 <p class="caption" role="heading"><span class="caption-text">⚙️ Theory: Meta-Learners &amp; Inference</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="../../math/meta/01_adaptive_online.html">Adaptive Online Learning (AdaptiveTAM)</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../math/meta/02_kalman_filter.html">Dynamic Tracking via Extended Kalman Filtering [BETA]</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../math/meta/03_hierarchical_joint.html">Hierarchical Joint Optimization [BETA]</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../math/meta/04_conformal_safety.html">Uncertainty Quantification via Conformal Prediction [EXP]</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../math/meta/05_opera_aggregation.html">Online Prediction by Expert Aggregation (OPERA)</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../math/meta/06_deep_gam_backfitting.html">Deep-GAM Hybridization and Orthogonal Backfitting [EXP]</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../math/meta/07_statistical_diagnostics.html">Statistical Inference and Diagnostics (Glass-Box) [EXP]</a></li>
@@ -244,13 +251,20 @@
 <li class="toctree-l1"><a class="reference internal" href="04_hardware_memory.html">Hardware Memory Dispatch &amp; Anti-OOM Systems</a></li>
 <li class="toctree-l1 current current-page"><a class="current reference internal" href="#">Auto-ML via Generalized Cross-Validation (GCV)</a></li>
 <li class="toctree-l1"><a class="reference internal" href="06_the_spectrum_api.html">The Spectral Dictionary: PyTorch Implementations &amp; Factory Assembly</a></li>
+<li class="toctree-l1"><a class="reference internal" href="07_the_statistics_api.html">The Statistics API: One Atom, Many Schedules</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">🔬 Architecture: The Statistics Engine</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../statistics/01_reweighted_estimation_code.html">Reweighted Estimation: Strategy Pattern &amp; IRLS Driver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../statistics/02_distributional_code.html">Distributional (Location-Scale): Thin Delegation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../statistics/03_mixture_copula_code.html">Mixtures &amp; Copulas: EM over the Atom, and the Standalone Joiner</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../statistics/04_risk_conformal_evt_code.html">Risk: Static Conformal, Streaming ACI, EVT &amp; Epistemic</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">🛠️ Architecture: Advanced Orchestration</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="../meta/01_adaptive_code.html">Online Error Correction (AdaptiveTAM)</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../meta/02_kalman_torchscript.html">Kalman TorchScript Optimizations &amp; Block Updates [BETA]</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../meta/03_hierarchical_code.html">Hierarchical Engineering &amp; Memory Assembly  [BETA]</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../meta/04_safety_code.html">Diagnostics, Visualization &amp; Utilities Engineering [EXP]</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../meta/05_opera_gpu.html">OPERA GPU Tensor Batching</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../meta/06_neural_hybrid.html">DeepGAM Engineering &amp; Sequential Encapsulation [EXP]</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../meta/07_diagnostics_utils.html">Diagnostics, Visualization &amp; Utilities Engineering  [EXP]</a></li>
@@ -331,15 +345,15 @@
         <span class="n">alpha_p_list</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">float</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">gamma</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.4</span><span class="p">,</span>
         <span class="n">verbose</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
-    <span class="p">)</span> <span class="o">-&gt;</span> <span class="s1">&#39;StaticTAM&#39;</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="s1">'StaticTAM'</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""</span>
 <span class="sd">        Automatically trains the model by finding the optimal regularization per effect.</span>
 <span class="sd">        </span>
 <span class="sd">        Uses Generalized Cross Validation (GCV) with Multiple Smoothing Parameter (MSP)</span>
 <span class="sd">        estimation to balance model fit (bias) and complexity (variance) without </span>
 <span class="sd">        requiring a validation set. </span>
 <span class="sd">        </span>
-<span class="sd">        It utilizes a Coordinate Descent algorithm starting from the formula&#39;s initial values.</span>
+<span class="sd">        It utilizes a Coordinate Descent algorithm starting from the formula's initial values.</span>
 <span class="sd">        </span>
 <span class="sd">        Args:</span>
 <span class="sd">            data_train: Training DataFrame.</span>
@@ -354,13 +368,13 @@
 <span class="sd">            </span>
 <span class="sd">        Returns:</span>
 <span class="sd">            self: The trained model instance with optimal lambda_ps applied.</span>
-<span class="sd">        &quot;&quot;&quot;</span>
-        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;--- Auto-Fitting with MSP-GCV (Multiple Smoothing Parameters) ---&quot;</span><span class="p">)</span>
+<span class="sd">        """</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">"--- Auto-Fitting with MSP-GCV (Multiple Smoothing Parameters) ---"</span><span class="p">)</span>
 
         <span class="n">data_train</span> <span class="o">=</span> <span class="n">_ensure_dummies</span><span class="p">(</span><span class="n">data_train</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">group_col_</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">date_col_</span><span class="p">)</span>
         
         <span class="n">_</span><span class="p">,</span> <span class="n">balanced_data</span> <span class="o">=</span> <span class="n">_balance_groups</span><span class="p">(</span>
-            <span class="n">dataset</span><span class="o">=</span><span class="n">data_train</span><span class="p">,</span> <span class="n">group_col</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">group_col_</span><span class="p">,</span> <span class="n">date_col</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">date_col_</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="s2">&quot;drop&quot;</span>
+            <span class="n">dataset</span><span class="o">=</span><span class="n">data_train</span><span class="p">,</span> <span class="n">group_col</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">group_col_</span><span class="p">,</span> <span class="n">date_col</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">date_col_</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="s2">"drop"</span>
         <span class="p">)</span>
         <span class="n">x_train</span><span class="p">,</span> <span class="n">y_train</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">unique_groups_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_prepare_data</span><span class="p">(</span>
             <span class="n">balanced_data</span><span class="p">,</span> <span class="n">target_col</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">target_col_</span>
@@ -380,11 +394,11 @@
             <span class="n">verbose</span><span class="o">=</span><span class="n">verbose</span>
         <span class="p">)</span>
         
-        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Final GCV Score: </span><span class="si">{</span><span class="n">gcv_score</span><span class="si">:</span><span class="s2">.4f</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Optimal lambda_ps found per effect:&quot;</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="se">\n</span><span class="s2">Final GCV Score: </span><span class="si">{</span><span class="n">gcv_score</span><span class="si">:</span><span class="s2">.4f</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">"Optimal lambda_ps found per effect:"</span><span class="p">)</span>
         <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">effect</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">effects_list_</span><span class="p">):</span>
             <span class="n">effect</span><span class="o">.</span><span class="n">lambda_p</span> <span class="o">=</span> <span class="n">best_lambda_ps</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
-            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot; - </span><span class="si">{</span><span class="n">effect</span><span class="o">.</span><span class="n">feature_name</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">best_lambda_ps</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="si">:</span><span class="s2">.2e</span><span class="si">}</span><span class="s2"> (log10 = </span><span class="si">{</span><span class="n">np</span><span class="o">.</span><span class="n">log10</span><span class="p">(</span><span class="n">best_lambda_ps</span><span class="p">[</span><span class="n">i</span><span class="p">])</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2">)&quot;</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">" - </span><span class="si">{</span><span class="n">effect</span><span class="o">.</span><span class="n">feature_name</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">best_lambda_ps</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="si">:</span><span class="s2">.2e</span><span class="si">}</span><span class="s2"> (log10 = </span><span class="si">{</span><span class="n">np</span><span class="o">.</span><span class="n">log10</span><span class="p">(</span><span class="n">best_lambda_ps</span><span class="p">[</span><span class="n">i</span><span class="p">])</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2">)"</span><span class="p">)</span>
         
         <span class="k">return</span> <span class="bp">self</span>
 </pre></div>
@@ -428,10 +442,10 @@
     <span class="n">gamma</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.4</span><span class="p">,</span>
     <span class="n">verbose</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="nb">float</span><span class="p">]:</span>
-<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">    Memory-safe Generalized Cross Validation (GCV) solver.</span>
 <span class="sd">    Dynamically routes matrix inversions and chunking based on available VRAM.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
     <span class="n">run_device</span> <span class="o">=</span> <span class="n">x_data</span><span class="o">.</span><span class="n">device</span>
     <span class="n">num_samples</span> <span class="o">=</span> <span class="n">x_data</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
     <span class="n">n_groups</span> <span class="o">=</span> <span class="n">x_data</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
@@ -443,10 +457,10 @@
     
     <span class="k">if</span> <span class="n">total_d</span> <span class="o">&gt;</span> <span class="mi">7500</span><span class="p">:</span>
         <span class="k">raise</span> <span class="ne">MemoryError</span><span class="p">(</span>
-            <span class="sa">f</span><span class="s2">&quot;Feature dimension D=</span><span class="si">{</span><span class="n">total_d</span><span class="si">}</span><span class="s2"> is too massive for Generalized Cross Validation (GCV). &quot;</span>
-            <span class="s2">&quot;GCV requires computing the exact trace of the dense inverse covariance matrix, &quot;</span>
-            <span class="s2">&quot;which will cause a severe Out-Of-Memory (OOM) crash on your GPU. &quot;</span>
-            <span class="s2">&quot;Please use `grid_search_fit()` instead, which utilizes matrix-free Conjugate Gradient routing.&quot;</span>
+            <span class="sa">f</span><span class="s2">"Feature dimension D=</span><span class="si">{</span><span class="n">total_d</span><span class="si">}</span><span class="s2"> is too massive for Generalized Cross Validation (GCV). "</span>
+            <span class="s2">"GCV requires computing the exact trace of the dense inverse covariance matrix, "</span>
+            <span class="s2">"which will cause a severe Out-Of-Memory (OOM) crash on your GPU. "</span>
+            <span class="s2">"Please use `grid_search_fit()` instead, which utilizes matrix-free Conjugate Gradient routing."</span>
         <span class="p">)</span>
 
     <span class="n">blocks</span> <span class="o">=</span> <span class="p">[]</span>
@@ -511,12 +525,12 @@
                     <span class="n">safe_group_batch</span><span class="p">,</span> <span class="n">run_device</span> <span class="o">=</span> <span class="n">hw</span><span class="o">.</span><span class="n">handle_oom</span><span class="p">(</span>
                         <span class="n">current_batch</span><span class="o">=</span><span class="n">safe_group_batch</span><span class="p">,</span> 
                         <span class="n">device</span><span class="o">=</span><span class="n">run_device</span><span class="p">,</span> 
-                        <span class="n">context</span><span class="o">=</span><span class="s2">&quot;GCV covariance group reduction&quot;</span><span class="p">,</span> 
+                        <span class="n">context</span><span class="o">=</span><span class="s2">"GCV covariance group reduction"</span><span class="p">,</span> 
                         <span class="n">allow_cpu_fallback</span><span class="o">=</span><span class="kc">False</span>
                     <span class="p">)</span>
                     <span class="k">continue</span>
                 <span class="k">else</span><span class="p">:</span>
-                    <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s2">&quot;A single full group exceeds available physical memory during GCV covariance computation.&quot;</span><span class="p">)</span>
+                    <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s2">"A single full group exceeds available physical memory during GCV covariance computation."</span><span class="p">)</span>
                 
         <span class="k">return</span> <span class="n">cov_x_total</span><span class="p">,</span> <span class="n">cov_xy_total</span><span class="p">,</span> <span class="n">Y_sq_total</span>
 
@@ -529,7 +543,7 @@
 
     <span class="k">if</span> <span class="n">total_bytes</span> <span class="o">&lt;</span> <span class="n">available_mem</span> <span class="o">*</span> <span class="mf">0.3</span><span class="p">:</span>
         <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>
-            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;[GCV Engine] VRAM footprint &lt; 30%. Caching covariances globally on GPU.&quot;</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">"[GCV Engine] VRAM footprint &lt; 30%. Caching covariances globally on GPU."</span><span class="p">)</span>
         <span class="n">cov_X</span><span class="p">,</span> <span class="n">cov_XY</span><span class="p">,</span> <span class="n">Y_sq</span> <span class="o">=</span> <span class="n">_get_chunked_covs</span><span class="p">(</span><span class="n">x_data</span><span class="p">,</span> <span class="n">y_data</span><span class="p">)</span>
         <span class="n">current_penalty</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">total_d</span><span class="p">,</span> <span class="n">total_d</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">get_default_dtype</span><span class="p">(),</span> <span class="n">device</span><span class="o">=</span><span class="n">run_device</span><span class="p">)</span>
         
@@ -601,11 +615,11 @@
         <span class="k">return</span> <span class="n">coeffs</span><span class="p">,</span> <span class="n">best_lambda_ps</span><span class="p">,</span> <span class="n">best_gcv</span>
 
     <span class="k">else</span><span class="p">:</span>
-        <span class="n">eval_device</span> <span class="o">=</span> <span class="n">run_device</span> <span class="k">if</span> <span class="n">bytes_per_group</span> <span class="o">&lt;</span> <span class="n">available_mem</span> <span class="o">*</span> <span class="mf">0.4</span> <span class="k">else</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="s1">&#39;cpu&#39;</span><span class="p">)</span>
-        <span class="k">if</span> <span class="n">eval_device</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="s1">&#39;cpu&#39;</span><span class="p">:</span>
-            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Notice: KxK matrix inversions exceed GPU VRAM. Routing solver to CPU.&quot;</span><span class="p">)</span>
+        <span class="n">eval_device</span> <span class="o">=</span> <span class="n">run_device</span> <span class="k">if</span> <span class="n">bytes_per_group</span> <span class="o">&lt;</span> <span class="n">available_mem</span> <span class="o">*</span> <span class="mf">0.4</span> <span class="k">else</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="s1">'cpu'</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">eval_device</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="s1">'cpu'</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">"Notice: KxK matrix inversions exceed GPU VRAM. Routing solver to CPU."</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Notice: Total system exceeds VRAM. Processing GCV in group chunks.&quot;</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">"Notice: Total system exceeds VRAM. Processing GCV in group chunks."</span><span class="p">)</span>
             
         <span class="n">cov_X_list</span><span class="p">,</span> <span class="n">cov_XY_list</span><span class="p">,</span> <span class="n">Y_sq_list</span> <span class="o">=</span> <span class="p">[],</span> <span class="p">[],</span> <span class="p">[]</span>
         <span class="k">for</span> <span class="n">g</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_groups</span><span class="p">):</span>
@@ -638,7 +652,7 @@
                     <span class="n">total_score</span> <span class="o">+=</span> <span class="n">score</span><span class="o">.</span><span class="n">item</span><span class="p">()</span>
                 <span class="k">except</span> <span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">OutOfMemoryError</span><span class="p">,</span> <span class="ne">MemoryError</span><span class="p">):</span>
                     <span class="n">hw</span><span class="o">.</span><span class="n">empty_cache</span><span class="p">()</span>
-                    <span class="k">return</span> <span class="nb">float</span><span class="p">(</span><span class="s1">&#39;inf&#39;</span><span class="p">)</span>
+                    <span class="k">return</span> <span class="nb">float</span><span class="p">(</span><span class="s1">'inf'</span><span class="p">)</span>
             <span class="k">return</span> <span class="n">total_score</span> <span class="o">/</span> <span class="n">n_groups</span>
 
         <span class="n">current_alpha_ps</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="n">initial_alpha_ps</span><span class="p">)</span>
@@ -775,7 +789,7 @@
       
     </aside>
   </div>
-</div><script src="../../_static/documentation_options.js?v=010db75e"></script>
+</div><script src="../../_static/documentation_options.js?v=1f29e9d3"></script>
     <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/scripts/furo.js?v=46bd48cc"></script>
