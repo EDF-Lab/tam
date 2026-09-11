@@ -204,7 +204,11 @@ class DataProfiler:
                 resampled = resampled.drop(columns=[group_col], errors='ignore')
             data = resampled.reset_index()
             
-            data = data.groupby(group_col).ffill(limit=3).bfill()
+            # data = data.groupby(group_col).ffill(limit=3).bfill()
+            # bug in pandas : the line above removes group_col from the data, 
+            # lines below keep group_col 
+            data.update(data.groupby(group_col).ffill(limit=3))
+            data.update(data.groupby(group_col).bfill())
         else:
             data = data.resample(freq).asfreq().reset_index()
             data = data.ffill(limit=3).bfill()

@@ -98,7 +98,7 @@ class ExpertExpander:
                     if ctx.target not in req_cols: 
                         req_cols.append(ctx.target)
                     
-                    df_fit_clean = df_cont_all.dropna(subset=req_cols).loc[ctx.df_fit.index.intersection(df_cont_all.index)].copy()
+                    df_fit_clean = df_cont_all.loc[ctx.df_fit.index.intersection(df_cont_all.index)].dropna(subset=req_cols).copy()
                     n_samples = len(df_fit_clean)
 
                     m_prior, m_auto, m_grid = None, None, None
