@@ -103,7 +103,10 @@ Real-world data is chaotic. Rather than polluting the exactness of the core engi
 
 * 🚧 **Automated Discovery (AutoML)** $\rightarrow$ **`AutoTAM`** (EXP)
     * *Use case:* You want an Evolutionary Engine to automatically discover the best formula topologies and hyperparameters for you.
-    * *Code:* `AutoTAM(formula="y ~ AutoPipe(x1, x2, Lag_y)", n_experts=10, pop_size=50, use_opera=True)`
+    * *Code:* `AutoTAM(formula="y ~ AutoPipe(x1, x2, y@24)", n_experts=10, pop_size=50, use_opera=True)`
+    * *Inference:* 
+        * `predict()`: Uses frozen validation weights for deterministic, target-free out-of-sample forecasting.
+        * `predict_online()`: Aggregates the *entire* dynamic Apex pool sequentially via MLpol (requires the realized target for continuous backtesting).
 
 ### The Statistical & Risk Ecosystem (v1.3.0)
 
@@ -243,20 +246,20 @@ To demonstrate the framework's mathematical guarantees, we ran a comprehensive b
 
 We deployed the entire TAM spectrum (Static bases, Neural Networks, Physics operators) and wrapped them in all available Meta-Learners. Here is the final Test Set performance (ranked by **RMSE**):
 
-* 🥇 **`OOE_GlobalTAM`** (Test RMSE: **5.99**): The ultimate meta-learner. By using the `OperaTAM` algorithm to dynamically aggregate all sub-ensembles based on real-time regret, it successfully muted failing models and pushed the global error lower than any individual expert.
-* 🥈 **`OE_PhysicsTAM`** (Test RMSE: **6.10**): Explicit Domain Knowledge. By injecting the exact differential equation (PDE) of the Damped Harmonic Oscillator directly into the RKHS penalty matrix, it effortlessly extracted the true physical signal. 
-* 🥉 **`OE_AdaptiveTAM`** (Test RMSE: **6.12**): Sliding-window online learning. Proves that mapping base model residuals to a short-term adaptive memory effectively corrects sudden concept drift.
+* 🥇 **`OE_NeuralTAM`** (Test RMSE: **3.39**): The Deep Learning Hybrid. The properly tuned Neural Networks (ReLU, Cos, Tanh) successfully mapped the high-frequency non-linear noise, proving highly effective when integrated into the TAM pipeline.
+* 🥈 **`OOE_GlobalTAM`** (Test RMSE: **3.40**): The ultimate meta-learner. By using the `OperaTAM` algorithm to dynamically aggregate all sub-ensembles based on real-time regret, it muted the failing models and tracked the strongest sub-ensemble to within 0.01 RMSE, without being told in advance which one it would be.
+* 🥉 **`OE_AdaptiveTAM`** (Test RMSE: **3.86**): Sliding-window online learning. Proves that mapping base model residuals to a short-term adaptive memory effectively corrects sudden concept drift.
+* 🏅 **`OE_KalmanTAM`** (Test RMSE: **4.14**): The Extended Kalman Filter. By continuously tracking the parameter drift of the base models in a state-space formulation, it drastically stabilized predictions across the non-stationary test set. 
+* 🏅 **`OE_StaticTAM`** (Test RMSE: **4.84**): The pure Mathematical bases. Explicit continuous dictionaries (like Fourier, Splines, and Tensors) provided a fast, exact, and highly interpretable analytical baseline.
+* 🏅 **`OE_PhysicsTAM`** (Test RMSE: **6.10**): Explicit Domain Knowledge. By injecting the exact differential equation (PDE) of the Damped Harmonic Oscillator directly into the RKHS penalty matrix, it effortlessly extracted the true physical signal. 
 * 🏅 **`OE_HierarchicalTAM`** (Test RMSE: **6.26**): Structural Coherence. Enforcing the strict top-down constraint ($Y = Y_A + Y_B$) during the global convex optimization prevented the sub-models from overfitting their local, partial noise.
-* 🏅 **`OE_NeuralTAM`** (Test RMSE: **6.28**): The Deep Learning Hybrid. The properly tuned Neural Networks (ReLU, Cos, Tanh) successfully mapped the high-frequency non-linear noise, proving highly effective when integrated into the TAM pipeline.
-* 🏅 **`OE_KalmanTAM`** (Test RMSE: **6.31**): The Extended Kalman Filter. By continuously tracking the parameter drift of the base models in a state-space formulation, it drastically stabilized predictions across the non-stationary test set. 
-* 🏅 **`OE_StaticTAM`** (Test RMSE: **6.80**): The pure Mathematical bases. Explicit continuous dictionaries (like Fourier, Splines, and Tensors) provided a fast, exact, and highly interpretable analytical baseline.
-* 🚧 **`E_AutoTAM_Champion`** (Test RMSE: **8.93**): **[BETA]** The AutoML meta-model is still under construction, but it already achieves near-human performance with 5 experts and a population size of 20.
+* 🚧 **`E_AutoTAM_Champion`** (Test RMSE: **7.50**): **[EXP]** The AutoML meta-model is still under construction. With the configuration the script ships (1 expert, population 2) it discovers a topology within a factor of 2.2 of the hand-written ensembles above, having been told nothing but the column names. Raising `n_experts` and `pop_size` trades runtime for accuracy.
 
 ### 💡 Key Takeaways for Practitioners:
 
 1. **Topology Matters:** Choosing the correct mathematical basis (e.g., `phys()` for differential equations) provides a massive performance baseline. Furthermore, properly integrating neural layers (`n()`) helps capture complex residual interactions that classical models miss.
 2. **Drift is Inevitable (But Fixable):** Time-series data is inherently non-stationary. Wrapping your base models in **Adaptive** or **Kalman** drift-correction layers significantly reduces error. 
-3. **Trust the Aggregation:** You don't have to guess the perfect model. By feeding a diverse portfolio of expert models (Static, Neural, Physics) into **OperaTAM**, the algorithm's real-time regret bounds mathematically guarantee that the final ensemble will perform at least as well as the best individual expert.
+3. **Trust the Aggregation:** You don't have to guess the perfect model. By feeding a diverse portfolio of expert models (Static, Neural, Physics) into **OperaTAM**, the algorithm's real-time regret bounds mathematically guarantee that the final ensemble tracks the best individual expert up to a regret that vanishes with the horizon: here it finished 0.01 RMSE behind the expert that turned out to be best, without knowing which one that would be.
 
 ---
 

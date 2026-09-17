@@ -59,6 +59,26 @@ class StaticTAM(BaseTAM):
     normal equations in the primal space. See the theoretical documentation for
     exact mathematical proofs.
 
+    Three modes share this class, selected by the constructor arguments:
+
+    * **Point (default)**: a string formula. ``loss="l2"`` solves the regularized
+      normal equations once; any other loss (``"gamma"``, ``"poisson"``,
+      ``"binomial"``, ``"expectile"``, ``"huber"``, ``"student_t"``) refits them by
+      iteratively reweighted least squares. ``predict`` returns the point estimate.
+    * **Location-scale (distributional)**: a dict formula
+      ``{"mu": "y ~ ...", "sigma": "y ~ ..."}`` fits a location sub-model and a
+      scale sub-model (``sigma`` defaults to the ``mu`` right-hand side) and selects
+      a Normal or Student-t tail. It exposes ``predict_quantiles(data, taus)``, which
+      returns one ``q<tau>`` column per level, as well as ``predict_quantile``,
+      ``predict_median``, ``cdf``, ``crps`` and ``anomaly_score``. The target is
+      modelled on the log scale unless ``dist_kwargs={"log_target": False}``.
+    * **Mixture**: ``mixture_components=K`` fits K component regressions by EM
+      (``predict_mean``, ``component_means``, ``responsibilities``, ``log_density``).
+
+    Conformal intervals (``calibrate_conformal`` then ``predict_intervals``) wrap
+    the point estimate of any mode: the prediction, the distributional median or
+    the mixture mean.
+
     Attributes:
         effects_list_ (List[BaseEffect]): The list of instantiated effect objects.
         coefficients_ (torch.Tensor): The fitted coefficients (batch, n_coeffs, 1).
@@ -94,6 +114,22 @@ class StaticTAM(BaseTAM):
                 you must pass date_col explicitly to guarantee correct results
                 on data that isn't already sorted by time.
             default_alpha_p: Default log10(lambda_p) regularization strength.
+            loss: Fitting loss. Point mode: "l2" (default; "gaussian" and "normal" are
+                aliases), "gamma", "poisson", "binomial", "expectile", "huber" or
+                "student_t". Distributional mode: a string (the location loss) or a dict
+                {"mu": <location loss>, "sigma": "gamma" | "l2"}; the scale loss defaults
+                to "gamma" (Gamma GLM on squared residuals), and "l2" fits the log squared
+                residual instead.
+            loss_kwargs: Loss parameters, e.g. {"tau": 0.9} for "expectile",
+                {"delta": 1.345} for "huber", {"nu": 4.0} for "student_t".
+            dist_kwargs: Distributional and mixture options: log_target (default True),
+                tail_family ("auto"), kurtosis_threshold (1.0), scale_shrinkage (0.0, in
+                [0, 1]), location_alpha_p and scale_alpha_p (log10 penalties of the location
+                and scale sub-models; scale_alpha_p defaults to default_alpha_p + 2).
+            mixture_components: Number K of mixture components; enables mixture mode.
+                Incompatible with a dict formula.
+            mixture_kwargs: Mixture EM options: seed (0), n_init (1), max_iter (100),
+                tol (1e-5).
             _internal_effects_list: (Internal) Used for restoring state during grid search.
             _internal_features_config: (Internal) Used for restoring state during grid search.
         """
@@ -460,12 +496,6 @@ class StaticTAM(BaseTAM):
             date_col=self.date_col_
         )
         
-        if self.features_config_:
-             feature_names = self.features_config_.get('features', [])
-             for i, effect in enumerate(self.effects_list_):
-                 if i > 0 and i <= len(feature_names):
-                     effect.feature_name = feature_names[i-1]
-
         if torch.isnan(x_stacked).any():
             raise ValueError(
                 "TAM [Data Error]: The input features (X) contain NaN values. "
@@ -834,7 +864,7 @@ class StaticTAM(BaseTAM):
         print(f"\nFinal GCV Score: {gcv_score:.4f}")
         print("Optimal lambda_ps found per effect:")
         for i, effect in enumerate(self.effects_list_):
-            effect.lambda_p = best_lambda_ps[i]
+            effect.lambda_p = float(best_lambda_ps[i])
             print(f" - {effect.feature_name}: {best_lambda_ps[i]:.2e} (log10 = {np.log10(best_lambda_ps[i]):.2f})")
         
         return self

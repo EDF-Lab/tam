@@ -21,6 +21,7 @@ import pandas as pd
 import numpy as np
 import re
 from typing import Dict, Any, List
+from .feature_profiler import FeatureProfiler
 #: </effect_selector_imports>
 
 #: <effect_selector_class>
@@ -51,6 +52,7 @@ class EffectSelector:
         self.cat_threshold = categorical_threshold
         self.sparsity_threshold = sparsity_threshold
         self.max_active_effects = max_active_effects
+        self.profiler = FeatureProfiler()
 #: </effect_selector_init>
 
 #: <build_search_space>
@@ -100,7 +102,8 @@ class EffectSelector:
         strong_ap_grid = [base_ap - 4.0, base_ap - 2.0, base_ap]
 
         max_k = min(20, max(3, dataset_size // 10))
-        k_grid = sorted(list(set([max(3, max_k - 4), max(3, max_k - 2), max_k])))
+        # anchor on the factory default (k=10) plus data-scaled neighbours
+        k_grid = sorted(list(set([min(10, max_k), max(3, max_k - 4), max(3, max_k - 2), max_k])))
         
         max_trees = min(50, max(10, dataset_size // 20))
         t_grid = sorted(list(set([10, max(10, max_trees // 2), max_trees])))
@@ -111,48 +114,71 @@ class EffectSelector:
         max_neurons = min(100, max(5, dataset_size // 10))
         n_grid = sorted(list(set([2, max(2, max_neurons // 4), max(5, max_neurons // 2), max_neurons])))
 
-        search_space = {}        
-        
+        # Profile once to lock feature capacity, preventing combinatorial explosion during structural search.
+        profiles = self.profiler.profile(df, target_col, features, group_col)
+
+        # PID terms are offered on the most recent autoregressive lag only (the smallest lag order).
+        most_recent_lag = FeatureProfiler.most_recent_lag(features)
+        search_space = {}
+
         for col in features:
             topology = self._analyze_topology(df[col])
-            
+
+            # The profiler only speaks for continuous features; discrete/sparse topologies are
+            # already routed to categorical/tree bases, where a basis-capacity verdict is moot.
+            prof = profiles.get(col) if topology == "continuous" else None
+            profiled = prof is not None and not prof["linear"]
+            prof_m = int(prof["m"]) if profiled and prof.get("m") else 6
+            # Bound capacity by sample size, ignoring legacy cap.
+            cap_k = max(10, min(50, dataset_size // 100))
+            prof_k = int(np.clip(int(prof["k"]) if profiled and prof.get("k") else min(10, max_k),
+                                 3, cap_k))
+
+            def _ap(effect: str) -> List[float]:
+                return [FeatureProfiler.penalty_for(effect, col, prof_m, prof_k)]
+
             feature_space = {
                 "topology": topology,
-                "eligible_effects": ["l"], 
+                "profile": prof,
+                "eligible_effects": ["l"],
+                # Distribute identical capacity across all families to ensure OPERA diversity.
                 "grids": {
-                    "l": {"ap": [base_ap - 5.0]}, 
-                    "f": {"m": [4, 5, 6], "s": [1, 2], "ap": ap_grid},
-                    "p": {"deg": [6, 8, 10], "s": [1, 2], "ap": ap_grid},
-                    "s": {"k": k_grid, "deg": [3], "p": [1, 2], "ap": ap_grid},
-                    "w": {"n_scales": [3, 4], "n_locations": [10, 12, 14], "ap": ap_grid},
-                    "t": {"n_trees": t_grid, "max_depth": [1, 3], "ap": ap_grid},
-                    "n": {"n_neurons": n_grid, "n_hidden_layers": [1], "act": ["relu"], "ap": strong_ap_grid},
-                    "rbf": {"n_centers": rbf_grid, "ap": strong_ap_grid}
+                    "l": {"ap": _ap("l")},
+                    "f": {"m": [prof_m], "s": [2], "ap": _ap("f")},
+                    "p": {"deg": [int(np.clip(prof_m, 5, 20))], "s": [2], "ap": _ap("p")},
+                    "s": {"k": [prof_k], "deg": [3], "p": [2], "ap": _ap("s")},
+                    "w": {"n_scales": [4], "n_locations": [int(np.clip(prof_k // 3, 10, 16))],
+                          "ap": _ap("w")},
+                    # A tree is an oblivious binary tree (max_depth) or a flat histogram
+                    # (max_leaves); _get_safe_params keeps one of the two per term.
+                    "t": {"n_trees": [10, 25], "max_depth": [1, 2], "max_leaves": [50],
+                          "split_strategy": ["quantile", "uniform"], "sp_alpha": [0.0, 1.0]},
+                    "lt": {"max_depth": [3, 5], "max_leaves": [50], "split_strategy": ["quantile", "uniform"],
+                           "ap": _ap("lt")},
+                    # Exclude 'cos' activation: extrapolates poorly across regime shifts.
+                    "n": {"n_neurons": [100], "n_hidden_layers": [1], "act": ["relu", "tanh"]},
+                    "rbf": {"n_centers": [int(np.clip(prof_k, 10, 50))], "ap": _ap("rbf")},
+                    "pid": {"w": [3, 7], "d_pen": [10.0], "ap": _ap("pid")}
                 },
-                "max_active_effects": self.max_active_effects 
+                "max_active_effects": self.max_active_effects
             }
 
+            if prof is not None and prof["linear"]:
+                # Hard lock: Prevent non-linear solvers from fitting noise on purely linear features.
+                if col == most_recent_lag:
+                    feature_space["eligible_effects"].append("pid")
+                search_space[col] = feature_space
+                continue
+
+            # Topology only gates which effects are ELIGIBLE.
             if topology == "discrete":
                 feature_space["eligible_effects"].extend(["c", "t"])
-                feature_space["grids"]["c"] = {"n_cat": [df[col].nunique()], "topo": ["fourier"], "ap": [base_ap - 8.0]}
-                feature_space["grids"]["t"] = {"n_trees": t_grid, "max_depth": [1, 3, 6]}
-                
+                feature_space["grids"]["c"] = {"n_cat": [df[col].nunique()], "topo": ["nominal"], "p_order": [1]}
             elif topology == "sparse":
                 feature_space["eligible_effects"].extend(["t", "rbf", "n"])
-                feature_space["grids"]["t"] = {"n_trees": t_grid, "max_depth": [1, 3, 6]}
-                feature_space["grids"]["rbf"] = {"n_centers": rbf_grid}
-                feature_space["grids"]["n"] = {"n_neurons": n_grid, "act": ["relu", "tanh", "cos"]}
-                
             elif topology == "continuous":
-                feature_space["eligible_effects"].extend(["s", "p", "w", "n", "rbf", "t", "f"])
-                feature_space["grids"]["f"] = {"m": [4, 5, 6, 7, 8], "s": [1, 2, 3]}
-                feature_space["grids"]["s"] = {"k": k_grid, "deg": [3], "p": [1, 2, 3]}
-                feature_space["grids"]["p"] = {"deg": [8, 10, 12, 14, 16], "s": [1, 2, 3]}
-                feature_space["grids"]["w"] = {"n_scales": [3, 4, 5], "n_locations": [10, 12, 14, 16, 18]}
-                feature_space["grids"]["n"] = {"n_neurons": n_grid, "act": ["relu", "tanh", "cos"]}
-                feature_space["grids"]["rbf"] = {"n_centers": rbf_grid}
-                feature_space["grids"]["t"] = {"n_trees": t_grid, "max_depth": [1, 3, 6]}
-                    
+                feature_space["eligible_effects"].extend(["s", "p", "w", "n", "rbf", "t", "f", "lt"])
+
             search_space[col] = feature_space
 
         return search_space

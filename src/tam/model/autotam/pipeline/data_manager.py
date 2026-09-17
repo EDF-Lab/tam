@@ -43,7 +43,7 @@ class DataManager:
         
         self.parser = FormulaParser()
         self.profiler = DataProfiler()
-        self.engineer = FeatureEngineer(collinearity_threshold=0.99)
+        self.engineer = FeatureEngineer(collinearity_threshold=0.95)  # spec I: bar |rho| > 0.95
         self.selector = EffectSelector()
 #: </data_manager_init>
 
@@ -74,21 +74,21 @@ class DataManager:
             n = len(df_proc)
             fit_end = int(n * self.train_fraction)
             dev_end = int(n * (self.train_fraction + self.dev_fraction))
-            
-            raw_fit = df_proc.iloc[:fit_end].copy()
-            raw_dev = df_proc.iloc[fit_end:dev_end].copy()
-            raw_val = df_proc.iloc[dev_end:].copy()
+
+            # Use positional views to prevent a 2x memory duplication overhead when concatenating splits downstream.
+            raw_fit = df_proc.iloc[:fit_end]
+            raw_dev = df_proc.iloc[fit_end:dev_end]
+            raw_val = df_proc.iloc[dev_end:]
+            df_all_raw = df_proc.copy()
         else:
             if df_fit is None or df_dev is None or df_val is None:
                 raise ValueError("Provide df_train OR explicit df_fit, df_dev, df_val folds.")
-            raw_fit = df_fit.copy()
-            raw_dev = df_dev.copy()
-            raw_val = df_val.copy()
+            raw_fit, raw_dev, raw_val = df_fit, df_dev, df_val
+            df_all_raw = pd.concat([df_fit, df_dev, df_val])
 
         _, ctx.metadata = self.profiler.profile_and_clean(raw_fit, ctx.formula_config, date_col, group_col)
-        
-        df_all_raw = pd.concat([raw_fit, raw_dev, raw_val])
-        if date_col: 
+
+        if date_col:
             df_all_raw = df_all_raw.sort_values(date_col)
 
         if ctx.lags:
@@ -246,6 +246,34 @@ class DataManager:
 
         df_clean = self.profiler.transform(df_combined, ctx.formula_config, ctx.date_col) if hasattr(self.profiler, 'transform') else df_combined
         df_aug = self.engineer.engineer_features(df_clean, ctx.formula_config, ctx.metadata, ctx.date_col)
+
+        # Tz-safe left-merge to perfectly realign predictions with df_test's original row order.
+        date_col, group_col = ctx.date_col, ctx.group_col
+        try:
+            if date_col and date_col in df_aug.columns and date_col in df_test.columns:
+                gcol = group_col if (group_col and group_col in df_aug.columns and group_col in df_test.columns) else None
+                freq = ctx.metadata.get("delta_t", "1D")
+                keys = ["__kdate__"] + ([gcol] if gcol else [])
+
+                a = df_aug.copy()
+                a["__kdate__"] = pd.to_datetime(a[date_col])
+                left = df_test[[date_col] + ([gcol] if gcol else [])].copy()
+                left["__kdate__"] = pd.to_datetime(left[date_col])
+                try:
+                    a["__kdate__"] = a["__kdate__"].dt.floor(freq)
+                    left["__kdate__"] = left["__kdate__"].dt.floor(freq)
+                except (ValueError, TypeError):
+                    pass
+
+                a = a.drop(columns=[date_col]).drop_duplicates(subset=keys, keep="last")
+                left["__ord__"] = range(len(left))
+                merged = left.merge(a, on=keys, how="left").sort_values("__ord__")
+                merged = merged.drop(columns=["__kdate__", "__ord__"]).reset_index(drop=True)
+
+                if len(merged) == len(df_test) and ctx.target in merged.columns and merged[ctx.target].notna().all():
+                    return merged, df_aug
+        except Exception:
+            pass
 
         return df_aug.iloc[-len(df_test):].copy(), df_aug
 #: </data_manager_transform>

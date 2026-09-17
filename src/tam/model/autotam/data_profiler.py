@@ -1,6 +1,6 @@
 # SPDX-FileCopyrightText: 2025-2026 EDF (Electricité De France)
 # SPDX-License-Identifier: LGPL-3.0-or-later
-# Author : Yann Allioux
+# Author : Yann Allioux, Amaury Durand
 
 r"""
 Data Profiler for Automated TAM (AutoTAM).
@@ -194,21 +194,33 @@ class DataProfiler:
                             self.metadata["delta_t"] = f"{minutes}min"
 
         freq = self.metadata.get("delta_t", "1D")
-        
+
         data = data.set_index(date_col)
-        
+
+        # Floor timestamps to the resample grid to prevent intraday phase offsets from silently dropping test rows during asfreq().
+        try:
+            data.index = data.index.floor(freq)
+        except (ValueError, TypeError):
+            pass  # calendar freqs (MS/W/YS) already align; floor not applicable
+
+        # Drop duplicates caused by DST clock changes flooring to the same grid point.
+        if group_col and group_col in data.columns:
+            _keep = ~pd.MultiIndex.from_arrays([data.index, data[group_col]]).duplicated(keep="last")
+        else:
+            _keep = ~data.index.duplicated(keep="last")
+        data = data[_keep]
+
         if group_col and group_col in data.columns:
             resampled = data.groupby(group_col).resample(freq).asfreq()
             
             if group_col in resampled.index.names:
                 resampled = resampled.drop(columns=[group_col], errors='ignore')
             data = resampled.reset_index()
-            
-            # data = data.groupby(group_col).ffill(limit=3).bfill()
-            # bug in pandas : the line above removes group_col from the data, 
-            # lines below keep group_col 
-            data.update(data.groupby(group_col).ffill(limit=3))
-            data.update(data.groupby(group_col).bfill())
+
+            # Restore grouping column dropped by pandas groupby().ffill().
+            group_keys = data[group_col]
+            data = data.groupby(group_col).ffill(limit=3).bfill()
+            data[group_col] = group_keys.to_numpy()
         else:
             data = data.resample(freq).asfreq().reset_index()
             data = data.ffill(limit=3).bfill()

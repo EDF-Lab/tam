@@ -53,6 +53,6 @@ The penalized fit is a MAP estimate under a Gaussian prior {cite:p}`wahba1983bay
 
 ## Hierarchical Limitations & Future Upgrades
 
-The current `SafetyTAM` module operates marginally—meaning it calculates safety bounds for each node independently. However, Conformal Prediction intervals do not obey linear summation. Summing the marginal intervals of the children (via Minkowski sum) does not mathematically yield the correct joint interval for the aggregated parent {cite:p}`principato2024conformal`. Applying ACI independently level-by-level inevitably breaks the physical realities of the hierarchy.
+The current `SafetyTAM` module operates marginally, meaning it calculates safety bounds for each node independently. However, Conformal Prediction intervals do not obey linear summation. Summing the marginal intervals of the children (via Minkowski sum) does not mathematically yield the correct joint interval for the aggregated parent {cite:p}`principato2024conformal`. Applying ACI independently level-by-level inevitably breaks the physical realities of the hierarchy.
 
 **Roadmap:** Future iterations of the framework must implement interval reconciliation via polytope projection to strictly enforce hierarchical aggregation constraints across the entire uncertainty band {cite:p}`principato2024conformal`.

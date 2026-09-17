@@ -24,6 +24,7 @@ from .evaluation.autotam_report_generator import generate_autotam_report, print_
 from .evolution_reporter import EvolutionReporter
 from tam.model.kalman import KalmanTAM
 from tam.model.adaptative import AdaptiveTAM
+from tam.model.opera import OperaTAM
 #: </auto_tam_imports>
 
 #: <auto_tam_class>
@@ -59,8 +60,10 @@ class AutoTAM:
         self.league_weights = {}
         self.weights_top10 = {}
         self.island_aliases = {}
-        self.oof_predictions_ = {}  
+        self.oof_predictions_ = {}
         self.chronological_test_log = []
+        self.online_weights_ = {}   # populated by predict_online(): MLpol weight trajectories
+        self.apex_members_ = []     # the whole Apex pool, aggregated by predict_online()
 #: </auto_tam_init>
 
 #: <auto_tam_fit>
@@ -104,6 +107,7 @@ class AutoTAM:
         self.trained_experts, self.league_weights, self.weights_top10, self.island_aliases, self.oof_predictions_ = self.selector.evaluate_and_refit(
             candidate_pool, self.ctx, self.chronological_test_log, self.reporter, self.expander, refit_on_full_train=refit_on_full_train
         )
+        self.apex_members_ = list(getattr(self.selector, "apex_members_", []))
         
         if not self.trained_experts:
             print("Warning: All experts failed evaluation. The model is effectively empty.")
@@ -115,10 +119,15 @@ class AutoTAM:
 #: </auto_tam_fit>
 
 #: <auto_tam_predict>
-    def predict(self, df_test: pd.DataFrame, date_col: Optional[str] = None) -> pd.DataFrame:
-        if not self.trained_experts: 
+    def _expert_predictions(self, df_test: pd.DataFrame, date_col: Optional[str] = None):
+        """Run every trained expert on df_test -> (expert prediction frame, df_test_clean).
+
+        Shared by predict() and predict_online() so the dynamic-expert row alignment
+        (_align_prediction_to_test) lives in exactly one place.
+        """
+        if not self.trained_experts:
             raise ValueError("Model not fitted. No valid experts survived the fit process.")
-        
+
         df_test_clean, df_aug = self.data_manager.transform_test_data(df_test, self.ctx)
         predictions = {}
         
@@ -153,7 +162,7 @@ class AutoTAM:
                     )
                     p_all = fresh_kalman.predict_online(df_aug_clean)
                     raw_preds = pd.Series(p_all[f"KalmanAdapted_{self.ctx.target}"].values, index=df_aug_clean.index)
-                    predictions[name] = raw_preds.reindex(df_test_clean.index).values
+                    predictions[name] = self._align_prediction_to_test(raw_preds, df_aug_clean, df_test_clean)
                 
                 elif m_type == "adaptive":
                     h_steps = getattr(self.ctx, 'inferred_horizon', len(df_test))
@@ -175,19 +184,44 @@ class AutoTAM:
                         fresh_adapt.simulation()
                         
                     raw_preds = fresh_adapt.predictions_[f"AdaptedEstimated{self.ctx.target}"]
-                    predictions[name] = raw_preds.reindex(df_test_clean.index).values
+                    predictions[name] = self._align_prediction_to_test(raw_preds, d_adapt, df_test_clean)
                     
             except Exception as e: 
                 print(f"Warning: Prediction failed for {name}: {e}")
                 
         preds_df = pd.DataFrame(predictions, index=df_test_clean.index)
-        
+
+        # Physical guardrail: Clip predictions to observed bounds (with margin) to prevent extreme OOD extrapolations from breaking static frozen-weight ensembles.
+        bounds = getattr(self.ctx, "target_clip", None)
+        if bounds is None and getattr(self.ctx, "df_fit", None) is not None:
+            try:
+                low = float(self.ctx.df_fit[self.ctx.target].min())
+                high = float(self.ctx.df_fit[self.ctx.target].max())
+                margin = 0.15 * (high - low)
+                bounds = (low - margin, high + margin)
+            except Exception:
+                bounds = None
+        if bounds is not None and not preds_df.empty:
+            preds_df = preds_df.clip(lower=bounds[0], upper=bounds[1])
+
         for alias, real_name in self.island_aliases.items():
             if real_name in preds_df.columns:
                 preds_df[alias] = preds_df[real_name]
-        
+
+        return preds_df, df_test_clean
+
+    def predict(self, df_test: pd.DataFrame, date_col: Optional[str] = None) -> pd.DataFrame:
+        """Frozen-weight inference (production path).
+
+        League/apex weights learned on D_val during fit are applied unchanged across the whole
+        horizon. Deterministic and target-free. For a chronological backtest where the realized
+        target IS available, prefer predict_online(): MLpol then re-weights the experts
+        sequentially, which matters a great deal across regime shifts.
+        """
+        preds_df, df_test_clean = self._expert_predictions(df_test, date_col)
+
         for league_name, weights in self.league_weights.items():
-            if weights: 
+            if weights:
                 valid_weights = {m: w for m, w in weights.items() if m in preds_df}
                 w_sum = sum(valid_weights.values())
                 if w_sum > 0:
@@ -199,8 +233,126 @@ class AutoTAM:
             apex_sum = sum(valid_apex.values())
             if apex_sum > 0:
                 preds_df["AutoTAM_Apex_Ensemble"] = sum(preds_df[e] * (w / apex_sum) for e, w in valid_apex.items())
-            
+
+        target = self.ctx.target
+        if target in df_test.columns and df_test[target].notna().all():
+            print("Hint: df_test carries a realized target, so this is a backtest. predict() applies "
+                  "FROZEN league/apex weights learned on D_val; call predict_online() to let MLpol "
+                  "re-weight the experts chronologically across regime shifts.")
+
         return preds_df
+
+    def predict_online(self, df_test: pd.DataFrame, date_col: Optional[str] = None) -> pd.DataFrame:
+        """Sequential inference: MLpol re-weights the experts chronologically.
+
+        Mirrors OperaTAM.predict_online at the orchestrator level. Requires the realized target in
+        df_test, because online aggregation scores every expert's loss at each step to update its
+        weight; it is therefore a backtest/replay path, not a target-free forward forecast.
+
+        Adds 'AutoTAM_Apex_Online' and 'Ensemble_<league>_Online' next to the individual experts,
+        and stores the weight trajectories on self.online_weights_ for diagnostics/reporting.
+        The online Apex aggregates the whole Apex pool (apex_members_); predict() averages only the
+        members still weighted at the end of validation (weights_top10).
+        """
+        preds_df, df_test_clean = self._expert_predictions(df_test, date_col)
+        target = self.ctx.target
+
+        y_series = pd.to_numeric(df_test_clean[target], errors="coerce") if target in df_test_clean.columns else None
+        if y_series is None or y_series.isna().any():
+            raise ValueError(
+                f"predict_online() requires the realized target column '{target}' (fully populated) "
+                "in df_test: MLpol updates each expert's weight from its observed loss at every "
+                "step. Use predict() for target-free forward inference."
+            )
+
+        d_col, g_col = self.ctx.date_col, self.ctx.group_col
+        base = pd.DataFrame(index=df_test_clean.index)
+        base[target] = y_series.to_numpy()
+        if d_col and d_col in df_test_clean.columns:
+            base[d_col] = pd.to_datetime(df_test_clean[d_col]).to_numpy()
+        if g_col and g_col in df_test_clean.columns:
+            base[g_col] = df_test_clean[g_col].to_numpy()
+
+        self.online_weights_ = {}
+
+        def _aggregate_online(members, out_name):
+            usable = [m for m in members if m in preds_df.columns
+                      and np.isfinite(pd.to_numeric(preds_df[m], errors="coerce").to_numpy()).all()]
+            if len(usable) < 2:
+                return
+            frame = base.copy()
+            for m in usable:
+                frame[m] = pd.to_numeric(preds_df[m], errors="coerce").to_numpy()
+            formula = f"{target} ~ " + " + ".join(f"l({m})" for m in usable)
+            try:
+                opera = OperaTAM(formula=formula, algorithm="MLPOL", date_col=d_col, group_col=g_col)
+                result = opera.predict_online(frame)
+                aggregated = pd.to_numeric(result["prediction_opera"], errors="coerce").to_numpy()
+                if len(aggregated) != len(preds_df):
+                    print(f"Warning: online aggregation for {out_name} returned {len(aggregated)} rows "
+                          f"for {len(preds_df)} test rows; skipped.")
+                    return
+                preds_df[out_name] = aggregated
+                weight_cols = [c for c in result.columns if c.startswith("weight_")]
+                if weight_cols:
+                    self.online_weights_[out_name] = result[weight_cols].reset_index(drop=True)
+            except Exception as exc:
+                print(f"Warning: online aggregation failed for {out_name}: {exc}")
+
+        for league_name, weights in self.league_weights.items():
+            if weights:
+                stem = league_name if league_name.startswith("Ensemble_") else f"Ensemble_{league_name}"
+                _aggregate_online(list(weights.keys()), f"{stem}_Online")
+
+        # The online Apex dynamically aggregates the full pool; static predict() averages only the snapshot weights.
+        apex_members = list(getattr(self, "apex_members_", None) or self.weights_top10.keys())
+        if apex_members:
+            _aggregate_online(apex_members, "AutoTAM_Apex_Online")
+
+        return preds_df
+
+    def _align_prediction_to_test(self, raw_preds, source_df, df_test_clean):
+        """Realign dynamic expert predictions (augmented history + test) back
+        to the original test rows using date/group keys.
+
+        """
+        n = len(df_test_clean)
+        date_col, group_col = self.ctx.date_col, self.ctx.group_col
+        try:
+            if hasattr(raw_preds, "index") and raw_preds.index.isin(source_df.index).all():
+                src_keys = source_df.loc[raw_preds.index]
+                vals = np.asarray(raw_preds.values, dtype=float)
+            elif len(raw_preds) == len(source_df):
+                src_keys = source_df
+                vals = np.asarray(getattr(raw_preds, "values", raw_preds), dtype=float)
+            else:
+                raise ValueError("raw_preds not alignable to source_df")
+
+            if date_col and date_col in source_df.columns and date_col in df_test_clean.columns:
+                gcol = group_col if (group_col and group_col in source_df.columns
+                                     and group_col in df_test_clean.columns) else None
+                keys = [date_col] + ([gcol] if gcol else [])
+                freq = getattr(self.ctx, "metadata", {}).get("delta_t", "1D")
+                src = src_keys[keys].copy()
+                src["__v__"] = vals
+                src[date_col] = pd.to_datetime(src[date_col])
+                left = df_test_clean[keys].copy()
+                left[date_col] = pd.to_datetime(left[date_col])
+                try:
+                    src[date_col] = src[date_col].dt.floor(freq)
+                    left[date_col] = left[date_col].dt.floor(freq)
+                except (ValueError, TypeError):
+                    pass
+                src = src.drop_duplicates(subset=keys, keep="last")
+                left["__ord__"] = range(n)
+                merged = left.merge(src, on=keys, how="left").sort_values("__ord__")
+                out = merged["__v__"].to_numpy()
+                if len(out) == n and np.isfinite(out).any():
+                    return out
+        except Exception:
+            pass
+        vals = np.asarray(getattr(raw_preds, "values", raw_preds), dtype=float)
+        return vals[-n:] if len(vals) >= n else np.full(n, np.nan)
 #: </auto_tam_predict>
 
 #: <auto_tam_utils>

@@ -16,7 +16,7 @@ import pandas as pd
 import numpy as np
 import re
 import datetime
-from typing import Dict, Any, Tuple
+from typing import Dict, Any, List, Optional, Tuple
 from .context import PipelineContext
 from tam.model.opera import OperaTAM
 #: </ensemble_selector_imports>
@@ -26,7 +26,8 @@ class EnsembleSelector:
     """Selects best Island representations and aggregates them via OPERA Minimax."""
     
 #: <ensemble_selector_init>
-    def __init__(self, use_opera: bool = True, n_apex_experts: int = 5, ensemble_sparsity_threshold: float = 0.01):
+    def __init__(self, use_opera: bool = True, n_apex_experts: int = 5, ensemble_sparsity_threshold: float = 0.01,
+                 apex_quality_ratio: Optional[float] = 1.5):
         """
         Initializes the ensemble aggregator.
 
@@ -34,10 +35,18 @@ class EnsembleSelector:
             use_opera (bool): Whether to use the online learning Minimax aggregation.
             n_apex_experts (int): The maximum number of top models to include in the Apex ensemble.
             ensemble_sparsity_threshold (float): Minimum weight required to keep a model active in the ensemble.
+            apex_quality_ratio (Optional[float]): A dynamic expert joins the Apex pool only if its validation
+                error is at most this multiple of the best dynamic expert's. ``None`` admits the whole pool.
+
+        Raises:
+            ValueError: If apex_quality_ratio is below 1 (or NaN), which would exclude the best expert itself.
         """
+        if apex_quality_ratio is not None and not apex_quality_ratio >= 1.0:
+            raise ValueError(f"apex_quality_ratio must be None or >= 1, got {apex_quality_ratio}")
         self.use_opera = use_opera
         self.n_apex_experts = n_apex_experts
         self.ensemble_sparsity_threshold = ensemble_sparsity_threshold
+        self.apex_quality_ratio = apex_quality_ratio
 #: </ensemble_selector_init>
 
 #: <ensemble_selector_metric_calculator>
@@ -76,7 +85,11 @@ class EnsembleSelector:
         """
         Evaluates the generated experts, constructs logical sub-ensembles based on 
         Cross-Validation resilience and complexity penalties, and refits the final base models.
+
+        The Apex pool is also stored on ``apex_members_``: predict_online() aggregates all of it, while
+        the returned Apex weights keep only the members still weighted at the end of validation.
         """
+        self.apex_members_ = []
         df_cont_val = pd.concat([ctx.df_fit, ctx.df_dev, ctx.df_val])
         trained_experts = []
         league_weights = {}
@@ -87,6 +100,17 @@ class EnsembleSelector:
         preds_dict = {ctx.target: y_true}
         if ctx.date_col and ctx.date_col in ctx.df_val.columns:
             preds_dict[ctx.date_col] = ctx.df_val[ctx.date_col].values
+
+        # Clip predictions to the observed target bounds (with margin) to prevent OOD extrapolations from ruining static ensembles.
+        try:
+            target_min = float(ctx.df_fit[ctx.target].min())
+            target_max = float(ctx.df_fit[ctx.target].max())
+            # Measured: rogue members under-predicted at ~300 against a true range of
+            # 29k-88k, which a half-range margin (lower bound -540) let straight through.
+            margin = 0.15 * (target_max - target_min)
+            ctx.target_clip = (target_min - margin, target_max + margin)
+        except Exception:
+            ctx.target_clip = None
 
         categories = {"kalman": [], "adaptive": [], "static": []}
         best_rmse_global, best_expert_global = float('inf'), None
@@ -220,11 +244,38 @@ class EnsembleSelector:
                 league_weights["Island_Federation"] = run_single_opera("Ensemble_Island_Federation", list(island_aliases.keys()))
 
             valid_experts = [e for e in trained_experts if pd.notna(e["cv_rmse"]) and e["name"] in df_p.columns]
-            valid_experts.sort(key=lambda x: x["penalized_score"])
-            top_apex_names = [e["name"] for e in valid_experts[:self.n_apex_experts]]
-            
+
+            # Populate Apex exclusively with dynamic experts using a validation-error ratio floor, keeping the pool large for optimal OPERA arbitrage.
+            expansions_cfg = getattr(expander, "expansions", {}) or {}
+            dynamic_requested = bool(expansions_cfg.get("adaptive")) or bool(expansions_cfg.get("kalman"))
+            dynamic_names = set(categories["adaptive"]) | set(categories["kalman"])
+            # Admit experts to the Apex pool if their validation error is within apex_quality_ratio of the best.
+            apex_pool = valid_experts
+            truncate = True
+            if dynamic_requested and len(dynamic_names) >= 2:
+                dynamic_only = [e for e in valid_experts if e["name"] in dynamic_names]
+                if len(dynamic_only) >= 2:          # >=2 so the Apex stays a real ensemble
+                    admitted = self._filter_apex_pool(dynamic_only)
+                    apex_pool, truncate = admitted, False
+                    floor = ("no quality floor" if self.apex_quality_ratio is None else
+                             f"{len(dynamic_only) - len(admitted)} above {self.apex_quality_ratio:g}x "
+                             f"the best validation error excluded")
+                    print(f"Apex membership: {len(dynamic_only)} dynamic experts (adaptive/kalman), "
+                          f"{len(valid_experts) - len(dynamic_only)} static experts excluded; {floor}; "
+                          f"aggregating the remaining {len(admitted)} (no top-n truncation).")
+
+            apex_pool = sorted(apex_pool, key=lambda x: x["penalized_score"])
+            if truncate:
+                apex_pool = apex_pool[:self.n_apex_experts]
+            top_apex_names = [e["name"] for e in apex_pool]
+
             if len(top_apex_names) > 1: weights_top10 = run_single_opera("AutoTAM_Apex_Ensemble", top_apex_names)
             elif top_apex_names: weights_top10 = {top_apex_names[0]: 1.0}
+            self.apex_members_ = top_apex_names
+            if len(top_apex_names) > 1:
+                print(f"Apex: predict_online() aggregates all {len(top_apex_names)} pool members; frozen predict() "
+                      f"averages the {len(weights_top10)} weighted >= {self.ensemble_sparsity_threshold:g} "
+                      f"at the end of validation.")
         else:
             trained_experts = [best_expert_global] if best_expert_global else []
 
@@ -262,7 +313,7 @@ class EnsembleSelector:
                         req_cols = list(set([c for c in re.findall(r'[a-zA-Z0-9_]+', f_ref) if c in ctx.df_all_aug.columns]))
                         if ctx.target not in req_cols: req_cols.append(ctx.target)
                         
-                        full_train_clean = ctx.df_all_aug.dropna(subset=req_cols).copy()
+                        full_train_clean = ctx.df_all_aug.dropna(subset=req_cols)  # new frame; fit copies it
                         base_m.fit(full_train_clean) 
                         refitted_bases.add(base_m)
                 except Exception as e: 
@@ -274,6 +325,39 @@ class EnsembleSelector:
 #: </evaluate_and_refit>
 
 #: <ensemble_selector_helpers>
+#: <apex_quality_filter>
+    def _filter_apex_pool(self, experts: List[dict]) -> List[dict]:
+        """
+        Keeps the experts whose validation error is at most ``apex_quality_ratio`` times the best one.
+
+        The ratio is scale-free, so it applies unchanged to RMSE, MAE and MAPE. The filter is skipped
+        when it is disabled, when the pool has two experts or fewer, or when no finite positive best
+        score exists (a zero best error has no meaningful ratio). Otherwise experts with a non-finite
+        score are dropped, and at least the two best are kept so the Apex remains an ensemble.
+
+        Args:
+            experts (List[dict]): Expert records carrying ``val_rmse``, the optimisation metric on D_val.
+
+        Returns:
+            List[dict]: The admitted records, in their input order.
+        """
+        ratio = self.apex_quality_ratio
+        if ratio is None or len(experts) <= 2:
+            return list(experts)
+        scores = np.array([e.get("val_rmse", np.nan) for e in experts], dtype=float)
+        finite = np.isfinite(scores)
+        if not finite.any():
+            return list(experts)
+        best = scores[finite].min()
+        if best <= 0.0:
+            return list(experts)
+        admitted = finite & (scores <= ratio * best)
+        if admitted.sum() < 2:
+            admitted = np.zeros(len(experts), dtype=bool)
+            admitted[np.argsort(np.where(finite, scores, np.inf), kind="stable")[:2]] = True
+        return [e for e, keep in zip(experts, admitted) if keep]
+#: </apex_quality_filter>
+
     def _get_expert_predictions(self, exp, m_ref, df_cont_val, ctx, expander, return_full=False):
         """
         Extracts predictions from an expert model across the specified validation space.
@@ -281,7 +365,7 @@ class EnsembleSelector:
         f_ref = getattr(m_ref, 'formula_', getattr(getattr(m_ref, '_saved_base_model', getattr(m_ref, 'base_model_', None)), 'formula_', ''))
         req_cols = list(set([c for c in re.findall(r'[a-zA-Z0-9_]+', f_ref) if c in df_cont_val.columns]))
         if ctx.target not in req_cols: req_cols.append(ctx.target)
-        df_cv_clean = df_cont_val.dropna(subset=req_cols).copy()
+        df_cv_clean = df_cont_val.dropna(subset=req_cols)  # new frame; never written to below
 
         if exp["type"] in ["static", "island_champion"]: 
             preds = m_ref.predict(df_cv_clean)
@@ -302,9 +386,23 @@ class EnsembleSelector:
                 preds = m_ref.predictions_
             col = f"AdaptedEstimated{ctx.target}"
             
-        if return_full:
-            return preds[col].reindex(df_cont_val.index).values
-        return preds[col].reindex(ctx.df_val.index).values
+        index = df_cont_val.index if return_full else ctx.df_val.index
+        values = preds[col].reindex(index).values
+
+        if exp["type"] == "adaptive":
+            # Clear the simulated prediction state immediately to prevent massive RAM accumulation (~2.5 GB per static champion).
+            m_ref.simulation_data_ = None
+            m_ref.predictions_ = None
+
+        # Clip to the physically plausible range before the value can reach a frozen average.
+        bounds = getattr(ctx, "target_clip", None)
+        if bounds is None and getattr(ctx, "df_fit", None) is not None:
+            span = float(ctx.df_fit[ctx.target].max()) - float(ctx.df_fit[ctx.target].min())
+            bounds = (float(ctx.df_fit[ctx.target].min()) - 0.5 * span,
+                      float(ctx.df_fit[ctx.target].max()) + 0.5 * span)
+        if bounds is not None:
+            values = np.clip(values, bounds[0], bounds[1])
+        return values
 
     def _update_log_rmse(self, test_log, name, score, penalized_score=None, complexity=None):
         """

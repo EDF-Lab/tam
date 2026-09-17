@@ -66,10 +66,10 @@ def test_estimate_complexity_neural_heavy_penalty():
     assert ctx.estimate_complexity("y ~ n(x, n_neurons=10, n_hidden_layers=2)") == 100
 
 
-def test_estimate_complexity_tensor_product_multiplies():
+def test_estimate_complexity_tensor_product_uses_ranking_surrogate():
     ctx = _ctx()
-    # te(s(a, k=5, deg=3), s(b, k=4, deg=3)) -> (5+3) * (4+3) = 56
-    assert ctx.estimate_complexity("y ~ te(s(a, k=5, deg=3), s(b, k=4, deg=3))") == 56
+    # dims 8 and 7: true width 56, ranked at min(56, 8 + 7 + sqrt(56)) = 22
+    assert ctx.estimate_complexity("y ~ te(s(a, k=5, deg=3), s(b, k=4, deg=3))") == 22
 
 
 def test_estimate_complexity_additive_sums_terms():

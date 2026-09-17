@@ -1,6 +1,6 @@
 # SPDX-FileCopyrightText: 2025-2026 EDF (Electricité De France)
 # SPDX-License-Identifier: LGPL-3.0-or-later
-# Author : Yann Allioux
+# Author : Yann Allioux, Amaury Durand
 
 """
 Expert Expander for Automated TAM (AutoTAM).
@@ -98,7 +98,9 @@ class ExpertExpander:
                     if ctx.target not in req_cols: 
                         req_cols.append(ctx.target)
                     
-                    df_fit_clean = df_cont_all.loc[ctx.df_fit.index.intersection(df_cont_all.index)].dropna(subset=req_cols).copy()
+                    # .loc and dropna each return a new frame and the models copy their input, so a
+                    # further .copy() only duplicated the fit block once per champion formula.
+                    df_fit_clean = df_cont_all.loc[ctx.df_fit.index.intersection(df_cont_all.index)].dropna(subset=req_cols)
                     n_samples = len(df_fit_clean)
 
                     m_prior, m_auto, m_grid = None, None, None
@@ -259,7 +261,10 @@ class ExpertExpander:
             try:
                 terms_df = global_best_static.decompose_prediction(ctx.df_val)
                 e_cols = [c for c in terms_df.columns if c.startswith("effect_")]
-                pdp_stats = [{"Feature_Effect": c.replace("effect_", ""), "Mean_Contribution": float(terms_df[c].mean()), "Max_Contribution": float(terms_df[c].max()), "Variance": float(terms_df[c].var())} for c in e_cols]
+                # Calculate scale-free Importance (Var(h_j) / Var(Y_hat)) for accurate Knowledge Graph pruning and PDP reporting.
+                prediction_var = float(terms_df[e_cols].sum(axis=1).var())
+                pdp_stats = [{"Feature_Effect": c.replace("effect_", ""), "Mean_Contribution": float(terms_df[c].mean()), "Max_Contribution": float(terms_df[c].max()), "Variance": float(terms_df[c].var()),
+                              "Importance": float(terms_df[c].var()) / prediction_var if prediction_var > 0 else float("nan")} for c in e_cols]
                 reporter.export_pdp_variance(pd.DataFrame(pdp_stats).sort_values(by="Variance", ascending=False), "Global_Static_Champion")
             except Exception: 
                 pass
@@ -277,7 +282,7 @@ class ExpertExpander:
         if cols_to_drop:
             df = df.drop(columns=cols_to_drop)
 
-        terms = base_model.decompose_prediction(df.copy())
+        terms = base_model.decompose_prediction(df)  # decompose_prediction copies its input
         e_cols = [c for c in terms.columns if c.startswith("effect_")]
         terms[f"Estimated{ctx.target}"] = terms[e_cols].sum(axis=1)
         d_meta = pd.concat([df, terms[e_cols]], axis=1)

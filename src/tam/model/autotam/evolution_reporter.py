@@ -126,7 +126,7 @@ class EvolutionReporter:
             'l': 'LinearIsland', 'c': 'LinearIsland (Categorical)',
             's': 'SplineIsland', 'f': 'FourierIsland', 'p': 'ChebyshevIsland',
             'w': 'WaveletIsland', 'n': 'NeuralIsland', 'rbf': 'RBFIsland',
-            't': 'TreeIsland', 'te': 'CrossIsland (Tensor)'
+            't': 'TreeIsland', 'lt': 'TreeIsland', 'pid': 'LinearIsland (PID)', 'te': 'Tensor products (te)'
         }
         
         effect_pattern = re.compile(r"([a-zA-Z0-9_]+)\s*\(\s*([^,)]+)(.*?)\)")

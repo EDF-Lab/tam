@@ -8,11 +8,44 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > Source repository: https://github.com/EDF-Lab/tam
 
-> The first official open-source release of the TAM framework under this structure is **[1.2.3]**.
-
-> ⚠️ Note: Versions 1.1.1–1.2.2 correspond to internal development milestones and were not publicly released.
+> The first official open-source release of the TAM framework under this structure is **[1.2.3]**. (Versions 1.1.1 - 1.2.2 correspond to internal development milestones and were not publicly released.)
 
 > **[0.0.6]** corresponds to the legacy `weakl` package available on PyPI.
+
+---
+
+## [Unreleased]
+
+### Added
+
+- **Evolutionary Engine Upgrade:** Implemented a Mutant-UCB Multi-Armed Bandit for island selection and a Quality-Diversity (QD) Champion Archive using Topological Edit Distance (TED) inside `DragTAM`.
+- **Online Sequential Inference:** Added `AutoTAM.predict_online()` to dynamically re-weight expert ensembles using `MLpol` during chronological backtesting (standard `predict()` retains frozen fit-time weights).
+- **Deterministic O(N) Feature Profiler:** Introduced `FeatureProfiler` to diagnose non-linearity, basis families, and required signal capacity prior to the search, eliminating trial-and-error capacity grids.
+- **Robust Graph Tracking:** Added exact term identity resolution (`term_members`, `term_signature`, `decomposition_names`) to properly track and prune tensor products in the `KnowledgeGraph`.
+- **Documentation:** Expanded Mirror Architecture documentation for AutoTAM probabilistic selection (`math/meta/11`, `architecture/meta/11`) and feature profiling (`math/meta/12`, `architecture/meta/12`).
+
+### Changed
+
+- **Dynamic Apex Ensembles:** The Apex ensemble now aggregates the *entire* pool of dynamic experts (Kalman/Adaptive) rather than truncating to a Top-N, excluding only those whose validation error exceeds `apex_quality_ratio` (default 1.5x the best).
+- **Universal Tensor Products:** Removed `CrossIsland`; all islands can now generate tensor products (`te`, max 2 per formula). Bounded continuous-continuous interactions to ~25 columns to prevent VRAM explosions.
+- **Targeted Deep Interactions:** Deep Islands (Neural, RBF, Tree) now dynamically condition on 1 to 5 categorical partners (`others=`), leaving 25% of terms unpartnered to preserve marginal effects.
+- **Expanded Search Grids:** Widened hyperparameter grids across all bases (e.g., Trees up to 25 estimators/50 leaves, Splines up to $k=50$). Excluded `cos` activations to prevent regime-shift instability. Added `LinearTreeEffect` (`lt`) and targeted `PID` terms.
+- **Strongest-First Pruning:** `KnowledgeGraph` now resolves collinear terms by keeping the one with the highest explained variance first (default prune threshold: 0.5%).
+- **Exploration Safeguards:** `DragTAM` explicitly reserves 25% of each generation for fresh spawns (`fresh_fraction`). Island UCB enforces 3 minimum pulls and 15% uniform exploration (`ucb_epsilon`) to prevent premature convergence.
+- **Unbiased Island Selection:** Disabled the Knowledge Graph's basis-family prior by default to prevent search monocultures and maintain OPERA ensemble diversity.
+- **OOD Target Clipping:** Expert predictions are strictly clipped to observed training bounds (plus a 15% margin) before aggregation to protect frozen-weight averages from extreme extrapolations.
+- **Vectorized Windowing:** Refactored grouped rolling means/EWMAs in `FeatureEngineer` to use native positional Pandas operations, fixing index misalignment.
+- **Report Generator Security & Metrics:** Added strict `run_id` validations and path-confining. PDP panels now report scale-free `Var(h_j) / Var(prediction)` driver scores. (Matplotlib is now optional).
+
+### Fixed
+
+- **GCV Penalty Rescaling:** `smart_solve_gcv` rescaled blocks that already carried the formula's own $\lambda_p$, so the search scored the product of the two while `auto_fit()` stored only the tested weight: every later `fit()` rebuilt the penalty from that weight alone and returned a different model, and with the default `ap = -9` the search never reached the nine highest decades of its range. Each trial block is now rebuilt by the effect at $\lambda_p = 10^\alpha$, exactly as `fit()` assembles it. Tensor products keep their marginal weights inside the block, so their coordinate scales that surface rather than setting an absolute penalty.
+- **LinearTree Regularization:** Added missing property setters to `LinearTreeEffect` so GCV weights correctly propagate to sub-blocks.
+- **Sparsity-Adaptive Tree Fix:** Fixed `empirical_counts` dimension reduction in `TreeEffect` (now summing the batch axis instead of groups), repairing the `sparsity_alpha > 0` penalty generation.
+- **Column Alignment:** Fixed label shifting in `decompose_prediction` to correctly map tensors and multi-bases to PyTorch columns. Previously, labels were misaligned by positional assignment from deduplicated feature lists, causing component contributions to be attributed to the wrong terms (note: the global fitted prediction was unaffected by this bug).
+- **Knowledge Graph Pruning Fix:** Fixed term contribution lookups so redundant terms are correctly identified, rewarded, and pruned.
+- **Simulation Memory Leak:** `EnsembleSelector` now aggressively releases AdaptiveTAM simulation tensors (`m_ref.simulation_data_ = None`) after scoring, resolving 60-73 GB RAM peaks during wide grid searches.
+- **Time-Series Integrity:** Fixed Kalman/Adaptive prediction backtest alignment, patched a `groupby` crash caused by Daylight Saving Time (DST) duplicates, and prevented `__dummy_date__` overflows on massive inputs.
 
 ---
 ## [1.3.0] - 2026-09-06

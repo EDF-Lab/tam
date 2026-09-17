@@ -245,8 +245,13 @@ class FeatureEngineer:
             ewma_name = f"{col}_ewma_alpha{int(dynamic_alpha*100)}"
 
             if group_col and group_col in df.columns:
-                df[roll_name] = df.groupby(group_col)[col].transform(lambda x: x.rolling(window=window_size, min_periods=1).mean())
-                df[ewma_name] = df.groupby(group_col)[col].transform(lambda x: x.ewm(alpha=dynamic_alpha, adjust=False, ignore_na=True).mean())
+                # Vectorized positional reindexing to avoid lambda loops and duplicate index misalignment.
+                positions = pd.RangeIndex(len(df))
+                grouped = df[[group_col, col]].reset_index(drop=True).groupby(group_col)[col]
+                df[roll_name] = (grouped.rolling(window=window_size, min_periods=1).mean()
+                                 .reset_index(level=0, drop=True).reindex(positions).to_numpy())
+                df[ewma_name] = (grouped.ewm(alpha=dynamic_alpha, adjust=False, ignore_na=True).mean()
+                                 .reset_index(level=0, drop=True).reindex(positions).to_numpy())
             else:
                 df[roll_name] = df[col].rolling(window=window_size, min_periods=1).mean()
                 df[ewma_name] = df[col].ewm(alpha=dynamic_alpha, adjust=False, ignore_na=True).mean()

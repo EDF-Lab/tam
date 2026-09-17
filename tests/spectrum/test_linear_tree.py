@@ -28,6 +28,17 @@ def test_linear_tree_contract(normalized, penalty_shape):
     assert penalty_shape(effect) == (16, 16)
 
 
+def test_linear_tree_penalty_follows_a_reassigned_lambda():
+    """GCV rewrites ``lambda_p`` after construction; both sub-blocks must follow it."""
+    effect = _effect()
+    base = effect.build_penalty_matrix().to_dense()
+
+    effect.lambda_p = 10.0
+    scaled = effect.build_penalty_matrix().to_dense()
+
+    assert torch.allclose(scaled, base * 10.0)
+
+
 def test_linear_tree_feature_map_concatenates_base_and_interaction(normalized):
     effect = _effect()
     phi = effect.build_feature_map(normalized(2, 10, 2))

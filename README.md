@@ -13,7 +13,9 @@
   
 [![PyPI Version](https://img.shields.io/pypi/v/tam-ml.svg)](https://pypi.org/project/tam-ml/)
 [![Powered by PyTorch](https://img.shields.io/badge/PyTorch-Core-ee4c2c.svg)](https://pytorch.org/)
-[![CI Pipeline](https://img.shields.io/badge/CI-Passing-success.svg)](#) 
+[![Tests](https://github.com/EDF-Lab/tam/actions/workflows/tests.yml/badge.svg)](https://github.com/EDF-Lab/tam/actions/workflows/tests.yml)
+[![Documentation](https://github.com/EDF-Lab/tam/actions/workflows/docs.yml/badge.svg)](https://github.com/EDF-Lab/tam/actions/workflows/docs.yml)
+[![PyPI Publish](https://github.com/EDF-Lab/tam/actions/workflows/publish.yml/badge.svg)](https://github.com/EDF-Lab/tam/actions/workflows/publish.yml)
 [![License: LGPL](https://img.shields.io/badge/License-LGPL-blue.svg)](https://opensource.org/licenses/LGPL-3.0)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
 [![GitHub Repo stars](https://img.shields.io/github/stars/EDF-Lab/tam?style=social)](https://github.com/EDF-Lab/tam)
@@ -56,7 +58,7 @@ We actively collaborate with the academic community to push the boundaries of TA
 * **Physics-Informed (`UniversalPhysicsEffect`) (BETA):** Embeds physical laws (ODEs/PDEs) directly into the model as analytical regularization constraints.
 * **Dynamic (`KalmanTAM`) (BETA):** Tracks evolving behaviors and coefficients over time via an Extended Kalman Filter.
 * **Hierarchy (`HierarchicalTAM`) (BETA):** Optimizes parent/child series simultaneously in the Primal space (National = Sum of Regions).
-* **AutoML (`AutoTAM`) (EXP):** Evolutionary Search to discover optimal GAM topologies using successive halving & parsimony pruning.
+* **AutoML (`AutoTAM`) (EXP):** Evolutionary Search to discover optimal GAM topologies using a Mutant-UCB bandit, a Quality-Diversity Champion Archive, and parsimony pruning.
 * **Hybrid (`NeuralTAM`) (EXP):** Integrates Deep Neural Networks via orthogonal residual backfitting to capture extreme non-linearities.
 
 -----

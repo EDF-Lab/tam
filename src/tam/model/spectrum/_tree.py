@@ -249,8 +249,9 @@ class TreeEffect(BaseEffect):
 
         # Count how many data points land in each leaf
         one_hot_bins = torch.nn.functional.one_hot(leaf_indices, num_classes=self.leaves_per_tree)
-        # Sum across the batch dimension (dim=0)
-        self.empirical_counts = one_hot_bins.sum(dim=0).flatten()
+        # Sum across every batch dimension (groups and samples alike), leaving one
+        # count per leaf in the same (tree, leaf) order as the design matrix columns.
+        self.empirical_counts = one_hot_bins.reshape(-1, self.total_leaves).sum(dim=0)
 #: </init_tree>
 
 #: <feature_map>

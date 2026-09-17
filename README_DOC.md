@@ -138,7 +138,7 @@ We divide the documentation into two sealed worlds. When you add a new feature, 
 
 To ensure the pipelines compile our PDFs and HTML flawlessly, all contributors must adhere to these strict writing rules:
 
-* **Separation of Code Comments vs. Markdown Theory:** Because the `architecture/` Markdown files dynamically pull source code via `{literalinclude}`, your Python docstrings (`r"""..."""`) and inline comments must focus *strictly* on software engineering (e.g., tensor shapes, VRAM allocation, OOM prevention, PyTorch workarounds). Do **not** write LaTeX mathematical proofs or academic citations inside the `.py` files. Let the `math/` Markdown files carry that burden.
+* **Separation of Code Comments vs. Markdown Theory:** Because the `architecture/` Markdown files dynamically pull source code via `{literalinclude}`, your Python docstrings (`r"""..."""`) and inline comments must focus *strictly* on software engineering (e.g., tensor shapes, VRAM allocation, OOM prevention, PyTorch workarounds). Minimal LaTeX notation is allowed in docstrings: a single defining expression, written with the `:math:` role inside a raw `r"""..."""` docstring so backslashes survive. Do **not** write derivations, proofs or academic citations inside the `.py` files. Let the `math/` Markdown files carry that burden.
 * **Zero Redundancy:** The `architecture/` files must *never* re-demonstrate the math. Instead, use clean relative links to point to the theory (e.g., `[See the theory](../../math/core/01_primal_model.md)`).
 * **Code Extraction:** **Do not** hard-copy and paste PyTorch code into Markdown files. Exclusively use the Sphinx `{literalinclude}` directive with exact relative paths (e.g., `../../../../src/tam/...`) and Python comment tags (`#: <tag>` and `#: </tag>`) to pull code dynamically.
 * **Academic Citations:** Any bibliographic reference to justify scientific work must use the MyST formalism `{cite:p}\`bibtex_key\``. Ensure you add the corresponding entry to `references.bib` at the root of the project so it compiles in the PDFs.
@@ -215,8 +215,12 @@ TAM/
     │       │                                   # Pipeline Scope: context.py, data_manager.py, base_discoverer.py, expert_expander.py, ensemble_selector.py
     │       ├── 09_auto_data_topology.md      # Data topology, Krylov stability, Covariate Lock, Panel Data bounds.
     │       │                                   # Scope: data_profiler.py, feature_engineer.py, effect_selector.py, parser.py
-    │       └── 10_mlops_evaluation.md          # Theory of empirical metrics, SMAPE, and Temporal Degradation.
-    │                                           # Scope scripts: metrics.py, performance_analyzer.py
+    │       ├── 10_mlops_evaluation.md          # Theory of empirical metrics, SMAPE, and Temporal Degradation.
+    │       │                                   # Scope scripts: metrics.py, performance_analyzer.py
+    │       ├── 11_autotam_probabilistic.md   # Probabilistic Selection, Ablation Importance, UCB Reward, CQR.
+    │       │                                   # Scope: drag_tam.py, auto_tam.py, knowledge_graph.py
+    │       └── 12_autotam_feature_profiling.md # Deterministic O(N) pre-search capacity and basis diagnosis.
+    │                                           # Scope: feature_profiler.py
     │
     └── architecture/        # 💻 THE "HOW" (Code, PyTorch & API)
         │
@@ -264,8 +268,12 @@ TAM/
             │                                   # Pipeline Scope: context.py, data_manager.py, base_discoverer.py, expert_expander.py, ensemble_selector.py
             ├── 09_auto_data_topology_code.md # Stateful Bounds, Collinearity Filter, Regex Parser.
             │                                   # Scope: data_profiler.py, feature_engineer.py, effect_selector.py, parser.py
-            └── 10_mlops_tracking_code.md       # BenchmarkTracker OOP, NaN-safe metrics, Matplotlib dashboards.
-                                                # Scope scripts: tracker.py, metrics.py, plotting.py (evaluation)
+            ├── 10_mlops_tracking_code.md       # BenchmarkTracker OOP, NaN-safe metrics, Matplotlib dashboards.
+            │                                   # Scope scripts: tracker.py, metrics.py, plotting.py (evaluation)
+            ├── 11_autotam_probabilistic_code.md # Planned mode routing, expectile losses, CQR wiring.
+            │                                   # Scope: drag_tam.py, auto_tam.py, knowledge_graph.py
+            └── 12_autotam_feature_profiling_code.md # Where profiling runs, its data flow and integration invariants.
+                                                # Scope: feature_profiler.py, effect_selector.py
 
 ```                       
 

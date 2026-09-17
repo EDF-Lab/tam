@@ -18,11 +18,47 @@ with the lowest complexity penalties.
 #: <knowledge_graph_imports>
 import math
 import random
+import re
 import numpy as np
 import pandas as pd
 from collections import defaultdict
 from typing import List, Dict, Tuple, Optional, Any
+
+from tam.common.utils import parse_formula_to_terms
+from tam.model._math import decomposition_names
+from tam.model.spectrum import OffsetEffect
 #: </knowledge_graph_imports>
+
+#: <knowledge_graph_term_identity>
+_SUB_TERM = re.compile(r'^\s*[a-zA-Z]{1,4}\s*\(')
+
+
+def term_members(term: Dict[str, Any]) -> List[Tuple[str, str]]:
+    """(feature, basis) pairs a formula term is built from.
+
+    A marginal term is its own single member. The formula parser names every tensor product's
+    feature 'interaction' and keeps its sub-terms only as parameter keys, so they are recovered
+    here; otherwise the graph files every te() under one pseudo-feature and credits none of the
+    real features it crosses.
+    """
+    if term.get('type') != 'te':
+        return [(term.get('feature'), term.get('type'))]
+    sub_terms = [str(key).strip() for key in term.get('params', {}) if _SUB_TERM.match(str(key))]
+    if not sub_terms:
+        return []
+    try:
+        _, parsed = parse_formula_to_terms("DUMMY ~ " + " + ".join(sub_terms))
+    except ValueError:
+        return []
+    return [(sub['feature'], sub['type']) for sub in parsed]
+
+
+def term_signature(term: Dict[str, Any]) -> str:
+    """Stable identity of a term, e.g. 'f(toy)' or 'te(f(toy),c(day_type_week))'."""
+    if term.get('type') != 'te':
+        return f"{term.get('type')}({term.get('feature')})"
+    return "te(" + ",".join(f"{effect}({feature})" for feature, effect in term_members(term)) + ")"
+#: </knowledge_graph_term_identity>
 
 #: <knowledge_graph_class>
 class KnowledgeGraph:
@@ -39,7 +75,7 @@ class KnowledgeGraph:
         self, 
         exploration_rate: float = 0.2, 
         temperature: float = 1.0,
-        prune_threshold: float = 0.01, 
+        prune_threshold: float = 0.005,
         max_collinearity: float = 0.98
     ):
         """
@@ -64,6 +100,18 @@ class KnowledgeGraph:
         self.effects: Dict[str, Dict[str, Any]] = defaultdict(self._default_metrics)
         self.feature_effect_edges: Dict[Tuple[str, str], Dict[str, Any]] = defaultdict(self._default_metrics)
         self.interaction_edges: Dict[Tuple[str, str], Dict[str, Any]] = defaultdict(self._default_metrics)
+
+        # Pre-search basis diagnosis: feature -> (effect, strength). Decays with evidence.
+        self.basis_prior: Dict[str, Tuple[str, float]] = {}
+
+        # --- Step 3: Mutant-UCB island bandit + Quality-Diversity Champion Archive ---
+        # Island-UCB reward stats: empirical mean fitness mu_k and pull count N_k per island.
+        self.island_stats: Dict[str, Dict[str, float]] = defaultdict(lambda: {'N': 0.0, 'reward_sum': 0.0})
+        # Champion Archive (QD): structurally-distinct elite genomes, kept diverse via TED.
+        self.champion_archive: List[Dict[str, Any]] = []
+        self.archive_max_size: int = 50
+        self.niche_radius: float = 0.15            # D_min in normalized TED units [0, 1]
+        self.ted_weights: Tuple[float, float, float] = (1.0, 0.5, 0.25)  # (feat, topology, hyperparam)
 #: </knowledge_graph_init>
 
 #: <knowledge_graph_default>
@@ -124,23 +172,54 @@ class KnowledgeGraph:
 
         pruned_terms = []
         active_effects = []
-        
+
         normalized_rmse = global_rmse / (target_std + 1e-9)
         base_reward = 1.0 / (normalized_rmse + 1e-6)
 
-        for term in parsed_terms:
-            term_id = f"{term['type']}({term['feature']})"
-            effect_values = contributions.get(term_id)
+        column_of = self._term_columns(parsed_terms, model)
 
+        def _contribution_for(term: Dict[str, Any]):
+            """Locate a term's decomposed contribution.
+
+            When the model exposes its effects the column is resolved exactly (_term_columns).
+            The name-based fallback serves models without an effects list; it once built
+            '<type>(<feature>)', which matched no column, so nothing was ever pruned and
+            _register_success never fired. A te() cannot be resolved by name at all: its parsed
+            feature is the placeholder 'interaction'.
+            """
+            if column_of:
+                key = column_of.get(id(term))
+                return contributions[key] if key is not None and key in contributions else None
+            if term.get('type') == 'te':
+                return None
+            feature = term.get("feature")
+            for key in (f"effect_{feature}", f"{term['type']}({feature})"):
+                if key in contributions:
+                    return contributions[key]
+            return None
+
+        # Prune collinear terms strongest-first so interactions claim variance before their marginals.
+        contributions_by_term = {id(term): _contribution_for(term) for term in parsed_terms}
+
+        def _importance(term: Dict[str, Any]) -> float:
+            values = contributions_by_term[id(term)]
+            if values is None:
+                return -np.inf
+            share = float(np.var(values) / (total_pred_var + 1e-9))
+            return share if np.isfinite(share) else -np.inf
+
+        importances = {id(term): _importance(term) for term in parsed_terms}
+        kept_ids = set()
+
+        for term in sorted(parsed_terms, key=lambda t: importances[id(t)], reverse=True):
+            effect_values = contributions_by_term[id(term)]
             if effect_values is None:
-                pruned_terms.append(term)
+                kept_ids.add(id(term))
                 continue
 
-            importance = np.var(effect_values) / (total_pred_var + 1e-9)
-            term_std = np.std(effect_values)
+            importance = importances[id(term)]
             is_redundant = False
-
-            if term_std > 0:
+            if np.std(effect_values) > 0:
                 for prev_effect in active_effects:
                     if np.std(prev_effect) > 0:
                         corr = np.abs(np.corrcoef(effect_values, prev_effect)[0, 1])
@@ -149,15 +228,34 @@ class KnowledgeGraph:
                             break
 
             if importance > self.prune_threshold and not is_redundant:
-                pruned_terms.append(term)
+                kept_ids.add(id(term))
                 active_effects.append(effect_values)
-                
+
+                term_id = term_signature(term)
                 penalty = component_penalties.get(term_id, 0.0)
                 composite_reward = base_reward * (1.0 + importance) / (1.0 + penalty)
-                
                 self._register_success(term, composite_reward, penalty, importance)
 
+        pruned_terms = [term for term in parsed_terms if id(term) in kept_ids]
         return pruned_terms
+
+    @staticmethod
+    def _term_columns(parsed_terms: List[Dict[str, Any]], model: Any) -> Dict[int, str]:
+        """Maps each formula term (by object identity) to its decompose_prediction column.
+
+        The effect factory builds exactly one effect per parsed term after the intercept, so the
+        effects list without its offset is aligned with parsed_terms, and decomposition_names
+        gives each effect's exact column. Returns {} when the model exposes no effects or the two
+        lists disagree, leaving the caller on its name-based fallback.
+        """
+        effects = getattr(model, 'effects_list_', None)
+        if not effects:
+            return {}
+        named = [(effect, name) for effect, name in zip(effects, decomposition_names(effects))
+                 if not isinstance(effect, OffsetEffect)]
+        if len(named) != len(parsed_terms):
+            return {}
+        return {id(term): f"effect_{name}" for term, (_, name) in zip(parsed_terms, named)}
 #: </knowledge_graph_update_prune>
 
 #: <knowledge_graph_register>
@@ -165,9 +263,23 @@ class KnowledgeGraph:
         """
         Logs successful term metrics and parameters into the probabilistic hierarchy.
         Updates the global feature nodes, effect nodes, and the specific edges between them.
+
+        Credit tensor products to all crossed features to guide future interaction sampling.
         """
-        feat = term['feature']
         eff = term['type']
+        if eff == 'te':
+            members = [feature for feature, _ in term_members(term)]
+            self._update_node(self.effects[eff], reward, penalty, variance, {})
+            for feature in members:
+                self._update_node(self.features[feature], reward, penalty, variance, {})
+                self._update_node(self.feature_effect_edges[(feature, eff)], reward, penalty, variance, {})
+            for i, first in enumerate(members):
+                for second in members[i + 1:]:
+                    pair = tuple(sorted([first, second]))
+                    self._update_node(self.interaction_edges[pair], reward, penalty, variance, {})
+            return
+
+        feat = term['feature']
         params = term.get('params', {})
 
         interacting_feats = []
@@ -219,12 +331,26 @@ class KnowledgeGraph:
             return
             
         for term in parsed_terms:
-            feat = term['feature']
             eff = term['type']
-            
-            self.features[feat]['survival_count'] += 1
             self.effects[eff]['survival_count'] += 1
-            self.feature_effect_edges[(feat, eff)]['survival_count'] += 1
+            # A te() survives on behalf of every feature it crosses (see _register_success).
+            for feat, _ in term_members(term):
+                self.features[feat]['survival_count'] += 1
+                self.feature_effect_edges[(feat, eff)]['survival_count'] += 1
+
+    def term_avg_variance(self, term: Dict[str, Any]) -> float:
+        """Variance share the graph has recorded for a term; DragTAM ablates the lowest first.
+
+        A marginal reads its feature node. A te() has no feature of its own, so it reads the mean
+        of its (feature, 'te') edges; reading the placeholder feature returned zero, which made
+        every tensor product the first term stripped by ablation.
+        """
+        if term.get('type') != 'te':
+            return self.features[term['feature']]['avg_variance']
+        members = term_members(term)
+        if not members:
+            return 0.0
+        return float(np.mean([self.feature_effect_edges[(feat, 'te')]['avg_variance'] for feat, _ in members]))
 #: </knowledge_graph_survival>
 
 #: <knowledge_graph_scoring>
@@ -248,11 +374,32 @@ class KnowledgeGraph:
 #: </knowledge_graph_scoring>
 
 #: <knowledge_graph_sampling>
+    def set_basis_prior(self, feature: str, effect: str, strength: float = 0.0) -> None:
+        """Registers a basis-family prior for a feature. DISABLED by default (strength 0).
+
+        Basis-family prior disabled by default: forcing a single family starves diversity and degrades OPERA ensemble performance.
+        """
+        self.basis_prior[feature] = (effect, float(strength))
+
+    def _prior_probability(self, feature: str) -> float:
+        """Prior weight for a feature, decaying as observations accumulate."""
+        entry = self.basis_prior.get(feature)
+        if not entry:
+            return 0.0
+        observations = sum(self.feature_effect_edges[(f, e)]['usage_count']
+                           for (f, e) in self.feature_effect_edges if f == feature)
+        return float(entry[1]) / (1.0 + observations / 10.0)
+
     def suggest_effect_for_feature(self, feature: str, valid_effects: List[str]) -> str:
         """
         Samples an optimal mathematical effect for a given feature.
-        Balances epsilon-greedy exploration with temperature-scaled exploitation.
+        Balances epsilon-greedy exploration with temperature-scaled exploitation, after a
+        decaying prior drawn from the pre-search basis diagnosis.
         """
+        prior = self.basis_prior.get(feature)
+        if prior and prior[0] in valid_effects and random.random() < self._prior_probability(feature):
+            return prior[0]
+
         if random.random() < self.exploration_rate:
             return random.choice(valid_effects)
 
@@ -320,7 +467,158 @@ class KnowledgeGraph:
             cumulative += p
             if r <= cumulative:
                 return keys[i]
-                
+
         return keys[-1]
 #: </knowledge_graph_sampling>
+
+#: <knowledge_graph_island_ucb>
+    def update_island_reward(self, island_name: str, reward: Optional[float]) -> None:
+        """Records one pull of an Island (Mutant-UCB arm) and its fitness reward (higher = better).
+
+        A candidate that failed to fit (reward None or non-finite) is a pull with zero reward. Left
+        uncounted, an Island whose candidates always fail would stay below the minimum budget of
+        select_island_ucb and be chosen on every draw.
+        """
+        st = self.island_stats[island_name]
+        st['N'] += 1.0
+        if reward is not None and np.isfinite(reward):
+            st['reward_sum'] += float(reward)
+
+    def select_island_ucb(self, island_names: List[str], exploration: float = 2.0,
+                          epsilon: float = 0.0, min_pulls: int = 1) -> str:
+        """
+        Selects the next Island to breed.
+
+        1. Minimum budget: an Island pulled fewer than ``min_pulls`` times is chosen first, uniformly
+           among such Islands, so every topology is tried before any is exploited.
+        2. Epsilon-greedy: otherwise, with probability ``epsilon``, an Island is drawn uniformly.
+        3. UCB-E: otherwise I_t in argmax_k { mu_k + sqrt(E / N_k) }.
+
+        The defaults (min_pulls=1, epsilon=0) give plain UCB-E with unqueried Islands first.
+        """
+        if not island_names:
+            raise ValueError("select_island_ucb requires at least one island name.")
+
+        budget = max(1, int(min_pulls))           # at least one pull, so N_k > 0 in the UCB term
+        under_budget = [n for n in island_names if self.island_stats[n]['N'] < budget]
+        if under_budget:
+            return random.choice(under_budget)
+        if epsilon > 0.0 and random.random() < epsilon:
+            return random.choice(island_names)
+
+        best_name, best_ucb = island_names[0], -float('inf')
+        for name in island_names:
+            st = self.island_stats[name]
+            mu = st['reward_sum'] / st['N']
+            ucb = mu + math.sqrt(exploration / st['N'])
+            if ucb > best_ucb:
+                best_ucb, best_name = ucb, name
+        return best_name
+#: </knowledge_graph_island_ucb>
+
+#: <knowledge_graph_ted>
+    @staticmethod
+    def _term_key(term: Dict[str, Any]) -> Tuple[str, str]:
+        # Every te() parses to the feature 'interaction'; keying on it made all tensor products
+        # topologically identical, so distinct interactions competed for a single archive niche.
+        if term.get('type') == 'te':
+            return (term_signature(term), 'te')
+        return (term.get('feature'), term.get('type'))
+
+    @staticmethod
+    def _genome_features(genome: List[Dict[str, Any]]) -> set:
+        return {feat for term in genome for feat, _ in term_members(term)}
+
+    def topological_edit_distance(self, genome_a: List[Dict[str, Any]], genome_b: List[Dict[str, Any]]) -> float:
+        """
+        Topological Edit Distance (TED) between two formula DAGs, normalized to [0, 1]:
+
+            TED = (w1 * d_feat + w2 * d_top + w3 * d_hyp) / (w1 + w2 + w3)
+
+        * d_feat: Jaccard distance of active input features (highest weight).
+        * d_top : Jaccard distance of applied (feature, basis) pairs (e.g. s() -> w()).
+        * d_hyp : mean normalized hyperparameter distance over shared (feature, basis) terms.
+        """
+        if not genome_a and not genome_b:
+            return 0.0
+
+        feats_a = self._genome_features(genome_a)
+        feats_b = self._genome_features(genome_b)
+        union_f = feats_a | feats_b
+        d_feat = len(feats_a ^ feats_b) / len(union_f) if union_f else 0.0
+
+        keys_a = {self._term_key(t) for t in genome_a}
+        keys_b = {self._term_key(t) for t in genome_b}
+        union_k = keys_a | keys_b
+        d_top = len(keys_a ^ keys_b) / len(union_k) if union_k else 0.0
+
+        shared = keys_a & keys_b
+        d_hyp = 0.0
+        if shared:
+            a_map = {self._term_key(t): t.get('params', {}) for t in genome_a}
+            b_map = {self._term_key(t): t.get('params', {}) for t in genome_b}
+            diffs = []
+            for k in shared:
+                pa, pb = a_map[k], b_map[k]
+                for p in set(pa) & set(pb):
+                    va, vb = pa[p], pb[p]
+                    if isinstance(va, (int, float)) and isinstance(vb, (int, float)):
+                        denom = max(abs(va), abs(vb), 1e-9)
+                        diffs.append(min(1.0, abs(va - vb) / denom))
+            d_hyp = sum(diffs) / len(diffs) if diffs else 0.0
+
+        w1, w2, w3 = self.ted_weights
+        return (w1 * d_feat + w2 * d_top + w3 * d_hyp) / (w1 + w2 + w3)
+#: </knowledge_graph_ted>
+
+#: <knowledge_graph_archive>
+    def try_add_champion(self, genome: List[Dict[str, Any]], score: float, island_name: str) -> bool:
+        """
+        Quality-Diversity admission into the Champion Archive.
+
+        A candidate enters only if it is structurally distinct (min TED >= D_min) from every
+        existing champion, OR if it occupies the same topological niche but has a strictly
+        lower penalized score. Keeps the archive both elite and diverse.
+        """
+        if not genome or score is None or not np.isfinite(score):
+            return False
+
+        entry = {
+            'genome': [{'type': t['type'], 'feature': t['feature'], 'params': dict(t.get('params', {}))}
+                       for t in genome],
+            'score': float(score),
+            'island': island_name,
+        }
+
+        if not self.champion_archive:
+            self.champion_archive.append(entry)
+            return True
+
+        dists = [(self.topological_edit_distance(genome, c['genome']), i)
+                 for i, c in enumerate(self.champion_archive)]
+        min_d, min_i = min(dists, key=lambda x: x[0])
+
+        if min_d >= self.niche_radius:
+            self.champion_archive.append(entry)
+        elif entry['score'] < self.champion_archive[min_i]['score']:
+            self.champion_archive[min_i] = entry        # same niche, strictly better -> overwrite
+        else:
+            return False
+
+        if len(self.champion_archive) > self.archive_max_size:
+            self.champion_archive.sort(key=lambda c: c['score'])
+            self.champion_archive = self.champion_archive[:self.archive_max_size]
+        return True
+
+    def get_island_champion(self, island_name: str) -> Optional[List[Dict[str, Any]]]:
+        """Returns the best-scoring archived genome spawned by the given Island, if any."""
+        cands = [c for c in self.champion_archive if c['island'] == island_name]
+        if not cands:
+            return None
+        return min(cands, key=lambda c: c['score'])['genome']
+
+    def get_champions(self) -> List[Dict[str, Any]]:
+        """Returns the current Champion Archive sorted best-first."""
+        return sorted(self.champion_archive, key=lambda c: c['score'])
+#: </knowledge_graph_archive>
 #: </knowledge_graph_class>

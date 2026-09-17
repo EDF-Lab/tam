@@ -370,7 +370,9 @@ def _ensure_dummies(df: pd.DataFrame, group_col: str, date_col: str) -> pd.DataF
     if group_col == "__dummy_group__" and "__dummy_group__" not in df_out.columns:
         df_out["__dummy_group__"] = "global_group"
     if date_col == "__dummy_date__" and "__dummy_date__" not in df_out.columns:
-        df_out["__dummy_date__"] = pd.date_range(start="2000-01-01", periods=len(df_out), freq="D")
+        # Second-spaced (not daily) so large row counts can't overflow the pandas
+        # datetime bound (year 2262): daily spacing overflows past ~95k rows.
+        df_out["__dummy_date__"] = pd.Timestamp("2000-01-01") + pd.to_timedelta(np.arange(len(df_out)), unit="s")
     return df_out
 
 def _cleanup_dummies(df: pd.DataFrame, group_col: str, date_col: str) -> pd.DataFrame:

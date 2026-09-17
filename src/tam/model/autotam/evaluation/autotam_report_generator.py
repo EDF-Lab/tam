@@ -15,6 +15,9 @@ and the composition of the final Minimax ensembles.
 import os
 import glob
 import re
+from pathlib import Path
+from typing import Tuple
+
 import pandas as pd
 import numpy as np
 #: </autotam_report_generator_imports>
@@ -41,6 +44,37 @@ def extract_family(model_name: str) -> str:
             return part.replace('Top', '').replace('Island', '')
     return "Other"
 
+def _safe_run_id(run_id: str) -> str:
+    """
+    Validate run_id characters and resolve paths to prevent path traversal/injection vulnerabilities.
+    """
+    text = str(run_id)
+    if not text or any(not (char.isalnum() or char in "_-") for char in text):
+        raise ValueError(f"Invalid run_id {run_id!r}: only letters, digits, '_' and '-' are allowed.")
+    return text
+
+
+def _artifact_path(export_dir: Path, file_name: str) -> Path:
+    """Resolves an artifact inside the export directory; refuses any path that resolves outside it."""
+    path = (export_dir / file_name).resolve()
+    if not path.is_relative_to(export_dir):
+        raise PermissionError(f"Artifact path {path} escapes the export directory {export_dir}.")
+    return path
+
+
+def _driver_scores(df_pdp: pd.DataFrame) -> Tuple[pd.DataFrame, str]:
+    """
+    Extract scale-free Importance scores (or fallback to raw variance) for the PDP plot.
+    """
+    drivers = df_pdp[df_pdp["Feature_Effect"] != "offset"].copy()
+    if "Importance" in drivers.columns:
+        drivers["Score"] = drivers["Importance"]
+        return drivers, "Importance: Var(h_j) / Var(prediction)"
+    total = float(drivers["Variance"].sum())
+    drivers["Score"] = drivers["Variance"] / total if total > 0 else 0.0
+    return drivers, "Share of summed term variance"
+
+
 def shorten_label(label: str, width: int = 20) -> str:
     """
     Truncates long feature names for cleaner visualization on plot axes.
@@ -60,21 +94,28 @@ def generate_autotam_report(export_path: str = "", run_id: str = None, metric: s
         run_id (str): Specific timestamp ID to plot. If None, uses the latest run.
         metric (str): The name of the optimization metric to display on the axes.
     """
-    import matplotlib.pyplot as plt
+    try:
+        import matplotlib.pyplot as plt
+    except ImportError:
+        print("Skipping the AutoTAM report: matplotlib is required (pip install matplotlib).")
+        return
+
+    export_dir = Path(export_path or ".").resolve()
     if run_id is None:
-        run_id = get_latest_run_id(export_path)
+        run_id = get_latest_run_id(str(export_dir))
         if not run_id:
             print("No evaluation logs found in the specified directory.")
             return
+    run_id = _safe_run_id(run_id)
 
-    f_purge = os.path.join(export_path, f"AutoTAM_collinearity_purge_log_{run_id}.csv")
-    f_tests = os.path.join(export_path, f"AutoTAM_chronological_tests_{run_id}.csv")
-    f_arch = os.path.join(export_path, f"AutoTAM_final_architectures_{run_id}.csv")
-    f_apex = os.path.join(export_path, f"AutoTAM_opera_weights_AutoTAM_Apex_Ensemble_{run_id}.csv")
-    f_isl = os.path.join(export_path, f"AutoTAM_opera_weights_Ensemble_Island_Federation_{run_id}.csv")
-    f_stat = os.path.join(export_path, f"AutoTAM_opera_weights_Ensemble_Static_{run_id}.csv")
-    f_adapt = os.path.join(export_path, f"AutoTAM_opera_weights_Ensemble_Adaptive_{run_id}.csv")
-    f_pdp = os.path.join(export_path, f"AutoTAM_pdp_variance_Global_Static_Champion_{run_id}.csv")
+    f_purge = _artifact_path(export_dir, f"AutoTAM_collinearity_purge_log_{run_id}.csv")
+    f_tests = _artifact_path(export_dir, f"AutoTAM_chronological_tests_{run_id}.csv")
+    f_arch = _artifact_path(export_dir, f"AutoTAM_final_architectures_{run_id}.csv")
+    f_apex = _artifact_path(export_dir, f"AutoTAM_opera_weights_AutoTAM_Apex_Ensemble_{run_id}.csv")
+    f_isl = _artifact_path(export_dir, f"AutoTAM_opera_weights_Ensemble_Island_Federation_{run_id}.csv")
+    f_stat = _artifact_path(export_dir, f"AutoTAM_opera_weights_Ensemble_Static_{run_id}.csv")
+    f_adapt = _artifact_path(export_dir, f"AutoTAM_opera_weights_Ensemble_Adaptive_{run_id}.csv")
+    f_pdp = _artifact_path(export_dir, f"AutoTAM_pdp_variance_Global_Static_Champion_{run_id}.csv")
 
     fig, axes = plt.subplots(3, 3, figsize=(24, 16))
     fig.suptitle(f"Automated Forecasting AI: Selection & Performance Report (Run: {run_id})", fontsize=22, fontweight='bold')
@@ -131,12 +172,13 @@ def generate_autotam_report(export_path: str = "", run_id: str = None, metric: s
         ax.grid(axis='x', linestyle='--', alpha=0.5)
 
     if os.path.exists(f_pdp):
-        df_pdp = pd.read_csv(f_pdp).sort_values('Variance', ascending=True).tail(6)
+        df_pdp, score_label = _driver_scores(pd.read_csv(f_pdp))
+        df_pdp = df_pdp.sort_values('Score', ascending=True).tail(6)
         ax = axes[1, 1]
         y_labels = [shorten_label(x, 25) for x in df_pdp['Feature_Effect']]
-        ax.barh(y_labels, df_pdp['Variance'], color='mediumpurple', edgecolor='k')
+        ax.barh(y_labels, df_pdp['Score'], color='mediumpurple', edgecolor='k')
         ax.set_title("5. Top Drivers of the Winning Forecast", fontweight='bold')
-        ax.set_xlabel("Importance Score")
+        ax.set_xlabel(score_label)
         ax.grid(axis='x', linestyle='--', alpha=0.5)
 
     if os.path.exists(f_apex):

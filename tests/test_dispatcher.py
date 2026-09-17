@@ -120,6 +120,61 @@ def test_smart_solve_gcv_returns_lambda_per_effect():
     assert np.isfinite(gcv_score)
 
 
+def test_smart_solve_gcv_lambdas_rebuild_the_penalty_it_scored():
+    """The returned lambdas must reproduce the penalty GCV actually optimised.
+
+    The search has to build every trial block from the effect itself at
+    ``lambda_p = 10**alpha``. Rescaling a block that already carries the formula's
+    lambda_p would score the product of the two, so re-solving with the returned
+    lambdas (what ``fit()`` does) would land on a different model.
+    """
+    effects = _effects()
+    x, y = _data()
+    loss = torch.eye(1, device=TORCH_DEVICE, dtype=torch.get_default_dtype())
+
+    coeffs, best_lambdas, _ = smart_solve_gcv(
+        x_data=x, y_data=y, effects_list=effects, loss_matrix=loss,
+        alpha_p_bounds=(-6.0, 2.0), number_of_steps=3, gamma=1.4,
+    )
+
+    stored = np.asarray([e.lambda_p for e in effects], dtype=np.float64)
+    assert np.allclose(stored, np.asarray(best_lambdas, dtype=np.float64), rtol=1e-12)
+
+    refit = smart_solve(
+        x, y, effects, build_penalty_from_effects(effects), loss, num_samples=x.shape[1]
+    )
+    assert torch.allclose(refit, coeffs, rtol=1e-8, atol=1e-8)
+
+
+def test_smart_solve_gcv_alphas_are_absolute_lambdas():
+    """An alpha coordinate means ``lambda_p = 10**alpha``, whatever the formula asked for.
+
+    The formula's lambda_p only seeds the descent. If it also multiplied the block,
+    a model written with ``ap=-4`` would in fact be fitted at 1e-8.
+    """
+    loss = torch.eye(1, device=TORCH_DEVICE, dtype=torch.get_default_dtype())
+    effects = [
+        OffsetEffect(lambda_p=1e-4, extrapolate="continue"),
+        SplineEffect("x", n_knots=8, spline_degree=3, penalty_order=2,
+                     lambda_p=1e-4, extrapolate="continue"),
+    ]
+    x, y = _data(seed=2)
+
+    # The only coordinate offered is the one the formula already sits on, so the
+    # descent cannot move and the solve must be the plain lambda_p = 1e-4 fit.
+    coeffs, best_lambdas, _ = smart_solve_gcv(
+        x_data=x, y_data=y, effects_list=effects, loss_matrix=loss,
+        alpha_p_bounds=(-6.0, 2.0), alpha_p_list=[-4.0],
+    )
+
+    assert np.allclose(np.asarray(best_lambdas, dtype=np.float64), 1e-4, rtol=1e-12)
+
+    expected = smart_solve(
+        x, y, effects, build_penalty_from_effects(effects), loss, num_samples=x.shape[1]
+    )
+    assert torch.allclose(coeffs, expected, rtol=1e-8, atol=1e-8)
+
+
 def test_smart_solve_gcv_with_explicit_alpha_list():
     effects = _effects()
     x, y = _data(seed=1)

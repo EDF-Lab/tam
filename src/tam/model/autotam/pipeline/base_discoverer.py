@@ -15,7 +15,7 @@ import re
 from typing import Dict, Any, List, Tuple
 from .context import PipelineContext
 from tam.model.autotam.drag_tam import DragTAM
-from tam.model.autotam.population_nodes import get_island_generators
+from tam.model.autotam.population_nodes import get_island_objects
 #: </base_discoverer_imports>
 
 #: <base_discoverer_class>
@@ -38,7 +38,7 @@ class BaseDiscoverer:
             'l': 'LinearIsland', 'c': 'LinearIsland',
             's': 'SplineIsland', 'f': 'FourierIsland', 'p': 'ChebyshevIsland',
             'w': 'WaveletIsland', 'n': 'NeuralIsland', 'rbf': 'RBFIsland',
-            't': 'TreeIsland', 'te': 'CrossIsland'
+            't': 'TreeIsland', 'lt': 'TreeIsland'
         }
         if "~" not in formula: 
             return "Continent"
@@ -52,14 +52,14 @@ class BaseDiscoverer:
         terms = [t for t in rhs.split("+") if t.strip() and t.strip() != "1"]
         num_terms = len(terms)
         
-        core_effects = effects - {'l', 'c'}
+        # te and pid are open to every Island, so a formula is attributed by its bases,
+        # including the ones inside a tensor product.
+        core_effects = effects - {'l', 'c', 'pid', 'te'}
         
         if not core_effects: 
             return "LinearIsland"
             
         if len(core_effects) > 1:
-            if 'te' in core_effects and num_terms <= 4: 
-                return "CrossIsland"
             if num_terms <= 4:
                 return "SmallContinent"
             return "Continent"
@@ -75,12 +75,13 @@ class BaseDiscoverer:
         """
         print("BaseDiscoverer: Starting Evolutionary Search...")
         
-        draga = DragTAM(target_col=ctx.target, population_size=self.pop_size)
-        island_generators = get_island_generators()
-        
+        draga = DragTAM(target_col=ctx.target, population_size=self.pop_size,
+                        group_col=ctx.group_col, date_col=ctx.date_col)
+        islands = get_island_objects()
+
         draga.optimize(
-            cv_folds=ctx.cv_folds, 
-            island_generators=island_generators, 
+            cv_folds=ctx.cv_folds,
+            islands=islands,
             search_space=ctx.search_space
         )
         

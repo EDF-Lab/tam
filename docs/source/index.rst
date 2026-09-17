@@ -92,6 +92,8 @@ Time series Additive Model (TAM) Official Documentation
    math/meta/08_auto_orchestrator
    math/meta/09_auto_data_topology
    math/meta/10_mlops_evaluation
+   math/meta/11_autotam_probabilistic
+   math/meta/12_autotam_feature_profiling
 
 .. raw:: latex
 
@@ -142,6 +144,8 @@ Time series Additive Model (TAM) Official Documentation
    architecture/meta/08_auto_orchestrator_code
    architecture/meta/09_auto_data_topology_code
    architecture/meta/10_mlops_tracking_code
+   architecture/meta/11_autotam_probabilistic_code
+   architecture/meta/12_autotam_feature_profiling_code
 
 .. raw:: latex
 

@@ -202,7 +202,7 @@ with intercept_and_save_plot(CASE_NAME, "effect_physics.png"):
     plot_effect_with_model_and_data(model=static_models["Physics"], data=d_dict['test'], effect='x5')
 
 with intercept_and_save_plot(CASE_NAME, "effect_tensor.png"):
-    plot_effect_with_model_and_data(model=static_models["Tensor_interaction"], data=d_dict['test'], effect='x1', color_by='x8')
+    plot_effect_with_model_and_data(model=static_models["Tensor_interaction"], data=d_dict['test'], effect='x6', color_by='x8')
 
 # ==============================================================================
 # 8. MLOps Evaluation

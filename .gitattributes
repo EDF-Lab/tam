@@ -1,0 +1,17 @@
+# Normalise line endings: the repository stores LF, working copies get the
+# platform's own convention on checkout.
+* text=auto eol=lf
+
+# Windows-only scripts must keep CRLF to stay safe under cmd.exe.
+*.bat text eol=crlf
+
+# Binary assets: never touched, never diffed as text.
+*.csv binary
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.pdf binary
+*.whl binary
+*.zip binary

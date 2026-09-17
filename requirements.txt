@@ -1,4 +1,4 @@
--e / #tam debugging mode
+-e .  # tam, editable install for development
 
 #tests
 pytest

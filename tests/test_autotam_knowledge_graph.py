@@ -120,8 +120,8 @@ def test_suggest_interaction_returns_candidate():
 def test_update_and_prune_drops_redundant_and_low_variance_terms():
     base = np.linspace(0.0, 10.0, 20)
     contributions = {
-        "s(x)": base,            # strong, unique -> kept
-        "f(x)": 2.0 * base,      # collinear with s(x) -> pruned as redundant
+        "s(x)": 2.0 * base,      # strongest, unique -> kept
+        "f(x)": base,            # collinear with the stronger s(x) -> pruned as redundant
         "l(z)": base * 1e-4,     # negligible variance -> pruned
     }
     model = _FakeModel(contributions, estimate=base)

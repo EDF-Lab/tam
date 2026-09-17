@@ -417,7 +417,7 @@ Natively encapsulates the base `TreeEffect` (local intercept) and computes the K
 ```
 
 **3. Penalty Matrix**
-Constructs the block-diagonal encapsulation of the anisotropic sparsity-adaptive tree penalty (local intercepts) and the Kronecker tensor penalty (local slopes), safely coalescing them into a single sparse COO tensor.
+Constructs the block-diagonal encapsulation of the anisotropic sparsity-adaptive tree penalty (local intercepts) and the Kronecker tensor penalty (local slopes), safely coalescing them into a single sparse COO tensor. Both sub-blocks are weighted by the term's own `lambda_p`. They are seeded with it at construction, and `LinearTreeEffect` exposes `lambda_p` as a property whose setter forwards the new value, so a weight reassigned later, as the GCV search does on every candidate, reaches the blocks it is meant to scale.
 
 ```{literalinclude} ../../../../src/tam/model/spectrum/_linear_tree.py
 :language: python

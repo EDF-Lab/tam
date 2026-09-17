@@ -43,9 +43,9 @@ In industrial datasets (e.g., varying smart meters), targets exist on vastly dif
 
 * **Symmetric Mean Absolute Percentage Error (SMAPE):**
 
-  $$\text{SMAPE} = \frac{100}{N} \sum_{i=1}^N \frac{|Y_i - \hat{Y}_i|}{(|Y_i| + |\hat{Y}_i|)/2}$$
+  $$\text{SMAPE} = \frac{100}{N} \sum_{i=1}^N \frac{2\,|Y_i - \hat{Y}_i|}{|Y_i| + |\hat{Y}_i| + \varepsilon}, \qquad \varepsilon = 10^{-8}$$
 
-  To construct a mathematically safe environment for the `AutoTAM` orchestrator, the framework relies heavily on SMAPE {cite:p}`hyndman2006another`. By dividing by the average of the true and predicted values, SMAPE strictly bounds the maximum error for any single observation to exactly $200\%$. This guarantees that a single zero-target anomaly cannot destabilize the global fitness function during evolutionary hyperparameter search.
+  To construct a mathematically safe environment for the `AutoTAM` orchestrator, the framework relies heavily on SMAPE {cite:p}`hyndman2006another`. By dividing by the average of the true and predicted values, SMAPE bounds the error of any single observation by $200\%$, a bound approached as $\varepsilon \to 0$. The constant $\varepsilon$ removes the $0/0$ singularity when $Y_i = \hat{Y}_i = 0$: such an observation contributes $0$ instead of an undefined value. The same constant is used by `calculate_regression_metrics`. This guarantees that a single zero-target anomaly cannot destabilize the global fitness function during evolutionary hyperparameter search.
 
 ---
 
@@ -85,3 +85,5 @@ By computing the simple Pearson correlation between $\epsilon_t$ and $\epsilon_{
 $$\rho_1 = \frac{\text{Cov}(\epsilon_t, \epsilon_{t-1})}{\text{Var}(\epsilon_t)}$$
 
 The orchestrator instantly evaluates the structural integrity of the time-domain. If $\rho_1 \gg 0$, the $DW$ statistic approaches $0$, signaling severe positive autocorrelation and triggering the `AutoTAM` knowledge graph to propose deeper temporal spline expansions.
+
+**Scope of the proxy.** $\rho_1$ measures first-order serial correlation only. It detects an AR(1)-like residual structure but is blind to correlation concentrated at other lags: a weekly pattern left in daily residuals appears at lag 7 while $\rho_1$ can remain close to $0$. The relation $DW \approx 2(1 - \rho_1)$ carries the same restriction, since the Durbin-Watson statistic itself tests first-order correlation {cite:p}`durbin1950testing`. Detecting higher-order or seasonal dependence requires a statistic pooled over several lags (a portmanteau test such as Ljung-Box), which `analyze_residuals` does not compute. The statistic is also computed on the residual sequence exactly as passed: for panel data the residuals must be ordered in time within each entity, otherwise $\rho_1$ correlates unrelated neighbours.

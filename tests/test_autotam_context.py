@@ -31,7 +31,7 @@ def test_context_defaults():
     ("y ~ w(x, n_scales=3, n_locations=10)", 30), # scales * locations
     ("y ~ n(x, n_neurons=10, n_hidden_layers=1)", 50),  # neurons * layers * 5
     ("y ~ c(x, n_cat=7)", 6),                     # n_cat - 1
-    ("y ~ te(s(x, k=5), s(z, k=4))", 56),         # (5+3) * (4+3)
+    ("y ~ te(s(x, k=5), s(z, k=4))", 22),         # ranking surrogate: min(8*7, 8+7+sqrt(56))
     ("y ~ s(x, k=10) + l(z)", 14),                # additive sum
 ])
 def test_estimate_complexity(formula, expected_k):

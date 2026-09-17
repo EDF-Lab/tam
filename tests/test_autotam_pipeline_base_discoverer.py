@@ -52,8 +52,10 @@ def test_tree_maps_to_tree_island():
     assert _d()._get_island_from_formula("y ~ t(x, n_trees=10)") == "TreeIsland"
 
 
-def test_tensor_product_with_few_terms_maps_to_cross_island():
-    assert _d()._get_island_from_formula("y ~ te(s(a), s(b))") == "CrossIsland"
+def test_tensor_products_and_pid_are_attributed_by_their_bases():
+    assert _d()._get_island_from_formula("y ~ te(s(a), s(b))") == "SplineIsland"
+    assert _d()._get_island_from_formula("y ~ te(w(toy), c(day)) + l(x)") == "WaveletIsland"
+    assert _d()._get_island_from_formula("y ~ pid(Load_d1, w=7) + l(x)") == "LinearIsland"
 
 
 def test_multiple_non_linear_effects_maps_to_continent():

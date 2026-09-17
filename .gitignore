@@ -5,6 +5,7 @@ use_cases/scripts/
 ongoing/
 package/
 slides/output/
+diagnostics/
 
 # Python environments
 /venv/
