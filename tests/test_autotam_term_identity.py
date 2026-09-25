@@ -74,3 +74,31 @@ def test_ablation_order_reads_tensor_product_edges_not_a_placeholder():
     kg._register_success(te_term, reward=1.0, penalty=0.0, variance=0.6)
     kg._register_success(linear_term, reward=1.0, penalty=0.0, variance=0.1)
     assert kg.term_avg_variance(te_term) > kg.term_avg_variance(linear_term)
+
+
+def test_update_and_prune_exempts_mandatory_tensor_product_with_permuted_parameters():
+    rng = np.random.default_rng(42)
+    n = 300
+    df = pd.DataFrame({
+        "a": rng.uniform(0.0, 1.0, n),
+        "b": rng.integers(0, 3, n).astype(float),
+        "z": rng.normal(size=n),
+    })
+    # y depends only on z, so te() has negligible variance
+    df["y"] = 2.0 * df["z"] + rng.normal(0, 0.01, n)
+    model = tam.StaticTAM(formula="y ~ te(s(a, k=8), c(b, n_cat=3, topo='nominal')) + l(z)").fit(df)
+
+    kg = KnowledgeGraph()
+    # Without exemption, te() must be pruned due to low variance
+    kept_normal = kg.update_and_prune(list(model.parsed_terms_), model, df, "y",
+                                     global_rmse=0.01, target_std=float(df["y"].std()))
+    assert [term_signature(t) for t in kept_normal] == ["l(z)"]
+
+    # With mandatory_terms having permuted subterms and kwargs, te() must be kept
+    kept_mandatory = kg.update_and_prune(
+        list(model.parsed_terms_), model, df, "y",
+        global_rmse=0.01, target_std=float(df["y"].std()),
+        mandatory_terms=["te(c(b, topo='nominal', n_cat=3), s(a, k=8))"]
+    )
+    assert [term_signature(t) for t in kept_mandatory] == ["te(s(a),c(b))", "l(z)"]
+

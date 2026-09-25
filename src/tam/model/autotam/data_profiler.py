@@ -224,6 +224,10 @@ class DataProfiler:
         else:
             data = data.resample(freq).asfreq().reset_index()
             data = data.ffill(limit=3).bfill()
+
+        if date_col and date_col in data.columns:
+            sort_cols = [date_col] + ([group_col] if group_col and group_col in data.columns else [])
+            data = data.sort_values(by=sort_cols).reset_index(drop=True)
             
         return data
 

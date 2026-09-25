@@ -158,3 +158,156 @@ def test_update_and_prune_returns_input_on_decompose_failure():
     terms = [{"type": "s", "feature": "x", "params": {}}]
     out = kg.update_and_prune(terms, _Broken(), pd.DataFrame(), "y", 1.0, 1.0)
     assert out == terms
+
+
+def test_update_and_prune_exempts_mandatory_terms_from_variance_pruning():
+    base = np.linspace(0.0, 10.0, 20)
+    contributions = {
+        "s(x)": 2.0 * base,      # strongest, unique -> kept
+        "l(z)": base * 1e-6,     # negligible variance -> normally pruned, but mandatory!
+    }
+    model = _FakeModel(contributions, estimate=base)
+
+    parsed_terms = [
+        {"type": "s", "feature": "x", "params": {"k": 10}},
+        {"type": "l", "feature": "z", "params": {}},
+    ]
+    kg = KnowledgeGraph()
+    df = pd.DataFrame({"dummy": np.arange(20)})
+
+    # Without exemption, l(z) would be pruned
+    pruned_normal = kg.update_and_prune(parsed_terms, model, df, "y", global_rmse=5.0, target_std=10.0)
+    kept_normal = {(t["type"], t["feature"]) for t in pruned_normal}
+    assert ("l", "z") not in kept_normal
+
+    # With mandatory_terms=["l(z)"], l(z) must be kept
+    pruned_mandatory = kg.update_and_prune(
+        parsed_terms, model, df, "y", global_rmse=5.0, target_std=10.0,
+        mandatory_terms=["l(z)"]
+    )
+    kept_mandatory = {(t["type"], t["feature"]) for t in pruned_mandatory}
+    assert ("l", "z") in kept_mandatory
+
+
+def test_update_and_prune_exempts_mandatory_terms_from_collinearity_pruning():
+    base = np.linspace(0.0, 10.0, 20)
+    contributions = {
+        "s(x)": 2.0 * base,      # strongest -> kept
+        "f(x)": base,            # collinear with s(x) -> normally pruned, but mandatory!
+    }
+    model = _FakeModel(contributions, estimate=base)
+
+    parsed_terms = [
+        {"type": "s", "feature": "x", "params": {"k": 10}},
+        {"type": "f", "feature": "x", "params": {}},
+    ]
+    kg = KnowledgeGraph()
+    df = pd.DataFrame({"dummy": np.arange(20)})
+
+    # With mandatory_terms=["f(x)"], f(x) must be kept despite collinearity
+    pruned_mandatory = kg.update_and_prune(
+        parsed_terms, model, df, "y", global_rmse=5.0, target_std=10.0,
+        mandatory_terms=["f(x)"]
+    )
+    kept_mandatory = {(t["type"], t["feature"]) for t in pruned_mandatory}
+    assert ("s", "x") in kept_mandatory
+    assert ("f", "x") in kept_mandatory
+
+def test_update_and_prune_exempts_sole_mandatory_variable_term_from_variance_pruning():
+    base = np.linspace(0.0, 10.0, 20)
+    contributions = {
+        "s(x)": 2.0 * base,
+        "l(z)": base * 1e-6,
+    }
+    model = _FakeModel(contributions, estimate=base)
+
+    parsed_terms = [
+        {"type": "s", "feature": "x", "params": {"k": 10}},
+        {"type": "l", "feature": "z", "params": {}},
+    ]
+    kg = KnowledgeGraph()
+    df = pd.DataFrame({"dummy": np.arange(20)})
+
+    pruned_mandatory = kg.update_and_prune(
+        parsed_terms, model, df, "y", global_rmse=5.0, target_std=10.0,
+        mandatory_variables=["z"]
+    )
+    kept_mandatory = {(t["type"], t["feature"]) for t in pruned_mandatory}
+    assert ("l", "z") in kept_mandatory
+
+def test_update_and_prune_does_not_exempt_non_sole_mandatory_variable_term_from_variance_pruning():
+    base = np.linspace(0.0, 10.0, 20)
+    contributions = {
+        "s(z)": 2.0 * base,
+        "l(z)": base * 1e-6,
+    }
+    model = _FakeModel(contributions, estimate=base)
+
+    parsed_terms = [
+        {"type": "s", "feature": "z", "params": {"k": 10}},
+        {"type": "l", "feature": "z", "params": {}},
+    ]
+    kg = KnowledgeGraph()
+    df = pd.DataFrame({"dummy": np.arange(20)})
+
+    pruned_mandatory = kg.update_and_prune(
+        parsed_terms, model, df, "y", global_rmse=5.0, target_std=10.0,
+        mandatory_variables=["z"]
+    )
+    kept_mandatory = {(t["type"], t["feature"]) for t in pruned_mandatory}
+    assert ("l", "z") not in kept_mandatory
+
+
+def test_update_and_prune_exempts_mandatory_terms_with_permuted_params_from_variance_pruning():
+    base = np.linspace(0.0, 10.0, 20)
+    contributions = {
+        "s(x)": 2.0 * base,
+        "c(day)": base * 1e-6,  # negligible variance -> normally pruned, but mandatory under permuted params!
+    }
+    model = _FakeModel(contributions, estimate=base)
+
+    parsed_terms = [
+        {"type": "s", "feature": "x", "params": {"k": 10}},
+        {"type": "c", "feature": "day", "params": {"topo": "'nominal'", "n_cat": 7}},
+    ]
+    kg = KnowledgeGraph()
+    df = pd.DataFrame({"dummy": np.arange(20)})
+
+    # Without exemption, c(day) would be pruned
+    pruned_normal = kg.update_and_prune(parsed_terms, model, df, "y", global_rmse=5.0, target_std=10.0)
+    kept_normal = {(t["type"], t["feature"]) for t in pruned_normal}
+    assert ("c", "day") not in kept_normal
+
+    # With mandatory_terms having permuted parameters, c(day) must be preserved
+    pruned_mandatory = kg.update_and_prune(
+        parsed_terms, model, df, "y", global_rmse=5.0, target_std=10.0,
+        mandatory_terms=["c(day, n_cat=7, topo='nominal')"]
+    )
+    kept_mandatory = {(t["type"], t["feature"]) for t in pruned_mandatory}
+    assert ("c", "day") in kept_mandatory
+
+
+def test_update_and_prune_exempts_mandatory_terms_with_permuted_params_from_collinearity_pruning():
+    base = np.linspace(0.0, 10.0, 20)
+    contributions = {
+        "s(x)": 2.0 * base,  # strongest -> kept
+        "f(x)": base,       # collinear with s(x) -> normally pruned, but mandatory under permuted params!
+    }
+    model = _FakeModel(contributions, estimate=base)
+
+    parsed_terms = [
+        {"type": "s", "feature": "x", "params": {"k": 10}},
+        {"type": "f", "feature": "x", "params": {"q": 2, "p": 1}},
+    ]
+    kg = KnowledgeGraph()
+    df = pd.DataFrame({"dummy": np.arange(20)})
+
+    # With mandatory_terms having permuted parameters, f(x) must be kept despite collinearity
+    pruned_mandatory = kg.update_and_prune(
+        parsed_terms, model, df, "y", global_rmse=5.0, target_std=10.0,
+        mandatory_terms=["f(x, p=1, q=2)"]
+    )
+    kept_mandatory = {(t["type"], t["feature"]) for t in pruned_mandatory}
+    assert ("s", "x") in kept_mandatory
+    assert ("f", "x") in kept_mandatory
+

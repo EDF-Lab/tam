@@ -27,6 +27,7 @@ from typing import List, Dict, Tuple, Optional, Any
 from tam.common.utils import parse_formula_to_terms
 from tam.model._math import decomposition_names
 from tam.model.spectrum import OffsetEffect
+from .parser import terms_are_equivalent
 #: </knowledge_graph_imports>
 
 #: <knowledge_graph_term_identity>
@@ -132,20 +133,22 @@ class KnowledgeGraph:
 
 #: <knowledge_graph_update_prune>
     def update_and_prune(
-        self, 
-        parsed_terms: List[Dict[str, Any]], 
-        model: Any, 
-        df: pd.DataFrame, 
+        self,
+        parsed_terms: List[Dict[str, Any]],
+        model: Any,
+        df: pd.DataFrame,
         target_col: str,
         global_rmse: float,
         target_std: float,
-        component_penalties: Optional[Dict[str, float]] = None
+        component_penalties: Optional[Dict[str, float]] = None,
+        mandatory_terms: Optional[List[str]] = None,
+        mandatory_variables: Optional[List[str]] = None
     ) -> List[Dict[str, Any]]:
         """
         Evaluates a genome, prunes redundant terms, and updates the knowledge graph.
 
-        This is the core regularization mechanism. It decomposes the predictions of the GAM 
-        into individual term contributions. Terms that explain negligible variance or are highly 
+        This is the core regularization mechanism. It decomposes the predictions of the GAM
+        into individual term contributions. Terms that explain negligible variance or are highly
         collinear with existing terms are pruned to enforce parsimony.
 
         Args:
@@ -156,11 +159,14 @@ class KnowledgeGraph:
             global_rmse: Global validation RMSE of the model.
             target_std: Standard deviation of the target variable to ensure scale-invariant rewards.
             component_penalties: Dictionary mapping term signatures to their active penalty.
+            mandatory_terms: List of term strings that must not be pruned.
 
         Returns:
             List[Dict[str, Any]]: The strictly pruned list of formula terms.
         """
         component_penalties = component_penalties or {}
+        mandatory_terms = list(mandatory_terms or [])
+        mandatory_variables = set(mandatory_variables or [])
         
         try:
             contributions = model.decompose_prediction(df)
@@ -210,8 +216,22 @@ class KnowledgeGraph:
 
         importances = {id(term): _importance(term) for term in parsed_terms}
         kept_ids = set()
+        
+        # Protect mandatory variables
+        if mandatory_variables:
+            for var in mandatory_variables:
+                terms_with_var = [term for term in parsed_terms if var in {m[0] for m in term_members(term)}]
+                if len(terms_with_var) == 1:
+                    # Protect the sole term containing the mandatory variable
+                    kept_ids.add(id(terms_with_var[0]))
+
 
         for term in sorted(parsed_terms, key=lambda t: importances[id(t)], reverse=True):
+            is_mandatory_term = any(terms_are_equivalent(term, mt) for mt in mandatory_terms)
+            
+            term_vars = {m[0] for m in term_members(term)}
+            is_mandatory_var_term = any(v in mandatory_variables for v in term_vars)
+
             effect_values = contributions_by_term[id(term)]
             if effect_values is None:
                 kept_ids.add(id(term))
@@ -226,10 +246,20 @@ class KnowledgeGraph:
                         if corr > self.max_collinearity:
                             is_redundant = True
                             break
+            
+            is_sole_term_for_mandatory_var = False
+            if is_mandatory_var_term:
+                for var in term_vars.intersection(mandatory_variables):
+                    terms_with_var = [t for t in parsed_terms if var in {m[0] for m in term_members(t)}]
+                    if len(terms_with_var) == 1 and terms_with_var[0] is term:
+                        is_sole_term_for_mandatory_var = True
+                        break
 
-            if importance > self.prune_threshold and not is_redundant:
-                kept_ids.add(id(term))
-                active_effects.append(effect_values)
+
+            if is_mandatory_term or is_sole_term_for_mandatory_var or (importance > self.prune_threshold and not is_redundant):
+                if id(term) not in kept_ids:
+                    kept_ids.add(id(term))
+                    active_effects.append(effect_values)
 
                 term_id = term_signature(term)
                 penalty = component_penalties.get(term_id, 0.0)

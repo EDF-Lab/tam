@@ -16,8 +16,236 @@ Evolutionary Search Space and provides the first layer of defense against Target
 #: <parser_imports>
 import re
 import ast
-from typing import Dict, Any, List, Tuple, Optional
+from typing import Dict, Any, List, Tuple, Optional, Union
+from tam.common.utils import split_args_respecting_parentheses
 #: </parser_imports>
+
+__all__ = [
+    "canonicalize_term",
+    "terms_are_equivalent",
+    "canonicalize_formula",
+    "parse_formula_to_terms",
+    "FormulaParser",
+]
+
+
+#: <parser_canonicalization>
+def _normalize_param_value(val: Any) -> Tuple[Any, str]:
+    """
+    Normalizes a parameter value into its typed representation and canonical string format.
+    Strings are formatted with single quotes ('...').
+    """
+    if isinstance(val, str):
+        val_str = val.strip()
+        if (val_str.startswith("'") and val_str.endswith("'")) or (val_str.startswith('"') and val_str.endswith('"')):
+            val_str = val_str[1:-1]
+        try:
+            parsed_val = ast.literal_eval(val_str)
+        except (ValueError, SyntaxError):
+            parsed_val = val_str
+    else:
+        parsed_val = val
+
+    if isinstance(parsed_val, str):
+        formatted = f"'{parsed_val}'"
+    elif isinstance(parsed_val, bool):
+        formatted = str(parsed_val)
+    elif isinstance(parsed_val, (int, float)):
+        formatted = str(parsed_val)
+    elif parsed_val is None:
+        formatted = "None"
+    else:
+        formatted = repr(parsed_val)
+
+    return parsed_val, formatted
+
+
+def canonicalize_term(term: Union[str, Dict[str, Any]]) -> str:
+    """
+    Canonicalizes a mathematical term representation into a normalized, order-invariant string.
+
+    Supports both string representations and AST dictionaries. Handles marginal effects
+    (sorting parameters alphabetically, standardizing quotes and literals) and tensor product
+    interactions (recursively canonicalizing and sorting sub-terms).
+
+    Args:
+        term: A string term (e.g. "c(WeekDays, topo='nominal', n_cat=7)") or an AST dictionary.
+
+    Returns:
+        The canonical string representation of the term.
+    """
+    if not term:
+        return ""
+
+    if isinstance(term, str):
+        term_str = term.strip()
+        if not term_str:
+            return ""
+        if term_str == "1":
+            return "1"
+
+        func_match = re.match(r"^\s*([a-zA-Z0-9_]+)\s*\((.*)\)\s*$", term_str)
+        if not func_match:
+            return term_str
+
+        eff_type = func_match.group(1).strip()
+        inner_content = func_match.group(2).strip()
+
+        if eff_type == "te":
+            parts = split_args_respecting_parentheses(inner_content)
+            sub_terms = []
+            kwargs = []
+            kwarg_pattern = re.compile(r"^\s*([a-zA-Z0-9_]+)\s*=\s*(.*)$")
+
+            for part in parts:
+                kw_match = kwarg_pattern.match(part)
+                if kw_match:
+                    k = kw_match.group(1).strip()
+                    v = kw_match.group(2).strip()
+                    _, formatted_v = _normalize_param_value(v)
+                    kwargs.append((k, formatted_v))
+                else:
+                    sub_terms.append(canonicalize_term(part))
+
+            sorted_subs = sorted(sub_terms)
+            sorted_kwargs = [f"{k}={v}" for k, v in sorted(kwargs, key=lambda x: x[0])]
+            all_elements = sorted_subs + sorted_kwargs
+            return f"te({', '.join(all_elements)})"
+        else:
+            parts = split_args_respecting_parentheses(inner_content)
+            if not parts:
+                return f"{eff_type}()"
+
+            feat = parts[0].strip()
+            params = {}
+            for p in parts[1:]:
+                if "=" in p:
+                    k, v = p.split("=", 1)
+                    k = k.strip()
+                    v = v.strip()
+                    _, formatted_v = _normalize_param_value(v)
+                    params[k] = formatted_v
+
+            if params:
+                param_strs = [f"{k}={v}" for k, v in sorted(params.items())]
+                return f"{eff_type}({feat}, {', '.join(param_strs)})"
+            else:
+                return f"{eff_type}({feat})"
+
+    elif isinstance(term, dict):
+        eff_type = term.get("type", "")
+        feat = term.get("feature", "")
+        params = term.get("params", {})
+
+        if eff_type == "te":
+            sub_terms = []
+            kwargs = []
+            if "sub_terms" in term:
+                for st in term["sub_terms"]:
+                    sub_terms.append(canonicalize_term(st))
+            else:
+                for k, v in params.items():
+                    if re.match(r"^\s*[a-zA-Z0-9_]+\s*\(", str(k)):
+                        sub_terms.append(canonicalize_term(str(k)))
+                    elif not str(k).startswith("__"):
+                        _, formatted_v = _normalize_param_value(v)
+                        kwargs.append((str(k), formatted_v))
+
+            sorted_subs = sorted(sub_terms)
+            sorted_kwargs = [f"{k}={v}" for k, v in sorted(kwargs, key=lambda x: x[0])]
+            all_elements = sorted_subs + sorted_kwargs
+            return f"te({', '.join(all_elements)})"
+        else:
+            formatted_params = {}
+            for k, v in params.items():
+                if not str(k).startswith("__"):
+                    _, formatted_v = _normalize_param_value(v)
+                    formatted_params[str(k)] = formatted_v
+
+            if formatted_params:
+                param_strs = [f"{k}={v}" for k, v in sorted(formatted_params.items())]
+                return f"{eff_type}({feat}, {', '.join(param_strs)})"
+            else:
+                return f"{eff_type}({feat})"
+
+    return str(term)
+
+
+def terms_are_equivalent(term1: Union[str, Dict[str, Any]], term2: Union[str, Dict[str, Any]]) -> bool:
+    """
+    Checks if two terms are semantically equivalent under parameter permutations,
+    quote differences, and sub-term ordering within tensor products.
+
+    Args:
+        term1: First term (string or AST dictionary).
+        term2: Second term (string or AST dictionary).
+
+    Returns:
+        True if the canonicalized representations of both terms are identical.
+    """
+    return canonicalize_term(term1) == canonicalize_term(term2)
+
+
+def canonicalize_formula(formula: str) -> str:
+    """
+    Canonicalizes an AutoTAM formula by splitting into LHS and RHS, canonicalizing each
+    additive term, removing duplicate terms, and sorting the unique terms alphabetically.
+
+    Args:
+        formula: Formula string (e.g. "Load ~ s(Temp, k=10) + c(Day, topo='nominal', n_cat=7)")
+
+    Returns:
+        A canonicalized formula string formatted as "{lhs} ~ {term1} + {term2}".
+
+    Raises:
+        ValueError: If formula does not contain '~'.
+    """
+    if "~" not in formula:
+        raise ValueError(f"Invalid formula syntax: '{formula}'. Must contain '~'.")
+
+    lhs_str, rhs_str = formula.split("~", 1)
+    lhs = lhs_str.strip()
+
+    parts = []
+    current_part = []
+    paren_count = 0
+    for char in rhs_str:
+        if char == "(":
+            paren_count += 1
+            current_part.append(char)
+        elif char == ")":
+            paren_count -= 1
+            current_part.append(char)
+        elif char == "+" and paren_count == 0:
+            part_str = "".join(current_part).strip()
+            if part_str:
+                parts.append(part_str)
+            current_part = []
+        else:
+            current_part.append(char)
+
+    if current_part:
+        part_str = "".join(current_part).strip()
+        if part_str:
+            parts.append(part_str)
+
+    canonical_terms_set = set()
+    for part in parts:
+        if not part:
+            continue
+        c_term = canonicalize_term(part)
+        if c_term:
+            canonical_terms_set.add(c_term)
+
+    if len(canonical_terms_set) > 1 and "1" in canonical_terms_set:
+        canonical_terms_set.remove("1")
+
+    if not canonical_terms_set:
+        return f"{lhs} ~ 1"
+
+    sorted_terms = sorted(canonical_terms_set)
+    return f"{lhs} ~ {' + '.join(sorted_terms)}"
+#: </parser_canonicalization>
 
 
 #: <parser_utils>

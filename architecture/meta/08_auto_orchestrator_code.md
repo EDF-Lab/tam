@@ -43,6 +43,13 @@ The `DataManager` prepares the expanding window folds. It strictly enforces chro
 
 ```
 
+### Pre-Flight Constraints and Mandatory Validation (`data_manager.py`)
+
+Before any evolutionary exploration commences, `DataManager.prepare` enforces strict pre-flight validation on user-supplied constraints:
+* **Canonical Deduplication:** Mandatory terms are normalized into canonical representations using `canonicalize_term`. If any redundant or duplicate terms are passed in `mandatory_terms` (even if formatted with permuted kwargs, distinct quotes, or reordered tensor sub-terms), a fail-fast `ValueError` is raised immediately.
+* **Strict Covariate Capacity Cap:** AutoTAM enforces a strict limit of `MAX_ACTIVE_EFFECTS_PER_FEATURE = 2` active mathematical effects per feature across all candidate formulas. If a user supplies $\ge 3$ mandatory terms targeting the same feature, `DataManager.prepare` rejects the configuration with an immediate fail-fast `ValueError`.
+* **Tensor Term Ceiling:** Tensor product interactions are similarly bounded at `MAX_TENSOR_TERMS = 2` per formula to preserve numerical stability and avoid dimensionality explosion.
+
 ---
 
 ## 2. The Bayesian Brain (`knowledge_graph.py`)
@@ -52,6 +59,8 @@ The Estimation of Distribution Algorithm (EDA) requires a structural memory to n
 ![Knowledge Graph: features on the left, bases on the right, edge weight = historical score of the pair](../../_static/knowledge_graph_bipartite.png)
 
 It enforces strict parsimony via variance decomposition: terms that fail to explain variance or exhibit extreme collinearity (>0.98) are purged before they can populate the historical registry.
+
+**Parameter-Order Invariant Protection:** During `update_and_prune`, candidate terms are checked against `mandatory_terms` via `terms_are_equivalent(term, mt)`. Any candidate term matching a mandatory term—regardless of keyword ordering, whitespace, or tensor sub-term permutation—is strictly exempt from variance decomposition and collinearity pruning. Additionally, the sole remaining term representing any feature listed in `mandatory_variables` is protected from variance pruning.
 
 ```{literalinclude} ../../../../src/tam/model/autotam/knowledge_graph.py
 :language: python
@@ -91,7 +100,10 @@ To guarantee extreme mathematical heterogeneity, formula generation is physicall
 * With a categorical partner: The continuous side retains its profiled capacity, utilizing the Island's own basis if applicable (`s`, `f`, `p`, or `w`).
 * With a continuous partner: Both sides default to a small, fixed basis (`CONTINUOUS_TENSOR_BASES`), ensuring the resulting surface never exceeds 25 columns.
 
-
+**Mutation Protection & Canonical Deduplication:** The `BaseIsland.mutate` and `_clean_and_join_terms` methods maintain structural hygiene and protect mandatory formula components:
+* **Canonical Term Deduplication:** Newly mutated or joined candidate terms are normalized via `canonicalize_term`, preventing duplicate terms with permuted arguments from ever appearing within a formula.
+* **Verbatim Mandatory Preservation:** When a candidate term is canonically equivalent to a user-supplied mandatory term, the exact verbatim string from `mandatory_terms` is restored, ensuring user formatting and parameter conventions remain pristine.
+* **Covariate Lock & Immutability:** A term is **immutable** if `any(terms_are_equivalent(term_str, mt) for mt in mandatory_terms)` and cannot be modified or deleted regardless of parameter ordering. A term is **hyper-immutable** if it is the last remaining term for a feature listed in `mandatory_variables`; it cannot be deleted, but its hyperparameters may be mutated. Furthermore, candidate generation strictly respects `MAX_ACTIVE_EFFECTS_PER_FEATURE = 2` and `MAX_TENSOR_TERMS = 2`.
 
 ```{literalinclude} ../../../../src/tam/model/autotam/population_nodes.py
 :language: python
@@ -114,6 +126,12 @@ To guarantee extreme mathematical heterogeneity, formula generation is physicall
 ## 4. The Evolutionary Outer Loop (`drag_tam.py`)
 
 `DragTAM` controls the EDA loop via Hub-and-Spoke Bi-Level Optimization: it handles the discrete topological search iteratively across generations, completely delegating the continuous hyperparameter optimization to the inner PyTorch GCV solvers.
+
+**Mandatory Terms & Variables:** The engine can be initialized with `mandatory_terms` (exact formula strings) and `mandatory_variables` (feature names). These constraints are strictly enforced:
+* **Generation & LIFO Non-Mandatory Eviction:** The `_ensure_mandatory_constraints` method injects any missing mandatory terms or variables into newly generated formulas. When injecting missing mandatory constraints causes an active feature to exceed `MAX_ACTIVE_EFFECTS_PER_FEATURE = 2`, non-mandatory terms assigned to that feature are evicted in Last-In-First-Out (LIFO) order. This guarantees that user-defined mandatory terms are strictly preserved without ever exceeding the covariate capacity limit.
+* **Canonical Invariant Matching:** Matching existing candidate terms against mandatory terms uses `terms_are_equivalent`, ensuring parameter-order and sub-term invariance.
+* **Mutation:** `BaseIsland.mutate` prevents the deletion or mutation of mandatory terms under canonical equivalence. It also protects the last remaining term for any mandatory variable from being deleted.
+* **Ablation:** The parsimony-driven ablation step in the main evolutionary loop is forbidden from removing any term present in `mandatory_terms`.
 
 Crucially, it utilizes **Dynamic Annealing** on the complexity penalty. The penalty multiplier starts at 1.0 (encouraging structural exploration) and scales up to 5.0 over the generations, applying crushing evolutionary pressure to extract only the most parsimonious architectures.
 

@@ -196,3 +196,148 @@ def test_get_safe_params_keeps_one_tree_architecture():
         params = _get_safe_params(kg, space, "x", "t")
         assert ("max_depth" in params) != ("max_leaves" in params)
     assert _get_safe_params(kg, space, "x", "t", complexity_cap=True) == {"n_trees": 10, "max_depth": 1}
+
+# ------------------------------- mutation ---------------------------------- #
+
+def test_mutate_protects_mandatory_term_from_deletion():
+    random.seed(0)
+    island = LinearIsland()
+    kg = KnowledgeGraph()
+    search_space = {
+        "x": {"eligible_effects": ["l"]},
+        "y": {"eligible_effects": ["l"]},
+        "mandatory_terms": ["l(x)"]
+    }
+    
+    champion_genome = [
+        {'type': 'l', 'feature': 'x', 'params': {}},
+        {'type': 'l', 'feature': 'y', 'params': {}}
+    ]
+    island.set_champion(champion_genome)
+
+    for _ in range(100):
+        mutated_formula = island.mutate(kg, ["x", "y"], search_space)
+        assert "l(x)" in mutated_formula
+
+def test_mutate_protects_mandatory_term_from_modification():
+    random.seed(0)
+    island = SplineIsland()
+    kg = KnowledgeGraph()
+    search_space = {
+        "x": {"eligible_effects": ["s"], "grids": {"s": {"k": [5, 10]}}},
+        "y": {"eligible_effects": ["l"]},
+        "mandatory_terms": ["s(x, k=5)"]
+    }
+    
+    champion_genome = [
+        {'type': 's', 'feature': 'x', 'params': {'k': 5}},
+        {'type': 'l', 'feature': 'y', 'params': {}}
+    ]
+    island.set_champion(champion_genome)
+
+    for _ in range(100):
+        mutated_formula = island.mutate(kg, ["x", "y"], search_space)
+        assert "s(x, k=10)" not in mutated_formula
+
+def test_mutate_protects_sole_mandatory_variable_term_from_deletion():
+    random.seed(0)
+    island = LinearIsland()
+    kg = KnowledgeGraph()
+    search_space = {
+        "x": {"eligible_effects": ["l"]},
+        "mandatory_variables": ["x"]
+    }
+    
+    champion_genome = [{'type': 'l', 'feature': 'x', 'params': {}}]
+    island.set_champion(champion_genome)
+    
+    for _ in range(50):
+        mutated_formula = island.mutate(kg, ["x"], search_space)
+        assert "l(x)" in mutated_formula
+
+def test_mutate_allows_deleting_non_sole_mandatory_variable_term():
+    random.seed(0)
+    island = LinearIsland()
+    kg = KnowledgeGraph()
+    search_space = {
+        "x": {"eligible_effects": ["l", "s"], "grids": {"s": {"k": [5]}}},
+        "mandatory_variables": ["x"]
+    }
+    
+    champion_genome = [
+        {'type': 'l', 'feature': 'x', 'params': {}},
+        {'type': 's', 'feature': 'x', 'params': {'k': 5}}
+    ]
+    island.set_champion(champion_genome)
+
+    deleted = False
+    for _ in range(100):
+        mutated_formula = island.mutate(kg, ["x"], search_space)
+        if "l(x)" not in mutated_formula or "s(x, k=5)" not in mutated_formula:
+            deleted = True
+            break
+    assert deleted, "A non-sole mandatory variable term should be deletable"
+
+
+# ----------------------- Ticket 004: Canonical Deduplication & Mutation ----------------------- #
+
+def test_clean_and_join_deduplicates_terms_canonically():
+    res = _clean_and_join_terms([
+        "c(WeekDays, topo='nominal', n_cat=7)",
+        "c(WeekDays, n_cat=7, topo='nominal')",
+    ])
+    assert res == "c(WeekDays, topo='nominal', n_cat=7)"
+
+    res_te = _clean_and_join_terms([
+        "te(s(x, k=5), c(y, n_cat=2))",
+        "te(c(y, n_cat=2), s(x, k=5))",
+    ])
+    assert res_te == "te(s(x, k=5), c(y, n_cat=2))"
+
+
+def test_clean_and_join_substitutes_verbatim_mandatory_term():
+    res = _clean_and_join_terms(
+        ["c(WeekDays, n_cat=7, topo='nominal')"],
+        mandatory_terms=["c(WeekDays, topo='nominal', n_cat=7)"],
+    )
+    assert res == "c(WeekDays, topo='nominal', n_cat=7)"
+
+    res_dedup = _clean_and_join_terms(
+        ["c(WeekDays, n_cat=7, topo='nominal')", "c(WeekDays, topo='nominal', n_cat=7)"],
+        mandatory_terms=["c(WeekDays, topo='nominal', n_cat=7)"],
+    )
+    assert res_dedup == "c(WeekDays, topo='nominal', n_cat=7)"
+
+
+def test_clean_and_join_enforces_covariate_lock_and_tensor_cap():
+    res_feat = _clean_and_join_terms(["s(x, k=5)", "l(x)", "f(x, m=3)"])
+    assert res_feat == "s(x, k=5) + l(x)"
+
+    res_te = _clean_and_join_terms(["te(s(x), c(y))", "te(s(z), c(w))", "te(s(a), c(b))"])
+    assert res_te == "te(s(x), c(y)) + te(s(z), c(w))"
+
+
+def test_mutate_protects_mandatory_term_under_parameter_permutation():
+    random.seed(0)
+    island = SplineIsland()
+    kg = KnowledgeGraph()
+    search_space = {
+        "x": {"eligible_effects": ["s"], "grids": {"s": {"k": [5, 10], "deg": [2, 3]}}},
+        "y": {"eligible_effects": ["l"]},
+        "mandatory_terms": ["s(x, deg=2, k=5)"],
+    }
+
+    # Champion genome has k=5, deg=2 (which in _genome_to_rhs sorted params would be deg=2, k=5)
+    champion_genome = [
+        {'type': 's', 'feature': 'x', 'params': {'k': 5, 'deg': 2}},
+        {'type': 'l', 'feature': 'y', 'params': {}},
+    ]
+    island.set_champion(champion_genome)
+
+    for _ in range(100):
+        mutated_formula = island.mutate(kg, ["x", "y"], search_space)
+        # Term s(x, ...) must be present, must never be mutated to k=10 or deg=3, and must keep verbatim representation
+        assert "s(x, deg=2, k=5)" in mutated_formula
+        assert "s(x, deg=3" not in mutated_formula
+        assert "k=10" not in mutated_formula
+

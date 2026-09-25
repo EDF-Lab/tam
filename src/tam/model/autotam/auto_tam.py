@@ -36,6 +36,8 @@ class AutoTAM:
         self, 
         formula: str, 
         lags: Optional[List[int]] = None, 
+        mandatory_terms: Optional[List[str]] = None,
+        mandatory_variables: Optional[List[str]] = None,
         n_experts: int = 15, 
         pop_size: int = 64, 
         use_opera: bool = True, 
@@ -47,9 +49,25 @@ class AutoTAM:
         self.formula = formula
         self.n_experts = n_experts
         self.complexity_penalty = complexity_penalty
+        if isinstance(mandatory_terms, str):
+            mandatory_terms = [mandatory_terms]
+        self.mandatory_terms = mandatory_terms or []
+        if isinstance(mandatory_variables, str):
+            mandatory_variables = [mandatory_variables]
+        self.mandatory_variables = mandatory_variables or []
         
-        self.data_manager = DataManager(formula=formula, lags=lags)
-        self.discoverer = BaseDiscoverer(pop_size=pop_size, eta=eta)
+        self.data_manager = DataManager(
+            formula=formula,
+            lags=lags,
+            mandatory_terms=self.mandatory_terms,
+            mandatory_variables=self.mandatory_variables,
+        )
+        self.discoverer = BaseDiscoverer(
+            pop_size=pop_size, 
+            eta=eta, 
+            mandatory_terms=self.mandatory_terms,
+            mandatory_variables=self.mandatory_variables
+        )
         self.expander = ExpertExpander()
         self.selector = EnsembleSelector(use_opera=use_opera)
         self.reporter = EvolutionReporter(export_dir=export_dir)

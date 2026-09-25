@@ -178,6 +178,9 @@ class PipelineContext:
     date_col: Optional[str] = None
     group_col: Optional[str] = None
     lags: List[int] = field(default_factory=list)
+    mandatory_terms: List[str] = field(default_factory=list)
+    mandatory_variables: List[str] = field(default_factory=list)
+    canonical_to_verbatim_mandatory: Dict[str, str] = field(default_factory=dict)
 
     # 4. Search Space
     search_space: Dict[str, Any] = field(default_factory=dict)

@@ -17,6 +17,12 @@ def _ctx(penalty: float = 1.0) -> PipelineContext:
     return PipelineContext(complexity_penalty=penalty)
 
 
+def test_pipeline_context_has_canonical_to_verbatim_mandatory_field():
+    ctx = PipelineContext()
+    assert hasattr(ctx, "canonical_to_verbatim_mandatory")
+    assert ctx.canonical_to_verbatim_mandatory == {}
+
+
 # --------------------------------------------------------------------------- #
 # estimate_complexity
 # --------------------------------------------------------------------------- #
