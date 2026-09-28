@@ -146,6 +146,13 @@ class AutoTAM:
         if not self.trained_experts:
             raise ValueError("Model not fitted. No valid experts survived the fit process.")
 
+        if hasattr(self.ctx, "external_mandatory_features") and self.ctx.external_mandatory_features:
+            missing_ext = set(self.ctx.external_mandatory_features) - set(df_test.columns)
+            if missing_ext:
+                raise ValueError(
+                    f"Test data is missing required external mandatory features: {sorted(missing_ext)}"
+                )
+
         df_test_clean, df_aug = self.data_manager.transform_test_data(df_test, self.ctx)
         predictions = {}
         

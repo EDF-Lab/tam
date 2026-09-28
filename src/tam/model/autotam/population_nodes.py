@@ -19,7 +19,7 @@ import re
 import random
 from typing import List, Dict, Any, Callable, Optional, Tuple, Union
 from .knowledge_graph import KnowledgeGraph
-from .parser import canonicalize_term, terms_are_equivalent
+from .parser import canonicalize_term, terms_are_equivalent, term_subsumes, _parse_term_structure
 
 # Strict Covariate Lock (spec I): a single feature may carry at most this many
 # active bases (e.g. s(Temp) + f(Temp) is the maximum allowed for Temp).
@@ -30,6 +30,33 @@ MAX_INTERACTION_PARTNERS = 5
 # Share of deep-basis terms (n, rbf, t) drawn without partners, so plain terms stay reachable:
 # otherwise others= is attached whenever a categorical exists, and only a mutation can drop it.
 PLAIN_DEEP_TERM_PROBABILITY = 0.25
+
+# Fallback hyperparameter grids for tuning free parameters of basis effects
+# when variables are absent from search_space (e.g. external mandatory variables).
+FALLBACK_EFFECT_GRIDS: Dict[str, Dict[str, List[Any]]] = {
+    'l': {},
+    's': {'k': [3, 5, 10, 20], 'deg': [2, 3], 'p': [1, 2], 'ap': [-2.0, 0.0, 2.0]},
+    'f': {'m': [2, 3, 5, 6], 's': [1, 2], 'ap': [-2.0, 0.0, 2.0]},
+    'p': {'deg': [3, 5, 10], 's': [1, 2], 'ap': [-2.0, 0.0, 2.0]},
+    'w': {'n_scales': [2, 4], 'n_locations': [8, 12, 16], 'ap': [-2.0, 0.0, 2.0]},
+    'c': {'n_cat': [2, 5, 10], 'topo': ['nominal'], 'p_order': [1, 2]},
+    't': {
+        'n_trees': [10, 25, 50],
+        'max_depth': [1, 2, 3],
+        'max_leaves': [10, 25, 50],
+        'split_strategy': ['quantile', 'uniform'],
+        'sp_alpha': [0.0, 0.5, 1.0],
+    },
+    'lt': {
+        'max_depth': [2, 3, 5],
+        'max_leaves': [10, 25, 50],
+        'split_strategy': ['quantile', 'uniform'],
+        'ap': [-2.0, 0.0, 2.0],
+    },
+    'n': {'n_neurons': [8, 16, 32, 64], 'n_hidden_layers': [1, 2], 'act': ['relu', 'tanh']},
+    'rbf': {'n_centers': [5, 10, 20], 'ap': [-2.0, 0.0, 2.0]},
+    'pid': {'w': [3, 5, 7], 'd_pen': [1.0, 5.0, 10.0], 'ap': [-2.0, 0.0, 2.0]},
+}
 #: </population_nodes_imports>
 
 #: <population_nodes_base>
@@ -83,30 +110,70 @@ class BaseIsland:
 
         mandatory_terms = search_space.get("mandatory_terms", [])
         mandatory_variables = set(search_space.get("mandatory_variables", []))
-        
+
+        parsed_mandatory = []
+        for mt in mandatory_terms:
+            if not mt:
+                continue
+            m_struct = _parse_term_structure(mt)
+            if m_struct:
+                parsed_mandatory.append((mt, m_struct))
+
         term_strings = [_genome_to_rhs([t]).strip() for t in genome]
-        
         mandatory_vars_in_genome = {f for f in mandatory_variables if f in present}
 
         deletable_indices = []
         modifiable_indices = []
+        term_free_keys: Dict[int, List[str]] = {}
+        term_grids: Dict[int, Dict[str, Any]] = {}
+        term_fixed_params: Dict[int, set] = {}
 
         for i, term in enumerate(genome):
             term_str = term_strings[i]
             feature = term.get('feature')
+            eff_type = term.get('type')
 
-            is_immutable = any(terms_are_equivalent(term_str, mt) for mt in mandatory_terms)
+            # Identify if term subsumes any mandatory term and collect user-fixed parameters
+            is_mandatory_term = False
+            fixed_params = set()
+            for mt_raw, m_struct in parsed_mandatory:
+                if term_subsumes(term, mt_raw) or term_subsumes(term_str, mt_raw):
+                    is_mandatory_term = True
+                    if m_struct.get("params"):
+                        fixed_params.update(m_struct["params"].keys())
 
-            is_hyper_immutable = False
+            # Protect sole term of mandatory variables from deletion
+            is_sole_mandatory_var = False
             if feature in mandatory_vars_in_genome:
                 count = sum(1 for t in genome if t.get('feature') == feature)
                 if count == 1:
-                    is_hyper_immutable = True
-            
-            if not is_immutable:
+                    is_sole_mandatory_var = True
+
+            # Determine grid: search_space entry or fallback effect parameter grid
+            grid = search_space.get(feature, {}).get("grids", {}).get(eff_type, {})
+            if not grid:
+                grid = FALLBACK_EFFECT_GRIDS.get(eff_type, {})
+
+            # Filter free keys (locking user-fixed parameters)
+            free_keys = [
+                k for k, v in grid.items()
+                if isinstance(v, list) and len(v) > 0 and k not in fixed_params
+            ]
+            if "max_depth" in fixed_params:
+                free_keys = [k for k in free_keys if k != "max_leaves"]
+            if "max_leaves" in fixed_params:
+                free_keys = [k for k in free_keys if k != "max_depth"]
+
+            term_free_keys[i] = free_keys
+            term_grids[i] = grid
+            term_fixed_params[i] = fixed_params
+
+            # Free parameter tuning: can only modify if unconstrained free keys exist
+            if free_keys:
                 modifiable_indices.append(i)
 
-            if not is_immutable and not is_hyper_immutable and len(genome) > 1:
+            # Strict deletion protection: mandatory terms and sole mandatory vars cannot be deleted
+            if not is_mandatory_term and not is_sole_mandatory_var and len(genome) > 1:
                 deletable_indices.append(i)
 
         ops = []
@@ -137,13 +204,17 @@ class BaseIsland:
         elif op == 'modify':
             idx_to_modify = random.choice(modifiable_indices)
             term = genome[idx_to_modify]
-            grid = search_space.get(term.get('feature'), {}).get("grids", {}).get(term['type'], {})
-            numeric_keys = [k for k, v in grid.items() if isinstance(v, list) and v and isinstance(v[0], (int, float))]
-            if numeric_keys:
-                k = random.choice(numeric_keys)
-                term['params'][k] = random.choice(grid[k])
+            free_keys = term_free_keys[idx_to_modify]
+            grid = term_grids[idx_to_modify]
+            fixed_p = term_fixed_params[idx_to_modify]
+            if free_keys:
+                k = random.choice(free_keys)
+                candidates = [v for v in grid[k] if v != term['params'].get(k)]
+                term['params'][k] = random.choice(candidates if candidates else grid[k])
                 if k in ("max_depth", "max_leaves"):
-                    term['params'].pop("max_leaves" if k == "max_depth" else "max_depth", None)
+                    other = "max_leaves" if k == "max_depth" else "max_depth"
+                    if other not in fixed_p:
+                        term['params'].pop(other, None)
 
         return _genome_to_rhs(genome, mandatory_terms=mandatory_terms)
 

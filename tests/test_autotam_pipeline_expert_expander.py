@@ -15,6 +15,7 @@ import pandas as pd
 import pytest
 
 from tam.model.autotam.pipeline.expert_expander import ExpertExpander
+from tam.model.autotam.pipeline.context import PipelineContext
 
 
 def _exp() -> ExpertExpander:
@@ -93,3 +94,84 @@ def test_evaluate_model_cv_crashing_model_returns_inf():
 def test_evaluate_model_cv_empty_folds_returns_inf():
     score = ExpertExpander()._evaluate_model_cv(_PerfectModel(), [], "load")
     assert score == float("inf")
+
+
+def test_generate_experts_grid_retains_external_mandatory_terms_verbatim():
+    expander = ExpertExpander(expansions={"prior": False, "autofit": False, "kalman": False, "adaptive": False, "grid": True})
+
+    rng = np.random.default_rng(42)
+    n = 60
+    df = pd.DataFrame({
+        "load": rng.normal(100, 10, n),
+        "temp": rng.normal(20, 5, n),
+        "humidity": rng.uniform(30, 90, n),
+    })
+
+    ctx = PipelineContext(
+        target="load",
+        df_fit=df.iloc[:40],
+        df_dev=df.iloc[40:],
+        cv_folds=[(df.iloc[:30], df.iloc[30:40])],
+        formula_config={"features": ["temp"], "targets": ["load"]},
+        search_space={"temp": {"grids": {"s": {"k": [3, 5]}}}},
+        external_mandatory_features={"humidity"},
+    )
+
+    island_champions = {
+        "Island_1": ["load ~ s(temp, k=3) + s(humidity, k=5)"]
+    }
+
+    test_log = []
+    class DummyReporter:
+        def export_pdp_variance(self, *args, **kwargs): pass
+
+    candidates = expander.generate_experts(island_champions, ctx, test_log, DummyReporter())
+
+    grid_candidates = [k for k in candidates.keys() if "Grid" in k]
+    assert len(grid_candidates) > 0
+
+    grid_logs = [entry for entry in test_log if entry.get("Model_Type") == "StaticTAM_grid"]
+    assert len(grid_logs) > 0
+    tokenized_form = grid_logs[0]["Formula"]
+    assert "s(humidity, k=5)" in tokenized_form
+    assert "grid_k_temp_s" in tokenized_form
+    assert "humidity" not in grid_logs[0]["Hyperparameters"]
+
+
+def test_generate_experts_grid_preserves_tensor_terms():
+    expander = ExpertExpander(expansions={"prior": False, "autofit": False, "kalman": False, "adaptive": False, "grid": True})
+
+    rng = np.random.default_rng(42)
+    n = 60
+    df = pd.DataFrame({
+        "load": rng.normal(100, 10, n),
+        "temp": rng.normal(20, 5, n),
+        "humidity": rng.uniform(30, 90, n),
+    })
+
+    ctx = PipelineContext(
+        target="load",
+        df_fit=df.iloc[:40],
+        df_dev=df.iloc[40:],
+        cv_folds=[(df.iloc[:30], df.iloc[30:40])],
+        formula_config={"features": ["temp"], "targets": ["load"]},
+        search_space={"temp": {"grids": {"s": {"k": [3, 5]}}}},
+        external_mandatory_features={"humidity"},
+    )
+
+    island_champions = {
+        "Island_1": ["load ~ s(temp, k=3) + te(s(temp), s(humidity, k=3))"]
+    }
+
+    test_log = []
+    class DummyReporter:
+        def export_pdp_variance(self, *args, **kwargs): pass
+
+    candidates = expander.generate_experts(island_champions, ctx, test_log, DummyReporter())
+
+    grid_logs = [entry for entry in test_log if entry.get("Model_Type") == "StaticTAM_grid"]
+    assert len(grid_logs) > 0
+    tokenized_form = grid_logs[0]["Formula"]
+    assert "te(" in tokenized_form
+    assert "interaction" not in tokenized_form
+

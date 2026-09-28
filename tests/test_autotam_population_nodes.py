@@ -341,3 +341,145 @@ def test_mutate_protects_mandatory_term_under_parameter_permutation():
         assert "s(x, deg=3" not in mutated_formula
         assert "k=10" not in mutated_formula
 
+
+# ------------------- Ticket 003: Parameter-Constrained Mutation ------------------- #
+
+def test_mutate_protects_subsumed_mandatory_term_with_free_params_from_deletion():
+    """A mandatory term with tuned free parameters must never be deleted."""
+    random.seed(0)
+    island = SplineIsland()
+    kg = KnowledgeGraph()
+    search_space = {
+        "x": {"eligible_effects": ["s"], "grids": {"s": {"k": [5]}}},
+        "y": {"eligible_effects": ["l"], "grids": {"l": {}}},
+        "mandatory_terms": ["s(x, k=5)"],
+    }
+
+    # Champion genome has s(x) with tuned free parameter deg=3 alongside k=5, plus a deletable l(y)
+    champion_genome = [
+        {'type': 's', 'feature': 'x', 'params': {'k': 5, 'deg': 3}},
+        {'type': 'l', 'feature': 'y', 'params': {}},
+    ]
+    island.set_champion(champion_genome)
+
+    for _ in range(100):
+        mutated_formula = island.mutate(kg, ["x", "y"], search_space)
+        # s(x, ...) subsumes s(x, k=5) and must NEVER be deleted
+        assert "s(x" in mutated_formula
+        assert "k=5" in mutated_formula
+
+
+def test_mutate_locks_user_fixed_params_while_tuning_free_params():
+    """Mutation must never alter fixed params, but may tune unconstrained free keys."""
+    random.seed(0)
+    island = SplineIsland()
+    kg = KnowledgeGraph()
+    search_space = {
+        "x": {
+            "eligible_effects": ["s"],
+            "grids": {"s": {"k": [5, 10, 20], "deg": [2, 3, 4]}},
+        },
+        "mandatory_terms": ["s(x, k=5)"],
+    }
+
+    champion_genome = [
+        {'type': 's', 'feature': 'x', 'params': {'k': 5, 'deg': 2}},
+    ]
+    island.set_champion(champion_genome)
+
+    deg_tuned = False
+    for _ in range(100):
+        mutated = island.mutate(kg, ["x"], search_space)
+        # Fixed parameter k=5 must NEVER be mutated to 10 or 20
+        assert "k=10" not in mutated
+        assert "k=20" not in mutated
+        assert "k=5" in mutated
+        # Free parameter deg can be tuned
+        if "deg=3" in mutated or "deg=4" in mutated:
+            deg_tuned = True
+
+    assert deg_tuned, "Free parameter 'deg' should have been tuned across mutations"
+
+
+def test_mutate_external_variable_absent_from_search_space_uses_fallback_grid():
+    """External variables absent from search_space must use fallback effect grids to tune free params."""
+    random.seed(0)
+    island = SplineIsland()
+    kg = KnowledgeGraph()
+    # humidity is NOT in search_space (it's an external mandatory variable)
+    search_space = {
+        "temp": {"eligible_effects": ["l"], "grids": {"l": {}}},
+        "mandatory_terms": ["s(humidity, k=10)"],
+    }
+
+    champion_genome = [
+        {'type': 'l', 'feature': 'temp', 'params': {}},
+        {'type': 's', 'feature': 'humidity', 'params': {'k': 10}},
+    ]
+    island.set_champion(champion_genome)
+
+    free_param_tuned = False
+    for _ in range(100):
+        mutated = island.mutate(kg, ["temp"], search_space)
+        # humidity must never be deleted
+        assert "s(humidity" in mutated
+        # User-fixed k=10 must never be altered
+        assert "k=10" in mutated
+        # Free parameters from fallback grid (e.g. deg or p or ap) can be tuned
+        if "deg=" in mutated or "p=" in mutated or "ap=" in mutated:
+            free_param_tuned = True
+
+    assert free_param_tuned, "External mandatory variable should tune free parameters via fallback grid"
+
+
+def test_mutate_fully_immutable_when_all_grid_params_fixed():
+    """When all grid parameters are fixed by the mandatory specification, term cannot be modified."""
+    random.seed(0)
+    island = SplineIsland()
+    kg = KnowledgeGraph()
+    search_space = {
+        "x": {"eligible_effects": ["s"], "grids": {"s": {"k": [5, 10], "deg": [2, 3]}}},
+        "mandatory_terms": ["s(x, deg=2, k=5)"],
+    }
+
+    champion_genome = [
+        {'type': 's', 'feature': 'x', 'params': {'k': 5, 'deg': 2}},
+    ]
+    island.set_champion(champion_genome)
+
+    for _ in range(50):
+        mutated = island.mutate(kg, ["x"], search_space)
+        # With no unused features, single term, and no free keys, formula remains unchanged
+        assert mutated == "s(x, deg=2, k=5)"
+
+
+def test_mutate_mandatory_tensor_term_protected_from_deletion():
+    """Mandatory tensor interaction terms must be protected from deletion in mutate()."""
+    random.seed(0)
+    island = SplineIsland()
+    kg = KnowledgeGraph()
+    search_space = {
+        "x": {"eligible_effects": ["s"], "grids": {"s": {"k": [5]}}},
+        "y": {"eligible_effects": ["c"], "grids": {"c": {"n_cat": [2]}}},
+        "z": {"eligible_effects": ["l"], "grids": {"l": {}}},
+        "mandatory_terms": ["te(s(x, k=5), c(y, n_cat=2))"],
+    }
+
+    champion_genome = [
+        {
+            'type': 'te',
+            'feature': 'interaction',
+            'params': {'s(x, deg=2, k=5)': 1, 'c(y, n_cat=2)': 1},
+        },
+        {'type': 'l', 'feature': 'z', 'params': {}},
+    ]
+    island.set_champion(champion_genome)
+
+    for _ in range(100):
+        mutated = island.mutate(kg, ["x", "y", "z"], search_space)
+        # Mandatory tensor product must never be deleted
+        assert "te(" in mutated
+        assert "s(x" in mutated
+        assert "c(y" in mutated
+
+

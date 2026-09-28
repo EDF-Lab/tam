@@ -72,18 +72,27 @@ class DataManager:
         """
         Executes the data preparation phase and populates the pipeline context.
         """
+        if df_train is None and (df_fit is None or df_dev is None or df_val is None):
+            raise ValueError("Provide df_train OR explicit df_fit, df_dev, df_val folds.")
+
         ctx = PipelineContext(date_col=date_col, group_col=group_col)
         
         ctx.formula_config = self.parser.parse(self.formula)
         ctx.target = ctx.formula_config["targets"][0]
         
-        available_features = set(ctx.formula_config["features"])
+        ref_df = df_train if df_train is not None else df_fit
+        dataset_features = set(ref_df.columns) - set(ctx.formula_config["targets"])
+        if date_col and date_col in dataset_features:
+            dataset_features.discard(date_col)
+        available_features = set(ctx.formula_config["features"]) | dataset_features
+
         if self.mandatory_terms:
             ctx.mandatory_terms = self.mandatory_terms
             seen_canonical = set()
             canonical_to_verbatim = {}
             feature_counts: Dict[str, int] = {}
             tensor_terms_count = 0
+            all_mandatory_features = set()
 
             for term in self.mandatory_terms:
                 term_str = term.strip()
@@ -136,6 +145,7 @@ class DataManager:
                                 raise ValueError(
                                     f"Feature '{sub_feat}' in mandatory term '{term}' not in available features."
                                 )
+                            all_mandatory_features.add(sub_feat)
                     else:
                         parts = split_args_respecting_parentheses(inner_content)
                         if not parts or not parts[0].strip():
@@ -144,6 +154,7 @@ class DataManager:
                         if feat not in available_features:
                             raise ValueError(f"Feature '{feat}' in mandatory term '{term}' not in available features.")
 
+                        all_mandatory_features.add(feat)
                         feature_counts[feat] = feature_counts.get(feat, 0) + 1
                         if feature_counts[feat] > MAX_ACTIVE_EFFECTS_PER_FEATURE:
                             raise ValueError(
@@ -152,14 +163,17 @@ class DataManager:
                             )
 
             ctx.canonical_to_verbatim_mandatory = canonical_to_verbatim
+            ctx.external_mandatory_features = all_mandatory_features - set(ctx.formula_config["features"])
         else:
             ctx.mandatory_terms = []
             ctx.canonical_to_verbatim_mandatory = {}
+            ctx.external_mandatory_features = set()
 
         if self.mandatory_variables:
             ctx.mandatory_variables = self.mandatory_variables
+            autopipe_features = set(ctx.formula_config["features"])
             for var in self.mandatory_variables:
-                if var not in available_features:
+                if var not in autopipe_features:
                     raise ValueError(f"Mandatory variable '{var}' not in available features.")
 
         
@@ -178,8 +192,6 @@ class DataManager:
             raw_val = df_proc.iloc[dev_end:]
             df_all_raw = df_proc.copy()
         else:
-            if df_fit is None or df_dev is None or df_val is None:
-                raise ValueError("Provide df_train OR explicit df_fit, df_dev, df_val folds.")
             raw_fit, raw_dev, raw_val = df_fit.copy(), df_dev.copy(), df_val.copy()
             has_overlap = (
                 not raw_fit.index.is_unique or not raw_dev.index.is_unique or not raw_val.index.is_unique
@@ -341,6 +353,13 @@ class DataManager:
         """
         Transforms unseen test data during the predict phase, utilizing the historical tail.
         """
+        if hasattr(ctx, "external_mandatory_features") and ctx.external_mandatory_features:
+            missing_ext = set(ctx.external_mandatory_features) - set(df_test.columns)
+            if missing_ext:
+                raise ValueError(
+                    f"Test data is missing required external mandatory features: {sorted(missing_ext)}"
+                )
+
         df_combined = df_test.copy()
         
         if ctx.historical_tail is not None and ctx.date_col and ctx.date_col in df_test.columns:

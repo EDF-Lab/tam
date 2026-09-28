@@ -345,3 +345,161 @@ def test_dragtam_ablation_loop_respects_canonical_mandatory_terms():
     assert len(ablated_terms) == 1
     assert ablated_terms[0]["feature"] == "WeekDays"
 
+
+def test_dragtam_search_space_isolation_excludes_external_variables():
+    from tam.model.autotam.effect_selector import EffectSelector
+    from tam.model.autotam.pipeline.data_manager import DataManager
+
+    df = pd.DataFrame({
+        "y": np.random.randn(50),
+        "temp": np.random.randn(50),
+        "humidity": np.random.randn(50),
+        "pressure": np.random.randn(50),
+    })
+
+    dm = DataManager(
+        formula="y ~ AutoPipe(temp)",
+        mandatory_terms=["s(humidity, k=10)"]
+    )
+    ctx = dm.prepare(df_train=df)
+
+    # Search space must be built exclusively from AutoPipe features
+    selector = EffectSelector()
+    search_space = selector.build_search_space(ctx.df_all_aug, ctx.formula_config, ctx.metadata)
+
+    assert "temp" in search_space
+    # External variable 'humidity' must be strictly isolated from search_space
+    assert "humidity" not in search_space
+    assert "pressure" not in search_space
+
+
+def test_dragtam_ensure_mandatory_constraints_subsumption_matching_preserves_tuned_free_params():
+    engine = DragTAM(
+        target_col="y",
+        mandatory_terms=["s(temp, k=10)"]
+    )
+    counter = itertools.count()
+    island = _StubIsland("A", counter)
+
+    # Candidate has tuned free parameter m=2 on top of mandatory fixed parameter k=10
+    candidate_rhs = "s(temp, k=10, m=2) + l(x1)"
+    res = engine._ensure_mandatory_constraints(candidate_rhs, island)
+
+    # Must preserve candidate's tuned free parameter m=2 and NOT inject s(temp, k=10) as duplicate
+    assert "s(temp, k=10, m=2)" in res
+    assert res.count("temp") == 1
+    assert "s(temp, k=10)" not in res or "s(temp, k=10, m=2)" in res
+    assert "l(x1)" in res
+
+
+def test_dragtam_ensure_mandatory_constraints_tensor_subsumption_and_order_invariance():
+    engine = DragTAM(
+        target_col="y",
+        mandatory_terms=["te(s(x1, k=5), s(x2))"]
+    )
+    counter = itertools.count()
+    island = _StubIsland("A", counter)
+
+    # Candidate has reversed sub-terms and tuned free parameter on s(x2)
+    candidate_rhs = "te(s(x2, k=10), s(x1, k=5)) + l(z)"
+    res = engine._ensure_mandatory_constraints(candidate_rhs, island)
+
+    # Subsumption match must succeed, preserving tuned free params and preventing duplicate injection
+    assert res.count("te(") == 1
+    assert "te(s(x2, k=10), s(x1, k=5))" in res or "te(s(x1, k=5), s(x2, k=10))" in res
+    assert "l(z)" in res
+
+
+def test_dragtam_ensure_mandatory_constraints_eviction_protects_subsumed_mandatory_terms():
+    # A candidate has 2 non-mandatory terms for feature 'x' and 1 subsumed mandatory term.
+    # Total active effects for 'x' = 3 (exceeds cap of 2).
+    # The subsumed mandatory term must be protected, and the rightmost non-mandatory evicted.
+    engine = DragTAM(
+        target_col="y",
+        mandatory_terms=["s(x, k=10)"]
+    )
+    counter = itertools.count()
+    island = _StubIsland("A", counter)
+
+    # s(x, k=10, m=2) subsumes mandatory s(x, k=10).
+    # l(x) is first non-mandatory (left), c(x, n_cat=3) is second non-mandatory (right).
+    candidate_rhs = "l(x) + s(x, k=10, m=2) + c(x, n_cat=3) + l(other)"
+    res = engine._ensure_mandatory_constraints(candidate_rhs, island)
+
+    # s(x, k=10, m=2) must be preserved because it subsumes mandatory specification
+    assert "s(x, k=10, m=2)" in res
+    # l(x) survives as leftmost non-mandatory
+    assert "l(x)" in res
+    # c(x, n_cat=3) was rightmost non-mandatory, evicted by LIFO
+    assert "c(x, n_cat=3)" not in res
+    assert "l(other)" in res
+
+
+def test_dragtam_ablation_loop_skips_subsumed_mandatory_terms():
+    engine = DragTAM(
+        target_col="y",
+        mandatory_terms=["s(x, k=10)"]
+    )
+    # Candidate term s(x, k=10, m=2) subsumes s(x, k=10)
+    survivor_terms = [
+        {"type": "s", "feature": "x", "params": {"k": 10, "m": 2}},
+        {"type": "l", "feature": "z", "params": {}}
+    ]
+    # Make the subsumed mandatory term have lower variance so it would be ablated first without protection
+    engine.kg.term_avg_variance = lambda t: 0.05 if t["feature"] == "x" else 1.0
+
+    from tam.model.autotam.parser import term_subsumes
+    sorted_terms = sorted(survivor_terms, key=engine.kg.term_avg_variance)
+    ablated_terms = None
+    for i in range(len(sorted_terms)):
+        term_to_ablate = sorted_terms[i]
+        if not any(term_subsumes(term_to_ablate, m) for m in engine.mandatory_terms):
+            ablated_terms = sorted_terms[:i] + sorted_terms[i+1:]
+            break
+
+    assert ablated_terms is not None
+    assert len(ablated_terms) == 1
+    # l(z) was ablated; s(x, k=10, m=2) was protected
+    assert ablated_terms[0]["feature"] == "x"
+
+
+def test_knowledge_graph_update_and_prune_exempts_subsumed_mandatory_terms():
+    from tam.model.autotam.knowledge_graph import KnowledgeGraph
+
+    kg = KnowledgeGraph(prune_threshold=0.10)
+
+    # Candidate term has tuned free parameter m=2
+    parsed_terms = [
+        {"type": "s", "feature": "temp", "params": {"k": 10, "m": 2}},
+        {"type": "l", "feature": "noise", "params": {}},
+    ]
+
+    class FakeModel:
+        def decompose_prediction(self, df):
+            # temp has 0 variance (below threshold), noise has 0 variance
+            return {
+                "effect_temp": np.zeros(len(df)),
+                "effect_noise": np.zeros(len(df)),
+            }
+        def predict(self, df):
+            return pd.DataFrame({"Estimatedy": np.zeros(len(df))})
+
+    df_val = pd.DataFrame({"y": np.zeros(10), "temp": np.zeros(10), "noise": np.zeros(10)})
+
+    pruned = kg.update_and_prune(
+        parsed_terms=parsed_terms,
+        model=FakeModel(),
+        df=df_val,
+        target_col="y",
+        global_rmse=1.0,
+        target_std=1.0,
+        mandatory_terms=["s(temp, k=10)"]
+    )
+
+    features_in_pruned = [t["feature"] for t in pruned]
+    # temp must be kept because s(temp, k=10, m=2) subsumes mandatory s(temp, k=10)
+    assert "temp" in features_in_pruned
+    # noise should be pruned due to negligible variance
+    assert "noise" not in features_in_pruned
+
+

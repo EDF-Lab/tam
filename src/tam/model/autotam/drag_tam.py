@@ -19,7 +19,7 @@ from typing import List, Dict, Any, Tuple, Callable, Optional, Set
 import re
 
 from .knowledge_graph import KnowledgeGraph
-from .parser import canonicalize_term, terms_are_equivalent
+from .parser import canonicalize_term, terms_are_equivalent, term_subsumes
 from .population_nodes import MAX_ACTIVE_EFFECTS_PER_FEATURE
 from tam.common.utils import parse_formula_to_terms, split_args_respecting_parentheses
 from tam.model.additive import StaticTAM
@@ -241,7 +241,7 @@ class DragTAM:
                 'is_mandatory_var': False
             })
 
-        # Mandatory terms: match canonically or inject
+        # Mandatory terms: match via subsumption or inject
         if self.mandatory_terms:
             for mand_term in self.mandatory_terms:
                 if not mand_term:
@@ -251,10 +251,14 @@ class DragTAM:
 
                 matched = False
                 for t in terms:
-                    if t['canonical'] == mand_can:
-                        t['raw'] = mand_term
+                    if t.get('is_mandatory'):
+                        continue
+                    if term_subsumes(t['raw'], mand_term):
+                        if terms_are_equivalent(t['raw'], mand_term):
+                            t['raw'] = mand_term
                         t['is_mandatory'] = True
-                        t['feature'] = mand_feat
+                        if mand_feat:
+                            t['feature'] = mand_feat
                         matched = True
                         break
 
@@ -575,7 +579,7 @@ class DragTAM:
                     for i in range(len(sorted_terms)):
                         term_to_ablate = sorted_terms[i]
 
-                        if canonicalize_term(term_to_ablate) not in self._canonical_mandatory_terms:
+                        if not any(term_subsumes(term_to_ablate, m) for m in self.mandatory_terms):
                             ablated_terms = sorted_terms[:i] + sorted_terms[i+1:]
                             break
                     

@@ -27,7 +27,7 @@ from typing import List, Dict, Tuple, Optional, Any
 from tam.common.utils import parse_formula_to_terms
 from tam.model._math import decomposition_names
 from tam.model.spectrum import OffsetEffect
-from .parser import terms_are_equivalent
+from .parser import terms_are_equivalent, term_subsumes
 #: </knowledge_graph_imports>
 
 #: <knowledge_graph_term_identity>
@@ -227,7 +227,7 @@ class KnowledgeGraph:
 
 
         for term in sorted(parsed_terms, key=lambda t: importances[id(t)], reverse=True):
-            is_mandatory_term = any(terms_are_equivalent(term, mt) for mt in mandatory_terms)
+            is_mandatory_term = any(term_subsumes(term, mt) for mt in mandatory_terms)
             
             term_vars = {m[0] for m in term_members(term)}
             is_mandatory_var_term = any(v in mandatory_variables for v in term_vars)

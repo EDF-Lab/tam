@@ -18,6 +18,7 @@ from tam.model.autotam.parser import (
     canonicalize_term,
     terms_are_equivalent,
     canonicalize_formula,
+    term_subsumes,
 )
 from tam.model.autotam import (
     canonicalize_term as pkg_canonicalize_term,
@@ -241,4 +242,63 @@ def test_canonicalize_formula_multi_target():
 def test_canonicalize_formula_requires_tilde():
     with pytest.raises(ValueError, match="Must contain '~'"):
         canonicalize_formula("Y s(X)")
+
+
+# --------------------- Term Subsumption Matching --------------------------- #
+
+def test_term_subsumes_marginal_exact_and_tuned_free_parameters():
+    # Exactly equivalent terms subsume each other
+    assert term_subsumes("s(x, k=10)", "s(x, k=10)")
+    assert term_subsumes("c(WeekDays, n_cat=7, topo='nominal')", "c(WeekDays, topo='nominal', n_cat=7)")
+
+    # Candidate with tuned free parameters subsumes sparser mandatory specification
+    assert term_subsumes("s(x, k=10, m=2)", "s(x, k=10)")
+    assert term_subsumes("s(x, k=10, basis='cubic', ratio=0.5)", "s(x, k=10)")
+    assert term_subsumes("s(x, k=10)", "s(x)")
+    assert term_subsumes("l(x)", "l(x)")
+
+    # Mismatched parameters do NOT subsume
+    assert not term_subsumes("s(x, k=5)", "s(x, k=10)")
+    assert not term_subsumes("s(x, k=10)", "s(x, k=10, m=2)")  # Mandatory has m=2, candidate lacks it
+    assert not term_subsumes("s(x, k=10, m=1)", "s(x, k=10, m=2)")
+
+    # Mismatched feature or effect type do NOT subsume
+    assert not term_subsumes("s(y, k=10)", "s(x, k=10)")
+    assert not term_subsumes("f(x, k=10)", "s(x, k=10)")
+
+
+def test_term_subsumes_ast_dict_and_string_mix():
+    ast_candidate = {"type": "s", "feature": "temp", "params": {"k": 10, "m": 2}}
+    assert term_subsumes(ast_candidate, "s(temp, k=10)")
+    assert term_subsumes("s(temp, k=10, m=2)", {"type": "s", "feature": "temp", "params": {"k": 10}})
+    assert not term_subsumes(ast_candidate, "s(temp, k=15)")
+
+
+def test_term_subsumes_tensor_interaction_invariance_and_free_parameters():
+    # Identical sub-terms
+    assert term_subsumes("te(s(x1, k=5), s(x2, k=10))", "te(s(x1, k=5), s(x2, k=10))")
+
+    # Permuted sub-terms
+    assert term_subsumes("te(s(x2, k=10), s(x1, k=5))", "te(s(x1, k=5), s(x2, k=10))")
+
+    # Permuted sub-terms with tuned free parameters in sub-terms
+    assert term_subsumes("te(s(x2, k=10, m=2), s(x1, k=5, basis='cubic'))", "te(s(x1, k=5), s(x2, k=10))")
+
+    # Sub-terms matching when mandatory has unconstrained sub-terms
+    assert term_subsumes("te(s(x1, k=5), s(x2, k=10))", "te(s(x1), s(x2))")
+    assert term_subsumes("te(s(x2, k=10), s(x1, k=5))", "te(s(x1), s(x2))")
+
+    # Top-level kwargs matching
+    assert term_subsumes("te(s(x1), s(x2), bs='cr')", "te(s(x1), s(x2), bs='cr')")
+    assert term_subsumes("te(s(x2), s(x1), bs='cr', ap=-30)", "te(s(x1), s(x2), bs='cr')")
+
+    # Mismatched top-level kwarg
+    assert not term_subsumes("te(s(x1), s(x2), bs='ps')", "te(s(x1), s(x2), bs='cr')")
+
+    # Mismatched sub-term parameters
+    assert not term_subsumes("te(s(x1, k=8), s(x2, k=10))", "te(s(x1, k=5), s(x2, k=10))")
+
+    # Mismatched participating features
+    assert not term_subsumes("te(s(x1), s(x3))", "te(s(x1), s(x2))")
+
 

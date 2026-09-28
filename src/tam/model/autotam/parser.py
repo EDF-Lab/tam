@@ -16,6 +16,7 @@ Evolutionary Search Space and provides the first layer of defense against Target
 #: <parser_imports>
 import re
 import ast
+import itertools
 from typing import Dict, Any, List, Tuple, Optional, Union
 from tam.common.utils import split_args_respecting_parentheses
 #: </parser_imports>
@@ -23,6 +24,7 @@ from tam.common.utils import split_args_respecting_parentheses
 __all__ = [
     "canonicalize_term",
     "terms_are_equivalent",
+    "term_subsumes",
     "canonicalize_formula",
     "parse_formula_to_terms",
     "FormulaParser",
@@ -184,6 +186,215 @@ def terms_are_equivalent(term1: Union[str, Dict[str, Any]], term2: Union[str, Di
         True if the canonicalized representations of both terms are identical.
     """
     return canonicalize_term(term1) == canonicalize_term(term2)
+
+
+def _parse_term_structure(term: Union[str, Dict[str, Any]]) -> Optional[Dict[str, Any]]:
+    """
+    Parses a term (string or AST dictionary) into a normalized hierarchical structure:
+    {
+        'type': str,
+        'feature': str,
+        'params': Dict[str, Any],
+        'sub_terms': List[Dict[str, Any]],
+        'kwargs': Dict[str, Any]
+    }
+
+    Args:
+        term: A string term representation or an AST dictionary.
+
+    Returns:
+        A dictionary describing the parsed term structure, or None if invalid.
+    """
+    if not term:
+        return None
+
+    if isinstance(term, str):
+        term_str = term.strip()
+        if not term_str or term_str == "1":
+            return None
+
+        func_match = re.match(r"^\s*([a-zA-Z0-9_]+)\s*\((.*)\)\s*$", term_str)
+        if not func_match:
+            return {
+                "type": "bare",
+                "feature": term_str,
+                "params": {},
+                "sub_terms": [],
+                "kwargs": {},
+            }
+
+        eff_type = func_match.group(1).strip()
+        inner_content = func_match.group(2).strip()
+
+        if eff_type == "te":
+            parts = split_args_respecting_parentheses(inner_content)
+            sub_terms = []
+            kwargs = {}
+            kwarg_pattern = re.compile(r"^\s*([a-zA-Z0-9_]+)\s*=\s*(.*)$")
+
+            for part in parts:
+                kw_match = kwarg_pattern.match(part)
+                if kw_match:
+                    k = kw_match.group(1).strip()
+                    v = kw_match.group(2).strip()
+                    parsed_v, _ = _normalize_param_value(v)
+                    kwargs[k] = parsed_v
+                else:
+                    sub_struct = _parse_term_structure(part)
+                    if sub_struct:
+                        sub_terms.append(sub_struct)
+
+            return {
+                "type": "te",
+                "feature": "interaction",
+                "params": {},
+                "sub_terms": sub_terms,
+                "kwargs": kwargs,
+            }
+        else:
+            parts = split_args_respecting_parentheses(inner_content)
+            if not parts:
+                return {
+                    "type": eff_type,
+                    "feature": "",
+                    "params": {},
+                    "sub_terms": [],
+                    "kwargs": {},
+                }
+
+            feat = parts[0].strip()
+            params = {}
+            for p in parts[1:]:
+                if "=" in p:
+                    k, v = p.split("=", 1)
+                    parsed_v, _ = _normalize_param_value(v.strip())
+                    params[k.strip()] = parsed_v
+
+            return {
+                "type": eff_type,
+                "feature": feat,
+                "params": params,
+                "sub_terms": [],
+                "kwargs": {},
+            }
+
+    elif isinstance(term, dict):
+        eff_type = term.get("type", "")
+        feat = term.get("feature", "")
+        params_raw = term.get("params", {})
+
+        if eff_type == "te":
+            sub_terms = []
+            kwargs = {}
+            if "sub_terms" in term:
+                for st in term["sub_terms"]:
+                    sub_struct = _parse_term_structure(st)
+                    if sub_struct:
+                        sub_terms.append(sub_struct)
+            else:
+                for k, v in params_raw.items():
+                    k_str = str(k).strip()
+                    if re.match(r"^\s*[a-zA-Z0-9_]+\s*\(", k_str):
+                        sub_struct = _parse_term_structure(k_str)
+                        if sub_struct:
+                            sub_terms.append(sub_struct)
+                    elif not k_str.startswith("__"):
+                        parsed_v, _ = _normalize_param_value(v)
+                        kwargs[k_str] = parsed_v
+
+            return {
+                "type": "te",
+                "feature": "interaction",
+                "params": {},
+                "sub_terms": sub_terms,
+                "kwargs": kwargs,
+            }
+        else:
+            params = {}
+            for k, v in params_raw.items():
+                k_str = str(k).strip()
+                if not k_str.startswith("__"):
+                    parsed_v, _ = _normalize_param_value(v)
+                    params[k_str] = parsed_v
+
+            return {
+                "type": eff_type,
+                "feature": feat,
+                "params": params,
+                "sub_terms": [],
+                "kwargs": {},
+            }
+
+    return None
+
+
+def _struct_subsumes(candidate_struct: Dict[str, Any], mandatory_struct: Dict[str, Any]) -> bool:
+    """
+    Internal recursive helper checking whether candidate structure subsumes mandatory structure.
+
+    Args:
+        candidate_struct: Normalized structure of candidate term.
+        mandatory_struct: Normalized structure of mandatory term specification.
+
+    Returns:
+        True if candidate structure subsumes mandatory structure, False otherwise.
+    """
+    if candidate_struct["type"] != mandatory_struct["type"]:
+        return False
+
+    if mandatory_struct["type"] != "te":
+        if candidate_struct["feature"] != mandatory_struct["feature"]:
+            return False
+        for k, v in mandatory_struct["params"].items():
+            if k not in candidate_struct["params"]:
+                return False
+            if candidate_struct["params"][k] != v:
+                return False
+        return True
+    else:
+        for k, v in mandatory_struct["kwargs"].items():
+            if k not in candidate_struct["kwargs"]:
+                return False
+            if candidate_struct["kwargs"][k] != v:
+                return False
+
+        candidate_subs = candidate_struct["sub_terms"]
+        mandatory_subs = mandatory_struct["sub_terms"]
+        if len(candidate_subs) != len(mandatory_subs):
+            return False
+
+        for perm in itertools.permutations(candidate_subs):
+            if all(_struct_subsumes(c_sub, m_sub) for c_sub, m_sub in zip(perm, mandatory_subs)):
+                return True
+        return False
+
+
+def term_subsumes(candidate: Union[str, Dict[str, Any]], mandatory: Union[str, Dict[str, Any]]) -> bool:
+    """
+    Checks if a candidate term subsumes a mandatory term specification.
+
+    A candidate term subsumes a mandatory term if:
+    1. Both have the same basis effect type (e.g., both are 's').
+    2. Both target the same feature (or equivalent sub-features for tensor products).
+    3. Every parameter explicitly defined in the mandatory specification is present
+       with an identical value in the candidate term (free parameters may be tuned).
+    4. For tensor products ('te(...)'), sub-terms are matched invariantly to ordering,
+       each participating sub-term is subsumed, and top-level kwargs match.
+
+    Args:
+        candidate: Candidate term (string or AST dictionary) potentially with tuned free parameters.
+        mandatory: Mandatory term specification (string or AST dictionary).
+
+    Returns:
+        True if candidate term subsumes the mandatory specification, False otherwise.
+    """
+    c_struct = _parse_term_structure(candidate)
+    m_struct = _parse_term_structure(mandatory)
+
+    if c_struct is None or m_struct is None:
+        return False
+
+    return _struct_subsumes(c_struct, m_struct)
 
 
 def canonicalize_formula(formula: str) -> str:

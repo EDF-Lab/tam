@@ -18,6 +18,7 @@ import re
 from typing import Dict, Any, Tuple, List
 from .context import PipelineContext
 from tam.common.utils import parse_formula_to_terms
+from tam.model.autotam.parser import canonicalize_term
 from tam.model.additive import StaticTAM
 from tam.model.kalman import KalmanTAM
 from tam.model.adaptative import AdaptiveTAM
@@ -137,9 +138,14 @@ class ExpertExpander:
                             tokenized_terms, local_grid_config = [], {}
                             for term in parsed_base:
                                 eff_type, term_feat = term['type'], term['feature']
+                                if eff_type == "te" or term_feat == "interaction":
+                                    tokenized_terms.append(canonicalize_term(term))
+                                    continue
                                 feat_space = ctx.search_space.get(term_feat, {}).get("grids", {}).get(eff_type, {})
                                 term_params = []
                                 for p_name, p_val in term.get('params', {}).items():
+                                    if str(p_name).startswith("__"):
+                                        continue
                                     if p_name in feat_space and isinstance(feat_space[p_name], list) and len(feat_space[p_name]) > 1:
                                         token_name = f"grid_{p_name}_{term_feat}_{eff_type}"
                                         term_params.append(f"{p_name}='{token_name}'")
@@ -153,7 +159,8 @@ class ExpertExpander:
                                 tokenized_form = f"{ctx.target} ~ " + " + ".join(tokenized_terms)
                                 m_grid_template = StaticTAM(formula=tokenized_form, group_col=ctx.group_col, date_col=ctx.date_col)
                                 
-                                m_grid = m_grid_template.grid_search_fit(cv_folds=ctx.cv_folds, grid_search_config=local_grid_config)
+                                data_train, data_val = ctx.cv_folds[0] if ctx.cv_folds else (df_fit_clean, ctx.df_dev)
+                                m_grid = m_grid_template.grid_search_fit(data_train, data_val, grid_search_config=local_grid_config)
                                 cv_score = self._evaluate_model_cv(m_grid, ctx.cv_folds, ctx.target, metric=opt_metric)
                                 comp = ctx.estimate_complexity(tokenized_form)
                                 pen_score = ctx.penalize_score(cv_score, tokenized_form, n_samples)
