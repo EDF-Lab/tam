@@ -181,8 +181,8 @@ Different physical phenomena require different mathematical topologies. TAM flat
 
 ### [RBF (`rbf`)](math/spectrum/RBF.md)
 
-  * **Syntax:** `rbf(x, n_centers=50, gamma=0.1, nu=None)`
-  * **Hyperparameters:** `n_centers`: Fixed set of strategically chosen prototypes or centroids. `gamma`: Bandwidth parameter (inverse squared length-scale). `nu`: Smoothness parameter for the Matérn kernel that strictly controls fractional differentiability.
+  * **Syntax:** `rbf(x, n_centers=50, gamma=0.1, nu=None, seed=42)`
+  * **Hyperparameters:** `n_centers`: Fixed set of strategically chosen prototypes or centroids, sampled from the training points with `seed` (default 42). `gamma`: Bandwidth parameter (inverse squared length-scale). `nu`: Smoothness parameter for the Matérn kernel that strictly controls fractional differentiability.
   * **Mapping function:** $\phi_{rbf}(x) = \left[ K(x, c_1), \dots, K(x, c_M) \right]^\top$
   * **Penalty Matrix:** $P_{rbf} = \lambda I$
 

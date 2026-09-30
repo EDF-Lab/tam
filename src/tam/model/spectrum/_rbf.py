@@ -42,7 +42,8 @@ class RBFEffect(BaseEffect):
         nu: Optional[float],
         lambda_p: float,
         additional_features: Optional[List[str]],
-        extrapolate: str
+        extrapolate: str,
+        seed: int = 42
         ):
         r"""
         Initializes the RBF Effect.
@@ -59,6 +60,8 @@ class RBFEffect(BaseEffect):
                                [-1, 1] domain. Options: 'continue' (native topology), 
                                'constant' (hard clamp), 'linear' (first-order Taylor slope), 
                                or 'saturation' (smooth asymptotic clamp). Defaults to 'continue'.
+            seed (int): Seed of the centre sampling (formula ``rbf(x, ..., seed=42)``). A local generator is used,
+                        so the centres are reproducible and the global torch random state is untouched.
         """
         kernel_type = f"rbf_{'matern' if nu else 'gauss'}"
         super().__init__(feature_name, kernel_type, lambda_p, extrapolate)
@@ -66,6 +69,7 @@ class RBFEffect(BaseEffect):
         self.gamma = gamma 
         self.nu = nu
         self.centers = None 
+        self.seed = int(seed)
         
         # --- Multivariate Handling (e.g., Latitude + Longitude) ---
         self.input_features = [feature_name]
@@ -81,19 +85,23 @@ class RBFEffect(BaseEffect):
         x_flat = x_in.reshape(-1, x_in.shape[-1])
         n_samples = x_flat.shape[0]
         
+        # Local generator: the centres depend on the seed only, and the global torch state is neither read nor advanced
+        rng = torch.Generator(device=x_in.device)
+        rng.manual_seed(self.seed)
+
         # --- Safeguard against the Memory Estimator ---
         if is_dummy:
             # Return mocked parameters for the VRAM footprint estimator without saving them
-            mock_centers = torch.randn(self.n_centers, x_in.shape[-1], device=x_in.device)
+            mock_centers = torch.randn(self.n_centers, x_in.shape[-1], generator=rng, device=x_in.device)
             mock_gamma = self.gamma if self.gamma is not None else 1.0
             return mock_centers, mock_gamma
 
         #  Center Selection (Random Sampling)
         if n_samples <= self.n_centers:
-            indices = torch.randint(0, n_samples, size=(self.n_centers,), device=x_in.device)
+            indices = torch.randint(0, n_samples, size=(self.n_centers,), generator=rng, device=x_in.device)
             self.centers = x_flat[indices]
         else:
-            indices = torch.randperm(n_samples, device=TORCH_DEVICE)[:self.n_centers]
+            indices = torch.randperm(n_samples, generator=rng, device=x_in.device)[:self.n_centers]
             self.centers = x_flat[indices]
 
         #  Median Heuristic for Gamma (if not provided by user)

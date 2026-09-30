@@ -171,8 +171,9 @@ def create_effects_from_parsed_terms(
             additional_features = None
             if others_str:
                 additional_features = [s.strip() for s in others_str.split('|') if s.strip()]
+            seed = int(params_resolved.get('seed', 42))
             extrap_val = params_resolved.get('extrapolate', 'continue')
-            effects_list.append(RBFEffect(feature_name, n_centers, gamma, nu, lambda_p, additional_features, extrap_val))
+            effects_list.append(RBFEffect(feature_name, n_centers, gamma, nu, lambda_p, additional_features, extrap_val, seed=seed))
         #: </parse_rbf>
 
         #: <parse_tree>
