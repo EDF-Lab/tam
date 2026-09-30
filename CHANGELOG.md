@@ -25,6 +25,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Documentation:** Expanded Mirror Architecture documentation for AutoTAM probabilistic selection (`math/meta/11`, `architecture/meta/11`) and feature profiling (`math/meta/12`, `architecture/meta/12`).
 - **Mandatory Terms and Variables:** AutoTAM formulas may fix terms that every candidate keeps, written next to the pipeline macro (`load ~ s(temp, k=10) + AutoPipe(temp, humidity)`), and `AutoTAM(mandatory_variables=[...])` forces variables into every model. Mandatory terms may use dataset variables absent from `AutoPipe(...)`: only those exact terms are used for them, with their free parameters tuned. Mandatory terms are immutable during the evolutionary search and exempt from ablation.
 - **Term Canonicalisation:** `canonicalize_term`, `term_subsumes` and `terms_are_equivalent` (`tam.model.autotam.parser`) treat `s(X, k=10, basis='cubic')` and `s(X, basis='cubic', k=10)` as the same term, so duplicates are dropped.
+- **Mandatory Terms Use Case:** `use_cases/autotam_mandatory_terms.py` runs AutoTAM free, with a mandatory term (`s(x1, k=10)`) and with a mandatory variable (`x10`) on the cheatsheet data, and fails if a static model of the search loses the term or the variable.
 
 ### Changed
 
