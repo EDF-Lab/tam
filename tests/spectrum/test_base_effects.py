@@ -15,8 +15,11 @@ import pytest
 import torch
 
 import tam
-from tam.common.utils import TORCH_DEVICE
-from tam.model.spectrum import BaseEffect, SplineEffect, RBFEffect, TreeEffect
+from tam.common.utils import TORCH_DEVICE, parse_formula_to_terms
+from tam.model.spectrum import (
+    BaseEffect, SplineEffect, RBFEffect, TreeEffect,
+    create_effects_from_parsed_terms,
+)
 
 MODES = ["continue", "constant", "linear", "saturation"]
 
@@ -127,3 +130,55 @@ def test_extrapolate_string_is_normalized():
     """The constructor strips quotes/whitespace and lowercases the mode."""
     effect = SplineEffect("x", n_knots=5, spline_degree=3, penalty_order=2, lambda_p=1.0, extrapolate="'LINEAR' ")
     assert effect.extrapolate == "linear"
+
+
+# --------------------------------------------------------------------------- #
+# Penalty homogeneity in lambda_p (the invariant the GCV search rests on)
+# --------------------------------------------------------------------------- #
+
+PENALISED_TERMS = [
+    "l(x)",
+    "c(g, n_cat=3, topo='nominal', p_order=1)",
+    "c(g, n_cat=3, topo='ordinal', p_order=1)",
+    "s(x, k=10, deg=3, p=2)",
+    "f(x, m=6, s=2)",
+    "p(x, deg=5, s=2)",
+    "w(x, n_scales=4, n_locations=10)",
+    "n(x, n_neurons=8, n_hidden_layers=1, act='relu')",
+    "rbf(x, n_centers=6)",
+    "t(x, n_trees=2, max_depth=2, split_strategy='uniform', sp_alpha=0.0)",
+    "lt(x, slope=z, max_depth=2, split_strategy='uniform')",
+    "pid(x, w=3, d_pen=10.0)",
+    "phys(x, k=10, basis='spline', D2=1.0)",
+    "phys(x, n_coeffs=10, basis='fourier', D2=1.0)",
+    "te(s(x, k=6, deg=3, p=2), c(g, n_cat=3, topo='nominal', p_order=1))",
+]
+
+
+@pytest.mark.parametrize("term", PENALISED_TERMS)
+def test_penalty_is_homogeneous_in_lambda_p(term):
+    """Every basis must satisfy P(c * lambda_p) = c * P(lambda_p).
+
+    The GCV solver searches by assigning ``lambda_p = 10**alpha`` to an effect,
+    rebuilding its block and reporting that weight back. A basis whose penalty is
+    not linear in its own lambda_p would make the reported weight meaningless and
+    break the parity between the search and a later `fit()`.
+    """
+    _, parsed = parse_formula_to_terms(f"y ~ {term}")
+    effects = create_effects_from_parsed_terms(
+        parsed, token_values={}, default_alpha_p=-3.0, include_offset=False
+    )
+    assert effects
+
+    for effect in effects:
+        effect.lambda_p = 1.0
+        unit = effect.build_penalty_matrix()
+        unit = (unit.to_dense() if unit.is_sparse else unit).clone()
+
+        effect.lambda_p = 10.0
+        scaled = effect.build_penalty_matrix()
+        scaled = scaled.to_dense() if scaled.is_sparse else scaled
+
+        assert torch.allclose(scaled, unit * 10.0, rtol=1e-9, atol=0.0), (
+            f"{effect.effect_type} penalty is not linear in lambda_p"
+        )

@@ -160,6 +160,54 @@ def _predict_from_coeffs(
     return phi_matrix @ adaptive_coeffs
 
 #: <decompose>
+def decomposition_names(effects_list: List[BaseEffect]) -> List[str]:
+    r"""
+    Names the additive component contributed by each effect, aligned with ``effects_list``.
+
+    Smart Naming:
+        - The intercept is 'offset'.
+        - Unique features keep their name (e.g., 'temp').
+        - Collisions (e.g., 's(x)' and 'l(x)') are prefixed (e.g., 's_x', 'l_x').
+        - A collision that survives prefixing (two tensor products over the same features)
+          is suffixed with its occurrence index, so no contribution silently overwrites another.
+
+    ``decompose_prediction`` emits one ``effect_<name>`` column per entry. Callers that need
+    the column of a specific formula term use this list rather than guessing from a feature
+    name, which cannot resolve tensor products or several bases on one feature.
+
+    Args:
+        effects_list: List of effects defining the model structure.
+
+    Returns:
+        List[str]: One component name per effect, in the same order.
+    """
+    feature_names = [e.feature_name for e in effects_list if not isinstance(e, OffsetEffect)]
+    name_counts = Counter(feature_names)
+
+    # Map effect types to short prefixes for disambiguation
+    type_map = {
+        'linear': 'l', 'fourier': 'f', 'spline': 's', 'wavelet': 'w',
+        'chebyshev': 'p', 'categorical_nominal': 'c', 'categorical_ordinal': 'c',
+        'neural': 'n', 'rbf_gauss': 'rbf', 'rbf_matern': 'rbf',
+        'tensor_product': 'te', 'phys_spline': 'phys',
+        'phys_fourier': 'phys', 'phys_neural': 'phys', 'offset': 'offset'
+    }
+
+    names = []
+    occurrences = Counter()
+    for effect in effects_list:
+        if isinstance(effect, OffsetEffect):
+            name = "offset"
+        elif name_counts[effect.feature_name] > 1:
+            prefix = type_map.get(effect.effect_type, effect.effect_type)
+            name = f"{prefix}_{effect.feature_name}"
+        else:
+            name = effect.feature_name
+        occurrences[name] += 1
+        names.append(name if occurrences[name] == 1 else f"{name}_{occurrences[name]}")
+    return names
+
+
 def _decompose_prediction_tensor(
     phi_matrix: torch.Tensor,
     adaptive_coeffs: torch.Tensor,
@@ -188,45 +236,22 @@ def _decompose_prediction_tensor(
     adaptive_coeffs = adaptive_coeffs.to(TORCH_DEVICE)
 
     decomposed_effects = {}
-    
-    # Detect naming collisions (same feature used in multiple effects)
-    feature_names = [e.feature_name for e in effects_list if not isinstance(e, OffsetEffect)]
-    name_counts = Counter(feature_names)
-    
-    # Map effect types to short prefixes for disambiguation
-    type_map = {
-        'linear': 'l', 'fourier': 'f', 'spline': 's', 'wavelet': 'w',
-        'chebyshev': 'p', 'categorical_nominal': 'c', 'categorical_ordinal': 'c',
-        'neural': 'n', 'rbf_gauss': 'rbf', 'rbf_matern': 'rbf',
-        'tensor_product': 'te', 'phys_spline': 'phys', 
-        'phys_fourier': 'phys', 'phys_neural': 'phys', 'offset': 'offset'
-    }
+    names = decomposition_names(effects_list)
 
     coeff_idx = 0
-    for i, effect in enumerate(effects_list):
+    for effect, final_name in zip(effects_list, names):
         n_coeffs = effect.get_n_coeffs()
-        
+
         # Slice the global matrices
         phi_slice = phi_matrix[..., :, coeff_idx : coeff_idx + n_coeffs]
         coeffs_slice = adaptive_coeffs[..., coeff_idx : coeff_idx + n_coeffs, :]
-        
+
         # Compute contribution: Phi_j @ Beta_j
         contribution = (phi_slice @ coeffs_slice).squeeze(-1) # Assumes d_out=1
-        
-        base_name = effect.feature_name
-        
-        if isinstance(effect, OffsetEffect):
-            final_name = "offset"
-        elif name_counts[base_name] > 1:
-            # Collision detected: Apply prefix
-            prefix = type_map.get(effect.effect_type, effect.effect_type)
-            final_name = f"{prefix}_{base_name}"
-        else:
-            final_name = base_name
-            
+
         decomposed_effects[final_name] = contribution
         coeff_idx += n_coeffs
-        
+
     return decomposed_effects
 #: </decompose>
 

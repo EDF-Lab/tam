@@ -15,6 +15,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > **[0.0.6]** corresponds to the legacy `weakl` package available on PyPI.
 
 ---
+## [Unreleased]
+
+### Added
+- **`tam.plot_component(model, data, component, kind="auto")`**: plots one additive component with a view chosen from its dimension: a curve for one feature, one curve per level for `te(x, c)`, a 3D surface (or `kind="heatmap"` with the observed points overlaid) for `te(x1, x2)`, evaluated on a regular grid for one group (`group=`, default the most frequent), a 3D scatter coloured by the contribution for `te(x1, x2, x3)`. Rows with a non-finite contribution are skipped.
+- **`tam.common.plotting.resolve_component(model, feature, component=None, color_by=None)`**: the component a feature maps to under the new decomposition names.
+
+### Fixed
+- **Plotting helpers after the renaming fix**: `plot_effect_with_model_and_data` and `plot_effect_with_data_decomposed` raised `KeyError: 'effect_x1'` for a feature inside a `te()` or used by several effects. They now resolve the feature to its component: the only one using it, the tensor product whose other margin is `color_by`, or the new `component=` argument; a still-ambiguous feature raises a `ValueError` listing the candidates. Single-component features plot exactly as before.
+- **Sparsity-adaptive tree penalty** (`t(..., sp_alpha>0)`): `empirical_counts` summed only the first batch axis, so the leaf-density penalty was built from the wrong counts and could not be formed. It now counts every sample and group, one value per leaf in design-matrix order.
+- **Linear tree weight** (`lt()`): assigning `lambda_p` (as GCV does on every candidate) did not reach the intercept tree and the slope surface, so GCV could not tune `lt()`. The weight now propagates to both sub-blocks.
+- **GCV scored a different penalty from the one it stored** (`auto_fit`, `smart_solve_gcv`): each trial rescaled a block that already carried the formula's own weight, so the search scored λ_formula × λ_GCV but stored λ_GCV alone; a later `fit()` on the selected weights returned a different model, and with the default `ap=-9` the nine highest decades of the search range were unreachable. Each trial block is now rebuilt by the effect at λ = 10^α, exactly as `fit()` assembles it; the trial weight is restored even if the search raises, and the initial alphas are clipped to the bounds. **Models selected by `auto_fit` change**.
+- **Terms renamed by position** (`StaticTAM._prepare_data`): each effect's `feature_name` was overwritten from the deduplicated feature list by position, so with a `te()` or several features in one term, the effects after it were relabelled (e.g. `c(day_type_week)` became `toy`) and **the fitted model changed**, not only the labels (regression case with `te(temperature, toy)`: test RMSE 3254 → 2432). The renaming is removed. `decompose_prediction` names components with the new `decomposition_names()`: unique feature names are kept, collisions get a basis prefix (`s_x`, `l_x`), and a collision that remains (two `te()` over the same features) gets an occurrence suffix, so no contribution overwrites another. Plotting helpers that looked up `effect_<feature>` for a feature inside a `te()` need the new names (fixed separately).
+- **Dummy date overflow**: without `date_col`, the internal dummy date was spaced one day apart and ran past the year 2262 after ~95,000 rows, which overflows pandas 2.x nanosecond datetimes (pandas 3 tolerates it). It is now spaced one second apart.
+- **`add_base_effects` in AdaptiveTAM and KalmanTAM**: the base model's components were added as `l(effect_<feature>)`, a name that does not exist when two effects share a feature (`s(x) + l(x)` gives `effect_s_x`, `effect_l_x`), so the model crashed with a `KeyError`; and with a `te()`, the renaming bug above fed mislabelled components. The components are now added under their `decomposition_names()` columns.
+
+---
 ## [1.3.0] - 2026-09-06
 
 ### Added

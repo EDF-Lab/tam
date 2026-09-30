@@ -23,7 +23,7 @@ The local intercepts are bounded by the **Anisotropic Sparsity-Adaptive Ridge pe
 
 $$P_{lt} = \begin{bmatrix} P_{tree_{base}} & 0 \\ 0 & P_{cross} \end{bmatrix} = \text{diag}(P_{tree_{base}}, P_{cross})$$
 
-This nested anisotropic structure is mathematically powerful. Not only can the varying coefficients ($\beta_1(x_{part})$) be penalized independently from the local intercepts ($\beta_0(x_{part})$), but by activating the sparsity hyperparameter ($\alpha_{sp} > 0$), the base tree penalties dynamically adapt to the empirical data density ($C_i$) of each specific leaf. Empty or starved spatial regions receive geometrically massive penalties on both their local intercept and their local slope, heavily shrinking wild linear extrapolations back to zero.
+This nested anisotropic structure is mathematically powerful. Both blocks share the single weight $\lambda_{lt}$ the term declares, so that the weight the GCV search selects governs the whole component, but they shrink their coefficients through different geometries: the varying coefficients ($\beta_1(x_{part})$) carry the Kronecker penalty of the tensor product, the local intercepts ($\beta_0(x_{part})$) the leaf-wise ridge of the base tree. And by activating the sparsity hyperparameter ($\alpha_{sp} > 0$), the base tree penalties dynamically adapt to the empirical data density ($C_i$) of each specific leaf. Empty or starved spatial regions receive geometrically massive penalties on both their local intercept and their local slope, heavily shrinking wild linear extrapolations back to zero.
 
 ## Theoretical Critique: Resolving MOB Singularities
 

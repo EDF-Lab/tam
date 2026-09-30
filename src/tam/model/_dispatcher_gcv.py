@@ -35,6 +35,10 @@ def smart_solve_gcv(
     r"""
     Memory-safe Generalized Cross Validation (GCV) solver.
     Dynamically routes matrix inversions and chunking based on available VRAM.
+
+    On return, every effect in `effects_list` carries the lambda_p that was selected
+    for it, so rebuilding the penalty from the effects reproduces the fit. A search
+    that raises leaves the formula's own weights in place.
     """
     run_device = x_data.device
     num_samples = x_data.shape[1]
@@ -53,18 +57,52 @@ def smart_solve_gcv(
             "Please use `grid_search_fit()` instead, which utilizes matrix-free Conjugate Gradient routing."
         )
 
-    blocks = []
+    spans = []
     c_idx = 0
     for e in effects_list:
         k = e.get_n_coeffs()
-        mat = e.build_penalty_matrix()
-        if mat.is_sparse: 
-            mat = mat.to_dense()
-        blocks.append((c_idx, c_idx + k, mat))
+        spans.append((c_idx, c_idx + k))
         c_idx += k
-        
+
     n_effects = len(effects_list)
-        
+
+    def sync_penalty_blocks(
+        penalty: torch.Tensor,
+        applied_alpha_ps: np.ndarray,
+        alpha_ps: np.ndarray,
+        device: torch.device
+    ) -> None:
+        r"""
+        Writes the penalty blocks for `alpha_ps`, rebuilding only the ones that moved.
+
+        Each block is produced by the effect itself at lambda_p = 10**alpha, so the
+        matrix scored here is exactly the one `fit()` reassembles from the lambdas this
+        search returns. Rescaling a prebuilt block would instead score the product of
+        the formula's own lambda_p and the tested one, leaving the selected weight
+        unable to reproduce the model it was selected on.
+
+        The trial weight lives on the effect only while its block is built: a search
+        that raises must not leave the caller's effects holding a candidate.
+        """
+        for i, alpha in enumerate(alpha_ps):
+            if alpha == applied_alpha_ps[i]:
+                continue
+
+            effect = effects_list[i]
+            formula_lambda_p = effect.lambda_p
+            try:
+                effect.lambda_p = float(10.0 ** alpha)
+                mat = effect.build_penalty_matrix()
+            finally:
+                effect.lambda_p = formula_lambda_p
+
+            if mat.is_sparse:
+                mat = mat.to_dense()
+
+            start, end = spans[i]
+            penalty[start:end, start:end] = mat.to(device)
+            applied_alpha_ps[i] = alpha
+
     bytes_per_group = (total_d * total_d * 8) * 5
     total_bytes = bytes_per_group * n_groups
     available_mem = hw.get_available_memory()
@@ -125,10 +163,15 @@ def smart_solve_gcv(
         return cov_x_total, cov_xy_total, Y_sq_total
 
     initial_alpha_ps = np.array([
-        np.log10(e.lambda_p) if e.lambda_p > 0 else alpha_p_bounds[0] 
+        np.log10(e.lambda_p) if e.lambda_p > 0 else alpha_p_bounds[0]
         for e in effects_list
     ], dtype=np.float64)
-    
+
+    if alpha_p_list is None:
+        # The local steps stay inside the box, so the seed has to start inside it.
+        # An explicit coordinate list ignores the bounds, and so does its seed.
+        initial_alpha_ps = np.clip(initial_alpha_ps, alpha_p_bounds[0], alpha_p_bounds[1])
+
     step_size = (alpha_p_bounds[1] - alpha_p_bounds[0]) / float(number_of_steps)
 
     if total_bytes < available_mem * 0.3:
@@ -136,13 +179,11 @@ def smart_solve_gcv(
             print("[GCV Engine] VRAM footprint < 30%. Caching covariances globally on GPU.")
         cov_X, cov_XY, Y_sq = _get_chunked_covs(x_data, y_data)
         current_penalty = torch.zeros((total_d, total_d), dtype=torch.get_default_dtype(), device=run_device)
-        
+        applied_alpha_ps = np.full(n_effects, np.nan, dtype=np.float64)
+
         def gcv_objective(alpha_ps: np.ndarray) -> float:
-            current_penalty.zero_()
-            for i, current_alpha in enumerate(alpha_ps):
-                start, end, mat = blocks[i]
-                current_penalty[start:end, start:end] = mat.to(run_device) * (10.0 ** current_alpha)
-                
+            sync_penalty_blocks(current_penalty, applied_alpha_ps, alpha_ps, run_device)
+
             score = compute_gcv_score(
                 cov_X=cov_X, 
                 cov_XY=cov_XY, 
@@ -194,12 +235,11 @@ def smart_solve_gcv(
                 break
                 
         best_lambda_ps = 10.0 ** current_alpha_ps
-        
-        current_penalty.zero_()
-        for i, a in enumerate(best_lambda_ps):
-            start, end, mat = blocks[i]
-            current_penalty[start:end, start:end] = mat.to(run_device) * a
-            
+
+        sync_penalty_blocks(current_penalty, applied_alpha_ps, current_alpha_ps, run_device)
+        for effect, selected_lambda_p in zip(effects_list, best_lambda_ps):
+            effect.lambda_p = float(selected_lambda_p)
+
         coeffs = solve_linear_system(cov_X, cov_XY, current_penalty, num_samples)
         
         return coeffs, best_lambda_ps, best_gcv
@@ -220,13 +260,18 @@ def smart_solve_gcv(
             hw.empty_cache()
             
         current_penalty = torch.zeros((total_d, total_d), dtype=torch.get_default_dtype(), device=eval_device)
-        
+        applied_alpha_ps = np.full(n_effects, np.nan, dtype=np.float64)
+
         def gcv_objective(alpha_ps: np.ndarray) -> float:
-            current_penalty.zero_()
-            for i, current_alpha in enumerate(alpha_ps):
-                start, end, mat = blocks[i]
-                current_penalty[start:end, start:end] = mat.to(eval_device) * (10.0 ** current_alpha)
-                
+            try:
+                sync_penalty_blocks(current_penalty, applied_alpha_ps, alpha_ps, eval_device)
+            except (torch.OutOfMemoryError, MemoryError):
+                # Basis assembly runs on the compute device even when scoring was
+                # offloaded to the host; a block that does not fit rejects the
+                # candidate instead of aborting the search.
+                hw.empty_cache()
+                return float('inf')
+
             total_score = 0.0
             for g in range(n_groups):
                 try:
@@ -285,12 +330,11 @@ def smart_solve_gcv(
                 break
                 
         best_lambda_ps = 10.0 ** current_alpha_ps
-        
-        current_penalty.zero_()
-        for i, a in enumerate(best_lambda_ps):
-            start, end, mat = blocks[i]
-            current_penalty[start:end, start:end] = mat.to(eval_device) * a
-        
+
+        sync_penalty_blocks(current_penalty, applied_alpha_ps, current_alpha_ps, eval_device)
+        for effect, selected_lambda_p in zip(effects_list, best_lambda_ps):
+            effect.lambda_p = float(selected_lambda_p)
+
         group_coeffs = []
         for g in range(n_groups):
             coeffs_g = solve_linear_system(

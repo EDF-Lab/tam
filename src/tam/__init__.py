@@ -24,6 +24,7 @@ from .model.statistics import (
     adaptive_conformal_intervals,
 )
 from .evaluation.tracker import BenchmarkTracker
+from .common.plotting import plot_component
 
 __version__ = "1.3.0"
 
@@ -43,5 +44,6 @@ __all__ = [
     "adaptive_conformal_scores",
     "adaptive_conformal_intervals",
     "BenchmarkTracker",
+    "plot_component",
     "__version__"
 ]

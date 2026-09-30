@@ -74,6 +74,24 @@ Because the Primal space concatenates independent topological blocks, the framew
 :end-before: "#: </decompose_pred>"
 ```
 
+**Component names.** The output holds one column `effect_<name>` per effect, named by `decomposition_names()`: a feature used by a single effect keeps its own name (`effect_temperature`); a tensor product is `te_<a>_x_<b>`; effects sharing a feature are prefixed by their basis (`s_temperature`, `l_temperature`); a collision that remains (two tensor products over the same features) gets an occurrence suffix. Names never depend on the position of a term in the formula, and each effect keeps the feature it was built on: the model is fitted on exactly the columns its formula names.
+
+```{literalinclude} ../../../../src/tam/model/_math.py
+:language: python
+:start-after: "#: <decompose>"
+:end-before: "#: </decompose>"
+```
+
+### Plotting a Component
+
+`tam.plot_component(model, data, component, kind="auto")` draws one component with a view chosen from its dimension: a curve against the feature (one feature), one curve per level (`te(x, c)` with a categorical or low-cardinality margin), a 3D surface or, with `kind="heatmap"`, a filled contour (`te(x1, x2)`), and a 3D scatter coloured by the contribution (three margins). The feature-oriented helpers `plot_effect_with_model_and_data` / `plot_effect_with_data_decomposed` resolve a feature to its component first (`resolve_component`): the only component using it, else the tensor product whose other margin is `color_by`, else the explicit `component=` argument; an ambiguous feature raises a `ValueError` listing the candidates.
+
+```{literalinclude} ../../../../src/tam/common/plotting.py
+:language: python
+:start-after: "#: <plot_component>"
+:end-before: "#: </plot_component>"
+```
+
 ## Hyperparameter Routing: Continuous vs. Discrete
 
 To safely scale to Gigadata without exhausting computational time, `StaticTAM` divides hyperparameter tuning into two distinct structural methods.

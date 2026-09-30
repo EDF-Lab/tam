@@ -459,12 +459,6 @@ class StaticTAM(BaseTAM):
             unique_groups=self.unique_groups_,
             date_col=self.date_col_
         )
-        
-        if self.features_config_:
-             feature_names = self.features_config_.get('features', [])
-             for i, effect in enumerate(self.effects_list_):
-                 if i > 0 and i <= len(feature_names):
-                     effect.feature_name = feature_names[i-1]
 
         if torch.isnan(x_stacked).any():
             raise ValueError(
@@ -834,7 +828,7 @@ class StaticTAM(BaseTAM):
         print(f"\nFinal GCV Score: {gcv_score:.4f}")
         print("Optimal lambda_ps found per effect:")
         for i, effect in enumerate(self.effects_list_):
-            effect.lambda_p = best_lambda_ps[i]
+            effect.lambda_p = float(best_lambda_ps[i])
             print(f" - {effect.feature_name}: {best_lambda_ps[i]:.2e} (log10 = {np.log10(best_lambda_ps[i]):.2f})")
         
         return self

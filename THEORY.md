@@ -61,7 +61,7 @@ Real-world data is chaotic. Rather than polluting the exactness of the core engi
 > *(Note: You can still call `predict_online(df)` if you wish to run a continuous dynamic simulation over an entire backtest dataset).*
 
 * **Sudden Concept Drift (Sliding Window)** $\rightarrow$ **`AdaptiveTAM`**
-    * *Use case:* A sudden crisis changes how your features behave. If the target of your base model is `y`, you can target `Residualy` for pure error correction, or `y` for dynamic ensemble recalibration. You can also use `effect_{feature}` if that feature is in the base model formula.
+    * *Use case:* A sudden crisis changes how your features behave. If the target of your base model is `y`, you can target `Residualy` for pure error correction, or `y` for dynamic ensemble recalibration. You can also use a base-model component `effect_<name>`, with the names `decompose_prediction` gives (`effect_temperature` for a feature used once, `effect_s_temperature` / `effect_l_temperature` when two effects share it, `effect_te_x_x_y` for a tensor product); `add_base_effects=True` adds them all.
     * **Option 1: Residual Tracking**
         * *Code:*
             ```python

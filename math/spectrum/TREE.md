@@ -44,7 +44,7 @@ $$\Phi_{tree} = \frac{1}{\sqrt{B}} \left[ \Phi^{(1)} \mid \Phi^{(2)} \mid \dots 
 
 A fundamental mathematical clash exists between the dense representations of continuous bases and the severe geometric sparsity of random forests. Because a single data point activates exactly one leaf per tree, classical exact solvers operating with a global isotropic Ridge penalty ($P = \lambda I$) tend to aggressively over-penalize the fragmented tree leaves, artificially collapsing the ensemble's predictive variance. 
 
-To achieve statistical equivalence with continuous modules, TAM replaces the isotropic penalty with an **Anisotropic Sparsity-Adaptive Penalty**. During the initial forward pass, the framework evaluates the routing logic on the training manifold to capture the exact empirical sample count $C_i$ landing in each specific leaf $i$. The base penalty $\lambda_p$ is then dynamically scaled for each individual leaf feature along the diagonal matrix:
+To achieve statistical equivalence with continuous modules, TAM replaces the isotropic penalty with an **Anisotropic Sparsity-Adaptive Penalty**. During the initial forward pass, the framework evaluates the routing logic on the training manifold to capture the exact empirical sample count $C_i$ landing in each specific leaf $i$, pooled over every group and every sample (one count per leaf, in the column order of the design matrix). The base penalty $\lambda_p$ is then dynamically scaled for each individual leaf feature along the diagonal matrix:
 
 $$[P_{tree}]_{ii} = \lambda_p \cdot \left( \frac{C_i + \epsilon}{\bar{C}} \right)^{-\alpha_{sp}}$$
 

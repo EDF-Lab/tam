@@ -38,7 +38,7 @@ To strictly prevent Out-Of-Memory (OOM) faults during the iterative search, the 
 
 Because the system allows different regularization weights for different topological bases (e.g., one $\lambda$ for Splines, another for Fourier), the global penalty matrix $P$ must be updated dynamically during the optimization loop.
 
-The dispatcher pre-calculates the index boundaries (`start`, `end`) for every individual effect in the formula and maps them to a `blocks` array. During each evaluation of the GCV objective function, it injects the actively tested $\lambda$ values strictly into their corresponding diagonal blocks, ensuring zero cross-contamination between distinct structural penalties.
+The dispatcher pre-calculates the index boundaries (`start`, `end`) for every individual effect in the formula and maps them to a `spans` array. During each evaluation of the GCV objective function, `sync_penalty_blocks` injects the actively tested $\lambda$ values strictly into their corresponding diagonal blocks, ensuring zero cross-contamination between distinct structural penalties.
 
 ---
 
@@ -54,6 +54,8 @@ To optimize the multiple parameters efficiently across the block-diagonal struct
 4.  **Scoring:** The system recalculates the exact cyclic trace and GCV score for each perturbation. If a candidate improves the global GCV score, it becomes the new baseline.
 
 The loop naturally terminates early if a full cycle completes without any parameter achieving a lower GCV score. Once optimal parameters are found, it triggers a final dense inversion using `solve_linear_system` to map the optimal coefficients exactly to the target distribution.
+
+**Penalty parity.** Step 3 does not rescale a block built once from the formula's own `lambda_p`. `sync_penalty_blocks` assigns $\lambda_p = 10^{\alpha}$ to the effect and asks the effect to rebuild its block, so the matrix being scored is the one `_build_penalty_matrix()` reassembles from the selected weights: on the default `loss="l2"` path, `auto_fit()` followed by `fit()` returns the same estimator. That is the contract AutoTAM depends on when `refit_on_full_train=True` puts a champion back on the full training window. At most two blocks are rebuilt per candidate, the coordinate under test, plus the previous one when its own search settled on a value other than the last one tried, and the trial weight is written on the effect only for the duration of that rebuild, so a search that raises leaves the caller's effects as the formula declared them.
 
 ```{literalinclude} ../../../../src/tam/model/_dispatcher_gcv.py
 :language: python

@@ -43,6 +43,7 @@ from tam.common.utils import (
 )
 from .additive import StaticTAM
 from ._data import _reassemble_predictions
+from ._math import decomposition_names
 
 #: <jit_woodbury_block>
 @torch.jit.script
@@ -168,8 +169,9 @@ class KalmanTAM:
             raise ValueError("The base_model must be fitted before initializing KalmanTAM.")
         
         if add_base_effects and base_model is not None:
-            for effect in base_model.effects_list_:
-                effect_col = f"effect_{effect.feature_name}"
+            # Column names as decompose_prediction emits them (shared features are basis-prefixed).
+            for name in decomposition_names(base_model.effects_list_):
+                effect_col = f"effect_{name}"
                 if effect_col not in kalman_formula:
                     kalman_formula += f" + l({effect_col})"
             use_decomposition = True

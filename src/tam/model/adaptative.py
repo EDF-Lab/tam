@@ -39,6 +39,7 @@ from ._data import (
 from ._math import (
     _predict_from_coeffs,
     _compute_weighted_covariances,
+    decomposition_names,
     solve_linear_system
 )
 from .spectrum import (
@@ -95,8 +96,9 @@ class AdaptiveTAM:
             raise ValueError("The base_model must be fitted before initializing AdaptiveTAM.")
         
         if add_base_effects and base_model is not None:
-            for effect in base_model.effects_list_:
-                effect_col = f"effect_{effect.feature_name}"
+            # Column names as decompose_prediction emits them (shared features are basis-prefixed).
+            for name in decomposition_names(base_model.effects_list_):
+                effect_col = f"effect_{name}"
                 if effect_col not in adaptive_formula:
                     adaptive_formula += f" + l({effect_col})"
 
