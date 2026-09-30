@@ -177,10 +177,10 @@ def _reassemble_predictions(
     all_predictions_series = []
     
     for i, group_name in enumerate(unique_groups):
-        group_data = original_data[original_data[group_col] == group_name]
+        group_indices_full = original_data.index[original_data[group_col] == group_name]
 
         if date_col is not None and date_col in original_data.columns:
-            group_data = group_data.sort_values(date_col)
+            group_indices_full = original_data.loc[group_indices_full].sort_values(date_col).index
 
         if i >= predictions_stacked.shape[0]:
             continue
@@ -194,7 +194,7 @@ def _reassemble_predictions(
             continue
             
         # Align to the end of the group's indices (handling potential truncation)
-        group_indices_aligned = group_data.index[-len(preds_group):]
+        group_indices_aligned = group_indices_full[-len(preds_group):]
         
         preds_series = pd.Series(preds_group, index=group_indices_aligned)
         all_predictions_series.append(preds_series)
@@ -206,10 +206,7 @@ def _reassemble_predictions(
          return result_df
 
     final_predictions = pd.concat(all_predictions_series)
-    if result_df.index.is_unique:
-        result_df[f"Estimated{target_col}"] = final_predictions
-    else:
-        result_df[f"Estimated{target_col}"] = final_predictions.values
+    result_df[f"Estimated{target_col}"] = final_predictions
     
     return result_df
 #: </reassemble>

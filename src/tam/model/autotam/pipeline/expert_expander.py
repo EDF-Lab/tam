@@ -11,6 +11,7 @@ Adaptive Error Correction Models (ECMs).
 """
 
 #: <expert_expander_imports>
+import logging
 import pandas as pd
 import numpy as np
 import datetime
@@ -22,6 +23,8 @@ from tam.model.autotam.parser import canonicalize_term
 from tam.model.additive import StaticTAM
 from tam.model.kalman import KalmanTAM
 from tam.model.adaptative import AdaptiveTAM
+
+logger = logging.getLogger(__name__)
 #: </expert_expander_imports>
 
 #: <expert_expander_class>
@@ -60,13 +63,18 @@ class ExpertExpander:
     def _evaluate_model_cv(self, model, cv_folds, target_col, metric='rmse'):
         """Helper to calculate the Mean CV Score for a static base model."""
         scores = []
-        for fold_train, fold_val in cv_folds:
+        for fold_index, (fold_train, fold_val) in enumerate(cv_folds):
             try:
                 preds = model.predict(fold_val)[f"Estimated{target_col}"].values
                 y_true = fold_val[target_col].values
                 score = self._calculate_error(y_true, preds, metric)
                 scores.append(score)
-            except Exception:
+            except Exception as exc:
+                # The expert stays in the search with an infinite score, but the failure is reported instead of hidden.
+                logger.warning(
+                    "CV evaluation failed on fold %d for expert %r: %s: %s",
+                    fold_index, getattr(model, "formula_", type(model).__name__), type(exc).__name__, exc,
+                )
                 scores.append(float('inf'))
         return np.mean(scores) if scores else float('inf')
 #: </expert_expander_helpers>

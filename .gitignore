@@ -36,3 +36,6 @@ MANIFEST
 
 # Windows
 Thumbs.db
+
+# AutoTAM default export directory (AutoTAM(export_dir=...))
+AutoTAM_exports/

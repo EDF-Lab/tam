@@ -36,6 +36,13 @@ Primary author of the foundational theory on which TAM builds.
 * **Implementation:** Contributed to real-world dataset validation for the initial `weakl` prototype.
 * **Research code:** Co-authored the original research codes (the [`research code`](https://github.com/NathanDoumeche/WeaKL)), heavy lifting on the repository's architecture, the dataset implementations, and the statistical/bootstrap validations.
 
+### **Amaury Durand**
+
+**AutoTAM Contributor**
+
+* **AutoTAM:** User-defined mandatory terms and variables, semantic term canonicalisation and equivalence, fail-fast validation of the
+  search constraints, disjoint indexes for explicit data splits, and the grid-search experts of the expert expander.
+
 ---
 
 ## 🎓 Acknowledgments
@@ -59,6 +66,7 @@ To strictly comply with JOSS guidelines, the specific domains of contribution ar
 | **TAM Theoretical Extensions** | Yann Allioux |
 | **Foundational Theory (WeaKL / PIKL)** | Nathan Doumèche |
 | **Early WeaKL Prototype Engineering** | Nathan Doumèche, Éloi Bedek |
+| **AutoTAM Mandatory Terms & Constraints** | Amaury Durand |
 | **Original opera R package** | Pierre Gaillard, Yannig Goude |
 | **Mentorship & Paper Co-Authorship** | Yannig Goude |
 

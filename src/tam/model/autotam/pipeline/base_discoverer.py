@@ -1,4 +1,5 @@
 # SPDX-FileCopyrightText: 2025-2026 EDF (Electricité De France)
+# SPDX-FileContributor: Amaury Durand
 # SPDX-License-Identifier: LGPL-3.0-or-later
 # Author : Yann Allioux
 
@@ -12,7 +13,7 @@ formulas per mathematical island.
 #: <base_discoverer_imports>
 import pandas as pd
 import re
-from typing import Dict, Any, List, Tuple
+from typing import Dict, Any, List, Optional, Tuple
 from .context import PipelineContext
 from tam.model.autotam.drag_tam import DragTAM
 from tam.model.autotam.population_nodes import get_island_objects

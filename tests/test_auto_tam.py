@@ -1,6 +1,6 @@
 # SPDX-FileCopyrightText: 2025-2026 EDF (Electricité De France)
+# SPDX-FileContributor: Amaury Durand
 # SPDX-License-Identifier: LGPL-3.0-or-later
-# Author : Yann Allioux
 
 """
 Unit and integration tests for AutoTAM mandatory_terms search constraint.
@@ -12,6 +12,12 @@ import pytest
 
 from tam.model.autotam.auto_tam import AutoTAM
 from tam.common.utils import parse_formula_to_terms
+
+
+@pytest.fixture(autouse=True)
+def _exports_in_a_temporary_directory(tmp_path, monkeypatch):
+    """AutoTAM writes its exports under the working directory by default: run each test in a temporary one."""
+    monkeypatch.chdir(tmp_path)
 
 
 def _frame(n=100):
