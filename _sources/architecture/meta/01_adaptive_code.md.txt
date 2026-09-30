@@ -18,6 +18,7 @@ The software architecture directly reflects the two-stage mathematical formulati
 **Architectural Choice:** By using composition, the framework prevents namespace collision and guarantees mathematical isolation between the physics-based macroscopic model and the reactive microscopic model. It *owns* and orchestrates two distinct instances:
 * `self.base_model_`: The expert instance, permanently frozen after its initial training.
 * `self.adaptive_model_`: A blank, template instance that will be cloned and dynamically retrained on each sliding window to correct the base model's residuals.
+* `add_base_effects=True` appends one `l(effect_<name>)` term per base-model component to the adaptive formula, with the column names `decompose_prediction` emits (`decomposition_names()`: a shared feature is basis-prefixed, a tensor product is `te_<a>_x_<b>`).
 
 ```{literalinclude} ../../../../src/tam/model/adaptative.py
 :language: python

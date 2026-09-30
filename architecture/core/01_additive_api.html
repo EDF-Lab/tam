@@ -7,7 +7,7 @@
         <link rel="prefetch" href="../../_static/logo.png" as="image">
 
     <!-- Generated with Sphinx 9.1.0 and Furo 2025.12.19 -->
-        <title>The Additive API and Object-Oriented Architecture - TAM 1.3.0 documentation</title>
+        <title>The Additive API and Object-Oriented Architecture - TAM 1.3.1 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=d111a655" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo-extensions.css?v=8dab3a3b" />
@@ -162,7 +162,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="../../index.html"><div class="brand">TAM 1.3.0 documentation</div></a>
+      <a href="../../index.html"><div class="brand">TAM 1.3.1 documentation</div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -186,7 +186,7 @@
     <img class="sidebar-logo" src="../../_static/logo.png" alt="Logo"/>
   </div>
   
-  <span class="sidebar-brand-text">TAM 1.3.0 documentation</span>
+  <span class="sidebar-brand-text">TAM 1.3.1 documentation</span>
   
 </a><form class="sidebar-search-container" method="get" action="../../search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
@@ -664,6 +664,216 @@
         <span class="k">return</span> <span class="n">_cleanup_dummies</span><span class="p">(</span><span class="n">decomposed_df</span><span class="p">[</span><span class="n">mask</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">group_col_</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">date_col_</span><span class="p">)</span>
 </pre></div>
 </div>
+<p><strong>Component names.</strong> The output holds one column <code class="docutils literal notranslate"><span class="pre">effect_&lt;name&gt;</span></code> per effect, named by <code class="docutils literal notranslate"><span class="pre">decomposition_names()</span></code>: a feature used by a single effect keeps its own name (<code class="docutils literal notranslate"><span class="pre">effect_temperature</span></code>); a tensor product is <code class="docutils literal notranslate"><span class="pre">te_&lt;a&gt;_x_&lt;b&gt;</span></code>; effects sharing a feature are prefixed by their basis (<code class="docutils literal notranslate"><span class="pre">s_temperature</span></code>, <code class="docutils literal notranslate"><span class="pre">l_temperature</span></code>); a collision that remains (two tensor products over the same features) gets an occurrence suffix. Names never depend on the position of a term in the formula, and each effect keeps the feature it was built on: the model is fitted on exactly the columns its formula names.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">def</span><span class="w"> </span><span class="nf">decomposition_names</span><span class="p">(</span><span class="n">effects_list</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">BaseEffect</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">"""</span>
+<span class="sd">    Names the additive component contributed by each effect, aligned with ``effects_list``.</span>
+
+<span class="sd">    Smart Naming:</span>
+<span class="sd">        - The intercept is 'offset'.</span>
+<span class="sd">        - Unique features keep their name (e.g., 'temp').</span>
+<span class="sd">        - Collisions (e.g., 's(x)' and 'l(x)') are prefixed (e.g., 's_x', 'l_x').</span>
+<span class="sd">        - A collision that survives prefixing (two tensor products over the same features)</span>
+<span class="sd">          is suffixed with its occurrence index, so no contribution silently overwrites another.</span>
+
+<span class="sd">    ``decompose_prediction`` emits one ``effect_&lt;name&gt;`` column per entry. Callers that need</span>
+<span class="sd">    the column of a specific formula term use this list rather than guessing from a feature</span>
+<span class="sd">    name, which cannot resolve tensor products or several bases on one feature.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        effects_list: List of effects defining the model structure.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        List[str]: One component name per effect, in the same order.</span>
+<span class="sd">    """</span>
+    <span class="n">feature_names</span> <span class="o">=</span> <span class="p">[</span><span class="n">e</span><span class="o">.</span><span class="n">feature_name</span> <span class="k">for</span> <span class="n">e</span> <span class="ow">in</span> <span class="n">effects_list</span> <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">e</span><span class="p">,</span> <span class="n">OffsetEffect</span><span class="p">)]</span>
+    <span class="n">name_counts</span> <span class="o">=</span> <span class="n">Counter</span><span class="p">(</span><span class="n">feature_names</span><span class="p">)</span>
+
+    <span class="c1"># Map effect types to short prefixes for disambiguation</span>
+    <span class="n">type_map</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s1">'linear'</span><span class="p">:</span> <span class="s1">'l'</span><span class="p">,</span> <span class="s1">'fourier'</span><span class="p">:</span> <span class="s1">'f'</span><span class="p">,</span> <span class="s1">'spline'</span><span class="p">:</span> <span class="s1">'s'</span><span class="p">,</span> <span class="s1">'wavelet'</span><span class="p">:</span> <span class="s1">'w'</span><span class="p">,</span>
+        <span class="s1">'chebyshev'</span><span class="p">:</span> <span class="s1">'p'</span><span class="p">,</span> <span class="s1">'categorical_nominal'</span><span class="p">:</span> <span class="s1">'c'</span><span class="p">,</span> <span class="s1">'categorical_ordinal'</span><span class="p">:</span> <span class="s1">'c'</span><span class="p">,</span>
+        <span class="s1">'neural'</span><span class="p">:</span> <span class="s1">'n'</span><span class="p">,</span> <span class="s1">'rbf_gauss'</span><span class="p">:</span> <span class="s1">'rbf'</span><span class="p">,</span> <span class="s1">'rbf_matern'</span><span class="p">:</span> <span class="s1">'rbf'</span><span class="p">,</span>
+        <span class="s1">'tensor_product'</span><span class="p">:</span> <span class="s1">'te'</span><span class="p">,</span> <span class="s1">'phys_spline'</span><span class="p">:</span> <span class="s1">'phys'</span><span class="p">,</span>
+        <span class="s1">'phys_fourier'</span><span class="p">:</span> <span class="s1">'phys'</span><span class="p">,</span> <span class="s1">'phys_neural'</span><span class="p">:</span> <span class="s1">'phys'</span><span class="p">,</span> <span class="s1">'offset'</span><span class="p">:</span> <span class="s1">'offset'</span>
+    <span class="p">}</span>
+
+    <span class="n">names</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">occurrences</span> <span class="o">=</span> <span class="n">Counter</span><span class="p">()</span>
+    <span class="k">for</span> <span class="n">effect</span> <span class="ow">in</span> <span class="n">effects_list</span><span class="p">:</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">effect</span><span class="p">,</span> <span class="n">OffsetEffect</span><span class="p">):</span>
+            <span class="n">name</span> <span class="o">=</span> <span class="s2">"offset"</span>
+        <span class="k">elif</span> <span class="n">name_counts</span><span class="p">[</span><span class="n">effect</span><span class="o">.</span><span class="n">feature_name</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">prefix</span> <span class="o">=</span> <span class="n">type_map</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">effect</span><span class="o">.</span><span class="n">effect_type</span><span class="p">,</span> <span class="n">effect</span><span class="o">.</span><span class="n">effect_type</span><span class="p">)</span>
+            <span class="n">name</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">prefix</span><span class="si">}</span><span class="s2">_</span><span class="si">{</span><span class="n">effect</span><span class="o">.</span><span class="n">feature_name</span><span class="si">}</span><span class="s2">"</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">name</span> <span class="o">=</span> <span class="n">effect</span><span class="o">.</span><span class="n">feature_name</span>
+        <span class="n">occurrences</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span>
+        <span class="n">names</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">name</span> <span class="k">if</span> <span class="n">occurrences</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">==</span> <span class="mi">1</span> <span class="k">else</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">_</span><span class="si">{</span><span class="n">occurrences</span><span class="p">[</span><span class="n">name</span><span class="p">]</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">names</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_decompose_prediction_tensor</span><span class="p">(</span>
+    <span class="n">phi_matrix</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+    <span class="n">adaptive_coeffs</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+    <span class="n">effects_list</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">BaseEffect</span><span class="p">],</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]:</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">"""</span>
+<span class="sd">    Decomposes the total prediction into contributions from individual features.</span>
+
+<span class="sd">    Iterates through the global design matrix and coefficient vector, slicing</span>
+<span class="sd">    them according to the size of each effect to compute `Phi_j @ Beta_j`.</span>
+
+<span class="sd">    Smart Naming:</span>
+<span class="sd">        - Unique features keep their name (e.g., 'temp').</span>
+<span class="sd">        - Collisions (e.g., 's(x)' and 'l(x)') are prefixed (e.g., 's_x', 'l_x').</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        phi_matrix: Global design matrix.</span>
+<span class="sd">        adaptive_coeffs: Global fitted coefficients.</span>
+<span class="sd">        effects_list: List of effects defining the model structure.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        Dict[str, torch.Tensor]: Dictionary mapping feature names to their</span>
+<span class="sd">        contribution tensors (real-valued).</span>
+<span class="sd">    """</span>
+    <span class="n">phi_matrix</span> <span class="o">=</span> <span class="n">phi_matrix</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">TORCH_DEVICE</span><span class="p">)</span>
+    <span class="n">adaptive_coeffs</span> <span class="o">=</span> <span class="n">adaptive_coeffs</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">TORCH_DEVICE</span><span class="p">)</span>
+
+    <span class="n">decomposed_effects</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="n">names</span> <span class="o">=</span> <span class="n">decomposition_names</span><span class="p">(</span><span class="n">effects_list</span><span class="p">)</span>
+
+    <span class="n">coeff_idx</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="k">for</span> <span class="n">effect</span><span class="p">,</span> <span class="n">final_name</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">effects_list</span><span class="p">,</span> <span class="n">names</span><span class="p">):</span>
+        <span class="n">n_coeffs</span> <span class="o">=</span> <span class="n">effect</span><span class="o">.</span><span class="n">get_n_coeffs</span><span class="p">()</span>
+
+        <span class="c1"># Slice the global matrices</span>
+        <span class="n">phi_slice</span> <span class="o">=</span> <span class="n">phi_matrix</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="p">:,</span> <span class="n">coeff_idx</span> <span class="p">:</span> <span class="n">coeff_idx</span> <span class="o">+</span> <span class="n">n_coeffs</span><span class="p">]</span>
+        <span class="n">coeffs_slice</span> <span class="o">=</span> <span class="n">adaptive_coeffs</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="n">coeff_idx</span> <span class="p">:</span> <span class="n">coeff_idx</span> <span class="o">+</span> <span class="n">n_coeffs</span><span class="p">,</span> <span class="p">:]</span>
+
+        <span class="c1"># Compute contribution: Phi_j @ Beta_j</span>
+        <span class="n">contribution</span> <span class="o">=</span> <span class="p">(</span><span class="n">phi_slice</span> <span class="o">@</span> <span class="n">coeffs_slice</span><span class="p">)</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="c1"># Assumes d_out=1</span>
+
+        <span class="n">decomposed_effects</span><span class="p">[</span><span class="n">final_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">contribution</span>
+        <span class="n">coeff_idx</span> <span class="o">+=</span> <span class="n">n_coeffs</span>
+
+    <span class="k">return</span> <span class="n">decomposed_effects</span>
+</pre></div>
+</div>
+</section>
+<section id="plotting-a-component">
+<h3>Plotting a Component<a class="headerlink" href="#plotting-a-component" title="Link to this heading">¶</a></h3>
+<p><code class="docutils literal notranslate"><span class="pre">tam.plot_component(model,</span> <span class="pre">data,</span> <span class="pre">component,</span> <span class="pre">kind=&quot;auto&quot;)</span></code> draws one component with a view chosen from its dimension: a curve against the feature (one feature), one curve per level (<code class="docutils literal notranslate"><span class="pre">te(x,</span> <span class="pre">c)</span></code> with a categorical or low-cardinality margin), a 3D surface or, with <code class="docutils literal notranslate"><span class="pre">kind=&quot;heatmap&quot;</span></code>, a filled contour (<code class="docutils literal notranslate"><span class="pre">te(x1,</span> <span class="pre">x2)</span></code>), and a 3D scatter coloured by the contribution (three margins). The feature-oriented helpers <code class="docutils literal notranslate"><span class="pre">plot_effect_with_model_and_data</span></code> / <code class="docutils literal notranslate"><span class="pre">plot_effect_with_data_decomposed</span></code> resolve a feature to its component first (<code class="docutils literal notranslate"><span class="pre">resolve_component</span></code>): the only component using it, else the tensor product whose other margin is <code class="docutils literal notranslate"><span class="pre">color_by</span></code>, else the explicit <code class="docutils literal notranslate"><span class="pre">component=</span></code> argument; an ambiguous feature raises a <code class="docutils literal notranslate"><span class="pre">ValueError</span></code> listing the candidates.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">def</span><span class="w"> </span><span class="nf">plot_component</span><span class="p">(</span>
+    <span class="n">model</span><span class="p">:</span> <span class="s1">'StaticTAM'</span><span class="p">,</span>
+    <span class="n">data</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span>
+    <span class="n">component</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">kind</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"auto"</span><span class="p">,</span>
+    <span class="n">group</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">resolution</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">60</span><span class="p">,</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">"""</span>
+<span class="sd">    Plots one additive component, with a view chosen from its dimension.</span>
+
+<span class="sd">    - one feature: contribution against the feature;</span>
+<span class="sd">    - ``te(x, c)`` with a categorical or low-cardinality margin: one curve per level of ``c``;</span>
+<span class="sd">    - ``te(x1, x2)``: a 3D surface over a regular (x1, x2) grid, or ``kind="heatmap"`` for a filled contour</span>
+<span class="sd">      with the data points overlaid; with ``group_col``, for one group (``group``, default the most frequent);</span>
+<span class="sd">    - ``te(x1, x2, x3)``: a 3D scatter of (x1, x2, x3) coloured by the contribution.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        model: A fitted model exposing ``effects_list_`` and ``decompose_prediction``.</span>
+<span class="sd">        data: The data on which to evaluate the component (and whose range sets the grid).</span>
+<span class="sd">        component: The component name, as in ``effect_&lt;component&gt;`` (see ``decomposition_names``).</span>
+<span class="sd">        kind: "auto" (default), "surface" or "heatmap" (two continuous margins only).</span>
+<span class="sd">        group: The group to draw a two-margin surface for; default the most frequent group in ``data``.</span>
+<span class="sd">        resolution: Grid points per axis for a two-margin surface or heatmap.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        matplotlib.figure.Figure: The figure (also shown).</span>
+<span class="sd">    """</span>
+    <span class="kn">import</span><span class="w"> </span><span class="nn">matplotlib.pyplot</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">plt</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">tam.model._math</span><span class="w"> </span><span class="kn">import</span> <span class="n">decomposition_names</span>
+
+    <span class="n">names</span> <span class="o">=</span> <span class="n">decomposition_names</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">effects_list_</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">component</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">names</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Unknown component '</span><span class="si">{</span><span class="n">component</span><span class="si">}</span><span class="s2">'. Components: </span><span class="si">{</span><span class="n">names</span><span class="si">}</span><span class="s2">."</span><span class="p">)</span>
+    <span class="n">features</span> <span class="o">=</span> <span class="n">_effect_features</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">effects_list_</span><span class="p">[</span><span class="n">names</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="n">component</span><span class="p">)])</span>
+    <span class="n">frame</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">decompose_prediction</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+    <span class="c1"># Rows whose contribution or coordinates are not finite (e.g. a group missing at prediction time) are left out.</span>
+    <span class="n">finite</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">frame</span><span class="p">[</span><span class="sa">f</span><span class="s2">"effect_</span><span class="si">{</span><span class="n">component</span><span class="si">}</span><span class="s2">"</span><span class="p">]</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">))</span>
+    <span class="k">for</span> <span class="n">col</span> <span class="ow">in</span> <span class="n">features</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">is_numeric_dtype</span><span class="p">(</span><span class="n">frame</span><span class="p">[</span><span class="n">col</span><span class="p">]):</span>
+            <span class="n">finite</span> <span class="o">&amp;=</span> <span class="n">np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">frame</span><span class="p">[</span><span class="n">col</span><span class="p">]</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">))</span>
+    <span class="n">frame</span> <span class="o">=</span> <span class="n">frame</span><span class="p">[</span><span class="n">finite</span><span class="p">]</span>
+    <span class="n">z</span> <span class="o">=</span> <span class="n">frame</span><span class="p">[</span><span class="sa">f</span><span class="s2">"effect_</span><span class="si">{</span><span class="n">component</span><span class="si">}</span><span class="s2">"</span><span class="p">]</span>
+
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">features</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="p">(</span><span class="n">x</span><span class="p">,)</span> <span class="o">=</span> <span class="n">features</span>
+        <span class="n">fig</span><span class="p">,</span> <span class="n">ax</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">12</span><span class="p">,</span> <span class="mi">7</span><span class="p">))</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span><span class="n">frame</span><span class="p">[</span><span class="n">x</span><span class="p">],</span> <span class="n">z</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s1">'steelblue'</span><span class="p">,</span> <span class="n">s</span><span class="o">=</span><span class="mi">15</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.7</span><span class="p">,</span> <span class="n">edgecolors</span><span class="o">=</span><span class="s1">'k'</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="mf">0.5</span><span class="p">)</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Value of '</span><span class="si">{</span><span class="n">x</span><span class="si">}</span><span class="s2">'"</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">12</span><span class="p">)</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s2">"Contribution to Prediction"</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">12</span><span class="p">)</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">grid</span><span class="p">(</span><span class="kc">True</span><span class="p">,</span> <span class="n">linestyle</span><span class="o">=</span><span class="s1">'--'</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.6</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="n">features</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+        <span class="n">a</span><span class="p">,</span> <span class="n">b</span> <span class="o">=</span> <span class="n">features</span>
+        <span class="n">low_card</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">col</span><span class="p">:</span> <span class="p">(</span><span class="ow">not</span> <span class="n">is_numeric_dtype</span><span class="p">(</span><span class="n">frame</span><span class="p">[</span><span class="n">col</span><span class="p">]))</span> <span class="ow">or</span> <span class="n">frame</span><span class="p">[</span><span class="n">col</span><span class="p">]</span><span class="o">.</span><span class="n">nunique</span><span class="p">()</span> <span class="o">&lt;=</span> <span class="mi">12</span>
+        <span class="k">if</span> <span class="n">low_card</span><span class="p">(</span><span class="n">b</span><span class="p">)</span> <span class="ow">or</span> <span class="n">low_card</span><span class="p">(</span><span class="n">a</span><span class="p">):</span>
+            <span class="n">x</span><span class="p">,</span> <span class="n">level</span> <span class="o">=</span> <span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">)</span> <span class="k">if</span> <span class="n">low_card</span><span class="p">(</span><span class="n">b</span><span class="p">)</span> <span class="k">else</span> <span class="p">(</span><span class="n">b</span><span class="p">,</span> <span class="n">a</span><span class="p">)</span>
+            <span class="n">fig</span><span class="p">,</span> <span class="n">ax</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">12</span><span class="p">,</span> <span class="mi">7</span><span class="p">))</span>
+            <span class="n">cmap</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">get_cmap</span><span class="p">(</span><span class="s1">'tab10'</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="nb">sorted</span><span class="p">(</span><span class="n">frame</span><span class="p">[</span><span class="n">level</span><span class="p">]</span><span class="o">.</span><span class="n">unique</span><span class="p">())):</span>
+                <span class="n">part</span> <span class="o">=</span> <span class="n">frame</span><span class="p">[</span><span class="n">frame</span><span class="p">[</span><span class="n">level</span><span class="p">]</span> <span class="o">==</span> <span class="n">value</span><span class="p">]</span><span class="o">.</span><span class="n">sort_values</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+                <span class="n">ax</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">part</span><span class="p">[</span><span class="n">x</span><span class="p">],</span> <span class="n">part</span><span class="p">[</span><span class="sa">f</span><span class="s2">"effect_</span><span class="si">{</span><span class="n">component</span><span class="si">}</span><span class="s2">"</span><span class="p">],</span> <span class="n">marker</span><span class="o">=</span><span class="s1">'o'</span><span class="p">,</span> <span class="n">markersize</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="mf">1.2</span><span class="p">,</span>
+                        <span class="n">color</span><span class="o">=</span><span class="n">cmap</span><span class="p">(</span><span class="n">i</span> <span class="o">%</span> <span class="n">cmap</span><span class="o">.</span><span class="n">N</span><span class="p">),</span> <span class="n">label</span><span class="o">=</span><span class="nb">str</span><span class="p">(</span><span class="n">value</span><span class="p">))</span>
+            <span class="n">ax</span><span class="o">.</span><span class="n">legend</span><span class="p">(</span><span class="n">title</span><span class="o">=</span><span class="n">level</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">title_fontsize</span><span class="o">=</span><span class="mi">12</span><span class="p">,</span> <span class="n">bbox_to_anchor</span><span class="o">=</span><span class="p">(</span><span class="mf">1.02</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="n">loc</span><span class="o">=</span><span class="s1">'upper left'</span><span class="p">)</span>
+            <span class="n">ax</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Value of '</span><span class="si">{</span><span class="n">x</span><span class="si">}</span><span class="s2">'"</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">12</span><span class="p">)</span>
+            <span class="n">ax</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s2">"Contribution to Prediction"</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">12</span><span class="p">)</span>
+            <span class="n">ax</span><span class="o">.</span><span class="n">grid</span><span class="p">(</span><span class="kc">True</span><span class="p">,</span> <span class="n">linestyle</span><span class="o">=</span><span class="s1">'--'</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.6</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">A</span><span class="p">,</span> <span class="n">B</span><span class="p">,</span> <span class="n">Z</span><span class="p">,</span> <span class="n">used_group</span> <span class="o">=</span> <span class="n">_component_on_grid</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">component</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">resolution</span><span class="p">,</span> <span class="n">group</span><span class="p">)</span>
+            <span class="n">group_col</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="s2">"group_col_"</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+            <span class="n">suffix</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">" (</span><span class="si">{</span><span class="n">group_col</span><span class="si">}</span><span class="s2"> = </span><span class="si">{</span><span class="n">used_group</span><span class="si">}</span><span class="s2">)"</span> <span class="k">if</span> <span class="n">used_group</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="s2">""</span>
+            <span class="k">if</span> <span class="n">kind</span> <span class="o">==</span> <span class="s2">"heatmap"</span><span class="p">:</span>
+                <span class="n">fig</span><span class="p">,</span> <span class="n">ax</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">10</span><span class="p">,</span> <span class="mi">8</span><span class="p">))</span>
+                <span class="n">filled</span> <span class="o">=</span> <span class="n">ax</span><span class="o">.</span><span class="n">contourf</span><span class="p">(</span><span class="n">A</span><span class="p">,</span> <span class="n">B</span><span class="p">,</span> <span class="n">Z</span><span class="p">,</span> <span class="n">levels</span><span class="o">=</span><span class="mi">20</span><span class="p">,</span> <span class="n">cmap</span><span class="o">=</span><span class="s1">'viridis'</span><span class="p">)</span>
+                <span class="n">fig</span><span class="o">.</span><span class="n">colorbar</span><span class="p">(</span><span class="n">filled</span><span class="p">,</span> <span class="n">ax</span><span class="o">=</span><span class="n">ax</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">"Contribution to Prediction"</span><span class="p">)</span>
+                <span class="n">support</span> <span class="o">=</span> <span class="n">frame</span> <span class="k">if</span> <span class="n">used_group</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">frame</span><span class="p">[</span><span class="n">frame</span><span class="p">[</span><span class="n">group_col</span><span class="p">]</span> <span class="o">==</span> <span class="n">used_group</span><span class="p">]</span>
+                <span class="c1"># Observed points: the surface outside their cloud is extrapolated.</span>
+                <span class="n">ax</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span><span class="n">support</span><span class="p">[</span><span class="n">a</span><span class="p">],</span> <span class="n">support</span><span class="p">[</span><span class="n">b</span><span class="p">],</span> <span class="n">s</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s1">'white'</span><span class="p">,</span> <span class="n">edgecolors</span><span class="o">=</span><span class="s1">'k'</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="mf">0.4</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.8</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">"data"</span><span class="p">)</span>
+                <span class="n">ax</span><span class="o">.</span><span class="n">legend</span><span class="p">(</span><span class="n">loc</span><span class="o">=</span><span class="s1">'upper right'</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">9</span><span class="p">)</span>
+                <span class="n">ax</span><span class="o">.</span><span class="n">set_xlim</span><span class="p">(</span><span class="n">A</span><span class="o">.</span><span class="n">min</span><span class="p">(),</span> <span class="n">A</span><span class="o">.</span><span class="n">max</span><span class="p">())</span>
+                <span class="n">ax</span><span class="o">.</span><span class="n">set_ylim</span><span class="p">(</span><span class="n">B</span><span class="o">.</span><span class="n">min</span><span class="p">(),</span> <span class="n">B</span><span class="o">.</span><span class="n">max</span><span class="p">())</span>
+                <span class="n">ax</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">12</span><span class="p">)</span>
+                <span class="n">ax</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="n">b</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">12</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">fig</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">11</span><span class="p">,</span> <span class="mi">8</span><span class="p">))</span>
+                <span class="n">ax</span> <span class="o">=</span> <span class="n">fig</span><span class="o">.</span><span class="n">add_subplot</span><span class="p">(</span><span class="n">projection</span><span class="o">=</span><span class="s1">'3d'</span><span class="p">)</span>
+                <span class="n">surf</span> <span class="o">=</span> <span class="n">ax</span><span class="o">.</span><span class="n">plot_surface</span><span class="p">(</span><span class="n">A</span><span class="p">,</span> <span class="n">B</span><span class="p">,</span> <span class="n">Z</span><span class="p">,</span> <span class="n">cmap</span><span class="o">=</span><span class="s1">'viridis'</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">antialiased</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+                <span class="n">fig</span><span class="o">.</span><span class="n">colorbar</span><span class="p">(</span><span class="n">surf</span><span class="p">,</span> <span class="n">ax</span><span class="o">=</span><span class="n">ax</span><span class="p">,</span> <span class="n">shrink</span><span class="o">=</span><span class="mf">0.6</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">"Contribution to Prediction"</span><span class="p">)</span>
+                <span class="n">ax</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="n">a</span><span class="p">)</span>
+                <span class="n">ax</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="n">b</span><span class="p">)</span>
+                <span class="n">ax</span><span class="o">.</span><span class="n">set_zlabel</span><span class="p">(</span><span class="s2">"Contribution"</span><span class="p">)</span>
+            <span class="n">ax</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Component '</span><span class="si">{</span><span class="n">component</span><span class="si">}</span><span class="s2">'</span><span class="si">{</span><span class="n">suffix</span><span class="si">}</span><span class="s2">"</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">15</span><span class="p">)</span>
+            <span class="n">plt</span><span class="o">.</span><span class="n">tight_layout</span><span class="p">()</span>
+            <span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+            <span class="k">return</span> <span class="n">fig</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">c</span> <span class="o">=</span> <span class="n">features</span><span class="p">[:</span><span class="mi">3</span><span class="p">]</span>
+        <span class="n">fig</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">11</span><span class="p">,</span> <span class="mi">8</span><span class="p">))</span>
+        <span class="n">ax</span> <span class="o">=</span> <span class="n">fig</span><span class="o">.</span><span class="n">add_subplot</span><span class="p">(</span><span class="n">projection</span><span class="o">=</span><span class="s1">'3d'</span><span class="p">)</span>
+        <span class="n">points</span> <span class="o">=</span> <span class="n">ax</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span><span class="n">frame</span><span class="p">[</span><span class="n">a</span><span class="p">],</span> <span class="n">frame</span><span class="p">[</span><span class="n">b</span><span class="p">],</span> <span class="n">frame</span><span class="p">[</span><span class="n">c</span><span class="p">],</span> <span class="n">c</span><span class="o">=</span><span class="n">z</span><span class="p">,</span> <span class="n">cmap</span><span class="o">=</span><span class="s1">'viridis'</span><span class="p">,</span> <span class="n">s</span><span class="o">=</span><span class="mi">12</span><span class="p">)</span>
+        <span class="n">fig</span><span class="o">.</span><span class="n">colorbar</span><span class="p">(</span><span class="n">points</span><span class="p">,</span> <span class="n">ax</span><span class="o">=</span><span class="n">ax</span><span class="p">,</span> <span class="n">shrink</span><span class="o">=</span><span class="mf">0.6</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">"Contribution to Prediction"</span><span class="p">)</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="n">a</span><span class="p">)</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="n">b</span><span class="p">)</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">set_zlabel</span><span class="p">(</span><span class="n">c</span><span class="p">)</span>
+
+    <span class="n">ax</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Component '</span><span class="si">{</span><span class="n">component</span><span class="si">}</span><span class="s2">'"</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">15</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">tight_layout</span><span class="p">()</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+    <span class="k">return</span> <span class="n">fig</span>
+</pre></div>
+</div>
 </section>
 </section>
 <section id="hyperparameter-routing-continuous-vs-discrete">
@@ -901,6 +1111,7 @@
 <li><a class="reference internal" href="#the-core-solver-additive-py">The Core Solver (<code class="docutils literal notranslate"><span class="pre">additive.py</span></code>)</a><ul>
 <li><a class="reference internal" href="#initialization-and-dependency-routing">Initialization and Dependency Routing</a></li>
 <li><a class="reference internal" href="#component-decomposition">Component Decomposition</a></li>
+<li><a class="reference internal" href="#plotting-a-component">Plotting a Component</a></li>
 </ul>
 </li>
 <li><a class="reference internal" href="#hyperparameter-routing-continuous-vs-discrete">Hyperparameter Routing: Continuous vs. Discrete</a><ul>
@@ -920,7 +1131,7 @@
       
     </aside>
   </div>
-</div><script src="../../_static/documentation_options.js?v=1f29e9d3"></script>
+</div><script src="../../_static/documentation_options.js?v=bb516dca"></script>
     <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/scripts/furo.js?v=46bd48cc"></script>

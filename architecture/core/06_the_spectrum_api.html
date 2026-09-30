@@ -7,7 +7,7 @@
         <link rel="prefetch" href="../../_static/logo.png" as="image">
 
     <!-- Generated with Sphinx 9.1.0 and Furo 2025.12.19 -->
-        <title>The Spectral Dictionary: PyTorch Implementations &amp; Factory Assembly - TAM 1.3.0 documentation</title>
+        <title>The Spectral Dictionary: PyTorch Implementations &amp; Factory Assembly - TAM 1.3.1 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=d111a655" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo-extensions.css?v=8dab3a3b" />
@@ -162,7 +162,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="../../index.html"><div class="brand">TAM 1.3.0 documentation</div></a>
+      <a href="../../index.html"><div class="brand">TAM 1.3.1 documentation</div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -186,7 +186,7 @@
     <img class="sidebar-logo" src="../../_static/logo.png" alt="Logo"/>
   </div>
   
-  <span class="sidebar-brand-text">TAM 1.3.0 documentation</span>
+  <span class="sidebar-brand-text">TAM 1.3.1 documentation</span>
   
 </a><form class="sidebar-search-container" method="get" action="../../search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
@@ -340,7 +340,16 @@
 <section id="the-base-contract-and-factory-assembly">
 <h2>The Base Contract and Factory Assembly<a class="headerlink" href="#the-base-contract-and-factory-assembly" title="Link to this heading">¶</a></h2>
 <p>Every mathematical basis inherits from the abstract <code class="docutils literal notranslate"><span class="pre">BaseEffect</span></code> class. This ensures the core solver remains agnostic to the underlying topology, rigorously satisfying Aronszajn’s conditions for a valid Reproducing Kernel Hilbert Space (RKHS) <span class="bibtex-citation" id="id1">[<a class="reference internal" href="../../bibliography.html#id9" title="Nachman Aronszajn. Theory of reproducing kernels. Transactions of the American mathematical society, 68(3):337–404, 1950.">Aronszajn, 1950</a>]</span>.</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span>    <span class="nd">@abstractmethod</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span>    <span class="k">def</span><span class="w"> </span><span class="nf">initialize</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x_cols</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
+<span class="sd">        Sets any data-dependent state (split thresholds, centres) from the full training tensor.</span>
+
+<span class="sd">        Called once by ``initialize_effects`` before the first design matrix is built, so a memory probe or a</span>
+<span class="sd">        first chunk never decides that state. Effects without such state do nothing.</span>
+<span class="sd">        """</span>
+        <span class="k">return</span> <span class="kc">None</span>
+
+    <span class="nd">@abstractmethod</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">get_n_coeffs</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Returns the dimension of the feature space."""</span>
         <span class="k">raise</span> <span class="ne">NotImplementedError</span>
@@ -689,8 +698,9 @@ Routes structurally: isotropic Ridge for <code class="docutils literal notransla
             <span class="n">additional_features</span> <span class="o">=</span> <span class="kc">None</span>
             <span class="k">if</span> <span class="n">others_str</span><span class="p">:</span>
                 <span class="n">additional_features</span> <span class="o">=</span> <span class="p">[</span><span class="n">s</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">others_str</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">'|'</span><span class="p">)</span> <span class="k">if</span> <span class="n">s</span><span class="o">.</span><span class="n">strip</span><span class="p">()]</span>
+            <span class="n">seed</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">params_resolved</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">'seed'</span><span class="p">,</span> <span class="mi">42</span><span class="p">))</span>
             <span class="n">extrap_val</span> <span class="o">=</span> <span class="n">params_resolved</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">'extrapolate'</span><span class="p">,</span> <span class="s1">'continue'</span><span class="p">)</span>
-            <span class="n">effects_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">RBFEffect</span><span class="p">(</span><span class="n">feature_name</span><span class="p">,</span> <span class="n">n_centers</span><span class="p">,</span> <span class="n">gamma</span><span class="p">,</span> <span class="n">nu</span><span class="p">,</span> <span class="n">lambda_p</span><span class="p">,</span> <span class="n">additional_features</span><span class="p">,</span> <span class="n">extrap_val</span><span class="p">))</span>
+            <span class="n">effects_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">RBFEffect</span><span class="p">(</span><span class="n">feature_name</span><span class="p">,</span> <span class="n">n_centers</span><span class="p">,</span> <span class="n">gamma</span><span class="p">,</span> <span class="n">nu</span><span class="p">,</span> <span class="n">lambda_p</span><span class="p">,</span> <span class="n">additional_features</span><span class="p">,</span> <span class="n">extrap_val</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="n">seed</span><span class="p">))</span>
 </pre></div>
 </div>
 <p><strong>2. Feature Map</strong>
@@ -1038,7 +1048,7 @@ Converts Oblivious Trees into sparse Euclidean bit-strings, modeling Random Binn
 </pre></div>
 </div>
 <p><strong>3. Penalty Matrix</strong>
-Safely instantiates the Anisotropic Sparsity-Adaptive Ridge penalty over the terminal leaves strictly as a sparse COO tensor. It dynamically scales the <span class="math notranslate nohighlight">\(L_2\)</span> shrinkage inversely to the empirical data density (<span class="math notranslate nohighlight">\(C_i\)</span>) captured during initialization, heavily penalizing starved edge leaves to guarantee global matrix rank.</p>
+Safely instantiates the Anisotropic Sparsity-Adaptive Ridge penalty over the terminal leaves strictly as a sparse COO tensor. It dynamically scales the <span class="math notranslate nohighlight">\(L_2\)</span> shrinkage inversely to the empirical data density (<span class="math notranslate nohighlight">\(C_i\)</span>) captured during initialization, heavily penalizing starved edge leaves to guarantee global matrix rank. The counts are pooled over every group and sample (<code class="docutils literal notranslate"><span class="pre">one_hot_bins.reshape(-1,</span> <span class="pre">total_leaves).sum(0)</span></code>), one value per leaf.</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span>    <span class="k">def</span><span class="w"> </span><span class="nf">build_penalty_matrix</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
 <span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Constructs the optimal structural penalty sub-matrix.</span>
@@ -1624,7 +1634,7 @@ Natively encapsulates the base <code class="docutils literal notranslate"><span 
 </pre></div>
 </div>
 <p><strong>3. Penalty Matrix</strong>
-Constructs the block-diagonal encapsulation of the anisotropic sparsity-adaptive tree penalty (local intercepts) and the Kronecker tensor penalty (local slopes), safely coalescing them into a single sparse COO tensor.</p>
+Constructs the block-diagonal encapsulation of the anisotropic sparsity-adaptive tree penalty (local intercepts) and the Kronecker tensor penalty (local slopes), safely coalescing them into a single sparse COO tensor. Both blocks share the term’s single weight: the <code class="docutils literal notranslate"><span class="pre">lambda_p</span></code> property forwards every assignment (for instance each GCV candidate) to the intercept tree and to the slope surface.</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span>    <span class="k">def</span><span class="w"> </span><span class="nf">build_penalty_matrix</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
         
         <span class="n">P1</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">base_tree</span><span class="o">.</span><span class="n">build_penalty_matrix</span><span class="p">()</span>
@@ -1756,7 +1766,7 @@ Constructs the block-diagonal encapsulation of the anisotropic sparsity-adaptive
       
     </aside>
   </div>
-</div><script src="../../_static/documentation_options.js?v=1f29e9d3"></script>
+</div><script src="../../_static/documentation_options.js?v=bb516dca"></script>
     <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/scripts/furo.js?v=46bd48cc"></script>

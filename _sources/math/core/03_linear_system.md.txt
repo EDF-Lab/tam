@@ -61,7 +61,7 @@ To counter this vulnerability and guarantee strict determinism (Float64), the fr
 
 $$\delta I = 10^{-6} \times T \times I$$
 
-This acts as a microscopic, baseline Ridge regularization {cite:p}`hoerl1970ridge`. While this "numerical anvil" forcefully guarantees the positive-definiteness of the matrix and stabilizes the Krylov subspace, it fundamentally deviates from the purity of classic preconditioning methods.
+This acts as a microscopic, baseline Ridge regularization {cite:p}`hoerl1970ridge`. The covariances are sums over the $T$ samples, so the system actually solved is $(\Phi^\top\Phi / T) + P + 10^{-6} I$: a penalty weight below about $10^{-6}$ (`ap < -6`) is dominated by this floor, and that part of the search space is flat. The direct solver, the iterative solver and the GCV score (see the GCV chapter) all add the same floor, so the penalty GCV selects gives the same coefficients when the model is refitted. While this "numerical anvil" forcefully guarantees the positive-definiteness of the matrix and stabilizes the Krylov subspace, it fundamentally deviates from the purity of classic preconditioning methods.
 
 **Update Roadmap (PCG):**
 The mathematical implementation must evolve towards a Preconditioned Conjugate Gradient (PCG). The addition of a diagonal preconditioner (Jacobi)-which involves estimating and dividing by the diagonal of the implicit matrix-is an operation with a negligible memory cost of $\mathcal{O}(D)$. This theoretical upgrade will allow the removal of the massive Jitter while drastically dividing the number of iterations required to solve extreme systems ($D > 7500$), aligning the framework perfectly with the mathematical state-of-the-art for iterative solvers.

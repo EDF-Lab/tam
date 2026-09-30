@@ -7,7 +7,7 @@
         <link rel="prefetch" href="../../_static/logo.png" as="image">
 
     <!-- Generated with Sphinx 9.1.0 and Furo 2025.12.19 -->
-        <title>Hyperparameter Optimization: Generalized Cross-Validation (GCV) - TAM 1.3.0 documentation</title>
+        <title>Hyperparameter Optimization: Generalized Cross-Validation (GCV) - TAM 1.3.1 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=d111a655" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo-extensions.css?v=8dab3a3b" />
@@ -162,7 +162,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="../../index.html"><div class="brand">TAM 1.3.0 documentation</div></a>
+      <a href="../../index.html"><div class="brand">TAM 1.3.1 documentation</div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -186,7 +186,7 @@
     <img class="sidebar-logo" src="../../_static/logo.png" alt="Logo"/>
   </div>
   
-  <span class="sidebar-brand-text">TAM 1.3.0 documentation</span>
+  <span class="sidebar-brand-text">TAM 1.3.1 documentation</span>
   
 </a><form class="sidebar-search-container" method="get" action="../../search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
@@ -406,7 +406,18 @@ The <span class="math notranslate nohighlight">\(RSS\)</span> is simply the weig
 <p>Because TAM concatenates highly heterogeneous mathematical bases (e.g., mixing Splines with Fourier series and Random Features), applying a single global penalty <span class="math notranslate nohighlight">\(\lambda\)</span> is statistically invalid. The framework must optimize a different regularization parameter for <em>each</em> architectural block simultaneously <span class="bibtex-citation" id="id8">[<a class="reference internal" href="../../bibliography.html#id80" title="Simon N Wood. Stable and efficient multiple smoothing parameter estimation for generalized additive models. Journal of the American Statistical Association, 99(467):673–686, 2004.">Wood, 2004</a>]</span>.</p>
 <p>While classical statistics recommends using a Newton-Raphson method based on exact analytical derivatives to solve Multiple Smoothing Parameters, calculating these higher-order derivative tensors requires massive memory allocations that frequently crash GPU VRAM.</p>
 <p><strong>The Engineering Compromise:</strong>
-To safely scale, TAM deploys a Multi-Start Discrete Coordinate Descent algorithm <span class="bibtex-citation" id="id9">[<a class="reference internal" href="../../bibliography.html#id84" title="Stephen J Wright. Coordinate descent algorithms. Mathematical programming, 151(1):3–34, 2015.">Wright, 2015</a>]</span>. Rather than computing the dense Hessian of the GCV landscape, the solver iteratively cycles through the parameter axes (one block-diagonal penalty at a time), calculating the GCV score using the cyclic trace trick until global convergence is achieved. This proves far more physically robust for navigating non-differentiable or highly complex feature spaces.</p>
+To safely scale, TAM deploys a Discrete Coordinate Descent algorithm <span class="bibtex-citation" id="id9">[<a class="reference internal" href="../../bibliography.html#id84" title="Stephen J Wright. Coordinate descent algorithms. Mathematical programming, 151(1):3–34, 2015.">Wright, 2015</a>]</span>, seeded once from the penalties the formula declares. Rather than computing the dense Hessian of the GCV landscape, the solver iteratively cycles through the parameter axes (one block-diagonal penalty at a time), calculating the GCV score using the cyclic trace trick until global convergence is achieved. This proves far more physically robust for navigating non-differentiable or highly complex feature spaces.</p>
+<section id="the-penalty-coordinates">
+<h3>The Penalty Coordinates<a class="headerlink" href="#the-penalty-coordinates" title="Link to this heading">¶</a></h3>
+<p>Each coordinate <span class="math notranslate nohighlight">\(\alpha_j = \log_{10} \lambda_j\)</span> of the descent, the <code class="docutils literal notranslate"><span class="pre">ap</span></code> a formula writes, bounded by <code class="docutils literal notranslate"><span class="pre">alpha_p_bounds</span></code>, is a penalty exponent read on the same scale as the weight the model keeps. Every basis is homogeneous in its own weight, <span class="math notranslate nohighlight">\(P_j(\lambda) = \lambda \, P_j(1)\)</span>, so the global penalty evaluated at a point <span class="math notranslate nohighlight">\(\alpha\)</span> of the search space is the block-diagonal sum</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[P(\alpha) = \bigoplus_{j=1}^{J} P_j\left(10^{\alpha_j}\right)\]</div>
+</div>
+<p>assembled by the same basis code the P-WLS atom calls when the model is fitted. The coordinates the search converges to are therefore exactly the <span class="math notranslate nohighlight">\(\lambda_j\)</span> the model stores, and refitting the model from those stored weights reproduces the GCV estimator. The same holds for the numerical ridge floor: the system GCV scores is <span class="math notranslate nohighlight">\(\Phi^\top\Phi + T P + 10^{-6} T I\)</span>, exactly the one the solver inverts (linear-system chapter), so the effective system is <span class="math notranslate nohighlight">\((\Phi^\top\Phi / T) + P + 10^{-6} I\)</span>. Coordinates below <span class="math notranslate nohighlight">\(\alpha_j \approx -6\)</span> are dominated by that floor: the default <code class="docutils literal notranslate"><span class="pre">alpha_p_bounds</span></code> <span class="math notranslate nohighlight">\((-30, 6)\)</span> keeps them reachable, but the GCV surface is flat there.</p>
+<p>The alternative, rescaling the block the formula already carries, <span class="math notranslate nohighlight">\(10^{\alpha_j} P_j(\lambda_j^{\text{formula}})\)</span>, would optimize the product <span class="math notranslate nohighlight">\(\lambda_j^{\text{formula}} 10^{\alpha_j}\)</span> while reporting only the second factor. The formula’s own weight would then be applied twice during the search and once at the refit, so the two estimators would differ by a factor <span class="math notranslate nohighlight">\(\lambda_j^{\text{formula}}\)</span> per block. It would also translate the reachable interval to <span class="math notranslate nohighlight">\(\lambda_j^{\text{formula}} \cdot [10^{\alpha_{\min}}, 10^{\alpha_{\max}}]\)</span> instead of the intended <span class="math notranslate nohighlight">\([10^{\alpha_{\min}}, 10^{\alpha_{\max}}]\)</span>: with the framework’s default <span class="math notranslate nohighlight">\(\alpha^{\text{formula}} = -9\)</span>, the nine highest decades, the only ones that visibly remove degrees of freedom, would drop out of the search entirely.</p>
+<p>One composite block escapes this reading. A tensor product scales the margin penalties it is built from, <span class="math notranslate nohighlight">\(P_{\otimes}(\lambda) = \lambda \sum_i I \otimes \cdots \otimes P_i(\lambda_i) \otimes \cdots \otimes I\)</span>, and the margin weights <span class="math notranslate nohighlight">\(\lambda_i\)</span> stay at the values the formula gave them. The block is homogeneous in <span class="math notranslate nohighlight">\(\lambda\)</span>, so the descent still converges to a weight the refit reproduces exactly, but that weight is a multiplier on the surface rather than an absolute penalty: its magnitude carries the <span class="math notranslate nohighlight">\(\lambda_i\)</span> with it.</p>
+</section>
 </section>
 <hr class="docutils" />
 <section id="future-roadmap-matrix-free-gcv">
@@ -479,7 +490,10 @@ To safely scale, TAM deploys a Multi-Start Discrete Coordinate Descent algorithm
 </ul>
 </li>
 <li><a class="reference internal" href="#the-cyclic-trace-trick">The Cyclic Trace Trick</a></li>
-<li><a class="reference internal" href="#multiple-smoothing-parameters-msp-via-coordinate-descent">Multiple Smoothing Parameters (MSP) via Coordinate Descent</a></li>
+<li><a class="reference internal" href="#multiple-smoothing-parameters-msp-via-coordinate-descent">Multiple Smoothing Parameters (MSP) via Coordinate Descent</a><ul>
+<li><a class="reference internal" href="#the-penalty-coordinates">The Penalty Coordinates</a></li>
+</ul>
+</li>
 <li><a class="reference internal" href="#future-roadmap-matrix-free-gcv">Future Roadmap: Matrix-Free GCV</a></li>
 </ul>
 </li>
@@ -492,7 +506,7 @@ To safely scale, TAM deploys a Multi-Start Discrete Coordinate Descent algorithm
       
     </aside>
   </div>
-</div><script src="../../_static/documentation_options.js?v=1f29e9d3"></script>
+</div><script src="../../_static/documentation_options.js?v=bb516dca"></script>
     <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/scripts/furo.js?v=46bd48cc"></script>

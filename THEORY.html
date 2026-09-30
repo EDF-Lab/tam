@@ -7,7 +7,7 @@
         <link rel="prefetch" href="_static/logo.png" as="image">
 
     <!-- Generated with Sphinx 9.1.0 and Furo 2025.12.19 -->
-        <title>📚 Theory Introduction of TAM and Cheatsheet - TAM 1.3.0 documentation</title>
+        <title>📚 Theory Introduction of TAM and Cheatsheet - TAM 1.3.1 documentation</title>
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=d111a655" />
     <link rel="stylesheet" type="text/css" href="_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="_static/styles/furo-extensions.css?v=8dab3a3b" />
@@ -162,7 +162,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="index.html"><div class="brand">TAM 1.3.0 documentation</div></a>
+      <a href="index.html"><div class="brand">TAM 1.3.1 documentation</div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -186,7 +186,7 @@
     <img class="sidebar-logo" src="_static/logo.png" alt="Logo"/>
   </div>
   
-  <span class="sidebar-brand-text">TAM 1.3.0 documentation</span>
+  <span class="sidebar-brand-text">TAM 1.3.1 documentation</span>
   
 </a><form class="sidebar-search-container" method="get" action="search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
@@ -386,7 +386,7 @@
 <ul>
 <li><p><strong>Sudden Concept Drift (Sliding Window)</strong> <span class="math notranslate nohighlight">\(\rightarrow\)</span> <strong><code class="docutils literal notranslate"><span class="pre">AdaptiveTAM</span></code></strong></p>
 <ul>
-<li><p><em>Use case:</em> A sudden crisis changes how your features behave. If the target of your base model is <code class="docutils literal notranslate"><span class="pre">y</span></code>, you can target <code class="docutils literal notranslate"><span class="pre">Residualy</span></code> for pure error correction, or <code class="docutils literal notranslate"><span class="pre">y</span></code> for dynamic ensemble recalibration. You can also use <code class="docutils literal notranslate"><span class="pre">effect_{feature}</span></code> if that feature is in the base model formula.</p></li>
+<li><p><em>Use case:</em> A sudden crisis changes how your features behave. If the target of your base model is <code class="docutils literal notranslate"><span class="pre">y</span></code>, you can target <code class="docutils literal notranslate"><span class="pre">Residualy</span></code> for pure error correction, or <code class="docutils literal notranslate"><span class="pre">y</span></code> for dynamic ensemble recalibration. You can also use a base-model component <code class="docutils literal notranslate"><span class="pre">effect_&lt;name&gt;</span></code>, with the names <code class="docutils literal notranslate"><span class="pre">decompose_prediction</span></code> gives (<code class="docutils literal notranslate"><span class="pre">effect_temperature</span></code> for a feature used once, <code class="docutils literal notranslate"><span class="pre">effect_s_temperature</span></code> / <code class="docutils literal notranslate"><span class="pre">effect_l_temperature</span></code> when two effects share it, <code class="docutils literal notranslate"><span class="pre">effect_te_x_x_y</span></code> for a tensor product); <code class="docutils literal notranslate"><span class="pre">add_base_effects=True</span></code> adds them all.</p></li>
 <li><p><strong>Option 1: Residual Tracking</strong></p>
 <ul>
 <li><p><em>Code:</em></p>
@@ -564,8 +564,8 @@
 <section id="rbf-rbf">
 <h3><a class="reference internal" href="math/spectrum/RBF.html"><span class="std std-doc">RBF (<code class="docutils literal notranslate"><span class="pre">rbf</span></code>)</span></a><a class="headerlink" href="#rbf-rbf" title="Link to this heading">¶</a></h3>
 <ul class="simple">
-<li><p><strong>Syntax:</strong> <code class="docutils literal notranslate"><span class="pre">rbf(x,</span> <span class="pre">n_centers=50,</span> <span class="pre">gamma=0.1,</span> <span class="pre">nu=None)</span></code></p></li>
-<li><p><strong>Hyperparameters:</strong> <code class="docutils literal notranslate"><span class="pre">n_centers</span></code>: Fixed set of strategically chosen prototypes or centroids. <code class="docutils literal notranslate"><span class="pre">gamma</span></code>: Bandwidth parameter (inverse squared length-scale). <code class="docutils literal notranslate"><span class="pre">nu</span></code>: Smoothness parameter for the Matérn kernel that strictly controls fractional differentiability.</p></li>
+<li><p><strong>Syntax:</strong> <code class="docutils literal notranslate"><span class="pre">rbf(x,</span> <span class="pre">n_centers=50,</span> <span class="pre">gamma=0.1,</span> <span class="pre">nu=None,</span> <span class="pre">seed=42)</span></code></p></li>
+<li><p><strong>Hyperparameters:</strong> <code class="docutils literal notranslate"><span class="pre">n_centers</span></code>: Fixed set of strategically chosen prototypes or centroids, sampled from the training points with <code class="docutils literal notranslate"><span class="pre">seed</span></code> (default 42). <code class="docutils literal notranslate"><span class="pre">gamma</span></code>: Bandwidth parameter (inverse squared length-scale). <code class="docutils literal notranslate"><span class="pre">nu</span></code>: Smoothness parameter for the Matérn kernel that strictly controls fractional differentiability.</p></li>
 <li><p><strong>Mapping function:</strong> <span class="math notranslate nohighlight">\(\phi_{rbf}(x) = \left[ K(x, c_1), \dots, K(x, c_M) \right]^\top\)</span></p></li>
 <li><p><strong>Penalty Matrix:</strong> <span class="math notranslate nohighlight">\(P_{rbf} = \lambda I\)</span></p></li>
 </ul>
@@ -641,21 +641,21 @@
 <p>To demonstrate the framework’s mathematical guarantees, we ran a comprehensive benchmark (<code class="docutils literal notranslate"><span class="pre">cheatsheet.py</span></code>) simulating a complex Data Generation Process (DGP). The DGP contained a mix of linear trends, periodic seasonality, a hidden physical Damped Harmonic Oscillator, complex tensor interactions, and high-frequency non-linear noise.</p>
 <p>We deployed the entire TAM spectrum (Static bases, Neural Networks, Physics operators) and wrapped them in all available Meta-Learners. Here is the final Test Set performance (ranked by <strong>RMSE</strong>):</p>
 <ul class="simple">
-<li><p>🥇 <strong><code class="docutils literal notranslate"><span class="pre">OOE_GlobalTAM</span></code></strong> (Test RMSE: <strong>5.99</strong>): The ultimate meta-learner. By using the <code class="docutils literal notranslate"><span class="pre">OperaTAM</span></code> algorithm to dynamically aggregate all sub-ensembles based on real-time regret, it successfully muted failing models and pushed the global error lower than any individual expert.</p></li>
-<li><p>🥈 <strong><code class="docutils literal notranslate"><span class="pre">OE_PhysicsTAM</span></code></strong> (Test RMSE: <strong>6.10</strong>): Explicit Domain Knowledge. By injecting the exact differential equation (PDE) of the Damped Harmonic Oscillator directly into the RKHS penalty matrix, it effortlessly extracted the true physical signal.</p></li>
-<li><p>🥉 <strong><code class="docutils literal notranslate"><span class="pre">OE_AdaptiveTAM</span></code></strong> (Test RMSE: <strong>6.12</strong>): Sliding-window online learning. Proves that mapping base model residuals to a short-term adaptive memory effectively corrects sudden concept drift.</p></li>
-<li><p>🏅 <strong><code class="docutils literal notranslate"><span class="pre">OE_HierarchicalTAM</span></code></strong> (Test RMSE: <strong>6.26</strong>): Structural Coherence. Enforcing the strict top-down constraint (<span class="math notranslate nohighlight">\(Y = Y_A + Y_B\)</span>) during the global convex optimization prevented the sub-models from overfitting their local, partial noise.</p></li>
-<li><p>🏅 <strong><code class="docutils literal notranslate"><span class="pre">OE_NeuralTAM</span></code></strong> (Test RMSE: <strong>6.28</strong>): The Deep Learning Hybrid. The properly tuned Neural Networks (ReLU, Cos, Tanh) successfully mapped the high-frequency non-linear noise, proving highly effective when integrated into the TAM pipeline.</p></li>
-<li><p>🏅 <strong><code class="docutils literal notranslate"><span class="pre">OE_KalmanTAM</span></code></strong> (Test RMSE: <strong>6.31</strong>): The Extended Kalman Filter. By continuously tracking the parameter drift of the base models in a state-space formulation, it drastically stabilized predictions across the non-stationary test set.</p></li>
-<li><p>🏅 <strong><code class="docutils literal notranslate"><span class="pre">OE_StaticTAM</span></code></strong> (Test RMSE: <strong>6.80</strong>): The pure Mathematical bases. Explicit continuous dictionaries (like Fourier, Splines, and Tensors) provided a fast, exact, and highly interpretable analytical baseline.</p></li>
-<li><p>🚧 <strong><code class="docutils literal notranslate"><span class="pre">E_AutoTAM_Champion</span></code></strong> (Test RMSE: <strong>8.93</strong>): <strong>[BETA]</strong> The AutoML meta-model is still under construction, but it already achieves near-human performance with 5 experts and a population size of 20.</p></li>
+<li><p>🥇 <strong><code class="docutils literal notranslate"><span class="pre">OE_NeuralTAM</span></code></strong> (Test RMSE: <strong>3.43</strong>): The Deep Learning Hybrid. The Neural Networks (ReLU, Cos, Tanh, and a neural interaction term) map the high-frequency non-linear noise and the interaction surface; aggregated by <code class="docutils literal notranslate"><span class="pre">OperaTAM</span></code>, they give the best sub-ensemble.</p></li>
+<li><p>🥈 <strong><code class="docutils literal notranslate"><span class="pre">OOE_GlobalTAM</span></code></strong> (Test RMSE: <strong>3.43</strong>): The ultimate meta-learner. By using the <code class="docutils literal notranslate"><span class="pre">OperaTAM</span></code> algorithm to dynamically aggregate all sub-ensembles based on real-time regret, it mutes the failing ones and matches the best sub-ensemble (3.435 vs 3.430) without knowing in advance which one it is.</p></li>
+<li><p>🥉 <strong><code class="docutils literal notranslate"><span class="pre">OE_AdaptiveTAM</span></code></strong> (Test RMSE: <strong>3.86</strong>): Sliding-window online learning. Mapping base model residuals to a short-term adaptive memory corrects sudden concept drift.</p></li>
+<li><p>🏅 <strong><code class="docutils literal notranslate"><span class="pre">OE_KalmanTAM</span></code></strong> (Test RMSE: <strong>4.14</strong>): The Extended Kalman Filter. By continuously tracking the parameter drift of the base models in a state-space formulation, it stabilizes predictions across the non-stationary test set.</p></li>
+<li><p>🏅 <strong><code class="docutils literal notranslate"><span class="pre">OE_StaticTAM</span></code></strong> (Test RMSE: <strong>4.84</strong>): The pure Mathematical bases. Explicit continuous dictionaries (Fourier, Splines, Tensors) provide a fast, exact, and highly interpretable analytical baseline. The tensor-product experts (<code class="docutils literal notranslate"><span class="pre">te()</span></code>) capture the interaction of the DGP since v1.3.1 (6.78 with v1.3.0, whose <code class="docutils literal notranslate"><span class="pre">te()</span></code> handling mislabelled the terms that followed it).</p></li>
+<li><p>🏅 <strong><code class="docutils literal notranslate"><span class="pre">OE_PhysicsTAM</span></code></strong> (Test RMSE: <strong>6.10</strong>): Explicit Domain Knowledge. By injecting the exact differential equation (PDE) of the Damped Harmonic Oscillator directly into the RKHS penalty matrix, it extracts the true physical signal; it has no interaction term, which explains its gap to the ensembles above.</p></li>
+<li><p>🏅 <strong><code class="docutils literal notranslate"><span class="pre">OE_HierarchicalTAM</span></code></strong> (Test RMSE: <strong>6.26</strong>): Structural Coherence. Enforcing the strict top-down constraint (<span class="math notranslate nohighlight">\(Y = Y_A + Y_B\)</span>) during the global convex optimization prevents the sub-models from overfitting their local, partial noise.</p></li>
+<li><p>🚧 <strong><code class="docutils literal notranslate"><span class="pre">E_AutoTAM_Champion</span></code></strong> (Test RMSE: <strong>10.02</strong>): <strong>[BETA]</strong> The AutoML meta-model is still under construction. This run uses the script’s quick settings (1 expert, population of 2); 5 experts and a population of 20 do better, at a longer run time.</p></li>
 </ul>
 <section id="key-takeaways-for-practitioners">
 <h3>💡 Key Takeaways for Practitioners:<a class="headerlink" href="#key-takeaways-for-practitioners" title="Link to this heading">¶</a></h3>
 <ol class="arabic simple">
 <li><p><strong>Topology Matters:</strong> Choosing the correct mathematical basis (e.g., <code class="docutils literal notranslate"><span class="pre">phys()</span></code> for differential equations) provides a massive performance baseline. Furthermore, properly integrating neural layers (<code class="docutils literal notranslate"><span class="pre">n()</span></code>) helps capture complex residual interactions that classical models miss.</p></li>
 <li><p><strong>Drift is Inevitable (But Fixable):</strong> Time-series data is inherently non-stationary. Wrapping your base models in <strong>Adaptive</strong> or <strong>Kalman</strong> drift-correction layers significantly reduces error.</p></li>
-<li><p><strong>Trust the Aggregation:</strong> You don’t have to guess the perfect model. By feeding a diverse portfolio of expert models (Static, Neural, Physics) into <strong>OperaTAM</strong>, the algorithm’s real-time regret bounds mathematically guarantee that the final ensemble will perform at least as well as the best individual expert.</p></li>
+<li><p><strong>Trust the Aggregation:</strong> You don’t have to guess the perfect model. By feeding a diverse portfolio of expert models (Static, Neural, Physics) into <strong>OperaTAM</strong>, the algorithm’s real-time regret bounds guarantee that the final ensemble performs close to the best expert in hindsight (here <code class="docutils literal notranslate"><span class="pre">OOE_GlobalTAM</span></code> is within 0.2% of the best sub-ensemble, which it did not know in advance).</p></li>
 </ol>
 </section>
 <hr class="docutils" />
@@ -844,7 +844,7 @@
       
     </aside>
   </div>
-</div><script src="_static/documentation_options.js?v=1f29e9d3"></script>
+</div><script src="_static/documentation_options.js?v=bb516dca"></script>
     <script src="_static/doctools.js?v=fd6eb6e6"></script>
     <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="_static/scripts/furo.js?v=46bd48cc"></script>
