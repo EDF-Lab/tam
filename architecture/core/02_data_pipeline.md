@@ -97,4 +97,4 @@ if date_col is not None and date_col in original_data.columns:
 
 ```
 
-This bidirectional safeguard completely neutralizes order-sensitivity vulnerabilities. If the user provides cross-sectional data with no temporal component (`date_col=None`), the pipeline defaults to the internal `__dummy_date__` mechanic, locking the tensors to the user's exact input sequence.
+This bidirectional safeguard completely neutralizes order-sensitivity vulnerabilities. If the user provides cross-sectional data with no temporal component (`date_col=None`), the pipeline defaults to the internal `__dummy_date__` mechanic, locking the tensors to the user's exact input sequence. The dummy dates are spaced one second apart from 2000-01-01, so any row count fits inside the pandas datetime range (a daily spacing overflowed past roughly 95,000 rows, the year-2262 bound).

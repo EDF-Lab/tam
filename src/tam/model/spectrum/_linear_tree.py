@@ -52,8 +52,29 @@ class LinearTreeEffect(BaseEffect):
         self.tree_features = getattr(self.base_tree, 'input_features', [feature_name])
         self.input_features = self.tree_features + [slope_feature]
 
+    def initialize(self, x_cols: torch.Tensor) -> None:
+        r"""Initialises both trees from the tree columns of the full training tensor."""
+        x_tree = x_cols[..., 0 : len(self.tree_features)]
+        self.base_tree.initialize(x_tree)
+        self.slope_tree.initialize(x_tree)
+
     def get_n_coeffs(self) -> int:
         return self.base_tree.get_n_coeffs() + self.tensor.get_n_coeffs()
+
+    @property
+    def lambda_p(self) -> float:
+        r"""The single weight of the component, shared by both sub-blocks."""
+        return self._lambda_p
+
+    @lambda_p.setter
+    def lambda_p(self, value: float) -> None:
+        # The intercept tree and the slope surface are penalized by this term's own
+        # weight, and both were seeded with it at construction. Reassigning it here
+        # (as the GCV search does on every candidate) has to reach them as well.
+        self._lambda_p = value
+        for sub_effect in (getattr(self, 'base_tree', None), getattr(self, 'tensor', None)):
+            if sub_effect is not None:
+                sub_effect.lambda_p = value
 
 #: <feature_map>
     def build_feature_map(self, x_data: torch.Tensor) -> torch.Tensor:

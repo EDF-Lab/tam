@@ -43,6 +43,35 @@ def test_nary_histogram_ensemble_multiple_trees(normalized):
     assert torch.isfinite(phi).all()
 
 
+def test_sparsity_adaptive_penalty_counts_one_value_per_leaf(normalized):
+    """`sparsity_alpha > 0` weights each leaf by its own data count.
+
+    The counts are read off the transform, so they must collapse every batch
+    dimension: one value per leaf, in the column order of the design matrix. A
+    count per sample instead would size the penalty by the data and break the
+    build, which only shows once a penalty is assembled after a transform, as
+    the GCV search does on every candidate.
+    """
+    effect = TreeEffect("x", n_trees=2, max_depth=2, max_leaves=None, lambda_p=2.0,
+                        additional_features=None, seed=7, extrapolate="continue",
+                        sparsity_alpha=1.0)
+    x = normalized(3, 40, 1)
+    phi = effect.build_feature_map(x)
+
+    assert effect.empirical_counts.numel() == effect.total_leaves
+    assert int(effect.empirical_counts.sum()) == 3 * 40 * effect.n_trees
+    active_per_column = (phi != 0).reshape(-1, effect.total_leaves).sum(dim=0)
+    torch.testing.assert_close(effect.empirical_counts, active_per_column)
+
+    penalty = effect.build_penalty_matrix().to_dense()
+    assert penalty.shape == (effect.total_leaves, effect.total_leaves)
+    assert torch.allclose(penalty, torch.diag(torch.diagonal(penalty)))
+    # Starved leaves are penalized harder than dense ones.
+    starved = effect.empirical_counts.argmin()
+    dense = effect.empirical_counts.argmax()
+    assert penalty[starved, starved] >= penalty[dense, dense]
+
+
 def test_tree_constant_input_does_not_crash():
     """Degenerate constant data must not produce zero-width split bounds."""
     effect = TreeEffect("x", n_trees=2, max_depth=2, max_leaves=None, lambda_p=1.0,

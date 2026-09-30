@@ -87,7 +87,19 @@ Because TAM concatenates highly heterogeneous mathematical bases (e.g., mixing S
 While classical statistics recommends using a Newton-Raphson method based on exact analytical derivatives to solve Multiple Smoothing Parameters, calculating these higher-order derivative tensors requires massive memory allocations that frequently crash GPU VRAM.
 
 **The Engineering Compromise:**
-To safely scale, TAM deploys a Multi-Start Discrete Coordinate Descent algorithm {cite:p}`wright2015coordinate`. Rather than computing the dense Hessian of the GCV landscape, the solver iteratively cycles through the parameter axes (one block-diagonal penalty at a time), calculating the GCV score using the cyclic trace trick until global convergence is achieved. This proves far more physically robust for navigating non-differentiable or highly complex feature spaces.
+To safely scale, TAM deploys a Discrete Coordinate Descent algorithm {cite:p}`wright2015coordinate`, seeded once from the penalties the formula declares. Rather than computing the dense Hessian of the GCV landscape, the solver iteratively cycles through the parameter axes (one block-diagonal penalty at a time), calculating the GCV score using the cyclic trace trick until global convergence is achieved. This proves far more physically robust for navigating non-differentiable or highly complex feature spaces.
+
+### The Penalty Coordinates
+
+Each coordinate $\alpha_j = \log_{10} \lambda_j$ of the descent, the `ap` a formula writes, bounded by `alpha_p_bounds`, is a penalty exponent read on the same scale as the weight the model keeps. Every basis is homogeneous in its own weight, $P_j(\lambda) = \lambda \, P_j(1)$, so the global penalty evaluated at a point $\alpha$ of the search space is the block-diagonal sum
+
+$$P(\alpha) = \bigoplus_{j=1}^{J} P_j\left(10^{\alpha_j}\right)$$
+
+assembled by the same basis code the P-WLS atom calls when the model is fitted. The coordinates the search converges to are therefore exactly the $\lambda_j$ the model stores, and refitting the model from those stored weights reproduces the GCV estimator. The same holds for the numerical ridge floor: the system GCV scores is $\Phi^\top\Phi + T P + 10^{-6} T I$, exactly the one the solver inverts (linear-system chapter), so the effective system is $(\Phi^\top\Phi / T) + P + 10^{-6} I$. Coordinates below $\alpha_j \approx -6$ are dominated by that floor: the default `alpha_p_bounds` $(-30, 6)$ keeps them reachable, but the GCV surface is flat there.
+
+The alternative, rescaling the block the formula already carries, $10^{\alpha_j} P_j(\lambda_j^{\text{formula}})$, would optimize the product $\lambda_j^{\text{formula}} 10^{\alpha_j}$ while reporting only the second factor. The formula's own weight would then be applied twice during the search and once at the refit, so the two estimators would differ by a factor $\lambda_j^{\text{formula}}$ per block. It would also translate the reachable interval to $\lambda_j^{\text{formula}} \cdot [10^{\alpha_{\min}}, 10^{\alpha_{\max}}]$ instead of the intended $[10^{\alpha_{\min}}, 10^{\alpha_{\max}}]$: with the framework's default $\alpha^{\text{formula}} = -9$, the nine highest decades, the only ones that visibly remove degrees of freedom, would drop out of the search entirely.
+
+One composite block escapes this reading. A tensor product scales the margin penalties it is built from, $P_{\otimes}(\lambda) = \lambda \sum_i I \otimes \cdots \otimes P_i(\lambda_i) \otimes \cdots \otimes I$, and the margin weights $\lambda_i$ stay at the values the formula gave them. The block is homogeneous in $\lambda$, so the descent still converges to a weight the refit reproduces exactly, but that weight is a multiplier on the surface rather than an absolute penalty: its magnitude carries the $\lambda_i$ with it.
 
 ---
 

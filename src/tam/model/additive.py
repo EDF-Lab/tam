@@ -40,6 +40,7 @@ from .spectrum import (
     NeuralEffect, RBFEffect, UniversalPhysicsEffect,
     TensorProductEffect, TreeEffect, LinearTreeEffect,
     create_effects_from_parsed_terms,
+    initialize_effects,
     build_phi_from_effects,
     build_penalty_from_effects
 )
@@ -459,12 +460,6 @@ class StaticTAM(BaseTAM):
             unique_groups=self.unique_groups_,
             date_col=self.date_col_
         )
-        
-        if self.features_config_:
-             feature_names = self.features_config_.get('features', [])
-             for i, effect in enumerate(self.effects_list_):
-                 if i > 0 and i <= len(feature_names):
-                     effect.feature_name = feature_names[i-1]
 
         if torch.isnan(x_stacked).any():
             raise ValueError(
@@ -472,6 +467,12 @@ class StaticTAM(BaseTAM):
                 "Please clean or impute your dataset."
             )
             
+        # Trees and RBF centres are set from the full training tensor, never from a memory probe or a chunk.
+        # Only the training call reaches this with uninitialised effects; later calls leave them unchanged.
+        if target_col is not None:
+            feature_names = self.features_config_['features'] if self.features_config_ else None
+            initialize_effects(x_stacked, self.effects_list_, feature_columns=feature_names)
+
         if target_col is not None and y_stacked is not None:
             if torch.isnan(y_stacked).any():
                 raise ValueError(
@@ -834,7 +835,7 @@ class StaticTAM(BaseTAM):
         print(f"\nFinal GCV Score: {gcv_score:.4f}")
         print("Optimal lambda_ps found per effect:")
         for i, effect in enumerate(self.effects_list_):
-            effect.lambda_p = best_lambda_ps[i]
+            effect.lambda_p = float(best_lambda_ps[i])
             print(f" - {effect.feature_name}: {best_lambda_ps[i]:.2e} (log10 = {np.log10(best_lambda_ps[i]):.2f})")
         
         return self

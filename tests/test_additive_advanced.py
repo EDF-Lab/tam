@@ -46,6 +46,37 @@ def test_auto_fit_updates_lambda(dummy_panel_data):
         assert hasattr(effect, "lambda_p"), f"Effect {effect.name} is missing lambda_p."
         assert effect.lambda_p > 0, f"Penalty for {effect.name} must be > 0, got {effect.lambda_p}"
 
+@pytest.mark.parametrize("formula", [
+    "load ~ s(temperature, ap=-6.0) + l(temperature, ap=-6.0)",
+    # A sparsity-adaptive tree builds its penalty from the leaf counts the transform
+    # leaves behind, so GCV is the first caller to assemble it after a transform.
+    "load ~ t(temperature, n_trees=2, max_depth=2, sp_alpha=1.0)",
+])
+def test_auto_fit_lambdas_reproduce_the_auto_fit(formula, dummy_panel_data):
+    """A model refitted with the lambdas GCV stored must return the GCV model.
+
+    ``auto_fit()`` then ``fit()`` is the ordinary sklearn contract, and the path
+    AutoTAM takes when it refits a champion on the full training window. The
+    spline formula pins a small ap so the check fails if the search penalty and the
+    stored penalty ever drift apart.
+    """
+    model = ta.StaticTAM(
+        formula=formula,
+        group_col="smart_meter_id",
+        date_col="timestamp"
+    )
+
+    model.auto_fit(dummy_panel_data, alpha_p_bounds=(-5.0, 2.0), number_of_steps=3)
+    est_col = f"Estimated{model.target_col_}"
+    auto_pred = model.predict(dummy_panel_data)[est_col].to_numpy()
+    auto_lambdas = [effect.lambda_p for effect in model.effects_list_]
+
+    model.fit(dummy_panel_data)
+    refit_pred = model.predict(dummy_panel_data)[est_col].to_numpy()
+
+    assert [effect.lambda_p for effect in model.effects_list_] == auto_lambdas
+    np.testing.assert_allclose(refit_pred, auto_pred, rtol=1e-6, atol=1e-6)
+
 def test_static_grid_search(dummy_panel_data):
     """Tests that coordinate descent works directly on the static model."""
     model = ta.StaticTAM(

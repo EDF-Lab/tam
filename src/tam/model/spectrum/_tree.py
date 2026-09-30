@@ -95,6 +95,12 @@ class TreeEffect(BaseEffect):
         # Pre-computed bit-shift multipliers for fast binary leaf indexing
         self.depth_multipliers = None
 
+    def initialize(self, x_cols: torch.Tensor) -> None:
+        r"""Sets split features, thresholds and leaf counts from the full training tensor (..., n_features)."""
+        if self.split_features is None:
+            x_in = x_cols if x_cols.dim() >= 3 else x_cols.unsqueeze(-1)
+            self._init_forest(x_in, is_dummy=False)
+
     def get_n_coeffs(self) -> int:
         r"""
         Returns the total dimension of the sparse Primal dictionary.
@@ -247,10 +253,14 @@ class TreeEffect(BaseEffect):
             thresh_expand = self.split_thresholds.view(*([1] * len(batch_shape)), self.n_trees, self.n_splits_per_tree)
             leaf_indices = torch.sum((x_splits_expand > thresh_expand).to(torch.long), dim=-1)
 
-        # Count how many data points land in each leaf
-        one_hot_bins = torch.nn.functional.one_hot(leaf_indices, num_classes=self.leaves_per_tree)
-        # Sum across the batch dimension (dim=0)
-        self.empirical_counts = one_hot_bins.sum(dim=0).flatten()
+        # Count how many data points land in each leaf, over every batch dimension (groups and samples alike),
+        # one count per leaf in the same (tree, leaf) order as the design matrix columns. bincount instead of a
+        # one-hot sum: the whole training set is counted, so memory must stay O(rows x trees).
+        flat_leaves = leaf_indices.reshape(-1, self.n_trees)
+        tree_offsets = torch.arange(self.n_trees, device=flat_leaves.device) * self.leaves_per_tree
+        self.empirical_counts = torch.bincount(
+            (flat_leaves + tree_offsets).reshape(-1), minlength=self.total_leaves
+        )
 #: </init_tree>
 
 #: <feature_map>
