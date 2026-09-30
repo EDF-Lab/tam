@@ -52,6 +52,12 @@ class LinearTreeEffect(BaseEffect):
         self.tree_features = getattr(self.base_tree, 'input_features', [feature_name])
         self.input_features = self.tree_features + [slope_feature]
 
+    def initialize(self, x_cols: torch.Tensor) -> None:
+        r"""Initialises both trees from the tree columns of the full training tensor."""
+        x_tree = x_cols[..., 0 : len(self.tree_features)]
+        self.base_tree.initialize(x_tree)
+        self.slope_tree.initialize(x_tree)
+
     def get_n_coeffs(self) -> int:
         return self.base_tree.get_n_coeffs() + self.tensor.get_n_coeffs()
 

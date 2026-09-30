@@ -39,6 +39,14 @@ class TensorProductEffect(BaseEffect):
         super().__init__(name, "tensor_product", lambda_p, extrapolate)
         self.effects = effects
 
+    def initialize(self, x_cols: torch.Tensor) -> None:
+        r"""Initialises each margin from its columns, sliced as in ``build_feature_map``."""
+        col_idx = 0
+        for effect in self.effects:
+            n_cols = len(getattr(effect, 'input_features', [effect.feature_name]))
+            effect.initialize(x_cols[..., col_idx : col_idx + n_cols])
+            col_idx += n_cols
+
     def get_n_coeffs(self) -> int:
         r"""
         Computes the total number of coefficients (product of dimensions).

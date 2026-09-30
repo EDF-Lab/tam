@@ -136,6 +136,15 @@ class BaseEffect(ABC):
 
 
 #: <abstract_methods>
+    def initialize(self, x_cols: torch.Tensor) -> None:
+        r"""
+        Sets any data-dependent state (split thresholds, centres) from the full training tensor.
+
+        Called once by ``initialize_effects`` before the first design matrix is built, so a memory probe or a
+        first chunk never decides that state. Effects without such state do nothing.
+        """
+        return None
+
     @abstractmethod
     def get_n_coeffs(self) -> int:
         """Returns the dimension of the feature space."""

@@ -40,6 +40,7 @@ from .spectrum import (
     NeuralEffect, RBFEffect, UniversalPhysicsEffect,
     TensorProductEffect, TreeEffect, LinearTreeEffect,
     create_effects_from_parsed_terms,
+    initialize_effects,
     build_phi_from_effects,
     build_penalty_from_effects
 )
@@ -466,6 +467,12 @@ class StaticTAM(BaseTAM):
                 "Please clean or impute your dataset."
             )
             
+        # Trees and RBF centres are set from the full training tensor, never from a memory probe or a chunk.
+        # Only the training call reaches this with uninitialised effects; later calls leave them unchanged.
+        if target_col is not None:
+            feature_names = self.features_config_['features'] if self.features_config_ else None
+            initialize_effects(x_stacked, self.effects_list_, feature_columns=feature_names)
+
         if target_col is not None and y_stacked is not None:
             if torch.isnan(y_stacked).any():
                 raise ValueError(

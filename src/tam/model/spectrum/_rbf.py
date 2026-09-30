@@ -76,6 +76,12 @@ class RBFEffect(BaseEffect):
         if additional_features:
             self.input_features.extend(additional_features)
 
+    def initialize(self, x_cols: torch.Tensor) -> None:
+        r"""Samples the centres (and the median-heuristic gamma) from the full training tensor (..., n_features)."""
+        if self.centers is None:
+            x_in = x_cols if x_cols.dim() >= 3 else x_cols.unsqueeze(-1)
+            self._init_params(x_in, is_dummy=False)
+
     def get_n_coeffs(self) -> int:
         return self.n_centers
 

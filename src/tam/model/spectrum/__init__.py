@@ -40,6 +40,7 @@ from ._pid import PIDEffect
 # Utility functions exposed for the StaticTAM model
 from ._factory import (
     create_effects_from_parsed_terms,
+    initialize_effects,
     build_phi_from_effects,
     build_penalty_from_effects
 )
@@ -66,6 +67,7 @@ __all__ = [
 
     # Factory / Assembly
     "create_effects_from_parsed_terms",
+    "initialize_effects",
     "build_phi_from_effects",
     "build_penalty_from_effects",
 ]

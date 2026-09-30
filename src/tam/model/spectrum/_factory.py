@@ -322,6 +322,42 @@ def _infer_feature_columns(effects_list: List[BaseEffect]) -> List[str]:
 #: </infer_columns>
 
 #: <build_phi>
+def initialize_effects(
+    x_data: torch.Tensor,
+    effects_list: List[BaseEffect],
+    feature_columns: Optional[List[str]] = None
+) -> None:
+    """
+    Sets the data-dependent state of every effect (trees, RBF centres) from the full training tensor.
+
+    Routes the columns exactly as ``build_phi_from_effects`` does. Must run before any design matrix is
+    built: otherwise the dispatcher's memory probe (one row per group) or the first chunk would set it.
+    Effects already initialised are left unchanged.
+    """
+    if feature_columns is None:
+        feature_columns = _infer_feature_columns(effects_list)
+    name_to_idx = {name: i for i, name in enumerate(feature_columns)} if feature_columns else None
+    col_idx = 0
+    for effect in effects_list:
+        if isinstance(effect, OffsetEffect):
+            continue
+        if isinstance(effect, (TensorProductEffect, NeuralEffect, RBFEffect, TreeEffect, LinearTreeEffect)):
+            if isinstance(effect, TensorProductEffect):
+                req_features = []
+                for e in effect.effects:
+                    req_features.extend(getattr(e, 'input_features', [e.feature_name]))
+            else:
+                req_features = getattr(effect, 'input_features', [effect.feature_name])
+            if name_to_idx:
+                x_cols = x_data[..., [name_to_idx[name] for name in req_features]]
+            else:
+                x_cols = x_data[..., col_idx : col_idx + len(req_features)]
+                col_idx += len(req_features)
+            effect.initialize(x_cols)
+        elif not name_to_idx:
+            col_idx += 1
+
+
 def build_phi_from_effects(
     x_data: torch.Tensor, 
     effects_list: List[BaseEffect],

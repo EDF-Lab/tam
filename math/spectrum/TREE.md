@@ -37,14 +37,14 @@ $$\Phi_{tree} = \frac{1}{\sqrt{B}} \left[ \Phi^{(1)} \mid \Phi^{(2)} \mid \dots 
 * **`max_depth` ($D$):** Forces the Oblivious architecture. The algorithm samples $D$ random thresholds. The mapping evaluates the boolean path, outputting a One-Hot vector per tree of exactly $L = 2^D$ columns.
 * **`max_leaves` ($L$):** Forces the Flat Histogram architecture. It bypasses Monte Carlo sampling to generate $L$ deterministically spaced intervals, yielding $L$ columns per tree.
 * **`additional_features`:** Transforms the 1D interval splits into a multi-dimensional checkerboard of spatial bounding boxes by allowing the random split sampler to cycle through multiple feature axes.
-* **`split_strategy`:** Defines the threshold sampling distribution. `'uniform'` creates mathematically orthogonal, shift-invariant Cartesian grids. `'quantile'` applies the empirical Probability Integral Transform to create density-adaptive partitions that perfectly balance sample distributions across all leaves.
+* **`split_strategy`:** Defines the threshold sampling distribution. `'uniform'` creates mathematically orthogonal, shift-invariant Cartesian grids. `'quantile'` applies the empirical Probability Integral Transform of the full training set (every group and sample) to create density-adaptive partitions that perfectly balance sample distributions across all leaves.
 * **`sp_alpha` ($\alpha_{sp}$):** Controls the Anisotropic Sparsity-Adaptive Penalty, scaling the $L_2$ shrinkage inversely to the empirical data density of each specific leaf.
 
 ## Empirical Sparsity-Adaptive Penalization (Anisotropic Ridge)
 
 A fundamental mathematical clash exists between the dense representations of continuous bases and the severe geometric sparsity of random forests. Because a single data point activates exactly one leaf per tree, classical exact solvers operating with a global isotropic Ridge penalty ($P = \lambda I$) tend to aggressively over-penalize the fragmented tree leaves, artificially collapsing the ensemble's predictive variance. 
 
-To achieve statistical equivalence with continuous modules, TAM replaces the isotropic penalty with an **Anisotropic Sparsity-Adaptive Penalty**. During the initial forward pass, the framework evaluates the routing logic on the training manifold to capture the exact empirical sample count $C_i$ landing in each specific leaf $i$, pooled over every group and every sample (one count per leaf, in the column order of the design matrix). The base penalty $\lambda_p$ is then dynamically scaled for each individual leaf feature along the diagonal matrix:
+To achieve statistical equivalence with continuous modules, TAM replaces the isotropic penalty with an **Anisotropic Sparsity-Adaptive Penalty**. When the model is fitted, before any design matrix is built (`initialize_effects`), the framework evaluates the routing logic on the full training set to capture the exact empirical sample count $C_i$ landing in each specific leaf $i$, pooled over every group and every sample (one count per leaf, in the column order of the design matrix). The base penalty $\lambda_p$ is then dynamically scaled for each individual leaf feature along the diagonal matrix:
 
 $$[P_{tree}]_{ii} = \lambda_p \cdot \left( \frac{C_i + \epsilon}{\bar{C}} \right)^{-\alpha_{sp}}$$
 
