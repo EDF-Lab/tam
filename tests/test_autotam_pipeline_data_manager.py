@@ -112,28 +112,27 @@ def test_prepare_populates_search_space():
 
 
 def test_prepare_stores_normalized_mandatory_terms():
-    mgr = DataManager("load ~ AutoPipe(temp)", mandatory_terms=["s(temp, k=10)"])
+    mgr = DataManager("load ~ s(temp, k=10) + AutoPipe(temp)")
     df = _frame(120)
     ctx = mgr.prepare(df_train=df, date_col="ds")
     assert ctx.mandatory_terms == ["s(temp, k=10)"]
+    assert mgr.mandatory_terms == ["s(temp, k=10)"]
 
 
-def test_prepare_accepts_single_string_mandatory_term():
-    mgr = DataManager("load ~ AutoPipe(temp)", mandatory_terms="s(temp, k=10)")
-    df = _frame(120)
-    ctx = mgr.prepare(df_train=df, date_col="ds")
-    assert ctx.mandatory_terms == ["s(temp, k=10)"]
+def test_datamanager_init_rejects_mandatory_terms_kwarg():
+    with pytest.raises(TypeError):
+        DataManager("load ~ AutoPipe(temp)", mandatory_terms=["s(temp, k=10)"])
 
 
 def test_prepare_raises_on_syntactically_invalid_mandatory_term():
-    mgr = DataManager("load ~ AutoPipe(temp)", mandatory_terms=["invalid_syntax_term((("])
-    df = _frame(120)
-    with pytest.raises(ValueError, match="Invalid mandatory term"):
-        mgr.prepare(df_train=df, date_col="ds")
+    with pytest.raises(ValueError, match=r"Unbalanced parentheses|Invalid mandatory term"):
+        DataManager("load ~ invalid_syntax_term((( + AutoPipe(temp)")
+    with pytest.raises(ValueError, match=r"Invalid mandatory term"):
+        DataManager("load ~ bare_var + AutoPipe(temp)")
 
 
 def test_prepare_raises_on_semantic_unknown_feature_in_mandatory_term():
-    mgr = DataManager("load ~ AutoPipe(temp)", mandatory_terms=["s(unknown_feature, k=10)"])
+    mgr = DataManager("load ~ s(unknown_feature, k=10) + AutoPipe(temp)")
     df = _frame(120)
     with pytest.raises(ValueError, match="unknown_feature"):
         mgr.prepare(df_train=df, date_col="ds")
@@ -158,26 +157,20 @@ def test_prepare_stores_normalized_mandatory_variables():
 
 
 def test_prepare_rejects_duplicate_mandatory_terms_exact():
-    mgr = DataManager("load ~ AutoPipe(temp)", mandatory_terms=["s(temp, k=10)", "s(temp, k=10)"])
-    df = _frame(120)
-    with pytest.raises(ValueError, match="Duplicate mandatory term"):
-        mgr.prepare(df_train=df, date_col="ds")
+    with pytest.raises(ValueError, match="Duplicate mandatory term detected in formula"):
+        DataManager("load ~ s(temp, k=10) + s(temp, k=10) + AutoPipe(temp)")
 
 
 def test_prepare_rejects_duplicate_mandatory_terms_under_canonical_equivalence():
-    mgr = DataManager(
-        "load ~ AutoPipe(temp)",
-        mandatory_terms=["c(temp, topo='nominal', n_cat=7)", "c(temp, n_cat=7, topo='nominal')"],
-    )
-    df = _frame(120)
-    with pytest.raises(ValueError, match="Duplicate mandatory term"):
-        mgr.prepare(df_train=df, date_col="ds")
+    with pytest.raises(ValueError, match="Duplicate mandatory term detected in formula"):
+        DataManager(
+            "load ~ c(temp, topo='nominal', n_cat=7) + c(temp, n_cat=7, topo='nominal') + AutoPipe(temp)",
+        )
 
 
 def test_prepare_rejects_exceeding_max_active_effects_per_feature():
     mgr = DataManager(
-        "load ~ AutoPipe(temp)",
-        mandatory_terms=["s(temp, k=5)", "l(temp)", "f(temp, m=3)"],
+        "load ~ s(temp, k=5) + l(temp) + f(temp, m=3) + AutoPipe(temp)",
     )
     df = _frame(120)
     with pytest.raises(ValueError, match="MAX_ACTIVE_EFFECTS_PER_FEATURE"):
@@ -186,8 +179,7 @@ def test_prepare_rejects_exceeding_max_active_effects_per_feature():
 
 def test_prepare_allows_up_to_max_active_effects_per_feature():
     mgr = DataManager(
-        "load ~ AutoPipe(temp)",
-        mandatory_terms=["s(temp, k=5)", "l(temp)"],
+        "load ~ s(temp, k=5) + l(temp) + AutoPipe(temp)",
     )
     df = _frame(120)
     ctx = mgr.prepare(df_train=df, date_col="ds")
@@ -204,12 +196,7 @@ def test_prepare_rejects_exceeding_max_tensor_terms():
         "pressure": rng.normal(1013, 10, 120),
     })
     mgr = DataManager(
-        "load ~ AutoPipe(temp, hum, pressure)",
-        mandatory_terms=[
-            "te(s(temp), s(hum))",
-            "te(s(temp), s(pressure))",
-            "te(s(hum), s(pressure))",
-        ],
+        "load ~ te(s(temp), s(hum)) + te(s(temp), s(pressure)) + te(s(hum), s(pressure)) + AutoPipe(temp, hum, pressure)",
     )
     with pytest.raises(ValueError, match="MAX_TENSOR_TERMS"):
         mgr.prepare(df_train=df, date_col="ds")
@@ -224,11 +211,7 @@ def test_prepare_allows_up_to_max_tensor_terms():
         "hum": rng.normal(50, 10, 120),
     })
     mgr = DataManager(
-        "load ~ AutoPipe(temp, hum)",
-        mandatory_terms=[
-            "te(s(temp), s(hum))",
-            "te(l(temp), l(hum))",
-        ],
+        "load ~ te(s(temp), s(hum)) + te(l(temp), l(hum)) + AutoPipe(temp, hum)",
     )
     ctx = mgr.prepare(df_train=df, date_col="ds")
     assert len(ctx.mandatory_terms) == 2
@@ -243,8 +226,7 @@ def test_prepare_allows_tensor_terms_with_parenthesized_kwargs():
         "hum": rng.normal(50, 10, 120),
     })
     mgr = DataManager(
-        "load ~ AutoPipe(temp, hum)",
-        mandatory_terms=["te(s(temp), s(hum), bs=('cr', 'ps'))"],
+        "load ~ te(s(temp), s(hum), bs=('cr', 'ps')) + AutoPipe(temp, hum)",
     )
     ctx = mgr.prepare(df_train=df, date_col="ds")
     assert len(ctx.mandatory_terms) == 1
@@ -253,8 +235,7 @@ def test_prepare_allows_tensor_terms_with_parenthesized_kwargs():
 def test_prepare_rejects_semantic_unknown_feature_in_tensor_subterm():
     df = _frame(120)
     mgr = DataManager(
-        "load ~ AutoPipe(temp)",
-        mandatory_terms=["te(s(temp), s(unknown_feat))"],
+        "load ~ te(s(temp), s(unknown_feat)) + AutoPipe(temp)",
     )
     with pytest.raises(ValueError, match="unknown_feat"):
         mgr.prepare(df_train=df, date_col="ds")
@@ -262,8 +243,7 @@ def test_prepare_rejects_semantic_unknown_feature_in_tensor_subterm():
 
 def test_prepare_populates_canonical_to_verbatim_mandatory():
     mgr = DataManager(
-        "load ~ AutoPipe(temp)",
-        mandatory_terms=["c(temp, topo='nominal', n_cat=7)"],
+        "load ~ c(temp, topo='nominal', n_cat=7) + AutoPipe(temp)",
     )
     df = _frame(120)
     ctx = mgr.prepare(df_train=df, date_col="ds")
@@ -278,8 +258,7 @@ def test_prepare_populates_canonical_to_verbatim_mandatory():
 def test_prepare_accepts_mandatory_terms_with_external_dataset_variable():
     df = _frame(120, {"humidity": np.random.default_rng(0).normal(60, 15, 120)})
     mgr = DataManager(
-        "load ~ AutoPipe(temp)",
-        mandatory_terms=["s(humidity, k=10)"],
+        "load ~ s(humidity, k=10) + AutoPipe(temp)",
     )
     ctx = mgr.prepare(df_train=df, date_col="ds")
 
@@ -287,13 +266,13 @@ def test_prepare_accepts_mandatory_terms_with_external_dataset_variable():
     assert ctx.formula_config["features"] == ["temp"]
     assert ctx.external_mandatory_features == {"humidity"}
     assert "humidity" not in ctx.search_space
+    assert ctx.search_space["mandatory_terms"] == ["s(humidity, k=10)"]
 
 
 def test_prepare_accepts_mandatory_tensor_with_external_dataset_variable():
     df = _frame(120, {"humidity": np.random.default_rng(0).normal(60, 15, 120)})
     mgr = DataManager(
-        "load ~ AutoPipe(temp)",
-        mandatory_terms=["te(s(temp), s(humidity))"],
+        "load ~ te(s(temp), s(humidity)) + AutoPipe(temp)",
     )
     ctx = mgr.prepare(df_train=df, date_col="ds")
 
@@ -305,8 +284,7 @@ def test_prepare_accepts_mandatory_tensor_with_external_dataset_variable():
 def test_prepare_rejects_mandatory_term_with_feature_absent_from_both_autopipe_and_dataset():
     df = _frame(120)
     mgr = DataManager(
-        "load ~ AutoPipe(temp)",
-        mandatory_terms=["s(nonexistent_var, k=10)"],
+        "load ~ s(nonexistent_var, k=10) + AutoPipe(temp)",
     )
     with pytest.raises(
         ValueError,
@@ -318,8 +296,7 @@ def test_prepare_rejects_mandatory_term_with_feature_absent_from_both_autopipe_a
 def test_prepare_rejects_external_variable_exceeding_max_active_effects():
     df = _frame(120, {"humidity": np.random.default_rng(0).normal(60, 15, 120)})
     mgr = DataManager(
-        "load ~ AutoPipe(temp)",
-        mandatory_terms=["s(humidity, k=5)", "l(humidity)", "f(humidity, m=3)"],
+        "load ~ s(humidity, k=5) + l(humidity) + f(humidity, m=3) + AutoPipe(temp)",
     )
     with pytest.raises(ValueError, match="MAX_ACTIVE_EFFECTS_PER_FEATURE"):
         mgr.prepare(df_train=df, date_col="ds")
@@ -329,8 +306,7 @@ def test_prepare_accepts_external_variable_with_explicit_splits():
     df = _frame(90, {"humidity": np.random.default_rng(0).normal(60, 15, 90)})
     fit, dev, val = df.iloc[:60], df.iloc[60:75], df.iloc[75:]
     mgr = DataManager(
-        "load ~ AutoPipe(temp)",
-        mandatory_terms=["s(humidity, k=10)"],
+        "load ~ s(humidity, k=10) + AutoPipe(temp)",
     )
     ctx = mgr.prepare(df_fit=fit, df_dev=dev, df_val=val, date_col="ds")
 
@@ -341,15 +317,13 @@ def test_prepare_accepts_external_variable_with_explicit_splits():
 def test_prepare_excludes_date_and_target_from_external_features():
     df = _frame(120)
     mgr_target = DataManager(
-        "load ~ AutoPipe(temp)",
-        mandatory_terms=["s(load, k=5)"],
+        "load ~ s(load, k=5) + AutoPipe(temp)",
     )
     with pytest.raises(ValueError, match="Feature 'load' in mandatory term"):
         mgr_target.prepare(df_train=df, date_col="ds")
 
     mgr_date = DataManager(
-        "load ~ AutoPipe(temp)",
-        mandatory_terms=["s(ds, k=5)"],
+        "load ~ s(ds, k=5) + AutoPipe(temp)",
     )
     with pytest.raises(ValueError, match="Feature 'ds' in mandatory term"):
         mgr_date.prepare(df_train=df, date_col="ds")
@@ -364,8 +338,7 @@ def test_prepare_allows_group_col_in_mandatory_terms():
         "site_id": ["A", "B"] * 30,
     })
     mgr = DataManager(
-        "load ~ AutoPipe(temp)",
-        mandatory_terms=["c(site_id)"],
+        "load ~ c(site_id) + AutoPipe(temp)",
     )
     ctx = mgr.prepare(df_train=df, date_col="ds", group_col="site_id")
     assert ctx.external_mandatory_features == {"site_id"}
@@ -374,8 +347,7 @@ def test_prepare_allows_group_col_in_mandatory_terms():
 
 def test_prepare_asserts_data_availability_before_term_validation():
     mgr = DataManager(
-        "load ~ AutoPipe(temp)",
-        mandatory_terms=["s(humidity, k=10)"],
+        "load ~ s(humidity, k=10) + AutoPipe(temp)",
     )
     with pytest.raises(
         ValueError,
@@ -395,13 +367,10 @@ def test_prepare_rejects_external_variable_in_mandatory_variables():
 
 
 def test_prepare_rejects_duplicate_mandatory_terms_with_external_variable():
-    df = _frame(120, {"humidity": np.random.default_rng(0).normal(60, 15, 120)})
-    mgr = DataManager(
-        "load ~ AutoPipe(temp)",
-        mandatory_terms=["s(humidity, k=10)", "s(humidity, k=10)"],
-    )
-    with pytest.raises(ValueError, match="Duplicate mandatory term detected in mandatory_terms"):
-        mgr.prepare(df_train=df, date_col="ds")
+    with pytest.raises(ValueError, match="Duplicate mandatory term detected in formula"):
+        DataManager(
+            "load ~ s(humidity, k=10) + s(humidity, k=10) + AutoPipe(temp)",
+        )
 
 
 def test_prepare_rejects_exceeding_max_tensor_terms_with_external_variable():
@@ -413,12 +382,7 @@ def test_prepare_rejects_exceeding_max_tensor_terms_with_external_variable():
     }
     df = _frame(120, extra)
     mgr = DataManager(
-        "load ~ AutoPipe(temp)",
-        mandatory_terms=[
-            "te(s(temp), s(hum))",
-            "te(s(temp), s(pressure))",
-            "te(s(temp), s(wind))",
-        ],
+        "load ~ te(s(temp), s(hum)) + te(s(temp), s(pressure)) + te(s(temp), s(wind)) + AutoPipe(temp)",
     )
     with pytest.raises(ValueError, match="MAX_TENSOR_TERMS"):
         mgr.prepare(df_train=df, date_col="ds")
@@ -427,8 +391,7 @@ def test_prepare_rejects_exceeding_max_tensor_terms_with_external_variable():
 def test_transform_test_data_raises_on_missing_external_mandatory_features():
     df = _frame(120, {"humidity": np.random.default_rng(0).normal(60, 15, 120)})
     mgr = DataManager(
-        "load ~ AutoPipe(temp)",
-        mandatory_terms=["s(humidity, k=10)"],
+        "load ~ s(humidity, k=10) + AutoPipe(temp)",
     )
     ctx = mgr.prepare(df_train=df, date_col="ds")
 
@@ -440,8 +403,7 @@ def test_transform_test_data_raises_on_missing_external_mandatory_features():
 def test_transform_test_data_succeeds_when_external_mandatory_features_present():
     df = _frame(120, {"humidity": np.random.default_rng(0).normal(60, 15, 120)})
     mgr = DataManager(
-        "load ~ AutoPipe(temp)",
-        mandatory_terms=["s(humidity, k=10)"],
+        "load ~ s(humidity, k=10) + AutoPipe(temp)",
     )
     ctx = mgr.prepare(df_train=df, date_col="ds")
 

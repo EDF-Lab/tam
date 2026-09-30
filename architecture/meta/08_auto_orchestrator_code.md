@@ -46,7 +46,7 @@ The `DataManager` prepares the expanding window folds. It strictly enforces chro
 ### Pre-Flight Constraints and Mandatory Validation (`data_manager.py`)
 
 Before any evolutionary exploration commences, `DataManager.prepare` enforces strict pre-flight validation on user-supplied constraints:
-* **Canonical Deduplication:** Mandatory terms are normalized into canonical representations using `canonicalize_term`. If any redundant or duplicate terms are passed in `mandatory_terms` (even if formatted with permuted kwargs, distinct quotes, or reordered tensor sub-terms), a fail-fast `ValueError` is raised immediately.
+* **Canonical Deduplication:** Mandatory terms are parsed directly from the formula RHS and normalized into canonical representations using `canonicalize_term`. If any redundant or duplicate terms are present in the formula (even if formatted with permuted kwargs, distinct quotes, or reordered tensor sub-terms), a fail-fast `ValueError` is raised immediately.
 * **Strict Covariate Capacity Cap:** AutoTAM enforces a strict limit of `MAX_ACTIVE_EFFECTS_PER_FEATURE = 2` active mathematical effects per feature across all candidate formulas. If a user supplies $\ge 3$ mandatory terms targeting the same feature, `DataManager.prepare` rejects the configuration with an immediate fail-fast `ValueError`.
 * **Tensor Term Ceiling:** Tensor product interactions are similarly bounded at `MAX_TENSOR_TERMS = 2` per formula to preserve numerical stability and avoid dimensionality explosion.
 
@@ -127,7 +127,7 @@ To guarantee extreme mathematical heterogeneity, formula generation is physicall
 
 `DragTAM` controls the EDA loop via Hub-and-Spoke Bi-Level Optimization: it handles the discrete topological search iteratively across generations, completely delegating the continuous hyperparameter optimization to the inner PyTorch GCV solvers.
 
-**Mandatory Terms & Variables:** The engine can be initialized with `mandatory_terms` (exact formula strings) and `mandatory_variables` (feature names). These constraints are strictly enforced:
+**Mandatory Terms & Variables:** The engine extracts `mandatory_terms` directly from the formula RHS (e.g. `load ~ s(temp, k=10) + AutoPipe(temp)`) while `mandatory_variables` (feature names) can be supplied via `__init__`. These constraints are strictly enforced:
 * **Generation & LIFO Non-Mandatory Eviction:** The `_ensure_mandatory_constraints` method injects any missing mandatory terms or variables into newly generated formulas. When injecting missing mandatory constraints causes an active feature to exceed `MAX_ACTIVE_EFFECTS_PER_FEATURE = 2`, non-mandatory terms assigned to that feature are evicted in Last-In-First-Out (LIFO) order. This guarantees that user-defined mandatory terms are strictly preserved without ever exceeding the covariate capacity limit.
 * **Canonical Invariant Matching:** Matching existing candidate terms against mandatory terms uses `terms_are_equivalent`, ensuring parameter-order and sub-term invariance.
 * **Mutation:** `BaseIsland.mutate` prevents the deletion or mutation of mandatory terms under canonical equivalence. It also protects the last remaining term for any mandatory variable from being deleted.

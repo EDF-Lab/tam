@@ -66,11 +66,132 @@ def test_autopipe_macro_extracts_features_and_lags():
     assert config["lags"] == {"Load_lag_24": 24}
 
 
-def test_plain_rhs_without_macro_splits_on_plus():
+def test_plain_rhs_without_macro_raises_error():
     parser = FormulaParser()
-    config = parser.parse("Y ~ a + b + c")
-    assert config["features"] == ["a", "b", "c"]
-    assert config["lags"] == {}
+    with pytest.raises(ValueError, match=r"must contain exactly one pipeline macro.*None found"):
+        parser.parse("Y ~ a + b + c")
+
+
+def test_formula_parser_multiple_macros_raises_error():
+    parser = FormulaParser()
+    with pytest.raises(ValueError, match=r"must contain exactly one pipeline macro, but found 2"):
+        parser.parse("Y ~ AutoPipe(a, b) + AdaptTAM(c)")
+
+
+def test_formula_parser_empty_macro_raises_error():
+    parser = FormulaParser()
+    with pytest.raises(ValueError, match=r"Pipeline macro 'AutoPipe' cannot be empty"):
+        parser.parse("Y ~ AutoPipe()")
+    with pytest.raises(ValueError, match=r"Pipeline macro 'AdaptTAM' cannot be empty"):
+        parser.parse("Y ~ AdaptTAM()")
+
+
+def test_formula_parser_macro_position_invariance():
+    parser = FormulaParser()
+
+    # Trailing macro
+    c1 = parser.parse("Y ~ s(x, k=10) + c(y, n_cat=2) + AutoPipe(x, z)")
+    assert c1["pipeline_type"] == "AutoPipe"
+    assert c1["features"] == ["x", "z"]
+    assert c1["mandatory_terms"] == ["s(x, k=10)", "c(y, n_cat=2)"]
+
+    # Leading macro
+    c2 = parser.parse("Y ~ AutoPipe(x, z) + s(x, k=10) + c(y, n_cat=2)")
+    assert c2["pipeline_type"] == "AutoPipe"
+    assert c2["features"] == ["x", "z"]
+    assert c2["mandatory_terms"] == ["s(x, k=10)", "c(y, n_cat=2)"]
+
+    # Middle macro
+    c3 = parser.parse("Y ~ s(x, k=10) + AutoPipe(x, z) + c(y, n_cat=2)")
+    assert c3["pipeline_type"] == "AutoPipe"
+    assert c3["features"] == ["x", "z"]
+    assert c3["mandatory_terms"] == ["s(x, k=10)", "c(y, n_cat=2)"]
+
+
+def test_formula_parser_no_mandatory_terms():
+    parser = FormulaParser()
+    config = parser.parse("Y ~ AutoPipe(Temp, Humidity)")
+    assert config["mandatory_terms"] == []
+    assert config["features"] == ["Temp", "Humidity"]
+
+
+def test_formula_parser_rejects_explicit_intercept():
+    parser = FormulaParser()
+    with pytest.raises(ValueError, match=r"Explicit intercept '1' is not permitted as a mandatory term"):
+        parser.parse("Y ~ 1 + AutoPipe(x)")
+    with pytest.raises(ValueError, match=r"Explicit intercept '1' is not permitted as a mandatory term"):
+        parser.parse("Y ~ AutoPipe(x) + 1")
+
+
+def test_formula_parser_rejects_bare_identifiers():
+    parser = FormulaParser()
+    with pytest.raises(ValueError, match=r"Invalid mandatory term 'x': Bare identifiers without an effect wrapper are not permitted"):
+        parser.parse("Y ~ x + AutoPipe(z)")
+    with pytest.raises(ValueError, match=r"Invalid mandatory term 'x': Bare identifiers without an effect wrapper are not permitted"):
+        parser.parse("Y ~ AutoPipe(z) + x")
+
+
+def test_formula_parser_rejects_bare_macro_identifier():
+    parser = FormulaParser()
+    with pytest.raises(ValueError, match=r"must contain exactly one pipeline macro.*None found"):
+        parser.parse("Y ~ AutoPipe")
+    with pytest.raises(ValueError, match=r"Invalid mandatory term 'AutoPipe': Bare identifiers"):
+        parser.parse("Y ~ AutoPipe + AutoPipe(x)")
+
+
+def test_formula_parser_supported_effects_whitelist():
+    parser = FormulaParser()
+    # All 13 supported effect types: s, c, l, te, f, p, rbf, w, n, phys, pid, t, lt
+    formula = (
+        "Y ~ s(x1) + c(x2) + l(x3) + te(s(x1), c(x2)) + f(x4) + p(x5) + "
+        "rbf(x6) + w(x7) + n(x8) + phys(x9) + pid(x10) + t(x11) + lt(x12) + "
+        "AutoPipe(x1, x2, x3)"
+    )
+    config = parser.parse(formula)
+    assert len(config["mandatory_terms"]) == 13
+    assert config["mandatory_terms"][0] == "s(x1)"
+    assert config["mandatory_terms"][3] == "te(s(x1), c(x2))"
+    assert config["mandatory_terms"][-1] == "lt(x12)"
+
+
+def test_formula_parser_rejects_unknown_effect():
+    parser = FormulaParser()
+    with pytest.raises(ValueError, match=r"Unknown effect basis function 'unknown_func' in term 'unknown_func\(x\)'"):
+        parser.parse("Y ~ unknown_func(x) + AutoPipe(z)")
+
+
+def test_formula_parser_canonical_deduplication():
+    parser = FormulaParser()
+    # Exact duplicate
+    with pytest.raises(ValueError, match=r"Duplicate mandatory term detected in formula: 's\(x, k=10\)'"):
+        parser.parse("Y ~ s(x, k=10) + s(x, k=10) + AutoPipe(z)")
+
+    # Parameter permutation duplicate
+    with pytest.raises(ValueError, match=r"Duplicate mandatory term detected in formula: 'c\(x, topo='nominal', n_cat=7\)'"):
+        parser.parse("Y ~ c(x, n_cat=7, topo='nominal') + c(x, topo='nominal', n_cat=7) + AutoPipe(z)")
+
+    # Tensor sub-term permutation duplicate
+    with pytest.raises(ValueError, match=r"Duplicate mandatory term detected in formula: 'te\(c\(y\), s\(x, k=5\)\)'"):
+        parser.parse("Y ~ te(s(x, k=5), c(y)) + te(c(y), s(x, k=5)) + AutoPipe(z)")
+
+
+def test_formula_parser_preserves_verbatim_terms_and_order():
+    parser = FormulaParser()
+    formula = "Y ~ s(  Temp,   k=10  ) + c(Day, n_cat=7) + AutoPipe(Temp, Humidity)"
+    config = parser.parse(formula)
+    assert config["mandatory_terms"] == ["s(  Temp,   k=10  )", "c(Day, n_cat=7)"]
+
+
+def test_formula_parser_delimiter_integrity():
+    parser = FormulaParser()
+    with pytest.raises(ValueError, match="leading delimiter"):
+        parser.parse("Y ~ + AutoPipe(x)")
+    with pytest.raises(ValueError, match="trailing delimiter"):
+        parser.parse("Y ~ AutoPipe(x) +")
+    with pytest.raises(ValueError, match="consecutive delimiters"):
+        parser.parse("Y ~ AutoPipe(x) ++ s(y)")
+    with pytest.raises(ValueError, match="unclosed opening parenthesis"):
+        parser.parse("Y ~ AutoPipe(x) + s(y, k=10")
 
 
 def test_multi_target_left_hand_side():
@@ -159,6 +280,13 @@ def test_canonicalize_intercept_and_bare_tokens():
     assert canonicalize_term("  1  ") == "1"
 
 
+def test_canonicalize_term_multi_term_string_does_not_raise_unbalanced_parentheses():
+    res = canonicalize_term("s(x, k=10) + l(y)")
+    assert res == "l(y) + s(x, k=10)"
+    res2 = canonicalize_term("l(b) + s(a)")
+    assert res2 == "l(b) + s(a)"
+
+
 def test_canonicalize_tensor_product_sorts_subterms_and_kwargs():
     # Sub-terms permuted and params inside sub-terms permuted
     te1 = "te(s(x, k=5), c(y, topo='nominal', n_cat=7))"
@@ -242,6 +370,22 @@ def test_canonicalize_formula_multi_target():
 def test_canonicalize_formula_requires_tilde():
     with pytest.raises(ValueError, match="Must contain '~'"):
         canonicalize_formula("Y s(X)")
+
+
+def test_canonicalize_formula_delimiter_integrity_errors():
+    with pytest.raises(ValueError, match="leading delimiter"):
+        canonicalize_formula("Y ~ + s(X)")
+    with pytest.raises(ValueError, match="trailing delimiter"):
+        canonicalize_formula("Y ~ s(X) +")
+    with pytest.raises(ValueError, match="consecutive delimiters"):
+        canonicalize_formula("Y ~ s(X) + + s(Y)")
+
+
+def test_canonicalize_formula_unbalanced_parentheses():
+    with pytest.raises(ValueError, match="unclosed opening parenthesis"):
+        canonicalize_formula("Y ~ s(X, k=5")
+    with pytest.raises(ValueError, match="unexpected closing parenthesis"):
+        canonicalize_formula("Y ~ s(X)) + s(Y)")
 
 
 # --------------------- Term Subsumption Matching --------------------------- #

@@ -36,16 +36,23 @@ class DataManager:
         self, 
         formula: str, 
         lags: Optional[List[int]] = None,
-        mandatory_terms: Optional[List[str]] = None,
         mandatory_variables: Optional[List[str]] = None,
         train_fraction: float = 0.70,
         dev_fraction: float = 0.15
     ):
+        """
+        Initializes the DataManager, parsing the user formula and populating mandatory terms.
+
+        Args:
+            formula (str): High-level AutoTAM formula with embedded mandatory terms and a
+                pipeline macro (e.g., 'load ~ s(temp, k=10) + AutoPipe(temp, humidity)').
+            lags (Optional[List[int]]): Explicit lag orders to inject into the dataset.
+            mandatory_variables (Optional[List[str]]): Variables required in all models.
+            train_fraction (float): Proportion of training data allocated to model fitting.
+            dev_fraction (float): Proportion of training data allocated to hyperparameter tuning.
+        """
         self.formula = formula
         self.user_lags = lags or []
-        if isinstance(mandatory_terms, str):
-            mandatory_terms = [mandatory_terms]
-        self.mandatory_terms = mandatory_terms or []
         if isinstance(mandatory_variables, str):
             mandatory_variables = [mandatory_variables]
         self.mandatory_variables = mandatory_variables or []
@@ -53,6 +60,8 @@ class DataManager:
         self.dev_fraction = dev_fraction
         
         self.parser = FormulaParser()
+        self.formula_config = self.parser.parse(self.formula)
+        self.mandatory_terms = self.formula_config["mandatory_terms"]
         self.profiler = DataProfiler()
         self.engineer = FeatureEngineer(collinearity_threshold=0.95)  # spec I: bar |rho| > 0.95
         self.selector = EffectSelector()
@@ -77,8 +86,10 @@ class DataManager:
 
         ctx = PipelineContext(date_col=date_col, group_col=group_col)
         
-        ctx.formula_config = self.parser.parse(self.formula)
+        ctx.formula_config = self.parser.parse(self.formula, date_col=date_col)
         ctx.target = ctx.formula_config["targets"][0]
+        ctx.mandatory_terms = ctx.formula_config["mandatory_terms"]
+        self.mandatory_terms = ctx.mandatory_terms
         
         ref_df = df_train if df_train is not None else df_fit
         dataset_features = set(ref_df.columns) - set(ctx.formula_config["targets"])
@@ -87,7 +98,6 @@ class DataManager:
         available_features = set(ctx.formula_config["features"]) | dataset_features
 
         if self.mandatory_terms:
-            ctx.mandatory_terms = self.mandatory_terms
             seen_canonical = set()
             canonical_to_verbatim = {}
             feature_counts: Dict[str, int] = {}
@@ -250,6 +260,8 @@ class DataManager:
             ctx.historical_tail = df_all_aug.tail(max_look + 1).copy()
 
         ctx.search_space = self.selector.build_search_space(ctx.df_fit, ctx.formula_config, ctx.metadata)
+        ctx.search_space["mandatory_terms"] = ctx.mandatory_terms
+        ctx.search_space["mandatory_variables"] = ctx.mandatory_variables
 
         reference_df = df_train if df_train is not None else ctx.df_fit
         target_series = reference_df[ctx.target]

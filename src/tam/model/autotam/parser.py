@@ -28,7 +28,12 @@ __all__ = [
     "canonicalize_formula",
     "parse_formula_to_terms",
     "FormulaParser",
+    "RECOGNIZED_PIPELINE_MACROS",
+    "SUPPORTED_EFFECTS",
 ]
+
+RECOGNIZED_PIPELINE_MACROS = {"AutoPipe", "AdaptTAM", "KalmanTAM", "StaticTAM", "AdTAM"}
+SUPPORTED_EFFECTS = {"s", "c", "l", "te", "f", "p", "rbf", "w", "n", "phys", "pid", "t", "lt"}
 
 
 #: <parser_canonicalization>
@@ -85,6 +90,15 @@ def canonicalize_term(term: Union[str, Dict[str, Any]]) -> str:
             return ""
         if term_str == "1":
             return "1"
+
+        try:
+            parts = split_args_respecting_parentheses(term_str, delimiter="+")
+        except ValueError:
+            parts = [term_str]
+
+        if len(parts) > 1:
+            canonical_parts = [canonicalize_term(p) for p in parts if p.strip() and p.strip() != "1"]
+            return " + ".join(sorted(p for p in canonical_parts if p))
 
         func_match = re.match(r"^\s*([a-zA-Z0-9_]+)\s*\((.*)\)\s*$", term_str)
         if not func_match:
@@ -417,33 +431,10 @@ def canonicalize_formula(formula: str) -> str:
     lhs_str, rhs_str = formula.split("~", 1)
     lhs = lhs_str.strip()
 
-    parts = []
-    current_part = []
-    paren_count = 0
-    for char in rhs_str:
-        if char == "(":
-            paren_count += 1
-            current_part.append(char)
-        elif char == ")":
-            paren_count -= 1
-            current_part.append(char)
-        elif char == "+" and paren_count == 0:
-            part_str = "".join(current_part).strip()
-            if part_str:
-                parts.append(part_str)
-            current_part = []
-        else:
-            current_part.append(char)
-
-    if current_part:
-        part_str = "".join(current_part).strip()
-        if part_str:
-            parts.append(part_str)
+    parts = split_args_respecting_parentheses(rhs_str, delimiter="+")
 
     canonical_terms_set = set()
     for part in parts:
-        if not part:
-            continue
         c_term = canonicalize_term(part)
         if c_term:
             canonical_terms_set.add(c_term)
@@ -550,7 +541,7 @@ class FormulaParser:
 
         Returns:
             Dict[str, Any]: Configuration dictionary containing 'targets', 'features', 
-                            'pipeline_type', and dynamically extracted 'lags'.
+                            'pipeline_type', 'lags', and 'mandatory_terms'.
         """
         match = self.equation_regex.match(formula.strip())
         if not match:
@@ -558,32 +549,50 @@ class FormulaParser:
             
         lhs, rhs = match.groups()
         targets = self._parse_targets(lhs)
-        
-        pipeline_type = "AutoPipe"
+
+        rhs_tokens = split_args_respecting_parentheses(rhs.strip(), delimiter="+")
+
+        macro_tokens = []
+        non_macro_tokens = []
+
+        for token in rhs_tokens:
+            token_str = token.strip()
+            pipe_match = self.pipeline_regex.match(token_str)
+            if pipe_match and pipe_match.group(1).strip() in RECOGNIZED_PIPELINE_MACROS:
+                macro_tokens.append((token_str, pipe_match.group(1).strip(), pipe_match.group(2)))
+            else:
+                non_macro_tokens.append(token_str)
+
+        if len(macro_tokens) == 0:
+            raise ValueError("AutoTAM formula RHS must contain exactly one pipeline macro (e.g., 'AutoPipe(...)'). None found.")
+        elif len(macro_tokens) > 1:
+            macro_names = [m[1] for m in macro_tokens]
+            raise ValueError(f"AutoTAM formula RHS must contain exactly one pipeline macro, but found {len(macro_tokens)}: {macro_names}.")
+
+        macro_token, pipeline_type, args_str = macro_tokens[0]
+        args_str_stripped = args_str.strip()
+        if not args_str_stripped:
+            raise ValueError(f"Pipeline macro '{pipeline_type}' cannot be empty; specify at least one feature or lag (e.g., 'AutoPipe(x1, x2)').")
+
         features = []
         lags = {}
-        
-        pipe_match = self.pipeline_regex.match(rhs.strip())
-        if pipe_match:
-            pipeline_type = pipe_match.group(1).strip()
-            args_str = pipe_match.group(2)
-            
-            args = [arg.strip() for arg in args_str.split(",")]
-            for arg in args:
-                if not arg:
-                    continue
-                if '@' in arg:
-                    parts = arg.split('@')
-                    feat_name = parts[0].strip()
-                    try:
-                        lag_val = int(parts[1].strip())
-                        lags[f"{feat_name}_lag_{lag_val}"] = lag_val
-                    except ValueError:
-                        pass
-                else:
-                    features.append(arg)
-        else:
-            features = [f.strip() for f in rhs.split("+") if f.strip()]
+        args = split_args_respecting_parentheses(args_str_stripped, delimiter=",")
+        for arg in args:
+            arg_str = arg.strip()
+            if not arg_str:
+                continue
+            if '@' in arg_str:
+                parts = arg_str.split('@')
+                feat_name = parts[0].strip()
+                try:
+                    lag_val = int(parts[1].strip())
+                    lags[f"{feat_name}_lag_{lag_val}"] = lag_val
+                except ValueError:
+                    pass
+            else:
+                features.append(arg_str)
+
+        mandatory_terms = self._validate_mandatory_terms(non_macro_tokens, pipeline_type)
 
         if lags and pipeline_type in ["AdTAM", "StaticTAM"]:
             print(f"AutoTAM Parser Warning: Lags detected ({lags}), but pipeline '{pipeline_type}' "
@@ -597,9 +606,56 @@ class FormulaParser:
             "targets": targets,
             "features": features,
             "pipeline_type": pipeline_type,
-            "lags": lags
+            "lags": lags,
+            "mandatory_terms": mandatory_terms,
         }
 #: </parser_parse_method>
+
+#: <parser_mandatory_terms_helper>
+    def _validate_mandatory_terms(self, non_macro_tokens: List[str], pipeline_type: str) -> List[str]:
+        """
+        Validates the syntax and effect functions of non-pipeline terms, ensuring they are
+        wrapped in supported basis functions, rejecting intercepts/bare identifiers,
+        and preventing canonical duplicate terms.
+
+        Args:
+            non_macro_tokens: List of stripped non-macro term strings from RHS.
+            pipeline_type: The name of the isolated pipeline macro (used in error messages).
+
+        Returns:
+            List[str]: Verbatim stripped mandatory terms preserving user declaration order.
+        """
+        mandatory_terms = []
+        seen_canonical = set()
+
+        for token in non_macro_tokens:
+            if token == "1":
+                raise ValueError(
+                    "Explicit intercept '1' is not permitted as a mandatory term. "
+                    "TAM automatically prepends a global intercept."
+                )
+
+            func_match = self.pipeline_regex.match(token)
+            if not func_match:
+                raise ValueError(
+                    f"Invalid mandatory term '{token}': Bare identifiers without an effect wrapper "
+                    f"are not permitted. Wrap the variable in an effect function (e.g., 'l({token})' "
+                    f"for linear or 's({token})' for spline), or move it inside '{pipeline_type}(...)'."
+                )
+
+            eff_name = func_match.group(1).strip()
+            if eff_name not in SUPPORTED_EFFECTS:
+                raise ValueError(f"Unknown effect basis function '{eff_name}' in term '{token}'.")
+
+            canon = canonicalize_term(token)
+            if canon in seen_canonical:
+                raise ValueError(f"Duplicate mandatory term detected in formula: '{token}'.")
+            seen_canonical.add(canon)
+
+            mandatory_terms.append(token)
+
+        return mandatory_terms
+#: </parser_mandatory_terms_helper>
 
 #: <parser_targets_helper>
     def _parse_targets(self, lhs: str) -> List[str]:

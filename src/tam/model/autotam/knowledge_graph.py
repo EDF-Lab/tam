@@ -217,20 +217,18 @@ class KnowledgeGraph:
         importances = {id(term): _importance(term) for term in parsed_terms}
         kept_ids = set()
         
-        # Protect mandatory variables
+        # Protect mandatory variables: ensure every mandatory variable has at least one term preserved
         if mandatory_variables:
             for var in mandatory_variables:
                 terms_with_var = [term for term in parsed_terms if var in {m[0] for m in term_members(term)}]
-                if len(terms_with_var) == 1:
-                    # Protect the sole term containing the mandatory variable
-                    kept_ids.add(id(terms_with_var[0]))
+                if terms_with_var:
+                    best_term_for_var = max(terms_with_var, key=lambda t: importances[id(t)])
+                    kept_ids.add(id(best_term_for_var))
 
 
         for term in sorted(parsed_terms, key=lambda t: importances[id(t)], reverse=True):
             is_mandatory_term = any(term_subsumes(term, mt) for mt in mandatory_terms)
-            
-            term_vars = {m[0] for m in term_members(term)}
-            is_mandatory_var_term = any(v in mandatory_variables for v in term_vars)
+            is_pre_protected = id(term) in kept_ids
 
             effect_values = contributions_by_term[id(term)]
             if effect_values is None:
@@ -246,20 +244,11 @@ class KnowledgeGraph:
                         if corr > self.max_collinearity:
                             is_redundant = True
                             break
-            
-            is_sole_term_for_mandatory_var = False
-            if is_mandatory_var_term:
-                for var in term_vars.intersection(mandatory_variables):
-                    terms_with_var = [t for t in parsed_terms if var in {m[0] for m in term_members(t)}]
-                    if len(terms_with_var) == 1 and terms_with_var[0] is term:
-                        is_sole_term_for_mandatory_var = True
-                        break
 
-
-            if is_mandatory_term or is_sole_term_for_mandatory_var or (importance > self.prune_threshold and not is_redundant):
+            if is_mandatory_term or is_pre_protected or (importance > self.prune_threshold and not is_redundant):
                 if id(term) not in kept_ids:
                     kept_ids.add(id(term))
-                    active_effects.append(effect_values)
+                active_effects.append(effect_values)
 
                 term_id = term_signature(term)
                 penalty = component_penalties.get(term_id, 0.0)

@@ -33,8 +33,85 @@ def test_split_args_respects_nested_parentheses():
     assert parts == ["s(x, k=5)", "f(y, m=4)"]
 
 
-def test_split_args_trailing_empty_ignored():
-    assert split_args_respecting_parentheses("a, b,") == ["a", "b"]
+def test_split_args_custom_delimiter_plus():
+    expr = "s(x, k=10) + c(y, n_cat=2) + AutoPipe(x, z)"
+    parts = split_args_respecting_parentheses(expr, delimiter="+")
+    assert parts == ["s(x, k=10)", "c(y, n_cat=2)", "AutoPipe(x, z)"]
+
+
+def test_split_args_custom_delimiter_with_nested_delimiters():
+    # Nested plus inside function call must not be split
+    expr = "te(s(x + 1), s(y)) + l(z)"
+    parts = split_args_respecting_parentheses(expr, delimiter="+")
+    assert parts == ["te(s(x + 1), s(y))", "l(z)"]
+
+
+def test_split_args_nested_parentheses_multi_level():
+    expr = "te(s(x, k=5), c(y, topo='nominal')), l(z)"
+    parts = split_args_respecting_parentheses(expr, delimiter=",")
+    assert parts == ["te(s(x, k=5), c(y, topo='nominal'))", "l(z)"]
+
+
+def test_split_args_empty_and_whitespace():
+    assert split_args_respecting_parentheses("") == []
+    assert split_args_respecting_parentheses("   ") == []
+    assert split_args_respecting_parentheses("", delimiter="+") == []
+    assert split_args_respecting_parentheses("   ", delimiter="+") == []
+
+
+def test_split_args_delimiter_integrity_leading():
+    with pytest.raises(ValueError, match="leading delimiter"):
+        split_args_respecting_parentheses(", a, b", delimiter=",")
+    with pytest.raises(ValueError, match="leading delimiter"):
+        split_args_respecting_parentheses("   + a + b", delimiter="+")
+
+
+def test_split_args_delimiter_integrity_trailing():
+    with pytest.raises(ValueError, match="trailing delimiter"):
+        split_args_respecting_parentheses("a, b,", delimiter=",")
+    with pytest.raises(ValueError, match="trailing delimiter"):
+        split_args_respecting_parentheses("a + b +   ", delimiter="+")
+
+
+def test_split_args_delimiter_integrity_consecutive():
+    with pytest.raises(ValueError, match="consecutive delimiters"):
+        split_args_respecting_parentheses("a,, b", delimiter=",")
+    with pytest.raises(ValueError, match="consecutive delimiters"):
+        split_args_respecting_parentheses("a,   , b", delimiter=",")
+    with pytest.raises(ValueError, match="consecutive delimiters"):
+        split_args_respecting_parentheses("a ++ b", delimiter="+")
+    with pytest.raises(ValueError, match="consecutive delimiters"):
+        split_args_respecting_parentheses("a +   + b", delimiter="+")
+
+
+def test_split_args_delimiter_integrity_pure_delimiter():
+    with pytest.raises(ValueError, match="delimiter"):
+        split_args_respecting_parentheses(",", delimiter=",")
+    with pytest.raises(ValueError, match="delimiter"):
+        split_args_respecting_parentheses("+", delimiter="+")
+    with pytest.raises(ValueError, match="delimiter"):
+        split_args_respecting_parentheses(",,", delimiter=",")
+
+
+def test_split_args_parentheses_unexpected_closing():
+    with pytest.raises(ValueError, match="unexpected closing parenthesis"):
+        split_args_respecting_parentheses("a, b), c", delimiter=",")
+    with pytest.raises(ValueError, match="unexpected closing parenthesis"):
+        split_args_respecting_parentheses(") a + b", delimiter="+")
+
+
+def test_split_args_parentheses_unclosed_opening():
+    with pytest.raises(ValueError, match="unclosed opening parenthesis"):
+        split_args_respecting_parentheses("s(x, k=5", delimiter=",")
+    with pytest.raises(ValueError, match="unclosed opening parenthesis"):
+        split_args_respecting_parentheses("a + (b + c", delimiter="+")
+
+
+def test_split_args_invalid_delimiter():
+    with pytest.raises(ValueError, match="single character"):
+        split_args_respecting_parentheses("a, b", delimiter="++")
+    with pytest.raises(ValueError, match="single character"):
+        split_args_respecting_parentheses("a, b", delimiter="")
 
 
 # ----------------------------- formula parsing ----------------------------- #

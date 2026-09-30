@@ -20,6 +20,7 @@ import random
 from typing import List, Dict, Any, Callable, Optional, Tuple, Union
 from .knowledge_graph import KnowledgeGraph
 from .parser import canonicalize_term, terms_are_equivalent, term_subsumes, _parse_term_structure
+from tam.common.utils import split_args_respecting_parentheses
 
 # Strict Covariate Lock (spec I): a single feature may carry at most this many
 # active bases (e.g. s(Temp) + f(Temp) is the maximum allowed for Temp).
@@ -541,9 +542,14 @@ def _clean_and_join_terms(term_list: List[str], mandatory_terms: Optional[List[s
     n_tensors = 0
 
     for item in term_list:
-        if not item or item == "1":
+        if not item or item.strip() in ("", "1"):
             continue
-        for sub_term in item.split(" + "):
+        try:
+            sub_terms = split_args_respecting_parentheses(item.strip(), delimiter="+")
+        except ValueError:
+            sub_terms = [s.strip() for s in item.split("+") if s.strip()]
+
+        for sub_term in sub_terms:
             cleaned = sub_term.strip()
             if not cleaned or cleaned == "1":
                 continue

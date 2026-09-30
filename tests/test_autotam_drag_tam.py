@@ -258,6 +258,48 @@ def test_dragtam_ensure_mandatory_constraints_tensor_invariant_matching_and_verb
     assert "l(z)" in res
 
 
+class _MultiTermIsland:
+    """Island that generates multiple terms joined by ' + ' for a feature."""
+    def __init__(self, name):
+        self.name = name
+        self.champion_genome = None
+        self.last_search_space = None
+
+    def generate(self, kg, available_features, search_space, complexity_cap=False):
+        self.last_search_space = search_space
+        feat = available_features[0] if available_features else "x"
+        return f"s({feat}, k=10) + l({feat})"
+
+    def mutate(self, kg, available_features, search_space):
+        return self.generate(kg, available_features, search_space)
+
+    def set_champion(self, genome):
+        self.champion_genome = genome
+
+
+def test_dragtam_ensure_mandatory_constraints_multi_term_island_generation():
+    engine = DragTAM(
+        target_col="y",
+        mandatory_terms=["s(temp, k=10)"],
+        mandatory_variables=["humidity"]
+    )
+    island = _MultiTermIsland("Multi")
+    res = engine._ensure_mandatory_constraints("l(x1)", island, search_space={"humidity": {}})
+
+    assert "s(temp, k=10)" in res
+    assert "l(x1)" in res
+    assert "s(humidity, k=10)" in res
+    assert "l(humidity)" in res
+    assert island.last_search_space == {"humidity": {}}
+    # Ensure formula has balanced parentheses
+    assert res.count("(") == res.count(")")
+    # Must be validly split by _split_rhs_terms
+    from tam.model.autotam.drag_tam import _split_rhs_terms
+    parts = _split_rhs_terms(res)
+    assert len(parts) == 4
+
+
+
 def test_dragtam_ensure_mandatory_constraints_evicts_non_mandatory_lifo_on_effects_cap():
     # Feature 'x' has 2 candidate terms, then mandatory term is injected bringing count to 3.
     # Non-mandatory terms should be evicted in LIFO order (rightmost added dropped first).
@@ -358,8 +400,7 @@ def test_dragtam_search_space_isolation_excludes_external_variables():
     })
 
     dm = DataManager(
-        formula="y ~ AutoPipe(temp)",
-        mandatory_terms=["s(humidity, k=10)"]
+        formula="y ~ s(humidity, k=10) + AutoPipe(temp)",
     )
     ctx = dm.prepare(df_train=df)
 

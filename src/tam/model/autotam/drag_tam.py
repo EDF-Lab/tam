@@ -18,7 +18,7 @@ import random
 from typing import List, Dict, Any, Tuple, Callable, Optional, Set
 import re
 
-from .knowledge_graph import KnowledgeGraph
+from .knowledge_graph import KnowledgeGraph, term_members
 from .parser import canonicalize_term, terms_are_equivalent, term_subsumes
 from .population_nodes import MAX_ACTIVE_EFFECTS_PER_FEATURE
 from tam.common.utils import parse_formula_to_terms, split_args_respecting_parentheses
@@ -71,7 +71,10 @@ def _extract_term_feature(term_str: str) -> Optional[str]:
     if eff == "te":
         return None
     inner = match.group(2).strip()
-    args = split_args_respecting_parentheses(inner)
+    try:
+        args = split_args_respecting_parentheses(inner)
+    except ValueError:
+        return None
     if not args or not args[0].strip():
         return None
     return args[0].strip()
@@ -87,26 +90,29 @@ def _extract_all_features_from_term(term_str: str) -> Set[str]:
         return set()
     eff = match.group(1).strip()
     inner = match.group(2).strip()
-    if eff == "te":
-        features = set()
-        parts = split_args_respecting_parentheses(inner)
-        for part in parts:
-            part = part.strip()
-            kw_match = re.match(r"^\s*([a-zA-Z0-9_]+)\s*=\s*(.*)$", part)
-            if kw_match:
-                continue
-            sub_match = re.match(r"^\s*([a-zA-Z0-9_]+)\s*\((.*)\)\s*$", part)
-            if sub_match:
-                sub_args = split_args_respecting_parentheses(sub_match.group(2).strip())
-                if sub_args and sub_args[0].strip():
-                    features.add(sub_args[0].strip())
-            else:
-                features.add(part)
-        return features
-    else:
-        args = split_args_respecting_parentheses(inner)
-        if args and args[0].strip():
-            return {args[0].strip()}
+    try:
+        if eff == "te":
+            features = set()
+            parts = split_args_respecting_parentheses(inner)
+            for part in parts:
+                part = part.strip()
+                kw_match = re.match(r"^\s*([a-zA-Z0-9_]+)\s*=\s*(.*)$", part)
+                if kw_match:
+                    continue
+                sub_match = re.match(r"^\s*([a-zA-Z0-9_]+)\s*\((.*)\)\s*$", part)
+                if sub_match:
+                    sub_args = split_args_respecting_parentheses(sub_match.group(2).strip())
+                    if sub_args and sub_args[0].strip():
+                        features.add(sub_args[0].strip())
+                else:
+                    features.add(part)
+            return features
+        else:
+            args = split_args_respecting_parentheses(inner)
+            if args and args[0].strip():
+                return {args[0].strip()}
+            return set()
+    except ValueError:
         return set()
 
 
@@ -216,12 +222,15 @@ class DragTAM:
         rhs_clean = " + ".join(unique_terms)
         return f"{self.target_col} ~ {rhs_clean}" if rhs_clean else f"{self.target_col} ~ "
 
-    def _ensure_mandatory_constraints(self, rhs: str, island: Any) -> str:
+    def _ensure_mandatory_constraints(self, rhs: str, island: Any, search_space: Optional[Dict[str, Any]] = None) -> str:
         """
         Matches candidate terms against mandatory terms using canonical equivalence,
         replaces matches with user verbatim representations, injects missing mandatory
         terms and variables, and strictly enforces MAX_ACTIVE_EFFECTS_PER_FEATURE via LIFO eviction.
         """
+        if search_space is None:
+            search_space = {}
+
         raw_parts = _split_rhs_terms(rhs)
 
         terms: List[Dict[str, Any]] = []
@@ -280,22 +289,28 @@ class DragTAM:
 
             missing_vars = [v for v in self.mandatory_variables if v not in covered_vars]
             for var in missing_vars:
-                new_term = island.generate(self.kg, [var], {}) if island else None
+                new_term = island.generate(self.kg, [var], search_space) if island else None
                 if not new_term or not new_term.strip() or new_term.strip() == "1":
-                    new_term = f"l({var})"
+                    injected_parts = [f"l({var})"]
                 else:
-                    new_term = new_term.strip()
+                    injected_parts = _split_rhs_terms(new_term.strip())
+                    if not injected_parts:
+                        injected_parts = [f"l({var})"]
 
-                new_can = canonicalize_term(new_term)
-                new_feat = _extract_term_feature(new_term) or var
-                terms.append({
-                    'raw': new_term,
-                    'canonical': new_can,
-                    'feature': new_feat,
-                    'is_mandatory': False,
-                    'is_mandatory_var': True
-                })
-                covered_vars.update(_extract_all_features_from_term(new_term))
+                for part in injected_parts:
+                    part_can = canonicalize_term(part)
+                    if not part_can or part_can == "1" or part_can in seen_canonicals:
+                        continue
+                    seen_canonicals.add(part_can)
+                    part_feat = _extract_term_feature(part) or var
+                    terms.append({
+                        'raw': part,
+                        'canonical': part_can,
+                        'feature': part_feat,
+                        'is_mandatory': False,
+                        'is_mandatory_var': True
+                    })
+                    covered_vars.update(_extract_all_features_from_term(part))
 
         # Strict Covariate Lock: cap each marginal feature at MAX_ACTIVE_EFFECTS_PER_FEATURE
         feature_to_terms: Dict[str, List[Dict[str, Any]]] = {}
@@ -468,7 +483,7 @@ class DragTAM:
             else:
                 rhs = isl.generate(self.kg, available_feats, search_space,
                                    complexity_cap=(random.random() < 0.20))
-            rhs = self._ensure_mandatory_constraints(rhs, isl)
+            rhs = self._ensure_mandatory_constraints(rhs, isl, search_space)
             rhs = rhs if rhs != "1" else ""
             return self._build_canonical_formula(rhs), island_name
 
@@ -478,7 +493,7 @@ class DragTAM:
             name = self.kg.select_island_ucb(island_names, self.ucb_E, self.ucb_epsilon, self.ucb_min_pulls)
             isl = island_by_name[name]
             rhs = isl.generate(self.kg, available_feats, search_space, complexity_cap=True)
-            rhs = self._ensure_mandatory_constraints(rhs, isl)
+            rhs = self._ensure_mandatory_constraints(rhs, isl, search_space)
             rhs = rhs if rhs != "1" else ""
             self.population.append((self._build_canonical_formula(rhs), name))
 
@@ -515,7 +530,8 @@ class DragTAM:
                         global_rmse=rmse,
                         target_std=target_std,
                         component_penalties=penalties,
-                        mandatory_terms=self.mandatory_terms
+                        mandatory_terms=self.mandatory_terms,
+                        mandatory_variables=self.mandatory_variables
                     )
 
                     # Quality-Diversity admission keyed on the penalized score.
@@ -579,7 +595,16 @@ class DragTAM:
                     for i in range(len(sorted_terms)):
                         term_to_ablate = sorted_terms[i]
 
-                        if not any(term_subsumes(term_to_ablate, m) for m in self.mandatory_terms):
+                        is_mand_term = any(term_subsumes(term_to_ablate, m) for m in self.mandatory_terms)
+                        is_sole_mand_var = False
+                        if self.mandatory_variables:
+                            term_vars = {m[0] for m in term_members(term_to_ablate)}
+                            for var in term_vars.intersection(self.mandatory_variables):
+                                if sum(1 for t in sorted_terms if var in {m[0] for m in term_members(t)}) <= 1:
+                                    is_sole_mand_var = True
+                                    break
+
+                        if not is_mand_term and not is_sole_mand_var:
                             ablated_terms = sorted_terms[:i] + sorted_terms[i+1:]
                             break
                     

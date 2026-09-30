@@ -25,30 +25,28 @@ def _frame(n=100):
     })
 
 
-def test_autotam_init_normalizes_and_propagates_mandatory_terms():
-    # Passed as list
-    at1 = AutoTAM("load ~ AutoPipe(temp, humidity)", mandatory_terms=["s(temp, k=10)"])
-    assert at1.mandatory_terms == ["s(temp, k=10)"]
-    assert at1.data_manager.mandatory_terms == ["s(temp, k=10)"]
-    assert at1.discoverer.mandatory_terms == ["s(temp, k=10)"]
-
-    # Passed as single string
-    at2 = AutoTAM("load ~ AutoPipe(temp, humidity)", mandatory_terms="s(temp, k=10)")
-    assert at2.mandatory_terms == ["s(temp, k=10)"]
-    assert at2.data_manager.mandatory_terms == ["s(temp, k=10)"]
-    assert at2.discoverer.mandatory_terms == ["s(temp, k=10)"]
+def test_autotam_init_extracts_and_propagates_mandatory_terms():
+    at = AutoTAM("load ~ s(temp, k=10) + AutoPipe(temp, humidity)")
+    assert at.mandatory_terms == ["s(temp, k=10)"]
+    assert at.data_manager.mandatory_terms == ["s(temp, k=10)"]
+    assert at.discoverer.mandatory_terms == ["s(temp, k=10)"]
 
 
-def test_autotam_fit_validates_mandatory_terms_syntactically():
-    df = _frame()
-    at = AutoTAM("load ~ AutoPipe(temp, humidity)", mandatory_terms=["invalid_syntax_term((("])
-    with pytest.raises(ValueError, match="Invalid mandatory term"):
-        at.fit(df, date_col="ds")
+def test_autotam_init_rejects_mandatory_terms_kwarg():
+    with pytest.raises(TypeError, match="unexpected keyword argument 'mandatory_terms'"):
+        AutoTAM("load ~ AutoPipe(temp, humidity)", mandatory_terms=["s(temp, k=10)"])
+
+
+def test_autotam_init_validates_mandatory_terms_syntactically():
+    with pytest.raises(ValueError, match=r"Unbalanced parentheses|Invalid mandatory term"):
+        AutoTAM("load ~ invalid_syntax_term((( + AutoPipe(temp, humidity)")
+    with pytest.raises(ValueError, match=r"Invalid mandatory term"):
+        AutoTAM("load ~ bare_var + AutoPipe(temp, humidity)")
 
 
 def test_autotam_fit_validates_mandatory_terms_semantically():
     df = _frame()
-    at = AutoTAM("load ~ AutoPipe(temp, humidity)", mandatory_terms=["s(unknown_col, k=5)"])
+    at = AutoTAM("load ~ s(unknown_col, k=5) + AutoPipe(temp, humidity)")
     with pytest.raises(ValueError, match="unknown_col"):
         at.fit(df, date_col="ds")
 
@@ -56,8 +54,7 @@ def test_autotam_fit_validates_mandatory_terms_semantically():
 def test_expert_predictions_raises_on_missing_external_mandatory_features():
     df = _frame(60)
     at = AutoTAM(
-        "load ~ AutoPipe(temp)",
-        mandatory_terms=["s(humidity, k=5)"],
+        "load ~ s(humidity, k=5) + AutoPipe(temp)",
         max_generations=1,
         population_size=2,
     )
@@ -72,8 +69,7 @@ def test_expert_predictions_raises_on_missing_external_mandatory_features():
 def test_autotam_end_to_end_fit_and_predict_with_external_mandatory_terms():
     df = _frame(60)
     at = AutoTAM(
-        "load ~ AutoPipe(temp)",
-        mandatory_terms=["s(humidity, k=5)"],
+        "load ~ s(humidity, k=5) + AutoPipe(temp)",
         max_generations=1,
         population_size=2,
     )
@@ -112,8 +108,7 @@ def test_autotam_end_to_end_fit_and_predict_with_external_mandatory_terms():
 def test_autotam_end_to_end_full_refit_with_external_mandatory_terms():
     df = _frame(60)
     at = AutoTAM(
-        "load ~ AutoPipe(temp)",
-        mandatory_terms=["s(humidity, k=5)"],
+        "load ~ s(humidity, k=5) + AutoPipe(temp)",
         max_generations=1,
         population_size=2,
     )
@@ -121,4 +116,32 @@ def test_autotam_end_to_end_full_refit_with_external_mandatory_terms():
     df_test = df.iloc[-10:].copy()
     preds = at.predict(df_test)
     assert len(preds) == 10
+
+
+def test_autotam_with_mandatory_terms_and_mandatory_variables():
+    df = _frame(60)
+    at = AutoTAM(
+        "load ~ s(temp, k=10) + AutoPipe(temp, humidity)",
+        mandatory_variables=["humidity"],
+        pop_size=6,
+    )
+    at.fit(df, date_col="ds")
+
+    # Verify that formulas evaluated during search and expert expansion have balanced parentheses
+    assert len(at.chronological_test_log) > 0
+    for entry in at.chronological_test_log:
+        formula = entry.get("Formula", "")
+        assert formula.count("(") == formula.count(")"), f"Unbalanced parentheses in {formula}"
+        if entry.get("Model_Type", "").startswith("StaticTAM"):
+            # All base models must subsume the mandatory term s(temp, k=10) and cover mandatory variable humidity
+            from tam.model.autotam.parser import term_subsumes
+            _, terms = parse_formula_to_terms(formula)
+            assert any(term_subsumes(t, "s(temp, k=10)") for t in terms), f"Missing mandatory term in {formula}"
+            assert any(t.get("feature") == "humidity" for t in terms), f"Missing mandatory var in {formula}"
+
+    df_test = df.iloc[-10:].copy()
+    preds = at.predict(df_test)
+    assert len(preds) == 10
+    assert not preds.empty
+
 
