@@ -17,21 +17,41 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ---
 ## [Unreleased]
 
+---
+
+## [1.3.1] - 2026-09-30
+
+Patch release: fixes that made some models wrong (formulas with `te()` or several features in one term) or not reproducible (`rbf()`, trees).
+
+**Predictions change** for the models below; everything else is identical to 1.3.0. To get the 1.3.0 behaviour: `pip install tam-ml==1.3.0`.
+
+### Results change
+- **Formulas with `te()` or several features in one term**: they were fitted with mislabelled terms and now fit the formula as written; their errors drop sharply, and the ensembles built on them follow. The THEORY benchmark and its figures are regenerated with 1.3.1.
+- **`auto_fit` (GCV)**: now fits exactly the model GCV selected. GCV minimises an in-sample criterion, not the holdout error, so holdout results move in both directions.
+- **`rbf()`**: centres are seeded and drawn from the whole training set; RBF models change once and are then reproducible.
+- **Trees on grouped data** (`t()`, `lt()` with `group_col`): splits and leaf counts come from the whole training set; results change, mostly for the better. Ungrouped trees do not change.
+- **NeuralTAM** (experimental): may change slightly in scripts that fit `rbf()` models before it, because both used to share the global torch random generator. A NeuralTAM fitted on its own after the same `torch.manual_seed` is unchanged.
+- Fixed-penalty models without these terms are identical to 1.3.0.
+
 ### Added
 - **`tam.plot_component(model, data, component, kind="auto")`**: plots one additive component with a view chosen from its dimension: a curve for one feature, one curve per level for `te(x, c)`, a 3D surface (or `kind="heatmap"` with the observed points overlaid) for `te(x1, x2)`, evaluated on a regular grid for one group (`group=`, default the most frequent), a 3D scatter coloured by the contribution for `te(x1, x2, x3)`. Rows with a non-finite contribution are skipped.
 - **`tam.common.plotting.resolve_component(model, feature, component=None, color_by=None)`**: the component a feature maps to under the new decomposition names.
+- **`rbf(x, ..., seed=42)`**: seed of the centre sampling (default 42, like `n()` and `t()`).
 
 ### Fixed
-- **Trees and RBF centres were initialised on a memory probe, not on the training data** (`t()`, `lt()`, `rbf()`): their data-dependent state was set by the first design matrix built, which is the solver's size probe (one row per group). With 48 half-hourly groups, quantile splits came from 48 points and the `sp_alpha` leaf counts summed to 48 × n_trees instead of every training row; `rbf()` centres were drawn from those 48 points. `StaticTAM` now calls `initialize_effects()` on the full training tensor before any design matrix; a probe or a later chunk never changes that state. **Tree, linear-tree and RBF predictions change** (grouped models the most); ungrouped models were already initialised on the full data, except for the `sp_alpha` counts.
-- **`rbf()` centres were not reproducible**: they were drawn from the global torch generator, so an RBF model changed with whatever code ran before it (two identical fits could differ). `rbf(x, ..., seed=42)` now seeds a local generator (default 42, like `n()` and `t()`), and fitting no longer touches the global random state. **RBF predictions change once** (new, fixed centres).
+- **Terms renamed by position** (`StaticTAM._prepare_data`): each effect's `feature_name` was overwritten from the deduplicated feature list by position, so with a `te()` or several features in one term, the effects after it were relabelled (e.g. `c(day_type_week)` became `toy`) and **the fitted model changed**, not only the labels (e.g. a national-load model with `te(temperature, toy)`: test RMSE 3254 → 2432). The renaming is removed. `decompose_prediction` names components with the new `decomposition_names()`: unique feature names are kept, collisions get a basis prefix (`s_x`, `l_x`), and a collision that remains (two `te()` over the same features) gets an occurrence suffix, so no contribution overwrites another.
 - **Plotting helpers after the renaming fix**: `plot_effect_with_model_and_data` and `plot_effect_with_data_decomposed` raised `KeyError: 'effect_x1'` for a feature inside a `te()` or used by several effects. They now resolve the feature to its component: the only one using it, the tensor product whose other margin is `color_by`, or the new `component=` argument; a still-ambiguous feature raises a `ValueError` listing the candidates. Single-component features plot exactly as before.
+- **`add_base_effects` in AdaptiveTAM and KalmanTAM**: the base model's components were added as `l(effect_<feature>)`, a name that does not exist when two effects share a feature (`s(x) + l(x)` gives `effect_s_x`, `effect_l_x`), so the model crashed with a `KeyError`; and with a `te()`, the renaming bug above fed mislabelled components. The components are now added under their `decomposition_names()` columns.
+- **GCV scored a different penalty from the one it stored** (`auto_fit`, `smart_solve_gcv`): each trial rescaled a block that already carried the formula's own weight, so the search scored λ_formula × λ_GCV but stored λ_GCV alone; a later `fit()` on the selected weights returned a different model, and with the default `ap=-9` the nine highest decades of the search range were unreachable. Each trial block is now rebuilt by the effect at λ = 10^α, exactly as `fit()` assembles it; the trial weight is restored even if the search raises, and the initial alphas are clipped to the bounds. **Models selected by `auto_fit` change**.
+- **GCV scored a slightly different system from the one fitted** (`auto_fit`): the solver adds a ridge floor `1e-6·n·I`, GCV added `1e-6·I`. Both now use one helper (`_ridge_floor`), so the selected penalties are scored on the model `fit()` returns; a negative residual sum of squares from rounding is clamped at 0 instead of folded with `abs()`. Penalties below `ap = -6` are dominated by that floor (documented). **Models selected by `auto_fit` can change**; fixed-penalty fits do not.
+- **Trees and RBF centres were initialised on a memory probe, not on the training data** (`t()`, `lt()`, `rbf()`): their data-dependent state was set by the first design matrix built, which is the solver's size probe (one row per group). With 48 half-hourly groups, quantile splits came from 48 points and the `sp_alpha` leaf counts summed to 48 × n_trees instead of every training row; `rbf()` centres were drawn from those 48 points. `StaticTAM` now calls `initialize_effects()` on the full training tensor before any design matrix; a probe or a later chunk never changes that state. **Tree, linear-tree and RBF predictions change for grouped models**; ungrouped trees were already initialised on the full data and do not change (ungrouped `rbf()` changes through its new seed only).
+- **`rbf()` centres were not reproducible**: they were drawn from the global torch generator, so an RBF model changed with whatever code ran before it (two identical fits could differ). `rbf(x, ..., seed=42)` now seeds a local generator, and fitting no longer touches the global random state. **RBF predictions change once** (new, fixed centres).
 - **Sparsity-adaptive tree penalty** (`t(..., sp_alpha>0)`): `empirical_counts` summed only the first batch axis, so the leaf-density penalty was built from the wrong counts and could not be formed. It now counts every sample and group, one value per leaf in design-matrix order.
 - **Linear tree weight** (`lt()`): assigning `lambda_p` (as GCV does on every candidate) did not reach the intercept tree and the slope surface, so GCV could not tune `lt()`. The weight now propagates to both sub-blocks.
-- **GCV scored a different penalty from the one it stored** (`auto_fit`, `smart_solve_gcv`): each trial rescaled a block that already carried the formula's own weight, so the search scored λ_formula × λ_GCV but stored λ_GCV alone; a later `fit()` on the selected weights returned a different model, and with the default `ap=-9` the nine highest decades of the search range were unreachable. Each trial block is now rebuilt by the effect at λ = 10^α, exactly as `fit()` assembles it; the trial weight is restored even if the search raises, and the initial alphas are clipped to the bounds. **Models selected by `auto_fit` change**.
-- **Terms renamed by position** (`StaticTAM._prepare_data`): each effect's `feature_name` was overwritten from the deduplicated feature list by position, so with a `te()` or several features in one term, the effects after it were relabelled (e.g. `c(day_type_week)` became `toy`) and **the fitted model changed**, not only the labels (regression case with `te(temperature, toy)`: test RMSE 3254 → 2432). The renaming is removed. `decompose_prediction` names components with the new `decomposition_names()`: unique feature names are kept, collisions get a basis prefix (`s_x`, `l_x`), and a collision that remains (two `te()` over the same features) gets an occurrence suffix, so no contribution overwrites another. Plotting helpers that looked up `effect_<feature>` for a feature inside a `te()` need the new names (fixed separately).
-- **GCV scored a slightly different system from the one fitted** (`auto_fit`): the solver adds a ridge floor `1e-6·n·I`, GCV added `1e-6·I`. Both now use one helper (`_ridge_floor`), so the selected penalties are scored on the model `fit()` returns; a negative residual sum of squares from rounding is clamped at 0 instead of folded with `abs()`. Penalties below `ap = -6` are dominated by that floor (documented). **Models selected by `auto_fit` can change**; fixed-penalty fits do not.
 - **Dummy date overflow**: without `date_col`, the internal dummy date was spaced one day apart and ran past the year 2262 after ~95,000 rows, which overflows pandas 2.x nanosecond datetimes (pandas 3 tolerates it). It is now spaced one second apart.
-- **`add_base_effects` in AdaptiveTAM and KalmanTAM**: the base model's components were added as `l(effect_<feature>)`, a name that does not exist when two effects share a feature (`s(x) + l(x)` gives `effect_s_x`, `effect_l_x`), so the model crashed with a `KeyError`; and with a `te()`, the renaming bug above fed mislabelled components. The components are now added under their `decomposition_names()` columns.
+
+### Changed
+- **CI**: the test workflow runs on every push and pull request (any branch) and on demand, and checks `import tam` first on every Python version (3.10-3.14).
 
 ---
 ## [1.3.0] - 2026-09-06
@@ -205,6 +225,7 @@ This version introduced the Formula API and the first object-oriented refactorin
 ### Added
 * Initial project setup based on the original `weakl` v0.0.6 package.
 
+[1.3.1]: https://github.com/EDF-Lab/tam/releases/tag/v1.3.1
 [1.3.0]: https://github.com/EDF-Lab/tam/releases/tag/v1.3.0
 [1.2.6]: https://github.com/EDF-Lab/tam/releases/tag/v1.2.6
 [1.2.5]: https://github.com/EDF-Lab/tam/releases/tag/v1.2.5

@@ -2,9 +2,8 @@ name: Tests
 
 on:
   push:
-    branches: [main]
   pull_request:
-    branches: [main]
+  workflow_dispatch:
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
@@ -44,6 +43,9 @@ jobs:
 
       - name: Install package with dev dependencies
         run: pip install -e ".[dev]"
+
+      - name: Import check
+        run: python -c "import tam; print(tam.__version__)"
 
       - name: Run test suite
         run: pytest tests/ --tb=short -q

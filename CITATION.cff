@@ -18,14 +18,11 @@ identifiers:
   - type: doi
     value: 10.5281/zenodo.20543271
     description: "Zenodo Software Archive"
-  - type: doi
-    value: 10.21105/joss.XXXXX # Placeholder for the JOSS DOI
-    description: "Journal of Open Source Software"
 
 
 repository-code: "https://github.com/EDF-Lab/tam"
-version: 1.3.0
-date-released: 2026-09-06
+version: 1.3.1
+date-released: 2026-09-30
 
 keywords:
   - "Python"

@@ -243,20 +243,20 @@ To demonstrate the framework's mathematical guarantees, we ran a comprehensive b
 
 We deployed the entire TAM spectrum (Static bases, Neural Networks, Physics operators) and wrapped them in all available Meta-Learners. Here is the final Test Set performance (ranked by **RMSE**):
 
-* 🥇 **`OOE_GlobalTAM`** (Test RMSE: **5.99**): The ultimate meta-learner. By using the `OperaTAM` algorithm to dynamically aggregate all sub-ensembles based on real-time regret, it successfully muted failing models and pushed the global error lower than any individual expert.
-* 🥈 **`OE_PhysicsTAM`** (Test RMSE: **6.10**): Explicit Domain Knowledge. By injecting the exact differential equation (PDE) of the Damped Harmonic Oscillator directly into the RKHS penalty matrix, it effortlessly extracted the true physical signal. 
-* 🥉 **`OE_AdaptiveTAM`** (Test RMSE: **6.12**): Sliding-window online learning. Proves that mapping base model residuals to a short-term adaptive memory effectively corrects sudden concept drift.
-* 🏅 **`OE_HierarchicalTAM`** (Test RMSE: **6.26**): Structural Coherence. Enforcing the strict top-down constraint ($Y = Y_A + Y_B$) during the global convex optimization prevented the sub-models from overfitting their local, partial noise.
-* 🏅 **`OE_NeuralTAM`** (Test RMSE: **6.28**): The Deep Learning Hybrid. The properly tuned Neural Networks (ReLU, Cos, Tanh) successfully mapped the high-frequency non-linear noise, proving highly effective when integrated into the TAM pipeline.
-* 🏅 **`OE_KalmanTAM`** (Test RMSE: **6.31**): The Extended Kalman Filter. By continuously tracking the parameter drift of the base models in a state-space formulation, it drastically stabilized predictions across the non-stationary test set. 
-* 🏅 **`OE_StaticTAM`** (Test RMSE: **6.80**): The pure Mathematical bases. Explicit continuous dictionaries (like Fourier, Splines, and Tensors) provided a fast, exact, and highly interpretable analytical baseline.
-* 🚧 **`E_AutoTAM_Champion`** (Test RMSE: **8.93**): **[BETA]** The AutoML meta-model is still under construction, but it already achieves near-human performance with 5 experts and a population size of 20.
+* 🥇 **`OE_NeuralTAM`** (Test RMSE: **3.43**): The Deep Learning Hybrid. The Neural Networks (ReLU, Cos, Tanh, and a neural interaction term) map the high-frequency non-linear noise and the interaction surface; aggregated by `OperaTAM`, they give the best sub-ensemble.
+* 🥈 **`OOE_GlobalTAM`** (Test RMSE: **3.43**): The ultimate meta-learner. By using the `OperaTAM` algorithm to dynamically aggregate all sub-ensembles based on real-time regret, it mutes the failing ones and matches the best sub-ensemble (3.435 vs 3.430) without knowing in advance which one it is.
+* 🥉 **`OE_AdaptiveTAM`** (Test RMSE: **3.86**): Sliding-window online learning. Mapping base model residuals to a short-term adaptive memory corrects sudden concept drift.
+* 🏅 **`OE_KalmanTAM`** (Test RMSE: **4.14**): The Extended Kalman Filter. By continuously tracking the parameter drift of the base models in a state-space formulation, it stabilizes predictions across the non-stationary test set.
+* 🏅 **`OE_StaticTAM`** (Test RMSE: **4.84**): The pure Mathematical bases. Explicit continuous dictionaries (Fourier, Splines, Tensors) provide a fast, exact, and highly interpretable analytical baseline. The tensor-product experts (`te()`) capture the interaction of the DGP since v1.3.1 (6.78 with v1.3.0, whose `te()` handling mislabelled the terms that followed it).
+* 🏅 **`OE_PhysicsTAM`** (Test RMSE: **6.10**): Explicit Domain Knowledge. By injecting the exact differential equation (PDE) of the Damped Harmonic Oscillator directly into the RKHS penalty matrix, it extracts the true physical signal; it has no interaction term, which explains its gap to the ensembles above.
+* 🏅 **`OE_HierarchicalTAM`** (Test RMSE: **6.26**): Structural Coherence. Enforcing the strict top-down constraint ($Y = Y_A + Y_B$) during the global convex optimization prevents the sub-models from overfitting their local, partial noise.
+* 🚧 **`E_AutoTAM_Champion`** (Test RMSE: **10.02**): **[BETA]** The AutoML meta-model is still under construction. This run uses the script's quick settings (1 expert, population of 2); 5 experts and a population of 20 do better, at a longer run time.
 
 ### 💡 Key Takeaways for Practitioners:
 
 1. **Topology Matters:** Choosing the correct mathematical basis (e.g., `phys()` for differential equations) provides a massive performance baseline. Furthermore, properly integrating neural layers (`n()`) helps capture complex residual interactions that classical models miss.
 2. **Drift is Inevitable (But Fixable):** Time-series data is inherently non-stationary. Wrapping your base models in **Adaptive** or **Kalman** drift-correction layers significantly reduces error. 
-3. **Trust the Aggregation:** You don't have to guess the perfect model. By feeding a diverse portfolio of expert models (Static, Neural, Physics) into **OperaTAM**, the algorithm's real-time regret bounds mathematically guarantee that the final ensemble will perform at least as well as the best individual expert.
+3. **Trust the Aggregation:** You don't have to guess the perfect model. By feeding a diverse portfolio of expert models (Static, Neural, Physics) into **OperaTAM**, the algorithm's real-time regret bounds guarantee that the final ensemble performs close to the best expert in hindsight (here `OOE_GlobalTAM` is within 0.2% of the best sub-ensemble, which it did not know in advance).
 
 ---
 
