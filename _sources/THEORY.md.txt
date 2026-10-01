@@ -82,6 +82,7 @@ Real-world data is chaotic. Rather than polluting the exactness of the core engi
         ta.KalmanTAM(base_model=m, kalman_formula="y ~ l(Lag_Residual)", date_col="date", horizon_steps=1, process_noise_var=0.5, observation_noise_var=1.0, use_decomposition=True)
         ```
     * *Mathematics:* $\hat{y}_t =  \beta_0(t) + \beta_1(t) \cdot \text{Lag\_Residual}_t + \sum_{k} \beta_k(t) \cdot \text{Base\_Effect}_{k, t}$
+    * *Causal scaling:* scaling comes from a reference period (`calibration_data`, e.g. your training set, or the first `calibration_steps` rows), never from the whole online period; the state is updated at every step, and `fit(history).predict(tomorrow)` equals the online simulation. Details: [theory](math/meta/02_kalman_filter.md), [code](architecture/meta/02_kalman_torchscript.md).
 
 * **Standalone Mode (Without StaticTAM)**
     * *Use case:* You want to use the Kalman or Adaptive engines to track the residuals of an external model. You must compute the residual manually and add the tracker's output back to your base forecast.

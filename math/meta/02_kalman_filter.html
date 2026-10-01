@@ -7,7 +7,7 @@
         <link rel="prefetch" href="../../_static/logo.png" as="image">
 
     <!-- Generated with Sphinx 9.1.0 and Furo 2025.12.19 -->
-        <title>Dynamic Tracking via Extended Kalman Filtering [BETA] - TAM 1.3.2 documentation</title>
+        <title>Dynamic Tracking via Extended Kalman Filtering [BETA] - TAM 1.3.3 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=d111a655" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo-extensions.css?v=8dab3a3b" />
@@ -162,7 +162,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="../../index.html"><div class="brand">TAM 1.3.2 documentation</div></a>
+      <a href="../../index.html"><div class="brand">TAM 1.3.3 documentation</div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -173,7 +173,7 @@
           <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
         </button>
       </div>
-      <label class="toc-overlay-icon toc-header-icon no-toc" for="__toc">
+      <label class="toc-overlay-icon toc-header-icon" for="__toc">
         <span class="icon"><svg><use href="#svg-toc"></use></svg></span>
       </label>
     </div>
@@ -186,7 +186,7 @@
     <img class="sidebar-logo" src="../../_static/logo.png" alt="Logo"/>
   </div>
   
-  <span class="sidebar-brand-text">TAM 1.3.2 documentation</span>
+  <span class="sidebar-brand-text">TAM 1.3.3 documentation</span>
   
 </a><form class="sidebar-search-container" method="get" action="../../search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
@@ -317,7 +317,7 @@
               <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
             </button>
           </div>
-          <label class="toc-overlay-icon toc-content-icon no-toc" for="__toc">
+          <label class="toc-overlay-icon toc-content-icon" for="__toc">
             <span class="icon"><svg><use href="#svg-toc"></use></svg></span>
           </label>
         </div>
@@ -340,6 +340,16 @@
 <li><p><strong>Related code architecture:</strong> <a class="reference internal" href="../../architecture/meta/02_kalman_torchscript.html"><span class="std std-doc">See the Code Architecture</span></a></p></li>
 <li><p><strong>Alternative tracking:</strong> <a class="reference internal" href="01_adaptive_online.html"><span class="std std-doc">Adaptive Online Theory</span></a></p></li>
 </ul>
+<section id="causal-scaling-and-update-step">
+<h2>Causal scaling and update step<a class="headerlink" href="#causal-scaling-and-update-step" title="Link to this heading">¶</a></h2>
+<p>The filter works in a normalised space: each tracked feature is mapped to <span class="math notranslate nohighlight">\([-1, 1]\)</span> and the target to <span class="math notranslate nohighlight">\((y - c)/s\)</span> with <span class="math notranslate nohighlight">\(c\)</span> the centre and <span class="math notranslate nohighlight">\(s\)</span> the half-amplitude of the target, per group.
+These constants come from a <strong>reference period</strong>, never from the whole online period (they would otherwise carry future information into every forecast and set the effective observation and process noise <span class="math notranslate nohighlight">\(R\)</span> and <span class="math notranslate nohighlight">\(Q\)</span>):
+the first <code class="docutils literal notranslate"><span class="pre">calibration_steps</span></code> rows of each group (burn-in: their forecasts are not causal, do not score them), or a separate <code class="docutils literal notranslate"><span class="pre">calibration_data</span></code>. They are stored at <code class="docutils literal notranslate"><span class="pre">fit</span></code> and reused by <code class="docutils literal notranslate"><span class="pre">predict()</span></code>.</p>
+<p>With <code class="docutils literal notranslate"><span class="pre">horizon_steps</span> <span class="pre">=</span> <span class="pre">1</span></code> the state is updated at every step (<span class="math notranslate nohighlight">\(B = 1\)</span>, the exact sequential filter): the forecast at <span class="math notranslate nohighlight">\(t+1\)</span> uses the target at <span class="math notranslate nohighlight">\(t\)</span>.
+An explicit block size <span class="math notranslate nohighlight">\(B &gt; 1\)</span> applies the Woodbury block update and moves the state only every <span class="math notranslate nohighlight">\(B\)</span> steps.
+<code class="docutils literal notranslate"><span class="pre">fit</span></code> stores the state after the last update, so <code class="docutils literal notranslate"><span class="pre">fit(history</span> <span class="pre">up</span> <span class="pre">to</span> <span class="pre">t).predict(step</span> <span class="pre">t+1)</span></code> forecasts the next step exactly as the online simulation does (with <span class="math notranslate nohighlight">\(B = 1\)</span>).
+Verified by <code class="docutils literal notranslate"><span class="pre">tests/test_kalman_causal.py</span></code>: no forecast at or before row <span class="math notranslate nohighlight">\(r\)</span> changes when later rows change; <span class="math notranslate nohighlight">\(B = 1\)</span> equals a plain NumPy Kalman filter to <span class="math notranslate nohighlight">\(10^{-10}\)</span>; the operational loop equals the simulation to <span class="math notranslate nohighlight">\(10^{-9}\)</span>.</p>
+</section>
 </section>
 
         </article>
@@ -385,15 +395,36 @@
         
       </footer>
     </div>
-    <aside class="toc-drawer no-toc">
+    <aside class="toc-drawer">
       
+      
+      <div class="toc-sticky toc-scroll">
+        <div class="toc-title-container">
+          <span class="toc-title">
+            On this page
+          </span>
+        </div>
+        <div class="toc-tree-container">
+          <div class="toc-tree">
+            <ul>
+<li><a class="reference internal" href="#">Dynamic Tracking via Extended Kalman Filtering [BETA]</a><ul>
+<li><a class="reference internal" href="#causal-scaling-and-update-step">Causal scaling and update step</a></li>
+</ul>
+</li>
+</ul>
+
+          </div>
+        </div>
+      </div>
       
       
     </aside>
   </div>
-</div><script src="../../_static/documentation_options.js?v=8ca9e7a0"></script>
+</div><script src="../../_static/documentation_options.js?v=28d163b9"></script>
     <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/scripts/furo.js?v=46bd48cc"></script>
+    <script>window.MathJax = {"options": {"processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+    <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@4/tex-mml-chtml.js"></script>
     </body>
 </html>
