@@ -19,6 +19,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.3.2] - 2026-10-01
+
+Patch release (tag on `main`; the latest release on PyPI and Zenodo stays 1.3.1): two crashes fixed. **No prediction changes**: every model that worked in 1.3.1 gives the same numbers.
+
+### Fixed
+- **Grouped models predict a frame holding only some of their groups** (`StaticTAM` with `group_col`): `predict` raised `ValueError: Length of values (n) does not match length of index (0)` and `decompose_prediction` returned NaN. The groups stacked from the frame were paired with the fitted group list by position, and the per-group coefficients were sliced by position in the stacked tensor, so a one-group frame would have used the first group's coefficients. Prediction and decomposition now use the groups actually present: rows keep the input order and index, and a group never seen in training raises a `ValueError` naming it. `plot_component` no longer replicates its grid over every group.
+- **Silent overflow in log-target quantiles** (`predict_quantile`, `predict_quantiles`, `predict_median`, `anomaly_score`, mixture `component_means` and `predict_mean`): a scale prediction far outside the training range gave `exp(...) = inf` and a silent numpy `RuntimeWarning: overflow encountered in exp`. The value is still `inf` (it is beyond float64, and the columns stay ordered) but it comes with an explicit `UserWarning` naming the quantity and the first rows.
+
+---
+
 ## [1.3.1] - 2026-09-30
 
 Patch release: fixes that made some models wrong (formulas with `te()` or several features in one term) or not reproducible (`rbf()`, trees).
