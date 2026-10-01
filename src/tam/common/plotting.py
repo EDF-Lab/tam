@@ -261,12 +261,8 @@ def _component_on_grid(model, data: pd.DataFrame, component: str, a: str, b: str
         # Distinct, increasing timestamps keep the grid order through the pipeline's date sort.
         grid[date_col] = pd.Timestamp(data[date_col].min()) + pd.to_timedelta(np.arange(A.size), unit="s")
     if grouped:
-        # A grouped model predicts only frames holding every group on the same dates: replicate the grid per group.
-        groups = list(getattr(model, "unique_groups_", None) or data[group_col].unique())
-        grid = pd.concat([grid.assign(**{group_col: g}) for g in groups], ignore_index=True)
+        grid[group_col] = group
     out = model.decompose_prediction(grid)
-    if grouped:
-        out = out[out[group_col] == group]
     Z = out[f"effect_{component}"].to_numpy(dtype=float).reshape(A.shape)
     return A, B, Z, (group if grouped else None)
 

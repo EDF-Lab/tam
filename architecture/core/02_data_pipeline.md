@@ -69,7 +69,7 @@ This was a deliberate engineering choice for performance and memory safety. By c
 
 After the core engine computes the predictions (or decomposes them per-effect), the multidimensional PyTorch tensors must be safely mapped back to the user's original 2D Pandas DataFrame. 
 
-The `_reassemble_decomposed_predictions` function reverses the stacking process. It flattens the predicted tensors along the batch dimensions and precisely aligns them against the original `unique_groups` order to guarantee absolute data integrity.
+The `_reassemble_decomposed_predictions` function reverses the stacking process. It flattens the predicted tensors along the batch dimensions and precisely aligns them against the groups actually stacked, in fitted order, to guarantee absolute data integrity. A frame holding only some of the fitted groups stacks only those (`_groups_in_data`), and prediction picks their coefficients by position in `unique_groups_` (`_coefficients_of_groups`); a group never seen in training raises a `ValueError` (`_check_known_groups`).
 
 ```{literalinclude} ../../../../src/tam/model/_data.py
 :language: python

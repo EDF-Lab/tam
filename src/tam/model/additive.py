@@ -27,6 +27,9 @@ from .safety import SafetyTAM
 from ._data import (
     _fit_normalization_params,
     _transform_data_stacked,
+    _groups_in_data,
+    _check_known_groups,
+    _coefficients_of_groups,
     _reassemble_decomposed_predictions
 )
 
@@ -479,7 +482,9 @@ class StaticTAM(BaseTAM):
                     f"TAM [Data Error]: The target column '{target_col}' "
                     "contains NaN values. Cannot proceed with optimization."
                 )
-        return x_stacked, y_stacked, self.unique_groups_
+        # The groups stacked in x_stacked, in order: a frame holding only some of the fitted groups stacks only those.
+        groups_stacked = _groups_in_data(data, self.group_col_, self.unique_groups_, self.norm_params_)
+        return x_stacked, y_stacked, groups_stacked
 
     def _build_design_matrix(self, x_data: torch.Tensor) -> torch.Tensor:
         """Builds the global design matrix."""
@@ -512,17 +517,20 @@ class StaticTAM(BaseTAM):
 
         required_cols = self.features_config_['features'] + [self.group_col_, self.date_col_]
         _check_features(dataset=data, required_features=required_cols)
+        _check_known_groups(data, self.group_col_, self.unique_groups_)
         
         mask, balanced_data = _balance_groups(
             dataset=data, group_col=self.group_col_, date_col=self.date_col_, method="fill"
         )
 
-        x_predict, _, _ = self._prepare_data(balanced_data)
+        x_predict, _, groups_stacked = self._prepare_data(balanced_data)
         
-        final_decomposed_effects = smart_decompose(x_predict, self.coefficients_, self.effects_list_)
+        final_decomposed_effects = smart_decompose(
+            x_predict, _coefficients_of_groups(self.coefficients_, groups_stacked, self.unique_groups_), self.effects_list_
+        )
 
         decomposed_df = _reassemble_decomposed_predictions(
-            balanced_data, final_decomposed_effects, self.group_col_, self.unique_groups_, date_col=self.date_col_
+            balanced_data, final_decomposed_effects, self.group_col_, groups_stacked, date_col=self.date_col_
         )
 
         return _cleanup_dummies(decomposed_df[mask], self.group_col_, self.date_col_)
