@@ -27,6 +27,15 @@ There is **no `DistributionalTAM` class**: a dict formula makes `StaticTAM` a th
 :pyobject: mu_sigma
 ```
 
+For a log target the quantile and the median are `exp` of a model-scale value. A value beyond the float64 range (a location or scale
+prediction far outside the training range) is returned as `inf` with an explicit `UserWarning` naming the quantity and the first rows,
+never numpy's silent overflow warning:
+
+```{literalinclude} ../../../../src/tam/model/statistics/estimation/_distributional.py
+:language: python
+:pyobject: _to_response_scale
+```
+
 ## The `additive.py` bridge (one-line delegates)
 
 ```{literalinclude} ../../../../src/tam/model/additive.py

@@ -7,7 +7,7 @@
         <link rel="prefetch" href="../../_static/logo.png" as="image">
 
     <!-- Generated with Sphinx 9.1.0 and Furo 2025.12.19 -->
-        <title>Distributional (Location-Scale): Thin Delegation - TAM 1.3.1 documentation</title>
+        <title>Distributional (Location-Scale): Thin Delegation - TAM 1.3.2 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=d111a655" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo-extensions.css?v=8dab3a3b" />
@@ -162,7 +162,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="../../index.html"><div class="brand">TAM 1.3.1 documentation</div></a>
+      <a href="../../index.html"><div class="brand">TAM 1.3.2 documentation</div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -186,7 +186,7 @@
     <img class="sidebar-logo" src="../../_static/logo.png" alt="Logo"/>
   </div>
   
-  <span class="sidebar-brand-text">TAM 1.3.1 documentation</span>
+  <span class="sidebar-brand-text">TAM 1.3.2 documentation</span>
   
 </a><form class="sidebar-search-container" method="get" action="../../search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
@@ -418,6 +418,24 @@
     <span class="k">return</span> <span class="n">mu_hat</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">clip</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">conditional_variance</span><span class="p">),</span> <span class="n">_TINY</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
 </pre></div>
 </div>
+<p>For a log target the quantile and the median are <code class="docutils literal notranslate"><span class="pre">exp</span></code> of a model-scale value. A value beyond the float64 range (a location or scale
+prediction far outside the training range) is returned as <code class="docutils literal notranslate"><span class="pre">inf</span></code> with an explicit <code class="docutils literal notranslate"><span class="pre">UserWarning</span></code> naming the quantity and the first rows,
+never numpy’s silent overflow warning:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">def</span><span class="w"> </span><span class="nf">_to_response_scale</span><span class="p">(</span><span class="n">model_scale</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">quantity</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""exp() of a model-scale value for a log target; a value beyond float64 is inf, with an explicit warning (not numpy's)."""</span>
+    <span class="k">with</span> <span class="n">np</span><span class="o">.</span><span class="n">errstate</span><span class="p">(</span><span class="n">over</span><span class="o">=</span><span class="s2">"ignore"</span><span class="p">):</span>
+        <span class="n">response</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">model_scale</span><span class="p">)</span>
+    <span class="n">overflowed</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">flatnonzero</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">isposinf</span><span class="p">(</span><span class="n">response</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">model_scale</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">))</span>
+    <span class="k">if</span> <span class="n">overflowed</span><span class="o">.</span><span class="n">size</span><span class="p">:</span>
+        <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">"exp overflow in </span><span class="si">{</span><span class="n">quantity</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">overflowed</span><span class="o">.</span><span class="n">size</span><span class="si">}</span><span class="s2"> row(s) exceed the float64 range on the response scale "</span>
+            <span class="sa">f</span><span class="s2">"and are returned as inf (first rows: </span><span class="si">{</span><span class="n">overflowed</span><span class="p">[:</span><span class="mi">5</span><span class="p">]</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span><span class="si">}</span><span class="s2">). The location or scale prediction is "</span>
+            <span class="sa">f</span><span class="s2">"far outside the training range there."</span><span class="p">,</span>
+            <span class="ne">UserWarning</span><span class="p">,</span> <span class="n">stacklevel</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span>
+        <span class="p">)</span>
+    <span class="k">return</span> <span class="n">response</span>
+</pre></div>
+</div>
 </section>
 <section id="the-additive-py-bridge-one-line-delegates">
 <h2>The <code class="docutils literal notranslate"><span class="pre">additive.py</span></code> bridge (one-line delegates)<a class="headerlink" href="#the-additive-py-bridge-one-line-delegates" title="Link to this heading">¶</a></h2>
@@ -498,7 +516,7 @@
       
     </aside>
   </div>
-</div><script src="../../_static/documentation_options.js?v=bb516dca"></script>
+</div><script src="../../_static/documentation_options.js?v=8ca9e7a0"></script>
     <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/scripts/furo.js?v=46bd48cc"></script>
