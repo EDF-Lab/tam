@@ -19,6 +19,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.3.3] - 2026-10-01
+
+Patch release (tag on `main`; the latest release on PyPI and Zenodo stays 1.3.1): `KalmanTAM` no longer looks ahead and updates its state at every step.
+
+**`KalmanTAM` forecasts change**; the only other change is the fix of `s()` on one-row frames and on a single out-of-range value below. Everything else is identical to 1.3.2. To get the 1.3.2 behaviour, use the tag `v1.3.2` (or `block_size=128` for the update rule alone).
+
+### Results change
+- **Causal scaling** (`KalmanTAM`): the feature normalisation and the target scale (`y_max - y_min`) were computed on the whole online period, so every forecast depended on observations after it, and the scale set the effective observation and process noise. They now come from a reference period: the first `calibration_steps` rows of each group, or a separate `calibration_data`. A forecast at or before row r no longer changes when later rows change. With data whose range never changes after the reference rows, the forecasts are identical to 1.3.2 (checked to the last bit, with and without a base model).
+- **Update at every step** (`KalmanTAM`): with `horizon_steps=1` the default `block_size` was 128, so the state moved only every 128 steps (every 128 days with `group_col="tod"`) while the docstring promised standard online filtering. The default is now the exact sequential filter (`block_size=None`, i.e. 1), which tracks the load more closely on the FORCE national load.
+- **`fit()` then `predict()`** (`KalmanTAM`): the frozen state was the one the last row was forecast with, i.e. before that row's update, so forecasting the next day from `fit(history)` ignored the last observation. `fit()` now stores the state after the last update: with `block_size=1`, `fit(history up to day t).predict(day t+1)` equals the online simulation's forecast for day t+1 (checked on the FORCE national load, to numerical precision).
+
+### Fixed
+- **`s()` predicted wrongly in two situations** (`StaticTAM`, `AdaptiveTAM`, `KalmanTAM` base features): a spline treated any one-element input as the solver's one-row memory probe and rebuilt its knots from that single point instead of using the trained ones. It happened (1) on a frame with one row per group (tomorrow's forecast for every half-hour with `group_col="tod"`), and (2) with the default linear extrapolation when **exactly one value** of a frame was outside the training range, because the slope of the out-of-range values is computed on a tensor holding only those values (one element for one value). On the FORCE national load test year, a single half-hour just above its group's training maximum was predicted orders of magnitude off. Splines now always use their trained knots. Frames with no out-of-range value, or with several, and frames with several rows per group are unchanged; the other effects (`l()`, `c()`, `f()`, `w()`, `rbf()`, `t()`) were already row-wise.
+
+### Added
+- **`KalmanTAM(calibration_steps=None, calibration_data=None)`**: `calibration_steps` is the number of rows per group, at the start of the data, that set the scaling (default `min(365, half the rows)`). A message says those rows are not causal and should not be scored. `calibration_data` takes the scaling from a separate historical DataFrame (for example the training set), so every online row can be scored. A `calibration_steps` that leaves no row to track raises a `ValueError`. The scaling is stored at `fit` and reused by `predict()`.
+- **`KalmanTAM.tune_hyperparameters(..., calibration_steps=None, calibration_mask=None)`**: the RMSE is computed on the time steps you choose (a slice, a list of positions or a boolean mask), not on the end of the data.
+
+### Deprecated
+- **`tune_hyperparameters(lookback_days=...)`** scored the last `lookback_days * 24` steps of the data you passed, which is look-ahead when that is the period you report (and assumes hourly steps). It still works with a `FutureWarning`, as does calling it with no period; it is removed in 1.5.0.
+- An explicit **`block_size > 1`** now warns that the state is updated only every `block_size` steps.
+
+---
+
 ## [1.3.2] - 2026-10-01
 
 Patch release (tag on `main`; the latest release on PyPI and Zenodo stays 1.3.1): two crashes fixed. **No prediction changes**: every model that worked in 1.3.1 gives the same numbers.
