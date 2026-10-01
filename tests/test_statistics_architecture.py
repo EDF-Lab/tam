@@ -153,6 +153,8 @@ def test_predict_intervals_requires_calibration_first():
         _fitted_distributional(0).predict_intervals(_lognormal(1))
 
 
+# The fixture's scale model reaches sigma ~3e6 on one test row: that quantile is inf and warns explicitly (see test_quantile_overflow.py).
+@pytest.mark.filterwarnings("ignore:exp overflow:UserWarning")
 def test_predict_quantiles_pipeline_is_labelled_and_ordered():
     model = _fitted_distributional(0)
     frame = model.predict_quantiles(_lognormal(3, 500), taus=(0.1, 0.5, 0.9))
