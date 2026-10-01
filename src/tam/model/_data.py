@@ -151,6 +151,33 @@ def _transform_data_stacked(
     return x_stacked, y_stacked
 #: </transform_stacked>
 
+def _groups_in_data(data: pd.DataFrame, group_col: str, unique_groups: List, norm_params: dict) -> List:
+    r"""The fitted groups that `data` holds rows for, in fitted order: the groups `_transform_data_stacked` stacks."""
+    present = set(data[group_col].dropna().unique())
+    return [g for g in unique_groups if g in norm_params and g in present]
+
+
+def _coefficients_of_groups(coefficients: torch.Tensor, groups_stacked: List, unique_groups: List) -> torch.Tensor:
+    r"""Per-group coefficients of the groups actually stacked (all of them when the frame holds every fitted group)."""
+    if list(groups_stacked) == list(unique_groups):
+        return coefficients
+    positions = [list(unique_groups).index(g) for g in groups_stacked]
+    return coefficients[torch.tensor(positions, device=coefficients.device)]
+
+
+def _check_known_groups(data: pd.DataFrame, group_col: str, known_groups: List) -> None:
+    r"""Raises a ValueError naming the groups of `data` that the model never saw in training."""
+    if known_groups is None:
+        return
+    known = set(known_groups)
+    unseen = [g for g in data[group_col].dropna().unique() if g not in known]
+    if unseen:
+        raise ValueError(
+            f"TAM [Data Error]: group(s) {unseen[:10]} of column '{group_col}' were not seen in training; "
+            f"the model knows {list(known_groups)[:20]}."
+        )
+
+
 #: <reassemble>
 def _reassemble_predictions(
     original_data: pd.DataFrame,
