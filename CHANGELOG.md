@@ -17,6 +17,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ---
 ## [Unreleased]
 
+### Changed
+- **`te()` has one smoothing parameter per margin** (mgcv semantics): `auto_fit` (GCV) tunes the weight of each margin separately, so a tensor product can be smooth along one axis and rough along another (before, the margins were multiplied by one weight GCV could barely move: on a plane `z = x + y` the surface used 76 effective degrees of freedom, now 4). A weight given to the tensor product itself (`te(..., ap=)` or the default) is folded into each margin once; **with fixed weights the penalty is unchanged**. `auto_fit` reports and `summary()` show one value per margin. New effect API: `penalty_coordinates()`, `set_penalty_coordinates()`, `n_penalty_coordinates` (one coordinate for every effect but a tensor product).
+
 ---
 
 ## [1.3.4] - 2026-10-02

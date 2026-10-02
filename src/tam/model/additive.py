@@ -447,14 +447,16 @@ class StaticTAM(BaseTAM):
             else:
                 details = "Custom"
 
-            lambda_p_log = np.log10(effect.lambda_p) if effect.lambda_p > 0 else -np.inf
+            coordinates = effect.penalty_coordinates()
+            logs = [round(float(np.log10(c)), 2) if c > 0 else -np.inf for c in coordinates]
+            lambda_p_log = logs[0] if len(logs) == 1 else " / ".join(f"{v:.2f}" for v in logs)
 
             summary_data.append({
                 "Feature": name,
                 "Type": eff_type_raw,
                 "Complexity (D)": complexity,
                 "Structure / Params": details,
-                "Reg (log10)": round(lambda_p_log, 2)
+                "Reg (log10)": lambda_p_log
             })
             
         return pd.DataFrame(summary_data)
@@ -918,10 +920,18 @@ class StaticTAM(BaseTAM):
         )
         
         print(f"\nFinal GCV Score: {gcv_score:.4f}")
-        print("Optimal lambda_ps found per effect:")
-        for i, effect in enumerate(self.effects_list_):
-            effect.lambda_p = float(best_lambda_ps[i])
-            print(f" - {effect.feature_name}: {best_lambda_ps[i]:.2e} (log10 = {np.log10(best_lambda_ps[i]):.2f})")
+        print("Optimal lambda_ps found per effect (per margin for a tensor product):")
+        position = 0
+        for effect in self.effects_list_:
+            count = effect.n_penalty_coordinates
+            values = best_lambda_ps[position:position + count]
+            position += count
+            effect.set_penalty_coordinates([float(v) for v in values])
+            if isinstance(effect, TensorProductEffect):
+                for margin, value in zip(effect.effects, values):
+                    print(f" - te({', '.join(m.feature_name for m in effect.effects)})[{margin.feature_name}]: {value:.2e} (log10 = {np.log10(value):.2f})")
+            else:
+                print(f" - {effect.feature_name}: {values[0]:.2e} (log10 = {np.log10(values[0]):.2f})")
         
         return self
 #: </auto_fit>

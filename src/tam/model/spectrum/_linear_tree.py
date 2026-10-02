@@ -47,7 +47,7 @@ class LinearTreeEffect(BaseEffect):
             sparsity_alpha, split_strategy
         )
         self.linear = LinearEffect(slope_feature, scaled=np.pi, lambda_p=1.0, extrapolate='continue')
-        self.tensor = TensorProductEffect([self.slope_tree, self.linear], lambda_p, 'continue')
+        self.tensor = TensorProductEffect([self.slope_tree, self.linear], lambda_p, 'continue', fold_weight=False)
         
         self.tree_features = getattr(self.base_tree, 'input_features', [feature_name])
         self.input_features = self.tree_features + [slope_feature]
