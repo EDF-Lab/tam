@@ -290,7 +290,7 @@ class AdaptiveTAM:
             steps_per_period=self.steps_per_period_,
             horizon_steps=self.horizon_steps_,
             date_col=self.date_col_,
-            fixed_ranges=categorical_ranges(self.adaptive_model_.effects_list_)
+            categorical_levels=categorical_ranges(self.adaptive_model_.effects_list_)
         )
         # Data-dependent state (spline knots) comes from the training windows, never from a memory probe.
         initialize_effects(

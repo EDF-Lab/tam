@@ -118,6 +118,7 @@ def create_effects_from_parsed_terms(
         #: <parse_categorical>
         elif ttype == 'c':
             n_cat = params_resolved.get('n_cat')
+            n_cat_given = n_cat is not None
             if n_cat is None:
                 if data_info is not None and feature_name in data_info:
                     n_cat = data_info[feature_name]
@@ -129,6 +130,7 @@ def create_effects_from_parsed_terms(
             p_order = int(params_resolved.get('p_order', 1))
             extrap_val = params_resolved.get('extrapolate', 'continue')
             effects_list.append(CategoricalEffect(feature_name, n_cat, topo, lambda_p, p_order, extrap_val))
+            effects_list[-1].n_cat_given = n_cat_given
         #: </parse_categorical>
             
         #: <parse_chebyshev>
@@ -321,12 +323,13 @@ def _infer_feature_columns(effects_list: List[BaseEffect]) -> List[str]:
     return feature_columns
 #: </infer_columns>
 
-def categorical_ranges(effects_list: List[BaseEffect]) -> Dict[str, tuple]:
+def categorical_ranges(effects_list: List[BaseEffect]) -> Dict[str, int]:
     """
-    ``{feature: (0, n_cat - 1)}`` for the features read only by categorical effects.
+    ``{feature: n_cat}`` for the features read only by categorical effects (see ``categorical_range`` for the range it gives).
 
     A categorical code is a level index, so it is normalised on the full level range and not on the levels the
     training rows happen to contain: a level absent from training keeps its own column instead of landing on an edge level.
+    Only a ``n_cat`` given in the formula states the level set; an inferred one (training maximum + 1) keeps the min/max rule.
     A feature also read by another effect, or by two categorical effects with different level counts, keeps the min/max rule.
     """
     levels: Dict[str, set] = {}
@@ -340,13 +343,31 @@ def categorical_ranges(effects_list: List[BaseEffect]) -> Dict[str, tuple]:
         if isinstance(effect, OffsetEffect):
             return
         if isinstance(effect, CategoricalEffect):
-            levels.setdefault(effect.feature_name, set()).add(effect.n_categories)
+            if getattr(effect, 'n_cat_given', False):
+                levels.setdefault(effect.feature_name, set()).add(effect.n_categories)
+            else:
+                other.add(effect.feature_name)     # n_cat inferred from the data: the level set is not known, min/max rule
             return
         other.update(getattr(effect, 'input_features', None) or [effect.feature_name])
 
     for effect in effects_list:
         visit(effect)
-    return {name: (0.0, float(next(iter(n)) - 1)) for name, n in levels.items() if name not in other and len(n) == 1}
+    return {name: int(next(iter(n))) for name, n in levels.items() if name not in other and len(n) == 1}
+
+
+def categorical_range(n_cat: int, low: float, high: float, integer_codes: bool = True) -> tuple:
+    """
+    The ``(min, max)`` a categorical code is normalised with, from the smallest and largest code of the training rows.
+
+    Codes are level indices ``0 .. n_cat - 1``: the range is ``(0, n_cat - 1)``. Codes that do not fit there (``1 .. n_cat``,
+    the other usual coding) keep their own range starting at the smallest code, ``(low, low + n_cat - 1)``, as before.
+    Codes that are not integers (a month coded as a fraction of the year, read by a Fourier topology as a coordinate) are not
+    level indices: they keep the min/max of the training rows.
+    """
+    if not integer_codes:
+        return float(low), float(high)
+    start = 0.0 if high <= n_cat - 1 else float(low)
+    return start, start + n_cat - 1
 
 
 def categorical_features(effects_list: List[BaseEffect]) -> List[str]:

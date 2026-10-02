@@ -486,7 +486,7 @@ class StaticTAM(BaseTAM):
                 data=data, 
                 features=self.features_config_["features"], 
                 group_col=self.group_col_,
-                fixed_ranges=categorical_ranges(self.effects_list_)
+                categorical_levels=categorical_ranges(self.effects_list_)
             )
             
         if target_col is not None:

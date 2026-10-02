@@ -20,12 +20,13 @@ import numpy as np
 import torch
 
 from tam.common.utils import TORCH_DEVICE
+from .spectrum._factory import categorical_range
 
 def _fit_normalization_params(
     data: pd.DataFrame, 
     features: List[str], 
     group_col: str,
-    fixed_ranges: Optional[Dict[str, Tuple[float, float]]] = None
+    categorical_levels: Optional[Dict[str, int]] = None
 ) -> Tuple[Dict, List]:
     r"""
     Calculates the min/max normalization parameters for features, computed per group.
@@ -34,8 +35,8 @@ def _fit_normalization_params(
         data: The training DataFrame.
         features: A list of feature column names to normalize.
         group_col: The column name used to group the data.
-        fixed_ranges: ``{feature: (min, max)}`` of features whose range does not come from the data
-            (categorical codes: ``(0, n_cat - 1)``, whatever levels the training rows hold).
+        categorical_levels: ``{feature: n_cat}`` of the categorical features: their range is the full level range
+            (``categorical_range``), whatever levels the training rows hold.
 
     Returns:
         A tuple (norm_params, unique_groups):
@@ -54,10 +55,12 @@ def _fit_normalization_params(
         }
         for group_name in unique_groups
     }
-    for params in norm_params.values():
-        for feature, (low, high) in (fixed_ranges or {}).items():
+    for group_name, params in norm_params.items():
+        for feature, n_cat in (categorical_levels or {}).items():
             if feature in params['min'].index:
-                params['min'][feature], params['max'][feature] = float(low), float(high)
+                column = grouped.get_group(group_name)[feature]
+                params['min'][feature], params['max'][feature] = categorical_range(
+                    n_cat, params['min'][feature], params['max'][feature], bool((column.dropna() == np.round(column.dropna())).all()))
         
     return norm_params, unique_groups
 
@@ -347,7 +350,7 @@ def _transform_data_adaptive(
     steps_per_period: int,
     horizon_steps: int = 1,
     date_col: Optional[str] = None,
-    fixed_ranges: Optional[Dict[str, Tuple[float, float]]] = None
+    categorical_levels: Optional[Dict[str, int]] = None
 ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, _AdaptiveWindows]:
     r"""
     Cuts the data into the windows of a rolling refit, and normalises each window on its own training rows.
@@ -367,7 +370,7 @@ def _transform_data_adaptive(
         training_window_periods: Training length, in periods.
         steps_per_period: Rows of one group in a period.
         horizon_steps: Horizon of forecasting.
-        fixed_ranges: ``{feature: (min, max)}`` of the features whose normalisation does not come from the data (categorical codes).
+        categorical_levels: ``{feature: n_cat}`` of the categorical features: normalised on their full level range.
 
     Returns:
         (x_stacked, y_stacked, x_to_predict, windows): (n_groups, n_windows, L, F), (n_groups, n_windows, L, 1),
@@ -379,7 +382,7 @@ def _transform_data_adaptive(
     window_size_steps = update_interval_periods * steps_per_period
     dtype = torch.get_default_dtype()
     n_features = len(features)
-    fixed = fixed_ranges or {}
+    categorical = categorical_levels or {}
 
     x_all = data[features].to_numpy(dtype=np.float64)
     y_all = data[target_col].to_numpy(dtype=np.float64)
@@ -411,8 +414,12 @@ def _transform_data_adaptive(
         low = x_train.amin(dim=1, keepdim=True)
         high = x_train.amax(dim=1, keepdim=True)
         for j, name in enumerate(features):
-            if name in fixed:
-                low[..., j], high[..., j] = float(fixed[name][0]), float(fixed[name][1])
+            if name in categorical:
+                n_cat = categorical[name]
+                integer = (x_train[..., j] == x_train[..., j].round()).all(dim=1, keepdim=True)
+                start = torch.where(high[..., j] <= n_cat - 1, torch.zeros_like(low[..., j]), low[..., j])
+                low[..., j] = torch.where(integer, start, low[..., j])
+                high[..., j] = torch.where(integer, start + (n_cat - 1), high[..., j])
         amplitude = high - low
         amplitude = torch.where(amplitude == 0, torch.ones_like(amplitude), amplitude)
         center = (high + low) / 2

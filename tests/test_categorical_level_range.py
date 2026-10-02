@@ -64,6 +64,33 @@ def test_levels_missing_at_the_bottom_still_use_the_full_range():
     assert (params["min"]["dow"], params["max"]["dow"]) == (0.0, 6.0)
 
 
+def test_codes_from_one_to_n_cat_keep_their_own_range():
+    """Months coded 1..12 with n_cat=12 do not fit in 0..11: they are normalised on (1, 12), as before."""
+    df = _week(n=400)
+    df["month"] = df["date"].dt.month
+    model = ta.StaticTAM(formula="y ~ l(x) + c(month, n_cat=12, topo='fourier')", date_col="date").fit(df)
+    params = next(iter(model.norm_params_.values()))
+    assert (params["min"]["month"], params["max"]["month"]) == (1.0, 12.0)
+
+
+def test_fractional_codes_keep_the_min_max_rule():
+    """A month coded as (month - 1) / 12 and read by a Fourier topology is a coordinate, not a level index."""
+    df = _week(n=400)
+    df["season"] = (df["date"].dt.month - 1) / 12.0
+    model = ta.StaticTAM(formula="y ~ l(x) + c(season, n_cat=12, topo='fourier')", date_col="date").fit(df)
+    params = next(iter(model.norm_params_.values()))
+    assert (params["min"]["season"], params["max"]["season"]) == (0.0, 11 / 12)
+
+
+def test_an_inferred_n_cat_keeps_the_min_max_rule():
+    """Without n_cat in the formula the level set is not known (n_cat = training maximum + 1): codes 1..12 keep (1, 12)."""
+    df = _week(n=400)
+    df["month"] = df["date"].dt.month
+    model = ta.StaticTAM(formula="y ~ l(x) + c(month, topo='fourier')", date_col="date").fit(df)
+    params = next(iter(model.norm_params_.values()))
+    assert (params["min"]["month"], params["max"]["month"]) == (1.0, 12.0)
+
+
 def test_a_feature_shared_with_another_effect_keeps_the_min_max_rule():
     effects = create_effects_from_parsed_terms(
         ta.StaticTAM(formula="y ~ s(dow, k=5) + c(dow, n_cat=7)", date_col="date").parsed_terms_,
