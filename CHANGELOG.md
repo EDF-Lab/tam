@@ -19,13 +19,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.3.4] - 2026-10-02
+
+Patch release (tag on `main`; the latest release on PyPI and Zenodo stays 1.3.1): `AdaptiveTAM` now gives what an operational refit would, and `StaticTAM` says when a forecast leaves the trained range. **`AdaptiveTAM` forecasts change**; `StaticTAM` changes only for a categorical level absent from training. To get the 1.3.3 behaviour, use the tag `v1.3.3`.
+
+### Changed
+- **`AdaptiveTAM` equals a rolling `StaticTAM`** (`fit` on the training rows of a window, `predict` on the next rows, to numerical precision): each window is normalised with its own training rows (it used the whole period), forecasts are no longer clipped to the whole-period range (`clip_to_train_range=True` clips each window to its own), windows are anchored on the start of the data, features and targets are `float64`, and the rows added to balance groups are never trained on. Rows before the first window are `NaN` in `Estimated...` (they were 0); `AdaptedEstimated...` keeps the base model forecast there when there is a base model.
+- **`AdaptiveTAM.fit()` then `predict()`** uses the window a refit holds after the last row, with its own normalisation: `fit(history up to day t).predict(day t+1)` equals the simulation's forecast for day t+1.
+- **Categorical codes** (`c()` with an `n_cat` given in the formula) are normalised on the full level range `0 .. n_cat - 1`, so a level absent from training keeps its own column instead of landing on an edge level. Codes `1 .. n_cat`, non-integer codes and an inferred `n_cat` keep the min/max rule.
+
+### Fixed
+- **Spline knots** (`s()`): set from the full training tensor, no longer from the solver's memory probe, which could cache degenerate knots when the first row of every group sat on the upper edge of its range.
+
+### Added
+- **`ta.TAMExtrapolationWarning`**: once per model and feature, when a feature read by a non-linear effect (`s`, `f`, `p`, `w`, `rbf`, `n`, `t`, `phys`, `te` margin) leaves its trained range, or a categorical level was not seen in training (`AdaptiveTAM`: one warning for all windows; `AutoTAM` lists them in `summary()`). `l()` never warns; the default extrapolation does not change.
+- **`TAM [Info]` at training**: a `c()` term with a given `n_cat` says which levels the training rows lack.
+- **`ta.rolling_windows(...)`** yields the `(train_rows, forecast_rows)` of each `AdaptiveTAM` window, to write the reference loop.
+- **`AdaptiveTAM(clip_to_train_range=False)`** clips each window's forecast to the range of its own training rows when `True`.
+
 ## [1.3.3] - 2026-10-01
 
 Patch release (tag on `main`; the latest release on PyPI and Zenodo stays 1.3.1): `KalmanTAM` no longer looks ahead and updates its state at every step.
 
 **`KalmanTAM` forecasts change**; the only other change is the fix of `s()` on one-row frames and on a single out-of-range value below. Everything else is identical to 1.3.2. To get the 1.3.2 behaviour, use the tag `v1.3.2` (or `block_size=128` for the update rule alone).
 
-### Results change
+### Changed
 - **Causal scaling** (`KalmanTAM`): the feature normalisation and the target scale (`y_max - y_min`) were computed on the whole online period, so every forecast depended on observations after it, and the scale set the effective observation and process noise. They now come from a reference period: the first `calibration_steps` rows of each group, or a separate `calibration_data`. A forecast at or before row r no longer changes when later rows change. With data whose range never changes after the reference rows, the forecasts are identical to 1.3.2 (checked to the last bit, with and without a base model).
 - **Update at every step** (`KalmanTAM`): with `horizon_steps=1` the default `block_size` was 128, so the state moved only every 128 steps (every 128 days with `group_col="tod"`) while the docstring promised standard online filtering. The default is now the exact sequential filter (`block_size=None`, i.e. 1), which tracks the load more closely on the FORCE national load.
 - **`fit()` then `predict()`** (`KalmanTAM`): the frozen state was the one the last row was forecast with, i.e. before that row's update, so forecasting the next day from `fit(history)` ignored the last observation. `fit()` now stores the state after the last update: with `block_size=1`, `fit(history up to day t).predict(day t+1)` equals the online simulation's forecast for day t+1 (checked on the FORCE national load, to numerical precision).
@@ -259,6 +277,10 @@ This version introduced the Formula API and the first object-oriented refactorin
 ### Added
 * Initial project setup based on the original `weakl` v0.0.6 package.
 
+[Unreleased]: https://github.com/EDF-Lab/tam/compare/v1.3.4...HEAD
+[1.3.4]: https://github.com/EDF-Lab/tam/releases/tag/v1.3.4
+[1.3.3]: https://github.com/EDF-Lab/tam/releases/tag/v1.3.3
+[1.3.2]: https://github.com/EDF-Lab/tam/releases/tag/v1.3.2
 [1.3.1]: https://github.com/EDF-Lab/tam/releases/tag/v1.3.1
 [1.3.0]: https://github.com/EDF-Lab/tam/releases/tag/v1.3.0
 [1.2.6]: https://github.com/EDF-Lab/tam/releases/tag/v1.2.6
