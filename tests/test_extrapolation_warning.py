@@ -116,3 +116,13 @@ def test_adaptive_with_a_linear_effect_does_not_warn():
                            steps_per_period=1, date_col="date")
     assert _caught(lambda: model.predict_online(df)) == []
 
+
+def test_a_tiny_overshoot_of_the_trained_range_does_not_warn():
+    """A new sample can land a hair beyond the training minimum or maximum: below 1% of the half-range it is not reported."""
+    df = _data()
+    model = ta.StaticTAM(formula="y ~ l(x) + s(z, k=6)", date_col="date").fit(df)
+    half_range = (df["z"].max() - df["z"].min()) / 2
+    tiny = df.assign(z=df["z"].where(df["z"] != df["z"].max(), df["z"].max() + 0.005 * half_range))
+    assert _caught(lambda: model.predict(tiny)) == []
+    big = df.assign(z=df["z"].where(df["z"] != df["z"].max(), df["z"].max() + 0.05 * half_range))
+    assert len(_caught(lambda: model.predict(big))) == 1

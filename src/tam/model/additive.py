@@ -23,7 +23,7 @@ from tam.common.utils import (
     TORCH_DEVICE, _check_features, _balance_groups, parse_formula_to_terms, 
     _ensure_dummies, _cleanup_dummies
 )
-from tam.common.exceptions import warn_extrapolation
+from tam.common.exceptions import warn_extrapolation, EXTRAPOLATION_TOLERANCE
 from ._base import BaseTAM
 from .safety import SafetyTAM
 from ._data import (
@@ -544,7 +544,7 @@ class StaticTAM(BaseTAM):
             if name not in nonlinear or name in warned:
                 continue
             beyond = (x_stacked[..., j].abs() - 1.0).clamp(min=0)
-            outside = beyond > 1e-9
+            outside = beyond > EXTRAPOLATION_TOLERANCE
             if outside.any():
                 warned.add(name)
                 warn_extrapolation(name,

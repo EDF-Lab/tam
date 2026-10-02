@@ -24,7 +24,7 @@ import numpy as np
 import warnings
 
 from .additive import StaticTAM
-from tam.common.exceptions import warn_extrapolation
+from tam.common.exceptions import warn_extrapolation, EXTRAPOLATION_TOLERANCE
 from tam.common.utils import (
     TORCH_DEVICE, _check_features, _balance_groups,
     _ensure_dummies, _cleanup_dummies
@@ -425,7 +425,7 @@ class AdaptiveTAM:
             if name not in nonlinear or name in warned:
                 continue
             beyond = (x[..., j].abs() - 1.0).clamp(min=0)
-            outside = (beyond > 1e-9) & valid
+            outside = (beyond > EXTRAPOLATION_TOLERANCE) & valid
             if outside.any():
                 warned.add(name)
                 warn_extrapolation(name,

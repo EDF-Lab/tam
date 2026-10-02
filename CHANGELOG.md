@@ -32,7 +32,7 @@ Patch release (tag on `main`; the latest release on PyPI and Zenodo stays 1.3.1)
 - **Spline knots** (`s()`): set from the full training tensor, no longer from the solver's memory probe, which could cache degenerate knots when the first row of every group sat on the upper edge of its range.
 
 ### Added
-- **`ta.TAMExtrapolationWarning`**: once per model and feature, when a feature read by a non-linear effect (`s`, `f`, `p`, `w`, `rbf`, `n`, `t`, `phys`, `te` margin) leaves its trained range, or a categorical level was not seen in training (`AdaptiveTAM`: one warning for all windows; `AutoTAM` lists them in `summary()`). `l()` never warns; the default extrapolation does not change.
+- **`ta.TAMExtrapolationWarning`**: once per model and feature, when a feature read by a non-linear effect (`s`, `f`, `p`, `w`, `rbf`, `n`, `t`, `phys`, `te` margin) leaves its trained range by more than 1% of its half-range, or a categorical level was not seen in training (`AdaptiveTAM`: one warning for all windows; `AutoTAM` lists them in `summary()`). `l()` never warns; the default extrapolation does not change.
 - **`TAM [Info]` at training**: a `c()` term with a given `n_cat` says which levels the training rows lack.
 - **`ta.rolling_windows(...)`** yields the `(train_rows, forecast_rows)` of each `AdaptiveTAM` window, to write the reference loop.
 - **`AdaptiveTAM(clip_to_train_range=False)`** clips each window's forecast to the range of its own training rows when `True`.

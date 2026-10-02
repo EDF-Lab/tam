@@ -5,6 +5,11 @@
 """Warning categories raised by TAM, so that callers can filter or escalate them."""
 
 
+#: A feature must leave its trained range by more than this share of the half-range to be reported: any new sample can land
+#: a hair outside the training minimum or maximum, and a 0.1% overshoot is not an extrapolation worth a warning.
+EXTRAPOLATION_TOLERANCE = 0.01
+
+
 class TAMExtrapolationWarning(UserWarning):
     r"""
     A forecast evaluates an effect outside the range it was trained on.
@@ -12,7 +17,7 @@ class TAMExtrapolationWarning(UserWarning):
     Raised once per model and feature when, after normalisation, a feature read by a non-linear effect
     (``s``, ``f``, ``p``, ``w``, ``rbf``, ``n``, ``t``, ``phys``, or a ``te`` margin) leaves [-1, 1], and when a categorical
     level was not seen in training. ``l()`` never warns. Use ``extrapolate='constant'`` to hold the effect at the edge of the
-    trained range, or escalate it in tests with ``warnings.simplefilter("error", ta.TAMExtrapolationWarning)``.
+    trained range by more than 1% of its half-range, or escalate it in tests with ``warnings.simplefilter("error", ta.TAMExtrapolationWarning)``.
     """
 
 
