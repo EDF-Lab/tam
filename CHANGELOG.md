@@ -77,7 +77,7 @@ Patch release: fixes that made some models wrong (formulas with `te()` or severa
 
 **Predictions change** for the models below; everything else is identical to 1.3.0. To get the 1.3.0 behaviour: `pip install tam-ml==1.3.0`.
 
-### Results change
+### Changed
 - **Formulas with `te()` or several features in one term**: they were fitted with mislabelled terms and now fit the formula as written; their errors drop sharply, and the ensembles built on them follow. The THEORY benchmark and its figures are regenerated with 1.3.1.
 - **`auto_fit` (GCV)**: now fits exactly the model GCV selected. GCV minimises an in-sample criterion, not the holdout error, so holdout results move in both directions.
 - **`rbf()`**: centres are seeded and drawn from the whole training set; RBF models change once and are then reproducible.
@@ -101,11 +101,10 @@ Patch release: fixes that made some models wrong (formulas with `te()` or severa
 - **Sparsity-adaptive tree penalty** (`t(..., sp_alpha>0)`): `empirical_counts` summed only the first batch axis, so the leaf-density penalty was built from the wrong counts and could not be formed. It now counts every sample and group, one value per leaf in design-matrix order.
 - **Linear tree weight** (`lt()`): assigning `lambda_p` (as GCV does on every candidate) did not reach the intercept tree and the slope surface, so GCV could not tune `lt()`. The weight now propagates to both sub-blocks.
 - **Dummy date overflow**: without `date_col`, the internal dummy date was spaced one day apart and ran past the year 2262 after ~95,000 rows, which overflows pandas 2.x nanosecond datetimes (pandas 3 tolerates it). It is now spaced one second apart.
-
-### Changed
 - **CI**: the test workflow runs on every push and pull request (any branch) and on demand, and checks `import tam` first on every Python version (3.10-3.14).
 
 ---
+
 ## [1.3.0] - 2026-09-06
 
 ### Added
@@ -152,7 +151,7 @@ Patch release: fixes that made some models wrong (formulas with `te()` or severa
 ## [1.2.3] - 2026-06-08
 > The DOI was generated via Zenodo on release : https://doi.org/10.5281/zenodo.20543272.
 
-### ✨ Added (New Models & Core Features)
+### Added
 
 * **Universal Extrapolation Wrapper**: Introduced native Out-Of-Distribution (OOD) extrapolation for all base effects via the `extrapolate` parameter. It safely bounds the feature map to the $[-1, 1]^F$ hypercube and utilizes multidimensional directional derivatives (stepping strictly backward into the safe zone) for OOD inputs. Supported modes include `continue` (native topology), `constant` (plateau/clamping), `linear` (first-order Taylor expansion), and `saturation` (smooth asymptotic clamping).
 * **Linear Tree (`lt(...)`)**: Added a native effect that generates piecewise linear models. It utilizes a dedicated `LinearTreeEffect` class to encapsulate a standard `TreeEffect` (acting as the local intercept/level) crossed with a `TensorProductEffect` (acting as the local linear slope). This provides a single, cohesive model for varying-coefficient trees, seamlessly handling multi-dimensional spatial data without requiring formula macro workarounds.
@@ -174,7 +173,7 @@ Patch release: fixes that made some models wrong (formulas with `te()` or severa
     * **The OperaTAM**  
         * **Expert Aggregation (Opera):** [Theory](math/meta/05_opera_aggregation.md) | [Architecture](architecture/meta/05_opera_gpu.md)
 
-### 🚀 Changed (Major Refactoring & Optimization)
+### Changed
 
 * **OPERA Dual API Support (`OperaTAM`)**: Added a standard array-based initialization (`target_col="y"`, `expert_cols=["E1", "E2"]`) alongside the existing R-like formula API (`formula="y ~ l(E1) + l(E2)"`), allowing for simpler dynamic aggregation.
 * **Architectural Shape Normalization**: Overhauled `build_feature_map` across `TreeEffect`, `NeuralEffect`, and `RBFEffect`. Added a dynamic dimensional router to natively resolve tensor broadcasting ambiguities across 1D (OOD wrappers), 2D (Kronecker `te(...)` interactions), and 3D+ (Primal Solver Factory) inputs.
@@ -190,7 +189,7 @@ Patch release: fixes that made some models wrong (formulas with `te()` or severa
 
 ## [Internal] 1.2.2 - 2026-03-26 (Not publicly released)
 
-### ✨ Added (New Models & Core Features)
+### Added
 
 * **Evolutionary Orchestrator (`AutoTAM`)**: A multi-fidelity AutoML engine for automated GAM discovery. It utilizes a Hub-and-Spoke evolutionary architecture, strict topological sanitization, and bi-level optimization (GPU MSP-GCV) to solve the combinatorial explosion of adaptive models, ultimately deploying orthogonal experts into a Dual OPERA arena.
 
@@ -202,7 +201,7 @@ Patch release: fixes that made some models wrong (formulas with `te()` or severa
 * **`_dispatcher.py` (Mathematical Solver Dispatcher)**: Created an intelligent routing layer between statistical modeling abstractions and PyTorch linear algebra engines. It dynamically routes resolution to either a chunked direct solver or a Matrix-Free Sparse Conjugate Gradient (CG) solver based on topological complexity and available VRAM.
 * **`_memory.py` (Hardware Memory Management and Estimation)**: Completely isolated low-level hardware interactions into a dedicated module. It estimates the byte footprint of massive matrices and calculates safe algorithmic chunk sizes.
 
-### 🚀 Changed (Major Refactoring & Optimization)
+### Changed
 
 * **Neural Effect Improvements (`NeuralEffect`)**: Added support for multiple hidden layers to project variables into higher dimensions.
 * **Native GPU Acceleration**: Complete migration of intensive CPU to GPU calculation for Splines (`s(...)`), Wavelets (`w(...)`), and RBF (`rbf(...)`) effects, improving performance of design matrix construction.
@@ -217,7 +216,7 @@ Patch release: fixes that made some models wrong (formulas with `te()` or severa
 
 This version represents a complete architectural overhaul, introducing advanced functional bases (Spectrum), Conformal Prediction, and a full benchmark suite.
 
-### ✨ Added (New Models & Core Features)
+### Added
 
 * **Auto-ML (GCV):** Added `StaticTAM.auto_fit()` using **Generalized Cross Validation (GCV)** for automatic global regularization parameter selection, eliminating the need for a validation set.
 * **Safety Module (Conformal Prediction):** Added `SafetyTAM` implementing **Split Conformal** (static) and **Adaptive Conformal Inference (ACI)** (dynamic) to guarantee valid confidence intervals under distribution shift.
@@ -231,7 +230,7 @@ This version represents a complete architectural overhaul, introducing advanced 
     * `TensorProductEffect` (`te(...)`): **Multivariate interactions** (Kronecker product) for surface modeling.
     * `UniversalPhysicsEffect` (`phys(...)`): **PIKL** (Physics-Informed Kernel Learning) for constraining models with differential operators (ODEs/PDEs).
 
-### 🚀 Changed (Major Refactoring & Optimization)
+### Changed
 
 * **Math Engine (Primal Solver):** Formally validated the exact **Primal Ridge Solver** utilizing block-diagonal covariance accumulation. Corrected performance tracking to accurately reflect the framework's time complexity of $\mathcal{O}(G \times T \times D^2 + G \times D^3)$, ensuring isolated mathematical resolution per group $G$.
 * **Effect Architecture:** Refactored the core around `BaseEffect`, establishing the `List[BaseEffect]` as the standard configuration.
@@ -239,7 +238,7 @@ This version represents a complete architectural overhaul, introducing advanced 
 * **Normalization Domain:** Changed global feature normalization from the Fourier-centric $[-\pi, \pi]$ to the strictly orthogonal **$[-1, 1]$** domain in `_data.py`. Basis functions now apply internal scaling (e.g., Fourier rescales to $[-\pi, \pi]$).
 * **Decomposition Robustness:** Implemented **collision detection** in `_math.py` to automatically prefix feature effects (e.g., `l_time`, `s_time`) when multiple bases share the same input variable.
 
-### 🐛 Fixed (Critical)
+### Fixed
 
 * **Recursive Parsing:** Implemented an architectural fix in `parse_formula_to_terms` to correctly **identify and preserve string tokens** (like `ga_te` or `grid_k`) during the recursive parsing of `te(...)` terms.
 * **Syntax Stability:** Converted all docstrings containing LaTeX math commands to **raw strings** (`r"""..."""`) to eliminate Python `SyntaxWarning`s.
@@ -250,11 +249,11 @@ This version represents a complete architectural overhaul, introducing advanced 
 
 This version introduced the Formula API and the first object-oriented refactoring.
 
-### ⚠️ Breaking Changes
+### Breaking Changes
 - Removed legacy dictionary-based API (`m_orders`, `s_orders`, `alpha_list`)
 - Introduced formula-based API as the primary interface
 
-### ✨ Added
+### Added
 
 * **Formula-based API (`model/additive.py`):** Implemented a new, intuitive R-like formula API (e.g., `Load ~ s(temp, k=10) + l(day_type)`) as the new standard for model initialization.
 * **Spline Effects (`model/_effects.py`):** Added `SplineEffect` (P-splines) as a new core effect type, available via `s(...)`.
@@ -263,7 +262,7 @@ This version introduced the Formula API and the first object-oriented refactorin
 * **Multi-Start Grid Search:** The `grid_search_fit` method now uses a **Multi-Start Coordinate Descent** strategy (Conservative, Median, Aggressive) to avoid local minima.
 * **`diagnostics` Module:** Added a module for model analysis, including t-tests and feature importance visualization.
 
-### ⚙️ Changed
+### Changed
 
 * **Legacy API Removed:** Removed the old `m_orders`, `s_orders`, `alpha_list` dictionary-based configuration from `v0.0.6`.
 * **Package Structure:** The codebase was refactored into a modular package structure (`common`, `model`).
