@@ -11,6 +11,7 @@ Adaptive Error Correction Models (ECMs).
 """
 
 #: <expert_expander_imports>
+import logging
 import pandas as pd
 import numpy as np
 import datetime
@@ -18,9 +19,12 @@ import re
 from typing import Dict, Any, Tuple, List
 from .context import PipelineContext
 from tam.common.utils import parse_formula_to_terms
+from tam.model.autotam.parser import canonicalize_term
 from tam.model.additive import StaticTAM
 from tam.model.kalman import KalmanTAM
 from tam.model.adaptative import AdaptiveTAM
+
+logger = logging.getLogger(__name__)
 #: </expert_expander_imports>
 
 #: <expert_expander_class>
@@ -59,13 +63,18 @@ class ExpertExpander:
     def _evaluate_model_cv(self, model, cv_folds, target_col, metric='rmse'):
         """Helper to calculate the Mean CV Score for a static base model."""
         scores = []
-        for fold_train, fold_val in cv_folds:
+        for fold_index, (fold_train, fold_val) in enumerate(cv_folds):
             try:
                 preds = model.predict(fold_val)[f"Estimated{target_col}"].values
                 y_true = fold_val[target_col].values
                 score = self._calculate_error(y_true, preds, metric)
                 scores.append(score)
-            except Exception:
+            except Exception as exc:
+                # The expert stays in the search with an infinite score, but the failure is reported instead of hidden.
+                logger.warning(
+                    "CV evaluation failed on fold %d for expert %r: %s: %s",
+                    fold_index, getattr(model, "formula_", type(model).__name__), type(exc).__name__, exc,
+                )
                 scores.append(float('inf'))
         return np.mean(scores) if scores else float('inf')
 #: </expert_expander_helpers>
@@ -137,9 +146,14 @@ class ExpertExpander:
                             tokenized_terms, local_grid_config = [], {}
                             for term in parsed_base:
                                 eff_type, term_feat = term['type'], term['feature']
+                                if eff_type == "te" or term_feat == "interaction":
+                                    tokenized_terms.append(canonicalize_term(term))
+                                    continue
                                 feat_space = ctx.search_space.get(term_feat, {}).get("grids", {}).get(eff_type, {})
                                 term_params = []
                                 for p_name, p_val in term.get('params', {}).items():
+                                    if str(p_name).startswith("__"):
+                                        continue
                                     if p_name in feat_space and isinstance(feat_space[p_name], list) and len(feat_space[p_name]) > 1:
                                         token_name = f"grid_{p_name}_{term_feat}_{eff_type}"
                                         term_params.append(f"{p_name}='{token_name}'")
@@ -153,7 +167,8 @@ class ExpertExpander:
                                 tokenized_form = f"{ctx.target} ~ " + " + ".join(tokenized_terms)
                                 m_grid_template = StaticTAM(formula=tokenized_form, group_col=ctx.group_col, date_col=ctx.date_col)
                                 
-                                m_grid = m_grid_template.grid_search_fit(cv_folds=ctx.cv_folds, grid_search_config=local_grid_config)
+                                data_train, data_val = ctx.cv_folds[0] if ctx.cv_folds else (df_fit_clean, ctx.df_dev)
+                                m_grid = m_grid_template.grid_search_fit(data_train, data_val, grid_search_config=local_grid_config)
                                 cv_score = self._evaluate_model_cv(m_grid, ctx.cv_folds, ctx.target, metric=opt_metric)
                                 comp = ctx.estimate_complexity(tokenized_form)
                                 pen_score = ctx.penalize_score(cv_score, tokenized_form, n_samples)

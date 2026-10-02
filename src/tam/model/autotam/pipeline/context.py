@@ -1,4 +1,5 @@
 # SPDX-FileCopyrightText: 2025-2026 EDF (Electricité De France)
+# SPDX-FileContributor: Amaury Durand
 # SPDX-License-Identifier: LGPL-3.0-or-later
 # Author : Yann Allioux
 
@@ -16,7 +17,7 @@ import math
 import pandas as pd
 from dataclasses import dataclass, field
 from functools import lru_cache
-from typing import Dict, Any, List, Optional, Tuple, Union
+from typing import Dict, Any, List, Optional, Tuple, Union, Set
 
 from tam.common.utils import parse_formula_to_terms
 #: </context_imports>
@@ -178,6 +179,10 @@ class PipelineContext:
     date_col: Optional[str] = None
     group_col: Optional[str] = None
     lags: List[int] = field(default_factory=list)
+    mandatory_terms: List[str] = field(default_factory=list)
+    mandatory_variables: List[str] = field(default_factory=list)
+    canonical_to_verbatim_mandatory: Dict[str, str] = field(default_factory=dict)
+    external_mandatory_features: Set[str] = field(default_factory=set)
 
     # 4. Search Space
     search_space: Dict[str, Any] = field(default_factory=dict)

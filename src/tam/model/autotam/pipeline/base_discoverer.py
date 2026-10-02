@@ -1,4 +1,5 @@
 # SPDX-FileCopyrightText: 2025-2026 EDF (Electricité De France)
+# SPDX-FileContributor: Amaury Durand
 # SPDX-License-Identifier: LGPL-3.0-or-later
 # Author : Yann Allioux
 
@@ -12,7 +13,7 @@ formulas per mathematical island.
 #: <base_discoverer_imports>
 import pandas as pd
 import re
-from typing import Dict, Any, List, Tuple
+from typing import Dict, Any, List, Optional, Tuple
 from .context import PipelineContext
 from tam.model.autotam.drag_tam import DragTAM
 from tam.model.autotam.population_nodes import get_island_objects
@@ -23,9 +24,11 @@ class BaseDiscoverer:
     """Executes the evolutionary search and extracts the top formulas per Island."""
     
 #: <base_discoverer_init>
-    def __init__(self, pop_size: int = 64, eta: float = 0.1):
+    def __init__(self, pop_size: int = 64, eta: float = 0.1, mandatory_terms: Optional[List[str]] = None, mandatory_variables: Optional[List[str]] = None):
         self.pop_size = pop_size
         self.eta = eta
+        self.mandatory_terms = mandatory_terms or []
+        self.mandatory_variables = mandatory_variables or []
 #: </base_discoverer_init>
 
 #: <base_discoverer_get_island>
@@ -76,7 +79,9 @@ class BaseDiscoverer:
         print("BaseDiscoverer: Starting Evolutionary Search...")
         
         draga = DragTAM(target_col=ctx.target, population_size=self.pop_size,
-                        group_col=ctx.group_col, date_col=ctx.date_col)
+                        group_col=ctx.group_col, date_col=ctx.date_col,
+                        mandatory_terms=getattr(ctx, 'mandatory_terms', None) or self.mandatory_terms,
+                        mandatory_variables=getattr(ctx, 'mandatory_variables', None) or self.mandatory_variables)
         islands = get_island_objects()
 
         draga.optimize(

@@ -1,4 +1,5 @@
 # SPDX-FileCopyrightText: 2025-2026 EDF (Electricité De France)
+# SPDX-FileContributor: Amaury Durand
 # SPDX-License-Identifier: LGPL-3.0-or-later
 # Author : Yann Allioux
 
@@ -36,6 +37,7 @@ class AutoTAM:
         self, 
         formula: str, 
         lags: Optional[List[int]] = None, 
+        mandatory_variables: Optional[List[str]] = None,
         n_experts: int = 15, 
         pop_size: int = 64, 
         use_opera: bool = True, 
@@ -44,12 +46,46 @@ class AutoTAM:
         export_dir: str = "AutoTAM_exports", 
         **kwargs
     ):
+        """
+        Initializes the AutoTAM director.
+
+        Args:
+            formula (str): High-level AutoTAM formula with embedded mandatory terms and a
+                pipeline macro (e.g., 'load ~ s(temp, k=10) + AutoPipe(temp, humidity)').
+            lags (Optional[List[int]]): Explicit lag orders to evaluate during feature engineering.
+            mandatory_variables (Optional[List[str]]): Variables required in all models.
+            n_experts (int): Number of top expert architectures to retain in the ensemble.
+            pop_size (int): Population size for island-based evolutionary exploration.
+            use_opera (bool): Whether to use OPERA minimax aggregation for ensembling.
+            eta (float): Learning rate for the estimation of distribution algorithm.
+            complexity_penalty (float): Multiplier penalizing model structural complexity.
+            export_dir (str): Directory where intermediate logs and exports are saved.
+            **kwargs: Additional runtime options forwarded to sub-components.
+
+        Raises:
+            TypeError: If deprecated 'mandatory_terms' keyword argument is passed.
+        """
+        if "mandatory_terms" in kwargs:
+            raise TypeError("AutoTAM.__init__() got an unexpected keyword argument 'mandatory_terms'")
         self.formula = formula
         self.n_experts = n_experts
         self.complexity_penalty = complexity_penalty
+        if isinstance(mandatory_variables, str):
+            mandatory_variables = [mandatory_variables]
+        self.mandatory_variables = mandatory_variables or []
         
-        self.data_manager = DataManager(formula=formula, lags=lags)
-        self.discoverer = BaseDiscoverer(pop_size=pop_size, eta=eta)
+        self.data_manager = DataManager(
+            formula=formula,
+            lags=lags,
+            mandatory_variables=self.mandatory_variables,
+        )
+        self.mandatory_terms = self.data_manager.mandatory_terms
+        self.discoverer = BaseDiscoverer(
+            pop_size=pop_size, 
+            eta=eta, 
+            mandatory_terms=self.mandatory_terms,
+            mandatory_variables=self.mandatory_variables
+        )
         self.expander = ExpertExpander()
         self.selector = EnsembleSelector(use_opera=use_opera)
         self.reporter = EvolutionReporter(export_dir=export_dir)
@@ -127,6 +163,13 @@ class AutoTAM:
         """
         if not self.trained_experts:
             raise ValueError("Model not fitted. No valid experts survived the fit process.")
+
+        if hasattr(self.ctx, "external_mandatory_features") and self.ctx.external_mandatory_features:
+            missing_ext = set(self.ctx.external_mandatory_features) - set(df_test.columns)
+            if missing_ext:
+                raise ValueError(
+                    f"Test data is missing required external mandatory features: {sorted(missing_ext)}"
+                )
 
         df_test_clean, df_aug = self.data_manager.transform_test_data(df_test, self.ctx)
         predictions = {}

@@ -1,4 +1,5 @@
 # SPDX-FileCopyrightText: 2025-2026 EDF (Electricité De France)
+# SPDX-FileContributor: Amaury Durand
 # SPDX-License-Identifier: LGPL-3.0-or-later
 # Author : Yann Allioux
 
@@ -10,12 +11,15 @@ and feature engineering for the AutoTAM pipeline.
 """
 
 #: <data_manager_imports>
+import re
 import pandas as pd
 import numpy as np
 from typing import Optional, List, Dict, Any, Tuple
 from .context import PipelineContext
 
-from tam.model.autotam.parser import FormulaParser
+from tam.common.utils import split_args_respecting_parentheses
+from tam.model.autotam.parser import FormulaParser, canonicalize_term
+from tam.model.autotam.population_nodes import MAX_ACTIVE_EFFECTS_PER_FEATURE, MAX_TENSOR_TERMS
 from tam.model.autotam.data_profiler import DataProfiler
 from tam.model.autotam.feature_engineer import FeatureEngineer
 from tam.model.autotam.effect_selector import EffectSelector
@@ -33,15 +37,32 @@ class DataManager:
         self, 
         formula: str, 
         lags: Optional[List[int]] = None,
+        mandatory_variables: Optional[List[str]] = None,
         train_fraction: float = 0.70,
         dev_fraction: float = 0.15
     ):
+        """
+        Initializes the DataManager, parsing the user formula and populating mandatory terms.
+
+        Args:
+            formula (str): High-level AutoTAM formula with embedded mandatory terms and a
+                pipeline macro (e.g., 'load ~ s(temp, k=10) + AutoPipe(temp, humidity)').
+            lags (Optional[List[int]]): Explicit lag orders to inject into the dataset.
+            mandatory_variables (Optional[List[str]]): Variables required in all models.
+            train_fraction (float): Proportion of training data allocated to model fitting.
+            dev_fraction (float): Proportion of training data allocated to hyperparameter tuning.
+        """
         self.formula = formula
         self.user_lags = lags or []
+        if isinstance(mandatory_variables, str):
+            mandatory_variables = [mandatory_variables]
+        self.mandatory_variables = mandatory_variables or []
         self.train_fraction = train_fraction
         self.dev_fraction = dev_fraction
         
         self.parser = FormulaParser()
+        self.formula_config = self.parser.parse(self.formula)
+        self.mandatory_terms = self.formula_config["mandatory_terms"]
         self.profiler = DataProfiler()
         self.engineer = FeatureEngineer(collinearity_threshold=0.95)  # spec I: bar |rho| > 0.95
         self.selector = EffectSelector()
@@ -61,10 +82,111 @@ class DataManager:
         """
         Executes the data preparation phase and populates the pipeline context.
         """
+        if df_train is None and (df_fit is None or df_dev is None or df_val is None):
+            raise ValueError("Provide df_train OR explicit df_fit, df_dev, df_val folds.")
+
         ctx = PipelineContext(date_col=date_col, group_col=group_col)
         
-        ctx.formula_config = self.parser.parse(self.formula)
+        ctx.formula_config = self.parser.parse(self.formula, date_col=date_col)
         ctx.target = ctx.formula_config["targets"][0]
+        ctx.mandatory_terms = ctx.formula_config["mandatory_terms"]
+        self.mandatory_terms = ctx.mandatory_terms
+        
+        ref_df = df_train if df_train is not None else df_fit
+        dataset_features = set(ref_df.columns) - set(ctx.formula_config["targets"])
+        if date_col and date_col in dataset_features:
+            dataset_features.discard(date_col)
+        available_features = set(ctx.formula_config["features"]) | dataset_features
+
+        if self.mandatory_terms:
+            seen_canonical = set()
+            canonical_to_verbatim = {}
+            feature_counts: Dict[str, int] = {}
+            tensor_terms_count = 0
+            all_mandatory_features = set()
+
+            for term in self.mandatory_terms:
+                term_str = term.strip()
+                if not term_str:
+                    raise ValueError(f"Invalid mandatory term '{term}': Term cannot be empty.")
+                if term_str.count("(") != term_str.count(")"):
+                    raise ValueError(f"Invalid mandatory term '{term}': unbalanced parentheses.")
+
+                func_match = re.match(r"^\s*([a-zA-Z0-9_]+)\s*\((.*)\)\s*$", term_str)
+                if not func_match and term_str != "1":
+                    raise ValueError(f"Invalid mandatory term '{term}': malformed term syntax.")
+
+                # Canonicalize term and check for duplicates under parameter-order equivalence
+                c_term = canonicalize_term(term)
+                if c_term in seen_canonical:
+                    raise ValueError(f"Duplicate mandatory term detected in mandatory_terms: '{term}'.")
+                seen_canonical.add(c_term)
+                canonical_to_verbatim[c_term] = term
+
+                if func_match:
+                    eff_type = func_match.group(1).strip()
+                    inner_content = func_match.group(2).strip()
+
+                    if eff_type == "te":
+                        tensor_terms_count += 1
+                        if tensor_terms_count > MAX_TENSOR_TERMS:
+                            raise ValueError(
+                                f"Number of mandatory tensor terms ({tensor_terms_count}) "
+                                f"exceeds MAX_TENSOR_TERMS ({MAX_TENSOR_TERMS})."
+                            )
+                        sub_parts = split_args_respecting_parentheses(inner_content)
+                        for sub_part in sub_parts:
+                            sub_part = sub_part.strip()
+                            kw_match = re.match(r"^\s*([a-zA-Z0-9_]+)\s*=\s*(.*)$", sub_part)
+                            if kw_match:
+                                continue
+
+                            sub_match = re.match(r"^\s*([a-zA-Z0-9_]+)\s*\((.*)\)\s*$", sub_part)
+                            if sub_match:
+                                sub_args = split_args_respecting_parentheses(sub_match.group(2).strip())
+                                if not sub_args or not sub_args[0].strip():
+                                    raise ValueError(
+                                        f"Invalid sub-term in mandatory tensor interaction '{term}': '{sub_part}'."
+                                    )
+                                sub_feat = sub_args[0].strip()
+                            else:
+                                sub_feat = sub_part
+
+                            if sub_feat not in available_features:
+                                raise ValueError(
+                                    f"Feature '{sub_feat}' in mandatory term '{term}' not in available features."
+                                )
+                            all_mandatory_features.add(sub_feat)
+                    else:
+                        parts = split_args_respecting_parentheses(inner_content)
+                        if not parts or not parts[0].strip():
+                            raise ValueError(f"Invalid mandatory term '{term}': missing feature.")
+                        feat = parts[0].strip()
+                        if feat not in available_features:
+                            raise ValueError(f"Feature '{feat}' in mandatory term '{term}' not in available features.")
+
+                        all_mandatory_features.add(feat)
+                        feature_counts[feat] = feature_counts.get(feat, 0) + 1
+                        if feature_counts[feat] > MAX_ACTIVE_EFFECTS_PER_FEATURE:
+                            raise ValueError(
+                                f"Feature '{feat}' has {feature_counts[feat]} mandatory terms, "
+                                f"which exceeds MAX_ACTIVE_EFFECTS_PER_FEATURE ({MAX_ACTIVE_EFFECTS_PER_FEATURE})."
+                            )
+
+            ctx.canonical_to_verbatim_mandatory = canonical_to_verbatim
+            ctx.external_mandatory_features = all_mandatory_features - set(ctx.formula_config["features"])
+        else:
+            ctx.mandatory_terms = []
+            ctx.canonical_to_verbatim_mandatory = {}
+            ctx.external_mandatory_features = set()
+
+        if self.mandatory_variables:
+            ctx.mandatory_variables = self.mandatory_variables
+            autopipe_features = set(ctx.formula_config["features"])
+            for var in self.mandatory_variables:
+                if var not in autopipe_features:
+                    raise ValueError(f"Mandatory variable '{var}' not in available features.")
+
         
         parsed_lags = list(ctx.formula_config.get("lags", {}).values())
         ctx.lags = list(set(self.user_lags + parsed_lags))
@@ -81,10 +203,21 @@ class DataManager:
             raw_val = df_proc.iloc[dev_end:]
             df_all_raw = df_proc.copy()
         else:
-            if df_fit is None or df_dev is None or df_val is None:
-                raise ValueError("Provide df_train OR explicit df_fit, df_dev, df_val folds.")
-            raw_fit, raw_dev, raw_val = df_fit, df_dev, df_val
-            df_all_raw = pd.concat([df_fit, df_dev, df_val])
+            raw_fit, raw_dev, raw_val = df_fit.copy(), df_dev.copy(), df_val.copy()
+            has_overlap = (
+                not raw_fit.index.is_unique or not raw_dev.index.is_unique or not raw_val.index.is_unique
+                or raw_fit.index.intersection(raw_dev.index).size > 0
+                or raw_dev.index.intersection(raw_val.index).size > 0
+                or raw_fit.index.intersection(raw_val.index).size > 0
+            )
+            if has_overlap:
+                n_fit = len(raw_fit)
+                n_dev = len(raw_dev)
+                n_val = len(raw_val)
+                raw_fit.index = pd.RangeIndex(0, n_fit)
+                raw_dev.index = pd.RangeIndex(n_fit, n_fit + n_dev)
+                raw_val.index = pd.RangeIndex(n_fit + n_dev, n_fit + n_dev + n_val)
+            df_all_raw = pd.concat([raw_fit, raw_dev, raw_val])
 
         _, ctx.metadata = self.profiler.profile_and_clean(raw_fit, ctx.formula_config, date_col, group_col)
 
@@ -128,6 +261,8 @@ class DataManager:
             ctx.historical_tail = df_all_aug.tail(max_look + 1).copy()
 
         ctx.search_space = self.selector.build_search_space(ctx.df_fit, ctx.formula_config, ctx.metadata)
+        ctx.search_space["mandatory_terms"] = ctx.mandatory_terms
+        ctx.search_space["mandatory_variables"] = ctx.mandatory_variables
 
         reference_df = df_train if df_train is not None else ctx.df_fit
         target_series = reference_df[ctx.target]
@@ -231,6 +366,13 @@ class DataManager:
         """
         Transforms unseen test data during the predict phase, utilizing the historical tail.
         """
+        if hasattr(ctx, "external_mandatory_features") and ctx.external_mandatory_features:
+            missing_ext = set(ctx.external_mandatory_features) - set(df_test.columns)
+            if missing_ext:
+                raise ValueError(
+                    f"Test data is missing required external mandatory features: {sorted(missing_ext)}"
+                )
+
         df_combined = df_test.copy()
         
         if ctx.historical_tail is not None and ctx.date_col and ctx.date_col in df_test.columns:

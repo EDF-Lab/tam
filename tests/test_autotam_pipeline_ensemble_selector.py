@@ -1,4 +1,5 @@
 # SPDX-FileCopyrightText: 2025-2026 EDF (Electricité De France)
+# SPDX-FileContributor: Amaury Durand
 # SPDX-License-Identifier: LGPL-3.0-or-later
 # Author : Yann Allioux
 
@@ -110,3 +111,37 @@ def test_apex_quality_filter_skips_a_zero_best_score():
 def test_apex_quality_ratio_below_one_is_rejected(ratio):
     with pytest.raises(ValueError):
         EnsembleSelector(apex_quality_ratio=ratio)
+
+
+def test_get_expert_predictions_overlapping_index_alignment():
+    import pandas as pd
+    from tam.model.additive import StaticTAM
+    from tam.model.autotam.pipeline.context import PipelineContext
+
+    # Construct explicit splits with overlapping RangeIndex(0, N)
+    df_fit = pd.DataFrame({"x": np.linspace(-10.0, 10.0, 50), "y": 2.0 * np.linspace(-10.0, 10.0, 50)})
+    df_dev = pd.DataFrame({"x": np.linspace(-5.0, 5.0, 20), "y": 2.0 * np.linspace(-5.0, 5.0, 20)})
+    df_val = pd.DataFrame({"x": np.linspace(-3.0, 3.0, 20), "y": 2.0 * np.linspace(-3.0, 3.0, 20)})
+
+    # Fit a simple static linear model on df_fit: y ~ l(x)
+    m = StaticTAM("y ~ l(x)")
+    m.fit(df_fit)
+
+    ctx = PipelineContext()
+    ctx.target = "y"
+    ctx.df_fit = df_fit
+    ctx.df_dev = df_dev
+    ctx.df_val = df_val
+
+    df_cont_val = pd.concat([ctx.df_fit, ctx.df_dev, ctx.df_val])
+    exp = {"type": "static", "model": m}
+
+    sel = EnsembleSelector()
+    p_val = sel._get_expert_predictions(exp, m, df_cont_val, ctx, expander=None, return_full=False)
+
+    y_val_true = df_val["y"].values
+    rmse = sel._calculate_error(y_val_true, p_val, "rmse")
+
+    # The model fits y = 2*x perfectly, so error on df_val should be near 0.
+    assert np.isclose(rmse, 0.0, atol=1e-3)
+

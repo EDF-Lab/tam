@@ -1,4 +1,5 @@
 # SPDX-FileCopyrightText: 2025-2026 EDF (Electricité De France)
+# SPDX-FileContributor: Amaury Durand
 # SPDX-License-Identifier: LGPL-3.0-or-later
 # Author : Yann Allioux
 
@@ -90,7 +91,35 @@ class EnsembleSelector:
         the returned Apex weights keep only the members still weighted at the end of validation.
         """
         self.apex_members_ = []
-        df_cont_val = pd.concat([ctx.df_fit, ctx.df_dev, ctx.df_val])
+        # Ensure disjoint, unique indices across partitions so df_cont_val and reindexing never collide
+        splits = [s for s in [ctx.df_fit, ctx.df_dev, ctx.df_val] if s is not None]
+        has_overlap = False
+        for i in range(len(splits)):
+            if not splits[i].index.is_unique:
+                has_overlap = True
+                break
+            for j in range(i + 1, len(splits)):
+                if splits[i].index.intersection(splits[j].index).size > 0:
+                    has_overlap = True
+                    break
+            if has_overlap:
+                break
+
+        if has_overlap:
+            n_fit = len(ctx.df_fit) if ctx.df_fit is not None else 0
+            n_dev = len(ctx.df_dev) if ctx.df_dev is not None else 0
+            n_val = len(ctx.df_val) if ctx.df_val is not None else 0
+            if ctx.df_fit is not None:
+                ctx.df_fit = ctx.df_fit.copy()
+                ctx.df_fit.index = pd.RangeIndex(0, n_fit)
+            if ctx.df_dev is not None:
+                ctx.df_dev = ctx.df_dev.copy()
+                ctx.df_dev.index = pd.RangeIndex(n_fit, n_fit + n_dev)
+            if ctx.df_val is not None:
+                ctx.df_val = ctx.df_val.copy()
+                ctx.df_val.index = pd.RangeIndex(n_fit + n_dev, n_fit + n_dev + n_val)
+
+        df_cont_val = pd.concat([f for f in [ctx.df_fit, ctx.df_dev, ctx.df_val] if f is not None])
         trained_experts = []
         league_weights = {}
         weights_top10 = {}
@@ -368,11 +397,20 @@ class EnsembleSelector:
         df_cv_clean = df_cont_val.dropna(subset=req_cols)  # new frame; never written to below
 
         if exp["type"] in ["static", "island_champion"]: 
-            preds = m_ref.predict(df_cv_clean)
-            col = f"Estimated{ctx.target}"
+            if not return_full:
+                df_val_clean = ctx.df_val.dropna(subset=req_cols)
+                preds = m_ref.predict(df_val_clean)
+                col = f"Estimated{ctx.target}"
+                values = preds[col].reindex(ctx.df_val.index).values
+            else:
+                preds = m_ref.predict(df_cv_clean)
+                col = f"Estimated{ctx.target}"
+                values = preds[col].reindex(df_cont_val.index).values
         elif exp["type"] == "kalman": 
             preds = m_ref.predict_online(df_cv_clean)
             col = f"KalmanAdapted_{ctx.target}"
+            index = df_cont_val.index if return_full else ctx.df_val.index
+            values = preds[col].reindex(index).values
         elif exp["type"] == "adaptive": 
             base_m = getattr(m_ref, '_saved_base_model', None)
             d_adapt = expander._prepare_meta_learning_data(df_cv_clean, base_m, ctx)
@@ -385,9 +423,8 @@ class EnsembleSelector:
                 m_ref.simulation()
                 preds = m_ref.predictions_
             col = f"AdaptedEstimated{ctx.target}"
-            
-        index = df_cont_val.index if return_full else ctx.df_val.index
-        values = preds[col].reindex(index).values
+            index = df_cont_val.index if return_full else ctx.df_val.index
+            values = preds[col].reindex(index).values
 
         if exp["type"] == "adaptive":
             # Clear the simulated prediction state immediately to prevent massive RAM accumulation (~2.5 GB per static champion).

@@ -23,6 +23,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Deterministic O(N) Feature Profiler:** Introduced `FeatureProfiler` to diagnose non-linearity, basis families, and required signal capacity prior to the search, eliminating trial-and-error capacity grids.
 - **Robust Graph Tracking:** Added exact term identity resolution (`term_members`, `term_signature`, `decomposition_names`) to properly track and prune tensor products in the `KnowledgeGraph`.
 - **Documentation:** Expanded Mirror Architecture documentation for AutoTAM probabilistic selection (`math/meta/11`, `architecture/meta/11`) and feature profiling (`math/meta/12`, `architecture/meta/12`).
+- **Mandatory Terms and Variables:** AutoTAM formulas may fix terms that every candidate keeps, written next to the pipeline macro (`load ~ s(temp, k=10) + AutoPipe(temp, humidity)`), and `AutoTAM(mandatory_variables=[...])` forces variables into every model. Mandatory terms may use dataset variables absent from `AutoPipe(...)`: only those exact terms are used for them, with their free parameters tuned. Mandatory terms are immutable during the evolutionary search and exempt from ablation.
+- **Term Canonicalisation:** `canonicalize_term`, `term_subsumes` and `terms_are_equivalent` (`tam.model.autotam.parser`) treat `s(X, k=10, basis='cubic')` and `s(X, basis='cubic', k=10)` as the same term, so duplicates are dropped.
+- **Mandatory Terms Use Case:** `use_cases/autotam_mandatory_terms.py` runs AutoTAM free, with a mandatory term (`s(x1, k=10)`) and with a mandatory variable (`x10`) on the cheatsheet data, and fails if a static model of the search loses the term or the variable.
 
 ### Changed
 
@@ -36,6 +39,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **OOD Target Clipping:** Expert predictions are strictly clipped to observed training bounds (plus a 15% margin) before aggregation to protect frozen-weight averages from extreme extrapolations.
 - **Vectorized Windowing:** Refactored grouped rolling means/EWMAs in `FeatureEngineer` to use native positional Pandas operations, fixing index misalignment.
 - **Report Generator Security & Metrics:** Added strict `run_id` validations and path-confining. PDP panels now report scale-free `Var(h_j) / Var(prediction)` driver scores. (Matplotlib is now optional).
+- **Mandatory Terms Keyword:** `AutoTAM(mandatory_terms=...)` now raises `TypeError`: write mandatory terms in the formula instead.
+- **Fail-Fast Validation:** `DataManager.prepare` rejects invalid mandatory terms before the search: syntax errors, duplicates under canonical equivalence, unknown features, more than `MAX_ACTIVE_EFFECTS_PER_FEATURE = 2` effects on a feature, more than `MAX_TENSOR_TERMS = 2` tensor products. Test data must contain the external mandatory features.
+- **Explicit Splits:** fit/dev/val splits given with overlapping or non-unique indexes receive disjoint indexes, so every evaluation uses the rows of its own split.
+- **Formula Splitting:** `split_args_respecting_parentheses` raises `ValueError` on a leading, trailing or doubled delimiter and on unbalanced parentheses (it used to accept them silently), and takes a `delimiter` argument.
+- **Visible Expert Failures:** an expert whose cross-validation evaluation fails is logged (`logging` warning with the formula and the fold) instead of being scored infinite silently.
 
 ### Fixed
 
@@ -46,6 +54,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Knowledge Graph Pruning Fix:** Fixed term contribution lookups so redundant terms are correctly identified, rewarded, and pruned.
 - **Simulation Memory Leak:** `EnsembleSelector` now aggressively releases AdaptiveTAM simulation tensors (`m_ref.simulation_data_ = None`) after scoring, resolving 60-73 GB RAM peaks during wide grid searches.
 - **Time-Series Integrity:** Fixed Kalman/Adaptive prediction backtest alignment, patched a `groupby` crash caused by Daylight Saving Time (DST) duplicates, and prevented `__dummy_date__` overflows on massive inputs.
+- **Grid-Search Experts:** the grid-search experts of `ExpertExpander` were never fitted (the `grid_search_fit(cv_folds=...)` call did not match the engine's `grid_search_fit(data_train, data_val, grid_search_config)`); they are now fitted on the first cross-validation fold.
+- **Parenthesis Mismatch:** combining mandatory terms and mandatory variables no longer produces formulas with unbalanced parentheses.
 
 ---
 ## [1.3.0] - 2026-09-06

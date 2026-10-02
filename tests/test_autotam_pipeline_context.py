@@ -1,4 +1,5 @@
 # SPDX-FileCopyrightText: 2025-2026 EDF (Electricité De France)
+# SPDX-FileContributor: Amaury Durand
 # SPDX-License-Identifier: LGPL-3.0-or-later
 # Author : Yann Allioux
 
@@ -15,6 +16,12 @@ from tam.model.autotam.pipeline.context import PipelineContext
 
 def _ctx(penalty: float = 1.0) -> PipelineContext:
     return PipelineContext(complexity_penalty=penalty)
+
+
+def test_pipeline_context_has_canonical_to_verbatim_mandatory_field():
+    ctx = PipelineContext()
+    assert hasattr(ctx, "canonical_to_verbatim_mandatory")
+    assert ctx.canonical_to_verbatim_mandatory == {}
 
 
 # --------------------------------------------------------------------------- #

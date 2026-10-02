@@ -1,4 +1,5 @@
 # SPDX-FileCopyrightText: 2025-2026 EDF (Electricité De France)
+# SPDX-FileContributor: Amaury Durand
 # SPDX-License-Identifier: LGPL-3.0-or-later
 # Author : Yann Allioux
 
@@ -19,6 +20,8 @@ import re
 import random
 from typing import List, Dict, Any, Callable, Optional, Tuple, Union
 from .knowledge_graph import KnowledgeGraph
+from .parser import canonicalize_term, terms_are_equivalent, term_subsumes, _parse_term_structure
+from tam.common.utils import split_args_respecting_parentheses
 
 # Strict Covariate Lock (spec I): a single feature may carry at most this many
 # active bases (e.g. s(Temp) + f(Temp) is the maximum allowed for Temp).
@@ -29,6 +32,33 @@ MAX_INTERACTION_PARTNERS = 5
 # Share of deep-basis terms (n, rbf, t) drawn without partners, so plain terms stay reachable:
 # otherwise others= is attached whenever a categorical exists, and only a mutation can drop it.
 PLAIN_DEEP_TERM_PROBABILITY = 0.25
+
+# Fallback hyperparameter grids for tuning free parameters of basis effects
+# when variables are absent from search_space (e.g. external mandatory variables).
+FALLBACK_EFFECT_GRIDS: Dict[str, Dict[str, List[Any]]] = {
+    'l': {},
+    's': {'k': [3, 5, 10, 20], 'deg': [2, 3], 'p': [1, 2], 'ap': [-2.0, 0.0, 2.0]},
+    'f': {'m': [2, 3, 5, 6], 's': [1, 2], 'ap': [-2.0, 0.0, 2.0]},
+    'p': {'deg': [3, 5, 10], 's': [1, 2], 'ap': [-2.0, 0.0, 2.0]},
+    'w': {'n_scales': [2, 4], 'n_locations': [8, 12, 16], 'ap': [-2.0, 0.0, 2.0]},
+    'c': {'n_cat': [2, 5, 10], 'topo': ['nominal'], 'p_order': [1, 2]},
+    't': {
+        'n_trees': [10, 25, 50],
+        'max_depth': [1, 2, 3],
+        'max_leaves': [10, 25, 50],
+        'split_strategy': ['quantile', 'uniform'],
+        'sp_alpha': [0.0, 0.5, 1.0],
+    },
+    'lt': {
+        'max_depth': [2, 3, 5],
+        'max_leaves': [10, 25, 50],
+        'split_strategy': ['quantile', 'uniform'],
+        'ap': [-2.0, 0.0, 2.0],
+    },
+    'n': {'n_neurons': [8, 16, 32, 64], 'n_hidden_layers': [1, 2], 'act': ['relu', 'tanh']},
+    'rbf': {'n_centers': [5, 10, 20], 'ap': [-2.0, 0.0, 2.0]},
+    'pid': {'w': [3, 5, 7], 'd_pen': [1.0, 5.0, 10.0], 'ap': [-2.0, 0.0, 2.0]},
+}
 #: </population_nodes_imports>
 
 #: <population_nodes_base>
@@ -66,7 +96,6 @@ class BaseIsland:
     def mutate(self, kg: KnowledgeGraph, available_features: List[str], search_space: Dict[str, Any]) -> str:
         """
         DRAGAM/DRAGON-style structural graph edit of this Island's champion genome.
-
         Applies exactly ONE operator, then returns a covariate-lock-respecting RHS string:
           * Deletion (parsimony): strip one additive term.
           * Insertion (synergy): add a highly-weighted unused feature via the Island's topology.
@@ -76,24 +105,95 @@ class BaseIsland:
         if not self.champion_genome:
             return self.generate(kg, available_features, search_space)
 
-        genome = [{'type': t['type'], 'feature': t['feature'], 'params': dict(t.get('params', {}))}
+        genome = [{'type': t['type'], 'feature': t.get('feature'), 'params': dict(t.get('params', {}))}
                   for t in self.champion_genome]
-        present = {t['feature'] for t in genome}
+        present = {t.get('feature') for t in genome if t.get('feature')}
         unused = [f for f in available_features if f not in present]
 
+        mandatory_terms = search_space.get("mandatory_terms", [])
+        mandatory_variables = set(search_space.get("mandatory_variables", []))
+
+        parsed_mandatory = []
+        for mt in mandatory_terms:
+            if not mt:
+                continue
+            m_struct = _parse_term_structure(mt)
+            if m_struct:
+                parsed_mandatory.append((mt, m_struct))
+
+        term_strings = [_genome_to_rhs([t]).strip() for t in genome]
+        mandatory_vars_in_genome = {f for f in mandatory_variables if f in present}
+
+        deletable_indices = []
+        modifiable_indices = []
+        term_free_keys: Dict[int, List[str]] = {}
+        term_grids: Dict[int, Dict[str, Any]] = {}
+        term_fixed_params: Dict[int, set] = {}
+
+        for i, term in enumerate(genome):
+            term_str = term_strings[i]
+            feature = term.get('feature')
+            eff_type = term.get('type')
+
+            # Identify if term subsumes any mandatory term and collect user-fixed parameters
+            is_mandatory_term = False
+            fixed_params = set()
+            for mt_raw, m_struct in parsed_mandatory:
+                if term_subsumes(term, mt_raw) or term_subsumes(term_str, mt_raw):
+                    is_mandatory_term = True
+                    if m_struct.get("params"):
+                        fixed_params.update(m_struct["params"].keys())
+
+            # Protect sole term of mandatory variables from deletion
+            is_sole_mandatory_var = False
+            if feature in mandatory_vars_in_genome:
+                count = sum(1 for t in genome if t.get('feature') == feature)
+                if count == 1:
+                    is_sole_mandatory_var = True
+
+            # Determine grid: search_space entry or fallback effect parameter grid
+            grid = search_space.get(feature, {}).get("grids", {}).get(eff_type, {})
+            if not grid:
+                grid = FALLBACK_EFFECT_GRIDS.get(eff_type, {})
+
+            # Filter free keys (locking user-fixed parameters)
+            free_keys = [
+                k for k, v in grid.items()
+                if isinstance(v, list) and len(v) > 0 and k not in fixed_params
+            ]
+            if "max_depth" in fixed_params:
+                free_keys = [k for k in free_keys if k != "max_leaves"]
+            if "max_leaves" in fixed_params:
+                free_keys = [k for k in free_keys if k != "max_depth"]
+
+            term_free_keys[i] = free_keys
+            term_grids[i] = grid
+            term_fixed_params[i] = fixed_params
+
+            # Free parameter tuning: can only modify if unconstrained free keys exist
+            if free_keys:
+                modifiable_indices.append(i)
+
+            # Strict deletion protection: mandatory terms and sole mandatory vars cannot be deleted
+            if not is_mandatory_term and not is_sole_mandatory_var and len(genome) > 1:
+                deletable_indices.append(i)
+
         ops = []
-        if len(genome) > 1:
+        if deletable_indices:
             ops.append('delete')
         if unused:
             ops.append('insert')
-        if genome:
+        if modifiable_indices:
             ops.append('modify')
+
         if not ops:
-            return self.generate(kg, available_features, search_space)
+            return _genome_to_rhs(genome, mandatory_terms=mandatory_terms)
 
         op = random.choice(ops)
+
         if op == 'delete':
-            genome.pop(random.randrange(len(genome)))
+            idx_to_delete = random.choice(deletable_indices)
+            genome.pop(idx_to_delete)
 
         elif op == 'insert':
             feat = random.choice(unused)
@@ -104,16 +204,21 @@ class BaseIsland:
             genome.append({'type': eff, 'feature': feat, 'params': params})
 
         elif op == 'modify':
-            term = random.choice(genome)
-            grid = search_space.get(term['feature'], {}).get("grids", {}).get(term['type'], {})
-            numeric_keys = [k for k, v in grid.items() if isinstance(v, list) and v and isinstance(v[0], (int, float))]
-            if numeric_keys:
-                k = random.choice(numeric_keys)
-                term['params'][k] = random.choice(grid[k])
-                if k in ("max_depth", "max_leaves"):      # switching tree architecture drops the other
-                    term['params'].pop("max_leaves" if k == "max_depth" else "max_depth", None)
+            idx_to_modify = random.choice(modifiable_indices)
+            term = genome[idx_to_modify]
+            free_keys = term_free_keys[idx_to_modify]
+            grid = term_grids[idx_to_modify]
+            fixed_p = term_fixed_params[idx_to_modify]
+            if free_keys:
+                k = random.choice(free_keys)
+                candidates = [v for v in grid[k] if v != term['params'].get(k)]
+                term['params'][k] = random.choice(candidates if candidates else grid[k])
+                if k in ("max_depth", "max_leaves"):
+                    other = "max_leaves" if k == "max_depth" else "max_depth"
+                    if other not in fixed_p:
+                        term['params'].pop(other, None)
 
-        return _genome_to_rhs(genome)
+        return _genome_to_rhs(genome, mandatory_terms=mandatory_terms)
 
     def generate(self, kg: KnowledgeGraph, available_features: List[str], search_space: Dict[str, Any], complexity_cap: bool = False) -> str:
         """
@@ -243,7 +348,7 @@ class SmallContinent(BaseIsland):
             if island_formula != "1":
                 composite_terms.append(island_formula)
                 
-        return _clean_and_join_terms(composite_terms)
+        return _clean_and_join_terms(composite_terms, mandatory_terms=search_space.get("mandatory_terms"))
 #: </smallcontinent>  
 
 #: <continent>
@@ -273,7 +378,7 @@ class Continent(BaseIsland):
             if island_formula != "1":
                 composite_terms.append(island_formula)
                 
-        return _clean_and_join_terms(composite_terms)
+        return _clean_and_join_terms(composite_terms, mandatory_terms=search_space.get("mandatory_terms"))
 #: </continent>
 
 
@@ -423,25 +528,43 @@ def _choose_effect(island: BaseIsland, kg: KnowledgeGraph, feat: str, choices: L
 #: </tensor_term>
 
 
-def _clean_and_join_terms(term_list: List[str]) -> str:
+def _clean_and_join_terms(term_list: List[str], mandatory_terms: Optional[List[str]] = None) -> str:
     """
-    Safely flattens, deduplicates, and joins additive formula terms.
+    Safely flattens, deduplicates, and joins additive formula terms under parameter-order invariance.
+    Replaces terms matching any mandatory term with the user's verbatim mandatory representation.
     Prevents identical terms from compounding and causing design matrix singularities.
     Keeps at most MAX_TENSOR_TERMS tensor products, including across composed Island formulas.
+    Strict Covariate Lock: caps single-feature marginal terms at MAX_ACTIVE_EFFECTS_PER_FEATURE.
     """
     flat_terms = []
+    seen_canonical = set()
+    mandatory_map: Dict[str, str] = {canonicalize_term(mt): mt for mt in (mandatory_terms or [])}
     feature_base_counts: Dict[str, int] = {}
     n_tensors = 0
+
     for item in term_list:
-        if not item or item == "1":
+        if not item or item.strip() in ("", "1"):
             continue
-        for sub_term in item.split(" + "):
+        try:
+            sub_terms = split_args_respecting_parentheses(item.strip(), delimiter="+")
+        except ValueError:
+            sub_terms = [s.strip() for s in item.split("+") if s.strip()]
+
+        for sub_term in sub_terms:
             cleaned = sub_term.strip()
-            if not cleaned or cleaned in flat_terms:
+            if not cleaned or cleaned == "1":
                 continue
+
+            can_term = canonicalize_term(cleaned)
+            if can_term in seen_canonical:
+                continue
+
+            if can_term in mandatory_map:
+                cleaned = mandatory_map[can_term]
+
             # Strict Covariate Lock: cap a feature at MAX_ACTIVE_EFFECTS_PER_FEATURE
             # bases (interactions 'te' are exempt, they are not single-feature bases).
-            match = re.match(r'\s*([a-z]{1,3})\s*\(\s*([A-Za-z0-9_\.]+)', cleaned)
+            match = re.match(r'\s*([a-zA-Z0-9_]+)\s*\(\s*([A-Za-z0-9_\.]+)', cleaned)
             if match and match.group(1) == 'te':
                 if n_tensors >= MAX_TENSOR_TERMS:
                     continue
@@ -451,22 +574,24 @@ def _clean_and_join_terms(term_list: List[str]) -> str:
                 if feature_base_counts.get(feat, 0) >= MAX_ACTIVE_EFFECTS_PER_FEATURE:
                     continue
                 feature_base_counts[feat] = feature_base_counts.get(feat, 0) + 1
+
+            seen_canonical.add(can_term)
             flat_terms.append(cleaned)
 
     return " + ".join(flat_terms) if flat_terms else "1"
 
-def _genome_to_rhs(genome: List[Dict[str, Any]]) -> str:
+def _genome_to_rhs(genome: List[Dict[str, Any]], mandatory_terms: Optional[List[str]] = None) -> str:
     """Renders a genome (list of parsed-term dicts) back into a covariate-lock-respecting RHS."""
     terms = []
     for t in genome:
         eff, feat, params = t['type'], t['feature'], t.get('params', {})
         if eff == 'te':
             subs = [k for k in params.keys() if re.match(r'^\s*[a-zA-Z]{1,4}\s*\(', str(k))]
-            terms.append(f"te({', '.join(subs)})")
+            terms.append(f"te({', '.join(sorted(subs))})")
         else:
-            param_str = ", ".join([f"{k}='{v}'" if isinstance(v, str) else f"{k}={v}" for k, v in params.items()])
+            param_str = ", ".join([f"{k}='{v}'" if isinstance(v, str) else f"{k}={v}" for k, v in sorted(params.items())])
             terms.append(f"{eff}({feat}, {param_str})" if param_str else f"{eff}({feat})")
-    return _clean_and_join_terms(terms)
+    return _clean_and_join_terms(terms, mandatory_terms=mandatory_terms)
 
 def _get_safe_params(kg: KnowledgeGraph, search_space: Dict[str, Any], feat: str, eff: str, complexity_cap: bool = False) -> Dict[str, Any]:
     """
@@ -531,7 +656,7 @@ def _standard_generate(island: BaseIsland, kg: KnowledgeGraph, available_feature
         params = _get_safe_params(kg, search_space, feat, eff, complexity_cap)
         terms.append(_render_term(eff, feat, params))
 
-    return _clean_and_join_terms(terms)
+    return _clean_and_join_terms(terms, mandatory_terms=search_space.get("mandatory_terms"))
 
 def _interaction_generate(island: BaseIsland, kg: KnowledgeGraph, available_features: List[str], search_space: Dict[str, Any], interaction_effect: Union[str, Tuple[str, ...]], complexity_cap: bool = False) -> str:
     """
@@ -578,7 +703,7 @@ def _interaction_generate(island: BaseIsland, kg: KnowledgeGraph, available_feat
 
         terms.append(_render_term(eff, feat, params))
 
-    return _clean_and_join_terms(terms)
+    return _clean_and_join_terms(terms, mandatory_terms=search_space.get("mandatory_terms"))
 #: </helper_functions>
 
 #: <population_nodes_registry>
