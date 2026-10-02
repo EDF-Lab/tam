@@ -227,10 +227,18 @@ def test_tuning_accepts_a_slice_or_the_equivalent_mask():
     assert by_slice[0] == by_mask[0] and by_slice[1] == pytest.approx(by_mask[1])
 
 
+def _warnings_of(fn):
+    """Runs `fn` and returns (result, [(category, message)]) of every warning it issued: nothing leaks into the test report."""
+    with warnings.catch_warnings(record=True) as caught:
+        warnings.simplefilter("always")
+        result = fn()
+    return result, [(w.category, str(w.message)) for w in caught]
+
+
 def test_lookback_days_warns_and_keeps_the_old_window():
     df = _panel(seed=9)
-    with pytest.warns(FutureWarning, match="lookback_days"):
-        old = _kalman().tune_hyperparameters(df, GRID, lookback_days=1)
+    old, issued = _warnings_of(lambda: _kalman().tune_hyperparameters(df, GRID, lookback_days=1))
+    assert any(c is FutureWarning and "lookback_days" in m for c, m in issued)
     # old rule: the last lookback_days * 24 steps of the data
     explicit = _tune(df, calibration_steps=slice(N - 1 - 24, N))
     assert old[0] == explicit[0] and old[1] == pytest.approx(explicit[1])
@@ -238,8 +246,9 @@ def test_lookback_days_warns_and_keeps_the_old_window():
 
 def test_tuning_without_a_period_warns_about_the_legacy_window():
     df = _panel(seed=10)
-    with pytest.warns(FutureWarning, match="calibration_steps"):
-        _kalman().tune_hyperparameters(df, GRID)
+    _, issued = _warnings_of(lambda: _kalman().tune_hyperparameters(df, GRID))
+    assert any(c is FutureWarning and "calibration_steps" in m for c, m in issued)
+    assert any("reference period" in m for _, m in issued)           # the burn-in message comes with it
 
 
 # ----------------------------------------------------------------------------- the operational loop equals the simulation
