@@ -24,7 +24,8 @@ from tam.common.utils import TORCH_DEVICE
 def _fit_normalization_params(
     data: pd.DataFrame, 
     features: List[str], 
-    group_col: str
+    group_col: str,
+    fixed_ranges: Optional[Dict[str, Tuple[float, float]]] = None
 ) -> Tuple[Dict, List]:
     r"""
     Calculates the min/max normalization parameters for features, computed per group.
@@ -33,6 +34,8 @@ def _fit_normalization_params(
         data: The training DataFrame.
         features: A list of feature column names to normalize.
         group_col: The column name used to group the data.
+        fixed_ranges: ``{feature: (min, max)}`` of features whose range does not come from the data
+            (categorical codes: ``(0, n_cat - 1)``, whatever levels the training rows hold).
 
     Returns:
         A tuple (norm_params, unique_groups):
@@ -51,6 +54,10 @@ def _fit_normalization_params(
         }
         for group_name in unique_groups
     }
+    for params in norm_params.values():
+        for feature, (low, high) in (fixed_ranges or {}).items():
+            if feature in params['min'].index:
+                params['min'][feature], params['max'][feature] = float(low), float(high)
         
     return norm_params, unique_groups
 

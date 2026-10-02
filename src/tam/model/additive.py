@@ -14,6 +14,7 @@ methods for hyperparameter tuning and model interpretation.
 
 from typing import Dict, List, Any, Tuple, Optional, Union, Sequence
 import re
+import warnings
 import torch
 import pandas as pd
 import numpy as np 
@@ -44,6 +45,7 @@ from .spectrum import (
     TensorProductEffect, TreeEffect, LinearTreeEffect,
     create_effects_from_parsed_terms,
     initialize_effects,
+    categorical_ranges,
     build_phi_from_effects,
     build_penalty_from_effects
 )
@@ -365,6 +367,35 @@ class StaticTAM(BaseTAM):
                 info[col] = int(data[col].max(skipna=True)) + 1
         return info
     
+    def _warn_missing_levels(self, data: pd.DataFrame) -> None:
+        r"""
+        Training-time information: a ``c()`` term whose ``n_cat`` is given in the formula expects the levels ``0 .. n_cat - 1``
+        (``1 .. n_cat`` when the codes do not fit there); the levels the training rows do not hold have no data behind them.
+        Features with non-integer codes (a coordinate read by a Fourier topology) are skipped.
+        """
+        for effect in self.effects_list_:
+            if not isinstance(effect, CategoricalEffect) or not getattr(effect, "n_cat_given", True):
+                continue
+            if effect.feature_name not in data.columns:
+                continue
+            codes = data[effect.feature_name].dropna()
+            if codes.empty or not (codes == np.round(codes)).all():
+                continue
+            n = effect.n_categories
+            start = 0 if codes.max() <= n - 1 else int(codes.min())
+            missing = sorted(set(range(start, start + n)) - set(codes.astype(int).unique().tolist()))
+            if not missing:
+                continue
+            effect_of_missing = {
+                "nominal": "Their effect is regularized to 0.",
+                "ordinal": "Their effect follows from their neighbours through the smoothness penalty.",
+                "fourier": "They have no estimate of their own (the effect is a smooth periodic curve).",
+            }[effect.topology]
+            warnings.warn(
+                f"TAM [Info]: the categorical feature '{effect.feature_name}' is configured with {n} categories, but "
+                f"{len(missing)} are missing from the training data: {missing[:12]}{'...' if len(missing) > 12 else ''}. {effect_of_missing}",
+                UserWarning, stacklevel=4)
+
     def summary(self) -> pd.DataFrame:
         """
         Generates a structured summary of the model architecture.
@@ -451,9 +482,13 @@ class StaticTAM(BaseTAM):
             self.norm_params_, self.unique_groups_ = _fit_normalization_params(
                 data=data, 
                 features=self.features_config_["features"], 
-                group_col=self.group_col_
+                group_col=self.group_col_,
+                fixed_ranges=categorical_ranges(self.effects_list_)
             )
             
+        if target_col is not None:
+            self._warn_missing_levels(data)
+
         x_stacked, y_stacked = _transform_data_stacked(
             data=data, 
             features=self.features_config_["features"], 

@@ -321,6 +321,34 @@ def _infer_feature_columns(effects_list: List[BaseEffect]) -> List[str]:
     return feature_columns
 #: </infer_columns>
 
+def categorical_ranges(effects_list: List[BaseEffect]) -> Dict[str, tuple]:
+    """
+    ``{feature: (0, n_cat - 1)}`` for the features read only by categorical effects.
+
+    A categorical code is a level index, so it is normalised on the full level range and not on the levels the
+    training rows happen to contain: a level absent from training keeps its own column instead of landing on an edge level.
+    A feature also read by another effect, or by two categorical effects with different level counts, keeps the min/max rule.
+    """
+    levels: Dict[str, set] = {}
+    other: set = set()
+
+    def visit(effect) -> None:
+        if isinstance(effect, TensorProductEffect):
+            for sub in effect.effects:
+                visit(sub)
+            return
+        if isinstance(effect, OffsetEffect):
+            return
+        if isinstance(effect, CategoricalEffect):
+            levels.setdefault(effect.feature_name, set()).add(effect.n_categories)
+            return
+        other.update(getattr(effect, 'input_features', None) or [effect.feature_name])
+
+    for effect in effects_list:
+        visit(effect)
+    return {name: (0.0, float(next(iter(n)) - 1)) for name, n in levels.items() if name not in other and len(n) == 1}
+
+
 #: <build_phi>
 def initialize_effects(
     x_data: torch.Tensor,
