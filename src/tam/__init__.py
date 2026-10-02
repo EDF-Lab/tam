@@ -10,7 +10,7 @@ The unified framework for interpretable, physics-informed, and high-performance 
 from .model.additive import StaticTAM
 from .model.opera import OperaTAM
 from .model.kalman import KalmanTAM
-from .model.adaptative import AdaptiveTAM
+from .model.adaptative import AdaptiveTAM, rolling_windows
 from .model.hierarchical import HierarchicalTAM
 from .model.neural import NeuralTAM
 from .model.safety import SafetyTAM
@@ -33,6 +33,7 @@ __all__ = [
     "OperaTAM",
     "KalmanTAM",
     "AdaptiveTAM",
+    "rolling_windows",
     "HierarchicalTAM",
     "NeuralTAM",
     "SafetyTAM",

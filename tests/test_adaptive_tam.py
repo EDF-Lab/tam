@@ -89,7 +89,7 @@ def test_adaptive_tam_fit_predict_operational(dummy_panel_data):
     
     assert hasattr(model, 'last_state_dict_'), "fit() did not create last_state_dict_."
     assert model.last_state_dict_ is not None, "Final state was not saved."
-    assert hasattr(model, 'max_res_'), "fit() did not save safety clipping bounds."
+    assert set(model.norm_params_) == set(model.last_state_dict_), "fit() did not save the normalisation of the final window."
     
     # 2. Operational Inference (Drop the target column entirely)
     prod_data = dummy_panel_data.drop(columns=["load"])
@@ -102,31 +102,28 @@ def test_adaptive_tam_fit_predict_operational(dummy_panel_data):
 
 def test_adaptive_tam_coherence(dummy_panel_data):
     """
-    Parity Test: Ensures the final step of the dynamic predict_online 
-    matches exactly with the static predict() applying the frozen state.
+    Operational parity: forecasting the next day from fit(history) gives the forecast of the online simulation for that day
+    (update every period, horizon 1): the frozen state is the window that ends at the last observed row.
     """
-    # 1. Dynamic continuous simulation
-    model_dyn = ta.AdaptiveTAM(
-        adaptive_formula="load ~ l(temperature)", group_col="smart_meter_id", date_col="timestamp",
-        update_interval_periods=1, training_window_periods=5, steps_per_period=1, horizon_steps=1
-    )
-    res_dyn = model_dyn.predict_online(dummy_panel_data)
-    
-    # 2. Frozen state inference
-    model_stat = ta.AdaptiveTAM(
-        adaptive_formula="load ~ l(temperature)", group_col="smart_meter_id", date_col="timestamp",
-        update_interval_periods=1, training_window_periods=5, steps_per_period=1, horizon_steps=1
-    )
-    model_stat.fit(dummy_panel_data)
-    res_stat = model_stat.predict(dummy_panel_data)
-    
-    # 3. Mathematical Parity Check on the last timestamp for a given group
-    group_id = dummy_panel_data['smart_meter_id'].iloc[0]
-    
-    last_dyn = res_dyn[res_dyn['smart_meter_id'] == group_id].iloc[-1]['AdaptedEstimatedload']
-    last_stat = res_stat[res_stat['smart_meter_id'] == group_id].iloc[-1]['AdaptedEstimatedload']
-    
+    def make():
+        return ta.AdaptiveTAM(
+            adaptive_formula="load ~ l(temperature)", group_col="smart_meter_id", date_col="timestamp",
+            update_interval_periods=1, training_window_periods=5, steps_per_period=1, horizon_steps=1
+        )
+
+    # 1. Dynamic continuous simulation over every day
+    res_dyn = make().predict_online(dummy_panel_data)
+
+    # 2. Frozen state: fit on the history up to the day before the last one, forecast the last day
+    last_day = dummy_panel_data['timestamp'].max()
+    history = dummy_panel_data[dummy_panel_data['timestamp'] < last_day]
+    tomorrow = dummy_panel_data[dummy_panel_data['timestamp'] == last_day].drop(columns=["load"])
+    res_stat = make().fit(history).predict(tomorrow)
+
+    # 3. Same forecast for every group
+    dyn = res_dyn[res_dyn['timestamp'] == last_day].set_index('smart_meter_id')['AdaptedEstimatedload']
+    stat = res_stat.set_index('smart_meter_id')['AdaptedEstimatedload']
     np.testing.assert_allclose(
-        last_dyn, last_stat, rtol=1e-4, 
-        err_msg="AdaptiveTAM frozen predict() diverged from the final state of predict_online()."
+        stat.loc[dyn.index].to_numpy(), dyn.to_numpy(), rtol=1e-8,
+        err_msg="AdaptiveTAM fit() then predict() diverged from the online simulation."
     )
