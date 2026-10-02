@@ -23,6 +23,7 @@ from tam.common.utils import (
     TORCH_DEVICE, _check_features, _balance_groups, parse_formula_to_terms, 
     _ensure_dummies, _cleanup_dummies
 )
+from tam.common.exceptions import warn_extrapolation
 from ._base import BaseTAM
 from .safety import SafetyTAM
 from ._data import (
@@ -46,6 +47,8 @@ from .spectrum import (
     create_effects_from_parsed_terms,
     initialize_effects,
     categorical_ranges,
+    categorical_features,
+    extrapolating_features,
     build_phi_from_effects,
     build_penalty_from_effects
 )
@@ -517,9 +520,48 @@ class StaticTAM(BaseTAM):
                     f"TAM [Data Error]: The target column '{target_col}' "
                     "contains NaN values. Cannot proceed with optimization."
                 )
+        if target_col is not None:
+            self._seen_levels_ = {
+                name: set(np.unique(data[name].dropna().to_numpy()).tolist())
+                for name in categorical_features(self.effects_list_) if name in data.columns
+            }
+        else:
+            self._warn_extrapolation(data, x_stacked)
+
         # The groups stacked in x_stacked, in order: a frame holding only some of the fitted groups stacks only those.
         groups_stacked = _groups_in_data(data, self.group_col_, self.unique_groups_, self.norm_params_)
         return x_stacked, y_stacked, groups_stacked
+
+    def _warn_extrapolation(self, data: pd.DataFrame, x_stacked: torch.Tensor) -> None:
+        r"""
+        Warns, once per model and feature, when a forecast leaves the trained range of a non-linear effect, or holds a categorical
+        level that training never saw (``TAMExtrapolationWarning``). Features are normalised per group, so the range is the group's own.
+        """
+        warned = self.__dict__.setdefault("_extrapolation_warned_", set())
+        features = self.features_config_['features'] if self.features_config_ else []
+        nonlinear = extrapolating_features(self.effects_list_)
+        for j, name in enumerate(features):
+            if name not in nonlinear or name in warned:
+                continue
+            beyond = (x_stacked[..., j].abs() - 1.0).clamp(min=0)
+            outside = beyond > 1e-9
+            if outside.any():
+                warned.add(name)
+                warn_extrapolation(name,
+                    f"'{name}' leaves the range seen in training on {outside.double().mean().item():.1%} of the rows, by up to "
+                    f"{beyond.max().item():.2f} half-ranges: its non-linear effect is extrapolated and can be far off. "
+                    f"Set extrapolate='constant' on the term to hold it at the edge of the trained range.", stacklevel=4)
+        seen = getattr(self, "_seen_levels_", None) or {}
+        for name, levels in seen.items():
+            key = f"{name} (levels)"
+            if key in warned or name not in data.columns:
+                continue
+            unseen = sorted(set(np.unique(data[name].dropna().to_numpy()).tolist()) - levels)
+            if unseen:
+                warned.add(key)
+                warn_extrapolation(key,
+                    f"'{name}': level(s) {unseen[:10]} not seen in training; the categorical effect has no estimate for them "
+                    f"(a level that falls outside 0..n_cat-1 takes the nearest edge level).", stacklevel=4)
 
     def _build_design_matrix(self, x_data: torch.Tensor) -> torch.Tensor:
         """Builds the global design matrix."""

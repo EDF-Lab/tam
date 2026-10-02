@@ -42,6 +42,8 @@ from ._factory import (
     create_effects_from_parsed_terms,
     initialize_effects,
     categorical_ranges,
+    categorical_features,
+    extrapolating_features,
     build_phi_from_effects,
     build_penalty_from_effects
 )
@@ -70,6 +72,8 @@ __all__ = [
     "create_effects_from_parsed_terms",
     "initialize_effects",
     "categorical_ranges",
+    "categorical_features",
+    "extrapolating_features",
     "build_phi_from_effects",
     "build_penalty_from_effects",
 ]

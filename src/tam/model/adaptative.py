@@ -24,6 +24,7 @@ import numpy as np
 import warnings
 
 from .additive import StaticTAM
+from tam.common.exceptions import warn_extrapolation
 from tam.common.utils import (
     TORCH_DEVICE, _check_features, _balance_groups,
     _ensure_dummies, _cleanup_dummies
@@ -49,6 +50,7 @@ from .spectrum import (
     BaseEffect,
     create_effects_from_parsed_terms,
     categorical_ranges,
+    extrapolating_features,
     initialize_effects,
     build_phi_from_effects,
     build_penalty_from_effects
@@ -295,6 +297,11 @@ class AdaptiveTAM:
             x_stacked.reshape(-1, x_stacked.shape[2], x_stacked.shape[3]), self.adaptive_model_.effects_list_,
             feature_columns=adaptive_features
         )
+        valid = torch.zeros(x_to_predict.shape[:3], dtype=torch.bool)
+        for i, counts in enumerate(self.window_layout_.n_valid):
+            for j, count in enumerate(counts):
+                valid[i, j, :count] = True
+        self._warn_extrapolation(x_to_predict.cpu(), valid)
         # Positions in `real_data` -> positions in `balanced_data` (real rows come first when groups are balanced by filling).
         real_positions = np.flatnonzero(real)
         self.window_layout_.positions = [real_positions[p] for p in self.window_layout_.positions]
@@ -401,6 +408,31 @@ class AdaptiveTAM:
         self.predictions_ = _cleanup_dummies(self._forecast_frame(predictions_cpu)[mask], self.group_col_, self.date_col_)
         return self.predictions_
 #: </run_sim>
+
+    def _warn_extrapolation(self, x: torch.Tensor, valid: torch.Tensor) -> None:
+        r"""
+        One ``TAMExtrapolationWarning`` per feature (once per model) when forecast rows leave the range of the training rows of
+        their own window on a non-linear effect; the windows are aggregated: the message gives how many of them are affected.
+
+        Args:
+            x: Normalised forecast features, (n_groups, n_windows, rows, features).
+            valid: Which of those rows are real forecast rows, (n_groups, n_windows, rows).
+        """
+        warned = self.__dict__.setdefault("_extrapolation_warned_", set())
+        features = self.adaptive_model_.features_config_['features']
+        nonlinear = extrapolating_features(self.adaptive_model_.effects_list_)
+        for j, name in enumerate(features):
+            if name not in nonlinear or name in warned:
+                continue
+            beyond = (x[..., j].abs() - 1.0).clamp(min=0)
+            outside = (beyond > 1e-9) & valid
+            if outside.any():
+                warned.add(name)
+                warn_extrapolation(name,
+                    f"'{name}' leaves the range of its training window on {outside.sum().item() / valid.sum().item():.1%} of the "
+                    f"forecast rows ({outside.any(dim=-1).sum().item()} of {valid.any(dim=-1).sum().item()} windows), by up to "
+                    f"{beyond[valid].max().item():.2f} half-ranges: its non-linear effect is extrapolated and can be far off. "
+                    f"Set extrapolate='constant' on the term to hold it at the edge of the trained range.", stacklevel=4)
 
     def _forecast_frame(self, predictions: torch.Tensor) -> pd.DataFrame:
         r"""
@@ -526,6 +558,8 @@ class AdaptiveTAM:
             unique_groups=self.unique_groups_, date_col=self.date_col_
         )
         groups_stacked = _groups_in_data(balanced_data, self.group_col_, self.unique_groups_, self.norm_params_)
+
+        self._warn_extrapolation(x_pred.unsqueeze(1).cpu(), torch.ones(x_pred.shape[0], 1, x_pred.shape[1], dtype=torch.bool))
 
         run_device = TORCH_DEVICE
         x_pred = x_pred.to(run_device)

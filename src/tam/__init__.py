@@ -7,6 +7,7 @@ Time series Additive Model (TAM)
 The unified framework for interpretable, physics-informed, and high-performance time series forecasting.
 """
 
+from .common.exceptions import TAMExtrapolationWarning
 from .model.additive import StaticTAM
 from .model.opera import OperaTAM
 from .model.kalman import KalmanTAM
@@ -34,6 +35,7 @@ __all__ = [
     "KalmanTAM",
     "AdaptiveTAM",
     "rolling_windows",
+    "TAMExtrapolationWarning",
     "HierarchicalTAM",
     "NeuralTAM",
     "SafetyTAM",

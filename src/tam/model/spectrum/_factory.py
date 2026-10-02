@@ -349,6 +349,42 @@ def categorical_ranges(effects_list: List[BaseEffect]) -> Dict[str, tuple]:
     return {name: (0.0, float(next(iter(n)) - 1)) for name, n in levels.items() if name not in other and len(n) == 1}
 
 
+def categorical_features(effects_list: List[BaseEffect]) -> List[str]:
+    """Names of the features read by a categorical effect, in order of appearance."""
+    names: List[str] = []
+
+    def visit(effect) -> None:
+        if isinstance(effect, TensorProductEffect):
+            for sub in effect.effects:
+                visit(sub)
+        elif isinstance(effect, CategoricalEffect) and effect.feature_name not in names:
+            names.append(effect.feature_name)
+
+    for effect in effects_list:
+        visit(effect)
+    return names
+
+
+def extrapolating_features(effects_list: List[BaseEffect]) -> set:
+    """
+    Features read by a non-linear effect (``s``, ``f``, ``p``, ``w``, ``rbf``, ``n``, ``t``, ``phys``, or a ``te`` margin of
+    those): outside [-1, 1] after normalisation, these effects extrapolate. ``l()`` and ``c()`` are not in it.
+    """
+    names: set = set()
+
+    def visit(effect) -> None:
+        if isinstance(effect, TensorProductEffect):
+            for sub in effect.effects:
+                visit(sub)
+        elif isinstance(effect, (SplineEffect, FourierEffect, ChebyshevEffect, WaveletEffect, RBFEffect, NeuralEffect,
+                                 TreeEffect, UniversalPhysicsEffect)):
+            names.update(getattr(effect, 'input_features', None) or [effect.feature_name])
+
+    for effect in effects_list:
+        visit(effect)
+    return names
+
+
 #: <build_phi>
 def initialize_effects(
     x_data: torch.Tensor,
