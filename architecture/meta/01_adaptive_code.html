@@ -7,7 +7,7 @@
         <link rel="prefetch" href="../../_static/logo.png" as="image">
 
     <!-- Generated with Sphinx 9.1.0 and Furo 2025.12.19 -->
-        <title>Online Error Correction (AdaptiveTAM) - TAM 1.3.3 documentation</title>
+        <title>Online Error Correction (AdaptiveTAM) - TAM 1.3.4 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=d111a655" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo-extensions.css?v=8dab3a3b" />
@@ -162,7 +162,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="../../index.html"><div class="brand">TAM 1.3.3 documentation</div></a>
+      <a href="../../index.html"><div class="brand">TAM 1.3.4 documentation</div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -186,7 +186,7 @@
     <img class="sidebar-logo" src="../../_static/logo.png" alt="Logo"/>
   </div>
   
-  <span class="sidebar-brand-text">TAM 1.3.3 documentation</span>
+  <span class="sidebar-brand-text">TAM 1.3.4 documentation</span>
   
 </a><form class="sidebar-search-container" method="get" action="../../search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
@@ -359,7 +359,8 @@
         <span class="n">default_alpha_p</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="o">-</span><span class="mf">9.0</span><span class="p">,</span>
         <span class="n">group_col</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">date_col</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-        <span class="n">add_base_effects</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="n">add_base_effects</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="n">clip_to_train_range</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
     <span class="p">):</span>
 <span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Initializes the AdaptiveTAM model.</span>
@@ -381,6 +382,8 @@
 <span class="sd">                Enforces an information delay by truncating the last (H-1) samples from the </span>
 <span class="sd">                training buffer of every group simultaneously.</span>
 <span class="sd">            default_alpha_p: Default regularization strength (log10).</span>
+<span class="sd">            clip_to_train_range: Clips the forecast of every window to the range of the target in the training rows of that</span>
+<span class="sd">                same window (False by default: no clipping).</span>
 <span class="sd">        </span>
 <span class="sd">        Raises:</span>
 <span class="sd">            ValueError: If the base_model has not been fitted.</span>
@@ -434,9 +437,10 @@
                         <span class="ne">UserWarning</span>
                     <span class="p">)</span>
         
+        <span class="bp">self</span><span class="o">.</span><span class="n">clip_to_train_range_</span> <span class="o">=</span> <span class="n">clip_to_train_range</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">last_state_dict_</span> <span class="o">=</span> <span class="kc">None</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">max_res_</span> <span class="o">=</span> <span class="kc">None</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">min_res_</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">window_layout_</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">final_target_range_</span> <span class="o">=</span> <span class="kc">None</span>
 </pre></div>
 </div>
 </div>
@@ -448,125 +452,145 @@
 <p><strong>Architectural Choices &amp; Frequency Agnosticism:</strong>
 The code deliberately transitions from a rigid “Calendar Day” perspective to a <strong>Frequency-Agnostic Group Coordinate System</strong>. By using mathematical abstract variables like <code class="docutils literal notranslate"><span class="pre">periods</span></code> and <code class="docutils literal notranslate"><span class="pre">steps_per_period</span></code>, it perfectly isolates panel data entities regardless of whether the native sampling rate is monthly, daily, or half-hourly.</p>
 <ol class="arabic simple">
-<li><p><strong>Anchor Calculation:</strong> The code identifies all valid starting indices (<code class="docutils literal notranslate"><span class="pre">start_indices</span></code>) by walking backward through time, strictly ensuring no incomplete windows are processed.</p></li>
+<li><p><strong>Anchor Calculation:</strong> The windows are anchored on the start of each group (<code class="docutils literal notranslate"><span class="pre">_window_starts</span></code>, also exposed as <code class="docutils literal notranslate"><span class="pre">ta.rolling_windows</span></code>): the first one trains on the first <code class="docutils literal notranslate"><span class="pre">training_window_periods</span></code> periods and forecasts right after them (<code class="docutils literal notranslate"><span class="pre">horizon_steps</span> <span class="pre">-</span> <span class="pre">1</span></code> rows later), the next ones follow every <code class="docutils literal notranslate"><span class="pre">update_interval_periods</span></code>, and the last one is cut at the end of the data. The rows before the first forecast are <code class="docutils literal notranslate"><span class="pre">NaN</span></code> in the estimate, never 0; the adapted forecast falls back to the base model forecast there (<code class="docutils literal notranslate"><span class="pre">NaN</span></code> without a base model).</p></li>
 <li><p><strong>Causal Offset Generation (Preventing Target Leakage):</strong> It generates two constant tensors: <code class="docutils literal notranslate"><span class="pre">predict_offsets</span></code> (the indices of the prediction window) and <code class="docutils literal notranslate"><span class="pre">train_offsets</span></code> (the relative indices of the learning window). Crucially, to prevent Target Leakage in multi-step forecasting, the <code class="docutils literal notranslate"><span class="pre">train_offsets</span></code> are dynamically shifted backward by <code class="docutils literal notranslate"><span class="pre">-(horizon_steps</span> <span class="pre">-</span> <span class="pre">1)</span></code>. This physically truncates the “illegal future” from the training buffer before the tensor is ever evaluated on the GPU.</p></li>
 <li><p><strong>Vectorized Extraction:</strong> By adding the column matrix of start indices (<code class="docutils literal notranslate"><span class="pre">start_indices.view(-1,</span> <span class="pre">1)</span></code>) to the offset vectors, PyTorch instantly broadcasts a complete 2D index matrix. The framework then extracts the entirety of the causally safe historical data in a single, contiguous memory call: <code class="docutils literal notranslate"><span class="pre">x_group[train_indices]</span></code>.</p></li>
+<li><p><strong>Per-Window Normalisation:</strong> Every (group, window) is normalised to <span class="math notranslate nohighlight">\([-1, 1]\)</span> with the minimum and maximum of <em>its own training rows</em>, applied to that window’s training and forecast rows (categorical codes use their fixed level range). This is what <code class="docutils literal notranslate"><span class="pre">StaticTAM.fit</span></code> followed by <code class="docutils literal notranslate"><span class="pre">predict</span></code> does on that window, so <code class="docutils literal notranslate"><span class="pre">AdaptiveTAM</span></code> equals the loop of operational refits; the training rows of every window map exactly to <span class="math notranslate nohighlight">\([-1, 1]\)</span>, so the spline knots are the same in every window. The tensors are <code class="docutils literal notranslate"><span class="pre">float64</span></code> when the device supports it.</p></li>
 </ol>
 <div class="literal-block-wrapper docutils container" id="id2">
 <div class="code-block-caption"><span class="caption-text">src/tam/model/_data.py (Vectorized Sliding Window Extraction Without For Loops)</span><a class="headerlink" href="#id2" title="Link to this code">¶</a></div>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">def</span><span class="w"> </span><span class="nf">_transform_data_adaptive</span><span class="p">(</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">_AdaptiveWindows</span><span class="p">:</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">"""Where the windows of an adaptive simulation sit in the data, and the normalisation each one trained with."""</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">positions</span><span class="p">,</span> <span class="n">starts</span><span class="p">,</span> <span class="n">n_valid</span><span class="p">,</span> <span class="n">norm_min</span><span class="p">,</span> <span class="n">norm_max</span><span class="p">,</span> <span class="n">y_min</span><span class="p">,</span> <span class="n">y_max</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">positions</span> <span class="o">=</span> <span class="n">positions</span>      <span class="c1"># per group: row positions of the group in `data`, in date order</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">starts</span> <span class="o">=</span> <span class="n">starts</span>            <span class="c1"># per group: first forecast position of each window (the last one may be the data end)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">n_valid</span> <span class="o">=</span> <span class="n">n_valid</span>          <span class="c1"># per group: forecast rows of each window that exist in the data</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">norm_min</span> <span class="o">=</span> <span class="n">norm_min</span>        <span class="c1"># (n_groups, n_windows, n_features): minimum of the training rows of the window</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">norm_max</span> <span class="o">=</span> <span class="n">norm_max</span>        <span class="c1"># (n_groups, n_windows, n_features)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">y_min</span> <span class="o">=</span> <span class="n">y_min</span>              <span class="c1"># (n_groups, n_windows): target range of the training rows of the window</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">y_max</span> <span class="o">=</span> <span class="n">y_max</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">final_index</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">]:</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""Per group, the window an operational refit would hold after the last row (-1 if the group is too short)."""</span>
+        <span class="k">return</span> <span class="p">[</span><span class="nb">len</span><span class="p">(</span><span class="n">st</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span> <span class="k">for</span> <span class="n">st</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">starts</span><span class="p">]</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_transform_data_adaptive</span><span class="p">(</span>
     <span class="n">data</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span>
     <span class="n">features</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
     <span class="n">group_col</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
-    <span class="n">norm_params</span><span class="p">:</span> <span class="n">Dict</span><span class="p">,</span>
     <span class="n">unique_groups</span><span class="p">:</span> <span class="n">List</span><span class="p">,</span>
     <span class="n">target_col</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
     <span class="n">update_interval_periods</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
     <span class="n">training_window_periods</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
     <span class="n">steps_per_period</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
     <span class="n">horizon_steps</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span>
-    <span class="n">date_col</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
-<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]:</span>
+    <span class="n">date_col</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">categorical_levels</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">int</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">_AdaptiveWindows</span><span class="p">]:</span>
 <span class="w">    </span><span class="sa">r</span><span class="sd">"""</span>
-<span class="sd">    Prepares data for adaptive learning using vectorized sliding window indexing.</span>
+<span class="sd">    Cuts the data into the windows of a rolling refit, and normalises each window on its own training rows.</span>
 
-<span class="sd">    Returns tensors for (X_train, Y_train, X_predict) for each simulation step.</span>
+<span class="sd">    A window trains on ``training_window_periods`` periods and forecasts the ``update_interval_periods`` that follow; windows are</span>
+<span class="sd">    anchored on the start of the data (see ``_window_starts``). Every (group, window) is normalised to [-1, 1] with the minimum and</span>
+<span class="sd">    maximum of its own training rows, applied to its training and its forecast rows: this is what ``StaticTAM.fit`` then</span>
+<span class="sd">    ``predict`` does on that window. A group that does not hold a full window gets an all-zero placeholder and no forecast.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">        data: Validation/Test DataFrame.</span>
+<span class="sd">        data: DataFrame holding only real rows (no balancing fill).</span>
 <span class="sd">        features: Feature list.</span>
 <span class="sd">        group_col: Grouping column.</span>
-<span class="sd">        norm_params: Normalization parameters.</span>
-<span class="sd">        unique_groups: Group names.</span>
+<span class="sd">        unique_groups: Group names, in the order of the output tensors.</span>
 <span class="sd">        target_col: Target column.</span>
-<span class="sd">        update_interval_periods: Prediction window size.</span>
-<span class="sd">        training_window_periods: Training history size.</span>
-<span class="sd">        steps_per_period: Samples per period.</span>
-<span class="sd">        horizon_steps: Horizon of forecasting</span>
+<span class="sd">        update_interval_periods: Forecast length, in periods.</span>
+<span class="sd">        training_window_periods: Training length, in periods.</span>
+<span class="sd">        steps_per_period: Rows of one group in a period.</span>
+<span class="sd">        horizon_steps: Horizon of forecasting.</span>
+<span class="sd">        categorical_levels: ``{feature: n_cat}`` of the categorical features: normalised on their full level range.</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">        Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:</span>
-<span class="sd">        (x_stacked, y_stacked, x_to_predict)</span>
+<span class="sd">        (x_stacked, y_stacked, x_to_predict, windows): (n_groups, n_windows, L, F), (n_groups, n_windows, L, 1),</span>
+<span class="sd">        (n_groups, n_windows, W, F) and the layout of the windows.</span>
 <span class="sd">    """</span>
-    <span class="n">learning_size_steps</span> <span class="o">=</span> <span class="n">training_window_periods</span> <span class="o">*</span> <span class="n">steps_per_period</span>
-    <span class="n">window_size_steps</span> <span class="o">=</span> <span class="n">update_interval_periods</span> <span class="o">*</span> <span class="n">steps_per_period</span>
-
-    <span class="n">all_groups_x_train</span> <span class="o">=</span> <span class="p">[]</span>
-    <span class="n">all_groups_y_train</span> <span class="o">=</span> <span class="p">[]</span>
-    <span class="n">all_groups_x_predict</span> <span class="o">=</span> <span class="p">[]</span>
-    
     <span class="k">if</span> <span class="n">unique_groups</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"`unique_groups` cannot be None."</span><span class="p">)</span>
-    
-    <span class="n">prep_device</span> <span class="o">=</span> <span class="s1">'cpu'</span>
+    <span class="n">learning_size_steps</span> <span class="o">=</span> <span class="n">training_window_periods</span> <span class="o">*</span> <span class="n">steps_per_period</span>
+    <span class="n">window_size_steps</span> <span class="o">=</span> <span class="n">update_interval_periods</span> <span class="o">*</span> <span class="n">steps_per_period</span>
+    <span class="n">dtype</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">get_default_dtype</span><span class="p">()</span>
+    <span class="n">n_features</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">features</span><span class="p">)</span>
+    <span class="n">categorical</span> <span class="o">=</span> <span class="n">categorical_levels</span> <span class="ow">or</span> <span class="p">{}</span>
 
+    <span class="n">x_all</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="n">features</span><span class="p">]</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span>
+    <span class="n">y_all</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="n">target_col</span><span class="p">]</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span>
+    <span class="n">group_values</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="n">group_col</span><span class="p">]</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">()</span>
+    <span class="n">date_values</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="n">date_col</span><span class="p">]</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">()</span> <span class="k">if</span> <span class="n">date_col</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="kc">None</span>
+
+    <span class="n">built</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">positions</span><span class="p">,</span> <span class="n">starts_all</span><span class="p">,</span> <span class="n">n_valid_all</span> <span class="o">=</span> <span class="p">[],</span> <span class="p">[],</span> <span class="p">[]</span>
     <span class="k">for</span> <span class="n">group_name</span> <span class="ow">in</span> <span class="n">unique_groups</span><span class="p">:</span>
-        <span class="k">if</span> <span class="n">group_name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">norm_params</span><span class="p">:</span>
+        <span class="n">pos</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">flatnonzero</span><span class="p">(</span><span class="n">group_values</span> <span class="o">==</span> <span class="n">group_name</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">date_values</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">pos</span> <span class="o">=</span> <span class="n">pos</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">argsort</span><span class="p">(</span><span class="n">date_values</span><span class="p">[</span><span class="n">pos</span><span class="p">],</span> <span class="n">kind</span><span class="o">=</span><span class="s2">"stable"</span><span class="p">)]</span>
+        <span class="n">n</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">pos</span><span class="p">)</span>
+        <span class="n">starts</span> <span class="o">=</span> <span class="n">_window_starts</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="n">learning_size_steps</span><span class="p">,</span> <span class="n">window_size_steps</span><span class="p">,</span> <span class="n">horizon_steps</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">n</span> <span class="o">&gt;=</span> <span class="n">learning_size_steps</span> <span class="o">+</span> <span class="n">horizon_steps</span> <span class="o">-</span> <span class="mi">1</span> <span class="ow">and</span> <span class="p">(</span><span class="n">n</span> <span class="o">-</span> <span class="p">(</span><span class="n">learning_size_steps</span> <span class="o">+</span> <span class="n">horizon_steps</span> <span class="o">-</span> <span class="mi">1</span><span class="p">))</span> <span class="o">%</span> <span class="n">window_size_steps</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">starts</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">n</span><span class="p">)</span>        <span class="c1"># the window an operational refit holds after the last row; it has no forecast row yet</span>
+        <span class="n">positions</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">pos</span><span class="p">)</span>
+        <span class="n">starts_all</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">starts</span><span class="p">)</span>
+        <span class="n">n_valid_all</span><span class="o">.</span><span class="n">append</span><span class="p">([</span><span class="nb">int</span><span class="p">(</span><span class="nb">min</span><span class="p">(</span><span class="n">window_size_steps</span><span class="p">,</span> <span class="nb">max</span><span class="p">(</span><span class="n">n</span> <span class="o">-</span> <span class="n">s</span><span class="p">,</span> <span class="mi">0</span><span class="p">)))</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">starts</span><span class="p">])</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">starts</span><span class="p">:</span>
+            <span class="n">built</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="kc">None</span><span class="p">)</span>
             <span class="k">continue</span>
-            
-        <span class="n">data_group</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="n">data</span><span class="p">[</span><span class="n">group_col</span><span class="p">]</span> <span class="o">==</span> <span class="n">group_name</span><span class="p">]</span>
-        <span class="k">if</span> <span class="n">date_col</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="n">data_group</span> <span class="o">=</span> <span class="n">data_group</span><span class="o">.</span><span class="n">sort_values</span><span class="p">(</span><span class="n">date_col</span><span class="p">)</span>
-        <span class="n">data_group</span> <span class="o">=</span> <span class="n">data_group</span><span class="o">.</span><span class="n">reset_index</span><span class="p">(</span><span class="n">drop</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-        
-        <span class="n">params</span> <span class="o">=</span> <span class="n">norm_params</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">group_name</span><span class="p">)</span>
-        <span class="k">if</span> <span class="n">params</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span> <span class="k">continue</span>
-        
-        <span class="n">total_available_steps</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">data_group</span><span class="p">)</span>
-        <span class="n">required_history</span> <span class="o">=</span> <span class="n">learning_size_steps</span> <span class="o">+</span> <span class="p">(</span><span class="n">horizon_steps</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
-        <span class="k">if</span> <span class="n">total_available_steps</span> <span class="o">&lt;=</span> <span class="n">required_history</span><span class="p">:</span>
-            <span class="k">continue</span>
+        <span class="n">s</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">starts</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">long</span><span class="p">)</span>
+        <span class="n">x_g</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">x_all</span><span class="p">[</span><span class="n">pos</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="n">n_features</span><span class="p">)</span>
+        <span class="n">y_g</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">y_all</span><span class="p">[</span><span class="n">pos</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="n">train_idx</span> <span class="o">=</span> <span class="n">s</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span> <span class="o">+</span> <span class="n">torch</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="o">-</span><span class="p">(</span><span class="n">horizon_steps</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">-</span> <span class="n">learning_size_steps</span><span class="p">,</span> <span class="o">-</span><span class="p">(</span><span class="n">horizon_steps</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="k">if</span> <span class="n">horizon_steps</span> <span class="o">&gt;</span> <span class="mi">1</span> <span class="k">else</span> <span class="mi">0</span><span class="p">)</span>
+        <span class="n">predict_idx</span> <span class="o">=</span> <span class="p">(</span><span class="n">s</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span> <span class="o">+</span> <span class="n">torch</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">window_size_steps</span><span class="p">))</span><span class="o">.</span><span class="n">clamp</span><span class="p">(</span><span class="nb">max</span><span class="o">=</span><span class="n">n</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="n">x_train</span> <span class="o">=</span> <span class="n">x_g</span><span class="p">[</span><span class="n">train_idx</span><span class="p">]</span>                                                  <span class="c1"># (n_windows, L, F)</span>
+        <span class="n">low</span> <span class="o">=</span> <span class="n">x_train</span><span class="o">.</span><span class="n">amin</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">keepdim</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="n">high</span> <span class="o">=</span> <span class="n">x_train</span><span class="o">.</span><span class="n">amax</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">keepdim</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">j</span><span class="p">,</span> <span class="n">name</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">features</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">categorical</span><span class="p">:</span>
+                <span class="n">n_cat</span> <span class="o">=</span> <span class="n">categorical</span><span class="p">[</span><span class="n">name</span><span class="p">]</span>
+                <span class="n">integer</span> <span class="o">=</span> <span class="p">(</span><span class="n">x_train</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="n">j</span><span class="p">]</span> <span class="o">==</span> <span class="n">x_train</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="n">j</span><span class="p">]</span><span class="o">.</span><span class="n">round</span><span class="p">())</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">keepdim</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+                <span class="n">start</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">high</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="n">j</span><span class="p">]</span> <span class="o">&lt;=</span> <span class="n">n_cat</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">low</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="n">j</span><span class="p">]),</span> <span class="n">low</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="n">j</span><span class="p">])</span>
+                <span class="n">low</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="n">j</span><span class="p">]</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">integer</span><span class="p">,</span> <span class="n">start</span><span class="p">,</span> <span class="n">low</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="n">j</span><span class="p">])</span>
+                <span class="n">high</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="n">j</span><span class="p">]</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">integer</span><span class="p">,</span> <span class="n">start</span> <span class="o">+</span> <span class="p">(</span><span class="n">n_cat</span> <span class="o">-</span> <span class="mi">1</span><span class="p">),</span> <span class="n">high</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="n">j</span><span class="p">])</span>
+        <span class="n">amplitude</span> <span class="o">=</span> <span class="n">high</span> <span class="o">-</span> <span class="n">low</span>
+        <span class="n">amplitude</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">amplitude</span> <span class="o">==</span> <span class="mi">0</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="n">amplitude</span><span class="p">),</span> <span class="n">amplitude</span><span class="p">)</span>
+        <span class="n">center</span> <span class="o">=</span> <span class="p">(</span><span class="n">high</span> <span class="o">+</span> <span class="n">low</span><span class="p">)</span> <span class="o">/</span> <span class="mi">2</span>
+        <span class="n">y_train</span> <span class="o">=</span> <span class="n">y_g</span><span class="p">[</span><span class="n">train_idx</span><span class="p">]</span>
+        <span class="n">built</span><span class="o">.</span><span class="n">append</span><span class="p">((</span>
+            <span class="p">((</span><span class="n">x_train</span> <span class="o">-</span> <span class="n">center</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="n">amplitude</span> <span class="o">/</span> <span class="mf">2.0</span><span class="p">))</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">dtype</span><span class="p">),</span>
+            <span class="n">y_train</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">dtype</span><span class="p">),</span>
+            <span class="p">((</span><span class="n">x_g</span><span class="p">[</span><span class="n">predict_idx</span><span class="p">]</span> <span class="o">-</span> <span class="n">center</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="n">amplitude</span> <span class="o">/</span> <span class="mf">2.0</span><span class="p">))</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">dtype</span><span class="p">),</span>
+            <span class="n">low</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="mi">1</span><span class="p">),</span> <span class="n">high</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="mi">1</span><span class="p">),</span> <span class="n">y_train</span><span class="o">.</span><span class="n">amin</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">)),</span> <span class="n">y_train</span><span class="o">.</span><span class="n">amax</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">)),</span>
+        <span class="p">))</span>
 
-        <span class="c1"># Normalize group data</span>
-        <span class="n">data_group</span><span class="p">[</span><span class="n">features</span><span class="p">]</span> <span class="o">=</span> <span class="n">normalize</span><span class="p">(</span><span class="n">df_to_normalize</span><span class="o">=</span><span class="n">data_group</span><span class="p">[</span><span class="n">features</span><span class="p">],</span> <span class="n">params</span><span class="o">=</span><span class="n">params</span><span class="p">)</span>
-        
-        <span class="n">x_group</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">data_group</span><span class="p">[</span><span class="n">features</span><span class="p">]</span><span class="o">.</span><span class="n">values</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">prep_device</span><span class="p">)</span>
-        <span class="n">y_group</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">data_group</span><span class="p">[</span><span class="n">target_col</span><span class="p">]</span><span class="o">.</span><span class="n">values</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">prep_device</span><span class="p">)</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
-
-        <span class="c1">#  Calculate valid start indices (reverse chronological)</span>
-        <span class="n">start_indices_list</span> <span class="o">=</span> <span class="p">[]</span>
-        <span class="n">first_predict_start</span> <span class="o">=</span> <span class="n">total_available_steps</span> <span class="o">-</span> <span class="p">(</span><span class="n">total_available_steps</span> <span class="o">-</span> <span class="n">learning_size_steps</span><span class="p">)</span> <span class="o">%</span> <span class="n">window_size_steps</span>
-        <span class="k">if</span> <span class="n">first_predict_start</span> <span class="o">==</span> <span class="n">total_available_steps</span> <span class="ow">and</span> <span class="n">total_available_steps</span> <span class="o">&gt;</span> <span class="n">learning_size_steps</span><span class="p">:</span>
-             <span class="n">first_predict_start</span> <span class="o">-=</span> <span class="n">window_size_steps</span>
-        
-        <span class="n">current_predict_start</span> <span class="o">=</span> <span class="n">first_predict_start</span>
-        <span class="k">while</span> <span class="n">current_predict_start</span> <span class="o">&gt;=</span> <span class="n">learning_size_steps</span><span class="p">:</span>
-            <span class="k">if</span> <span class="n">current_predict_start</span> <span class="o">+</span> <span class="n">window_size_steps</span> <span class="o">&lt;=</span> <span class="n">total_available_steps</span><span class="p">:</span>
-                <span class="n">start_indices_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">current_predict_start</span><span class="p">)</span>
-            <span class="n">current_predict_start</span> <span class="o">-=</span> <span class="n">window_size_steps</span>
-        
-        <span class="k">if</span> <span class="ow">not</span> <span class="n">start_indices_list</span><span class="p">:</span>
-            <span class="k">continue</span>
-            
-        <span class="n">start_indices_list</span><span class="o">.</span><span class="n">reverse</span><span class="p">()</span>
-        <span class="n">start_indices</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">start_indices_list</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">prep_device</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">long</span><span class="p">)</span>
-
-        <span class="c1">#  Vectorized Window Indexing</span>
-        <span class="n">train_end_offset</span> <span class="o">=</span> <span class="o">-</span><span class="p">(</span><span class="n">horizon_steps</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="k">if</span> <span class="n">horizon_steps</span> <span class="o">&gt;</span> <span class="mi">1</span> <span class="k">else</span> <span class="mi">0</span>
-        <span class="n">train_start_offset</span> <span class="o">=</span> <span class="n">train_end_offset</span> <span class="o">-</span> <span class="n">learning_size_steps</span>       
-        <span class="n">train_offsets</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">train_start_offset</span><span class="p">,</span> <span class="n">train_end_offset</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">prep_device</span><span class="p">)</span>
-        <span class="n">predict_offsets</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">window_size_steps</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">prep_device</span><span class="p">)</span>
-
-        <span class="n">train_indices</span> <span class="o">=</span> <span class="n">start_indices</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span> <span class="o">+</span> <span class="n">train_offsets</span>
-        <span class="n">predict_indices</span> <span class="o">=</span> <span class="n">start_indices</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span> <span class="o">+</span> <span class="n">predict_offsets</span>
-
-        <span class="c1">#  Gather</span>
-        <span class="n">group_x_train</span> <span class="o">=</span> <span class="n">x_group</span><span class="p">[</span><span class="n">train_indices</span><span class="p">]</span>
-        <span class="n">group_y_train</span> <span class="o">=</span> <span class="n">y_group</span><span class="p">[</span><span class="n">train_indices</span><span class="p">]</span>
-        <span class="n">group_x_predict</span> <span class="o">=</span> <span class="n">x_group</span><span class="p">[</span><span class="n">predict_indices</span><span class="p">]</span>
-        
-        <span class="n">all_groups_x_train</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">group_x_train</span><span class="p">)</span>
-        <span class="n">all_groups_y_train</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">group_y_train</span><span class="p">)</span>
-        <span class="n">all_groups_x_predict</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">group_x_predict</span><span class="p">)</span>
-
-    <span class="k">if</span> <span class="ow">not</span> <span class="n">all_groups_x_train</span><span class="p">:</span>
+    <span class="k">if</span> <span class="nb">all</span><span class="p">(</span><span class="n">b</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">for</span> <span class="n">b</span> <span class="ow">in</span> <span class="n">built</span><span class="p">):</span>
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"No simulation data could be generated. Check dataset length/window sizes."</span><span class="p">)</span>
 
-    <span class="n">x_stacked</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">(</span><span class="n">all_groups_x_train</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">TORCH_DEVICE</span><span class="p">)</span>
-    <span class="n">y_stacked</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">(</span><span class="n">all_groups_y_train</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">TORCH_DEVICE</span><span class="p">)</span>
-    <span class="n">x_to_predict</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">(</span><span class="n">all_groups_x_predict</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">TORCH_DEVICE</span><span class="p">)</span>
-
-    <span class="k">return</span> <span class="n">x_stacked</span><span class="p">,</span> <span class="n">y_stacked</span><span class="p">,</span> <span class="n">x_to_predict</span>
+    <span class="n">n_windows</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">st</span><span class="p">)</span> <span class="k">for</span> <span class="n">st</span> <span class="ow">in</span> <span class="n">starts_all</span><span class="p">)</span>
+    <span class="n">placeholders</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">n_windows</span><span class="p">,</span> <span class="n">learning_size_steps</span><span class="p">,</span> <span class="n">n_features</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">),</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">n_windows</span><span class="p">,</span> <span class="n">learning_size_steps</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">),</span>
+        <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">n_windows</span><span class="p">,</span> <span class="n">window_size_steps</span><span class="p">,</span> <span class="n">n_features</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">),</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">n_windows</span><span class="p">,</span> <span class="n">n_features</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float64</span><span class="p">),</span>
+        <span class="n">torch</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">n_windows</span><span class="p">,</span> <span class="n">n_features</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float64</span><span class="p">),</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">n_windows</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float64</span><span class="p">),</span> <span class="n">torch</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">n_windows</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float64</span><span class="p">),</span>
+    <span class="p">)</span>
+    <span class="n">columns</span> <span class="o">=</span> <span class="p">[[]</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">7</span><span class="p">)]</span>
+    <span class="k">for</span> <span class="n">entry</span> <span class="ow">in</span> <span class="n">built</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">7</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">entry</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">columns</span><span class="p">[</span><span class="n">k</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">placeholders</span><span class="p">[</span><span class="n">k</span><span class="p">])</span>
+                <span class="k">continue</span>
+            <span class="n">tensor</span> <span class="o">=</span> <span class="n">entry</span><span class="p">[</span><span class="n">k</span><span class="p">]</span>
+            <span class="k">if</span> <span class="n">tensor</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">&lt;</span> <span class="n">n_windows</span><span class="p">:</span>         <span class="c1"># a shorter group repeats its last window; the repeats are never read</span>
+                <span class="n">tensor</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">([</span><span class="n">tensor</span><span class="p">,</span> <span class="n">tensor</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">:]</span><span class="o">.</span><span class="n">expand</span><span class="p">(</span><span class="n">n_windows</span> <span class="o">-</span> <span class="n">tensor</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="o">*</span><span class="n">tensor</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">:])],</span> <span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+            <span class="n">columns</span><span class="p">[</span><span class="n">k</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">tensor</span><span class="p">)</span>
+    <span class="n">stacked</span> <span class="o">=</span> <span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">(</span><span class="n">c</span><span class="p">)</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">columns</span><span class="p">]</span>
+    <span class="n">windows</span> <span class="o">=</span> <span class="n">_AdaptiveWindows</span><span class="p">(</span><span class="n">positions</span><span class="p">,</span> <span class="n">starts_all</span><span class="p">,</span> <span class="n">n_valid_all</span><span class="p">,</span> <span class="n">stacked</span><span class="p">[</span><span class="mi">3</span><span class="p">],</span> <span class="n">stacked</span><span class="p">[</span><span class="mi">4</span><span class="p">],</span> <span class="n">stacked</span><span class="p">[</span><span class="mi">5</span><span class="p">],</span> <span class="n">stacked</span><span class="p">[</span><span class="mi">6</span><span class="p">])</span>
+    <span class="k">return</span> <span class="n">stacked</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">TORCH_DEVICE</span><span class="p">),</span> <span class="n">stacked</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">TORCH_DEVICE</span><span class="p">),</span> <span class="n">stacked</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">TORCH_DEVICE</span><span class="p">),</span> <span class="n">windows</span>
 </pre></div>
 </div>
 </div>
@@ -605,9 +629,6 @@ The code deliberately transitions from a rigid “Calendar Day” perspective to
         <span class="n">data_bm</span> <span class="o">=</span> <span class="n">_ensure_dummies</span><span class="p">(</span><span class="n">data_bm</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">group_col_</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">date_col_</span><span class="p">)</span>
         <span class="n">data_pred</span> <span class="o">=</span> <span class="n">_ensure_dummies</span><span class="p">(</span><span class="n">data_pred</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">group_col_</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">date_col_</span><span class="p">)</span>
         
-        <span class="n">cols_float</span> <span class="o">=</span> <span class="n">data_bm</span><span class="o">.</span><span class="n">select_dtypes</span><span class="p">(</span><span class="n">include</span><span class="o">=</span><span class="p">[</span><span class="s1">'float64'</span><span class="p">])</span><span class="o">.</span><span class="n">columns</span>
-        <span class="n">data_bm</span><span class="p">[</span><span class="n">cols_float</span><span class="p">]</span> <span class="o">=</span> <span class="n">data_bm</span><span class="p">[</span><span class="n">cols_float</span><span class="p">]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="s1">'float32'</span><span class="p">)</span>
-
         <span class="n">est_col_name</span> <span class="o">=</span> <span class="sa">f</span><span class="s1">'Estimated</span><span class="si">{</span><span class="n">target_col_bm</span><span class="si">}</span><span class="s1">'</span>
 
         <span class="k">if</span> <span class="n">est_col_name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">data_bm</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
@@ -639,28 +660,39 @@ The code deliberately transitions from a rigid “Calendar Day” perspective to
                 <span class="n">data_info</span><span class="o">=</span><span class="n">data_info</span>
             <span class="p">)</span>
 
-        <span class="bp">self</span><span class="o">.</span><span class="n">norm_params_</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">unique_groups_</span> <span class="o">=</span> <span class="n">_fit_normalization_params</span><span class="p">(</span>
-            <span class="n">data</span><span class="o">=</span><span class="n">balanced_data</span><span class="p">,</span> 
-            <span class="n">features</span><span class="o">=</span><span class="n">adaptive_features</span><span class="p">,</span> 
-            <span class="n">group_col</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">group_col_</span>
-        <span class="p">)</span>
-        
         <span class="n">hw</span><span class="o">.</span><span class="n">empty_cache</span><span class="p">()</span>
 
-        <span class="n">x_stacked</span><span class="p">,</span> <span class="n">y_stacked</span><span class="p">,</span> <span class="n">x_to_predict</span> <span class="o">=</span> <span class="n">_transform_data_adaptive</span><span class="p">(</span>
-            <span class="n">data</span><span class="o">=</span><span class="n">balanced_data</span><span class="p">,</span> 
-            <span class="n">features</span><span class="o">=</span><span class="n">adaptive_features</span><span class="p">,</span> 
+        <span class="c1"># Only real rows are windowed: the rows added to balance the groups never train and are never forecast.</span>
+        <span class="n">real</span> <span class="o">=</span> <span class="n">mask</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">()</span>
+        <span class="n">real_data</span> <span class="o">=</span> <span class="n">balanced_data</span><span class="p">[</span><span class="n">real</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">unique_groups_</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">real_data</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">group_col_</span><span class="p">]</span><span class="o">.</span><span class="n">unique</span><span class="p">())</span>
+        <span class="n">x_stacked</span><span class="p">,</span> <span class="n">y_stacked</span><span class="p">,</span> <span class="n">x_to_predict</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">window_layout_</span> <span class="o">=</span> <span class="n">_transform_data_adaptive</span><span class="p">(</span>
+            <span class="n">data</span><span class="o">=</span><span class="n">real_data</span><span class="p">,</span>
+            <span class="n">features</span><span class="o">=</span><span class="n">adaptive_features</span><span class="p">,</span>
             <span class="n">group_col</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">group_col_</span><span class="p">,</span>
-            <span class="n">norm_params</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">norm_params_</span><span class="p">,</span>
             <span class="n">unique_groups</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">unique_groups_</span><span class="p">,</span>
             <span class="n">target_col</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">target_col_</span><span class="p">,</span>
             <span class="n">update_interval_periods</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">update_interval_periods_</span><span class="p">,</span>
             <span class="n">training_window_periods</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">training_window_periods_</span><span class="p">,</span>
             <span class="n">steps_per_period</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">steps_per_period_</span><span class="p">,</span>
             <span class="n">horizon_steps</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">horizon_steps_</span><span class="p">,</span>
-            <span class="n">date_col</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">date_col_</span>
+            <span class="n">date_col</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">date_col_</span><span class="p">,</span>
+            <span class="n">categorical_levels</span><span class="o">=</span><span class="n">categorical_ranges</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">adaptive_model_</span><span class="o">.</span><span class="n">effects_list_</span><span class="p">)</span>
         <span class="p">)</span>
-        
+        <span class="c1"># Data-dependent state (spline knots) comes from the training windows, never from a memory probe.</span>
+        <span class="n">initialize_effects</span><span class="p">(</span>
+            <span class="n">x_stacked</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">x_stacked</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span> <span class="n">x_stacked</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">3</span><span class="p">]),</span> <span class="bp">self</span><span class="o">.</span><span class="n">adaptive_model_</span><span class="o">.</span><span class="n">effects_list_</span><span class="p">,</span>
+            <span class="n">feature_columns</span><span class="o">=</span><span class="n">adaptive_features</span>
+        <span class="p">)</span>
+        <span class="n">valid</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">x_to_predict</span><span class="o">.</span><span class="n">shape</span><span class="p">[:</span><span class="mi">3</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">bool</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">counts</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">window_layout_</span><span class="o">.</span><span class="n">n_valid</span><span class="p">):</span>
+            <span class="k">for</span> <span class="n">j</span><span class="p">,</span> <span class="n">count</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">counts</span><span class="p">):</span>
+                <span class="n">valid</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">,</span> <span class="p">:</span><span class="n">count</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_warn_extrapolation</span><span class="p">(</span><span class="n">x_to_predict</span><span class="o">.</span><span class="n">cpu</span><span class="p">(),</span> <span class="n">valid</span><span class="p">)</span>
+        <span class="c1"># Positions in `real_data` -&gt; positions in `balanced_data` (real rows come first when groups are balanced by filling).</span>
+        <span class="n">real_positions</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">flatnonzero</span><span class="p">(</span><span class="n">real</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">window_layout_</span><span class="o">.</span><span class="n">positions</span> <span class="o">=</span> <span class="p">[</span><span class="n">real_positions</span><span class="p">[</span><span class="n">p</span><span class="p">]</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">window_layout_</span><span class="o">.</span><span class="n">positions</span><span class="p">]</span>
+
         <span class="bp">self</span><span class="o">.</span><span class="n">simulation_data_</span> <span class="o">=</span> <span class="p">(</span>
             <span class="n">x_stacked</span><span class="o">.</span><span class="n">cpu</span><span class="p">(),</span> 
             <span class="n">y_stacked</span><span class="o">.</span><span class="n">cpu</span><span class="p">(),</span> 
@@ -675,17 +707,17 @@ The code deliberately transitions from a rigid “Calendar Day” perspective to
 </div>
 </div>
 </section>
-<section id="batch-execution-and-numerical-safety-clipping">
-<h2>Batch Execution and Numerical Safety (Clipping)<a class="headerlink" href="#batch-execution-and-numerical-safety-clipping" title="Link to this heading">¶</a></h2>
+<section id="batch-execution-and-output">
+<h2>Batch Execution and Output<a class="headerlink" href="#batch-execution-and-output" title="Link to this heading">¶</a></h2>
 <p>In the <code class="docutils literal notranslate"><span class="pre">simulation()</span></code> method, calculations are not executed step-by-step. The solver must simultaneously resolve the exact local empirical risk minimization problem for all sliding windows across all groups.</p>
 <p><strong>Architectural Choice 1: Dimensional Flattening:</strong>
 The generated tensors naturally possess 4 dimensions <code class="docutils literal notranslate"><span class="pre">(n_groups,</span> <span class="pre">n_windows,</span> <span class="pre">num_samples,</span> <span class="pre">features)</span></code>. The standard Core mathematical solvers (<code class="docutils literal notranslate"><span class="pre">solve_linear_system</span></code>) are built exclusively for 3D batches <code class="docutils literal notranslate"><span class="pre">(batch,</span> <span class="pre">samples,</span> <span class="pre">features)</span></code>. Instead of rewriting the core linear algebra module, <code class="docutils literal notranslate"><span class="pre">simulation()</span></code> flattens the first two dimensions: <code class="docutils literal notranslate"><span class="pre">total_items</span> <span class="pre">=</span> <span class="pre">n_groups</span> <span class="pre">*</span> <span class="pre">n_windows</span></code>. This elegantly maps the massive localized window problem into a standard, independent batch structure, saturating the GPU cores perfectly.</p>
 <p><strong>Architectural Choice 2: OOM Resilience:</strong>
 Because <code class="docutils literal notranslate"><span class="pre">total_items</span></code> can easily exceed tens of thousands of matrices, the method implements the dynamic <code class="docutils literal notranslate"><span class="pre">hw.handle_oom</span></code> fallback mechanism. If the GPU VRAM exhausts, it catches the <code class="docutils literal notranslate"><span class="pre">torch.OutOfMemoryError</span></code> and halves the <code class="docutils literal notranslate"><span class="pre">safe_batch_size</span></code> iteratively, ensuring the simulation completes gracefully even on constrained hardware.</p>
-<p><strong>Architectural Choice 3: Algorithmic Safeguard (Target Clipping):</strong>
-Adaptive models can diverge wildly if they train on a window containing purely anomalous values (e.g., a sensor failure). To guarantee safety in production, the implementation applies strict bounded clipping. The final adapted prediction is physically bounded by the maximum and minimum historical values of the observed base residuals (<code class="docutils literal notranslate"><span class="pre">data_bm[self.target_col_].max()</span></code>), preventing the corrector from extrapolating unrealistic deviations during unexpected exogenous shocks.</p>
+<p><strong>Architectural Choice 3: No Hidden Clipping:</strong>
+The forecasts are not clipped by default: a clip to the range of the <em>whole</em> period would use observations after the forecast. <code class="docutils literal notranslate"><span class="pre">clip_to_train_range=True</span></code> clips each window to the range of the target in the training rows of that same window. Rows no window forecasts stay <code class="docutils literal notranslate"><span class="pre">NaN</span></code> (the adapted forecast keeps the base forecast), and the rows added to balance the groups are never trained on nor forecast.</p>
 <div class="literal-block-wrapper docutils container" id="id4">
-<div class="code-block-caption"><span class="caption-text">src/tam/model/adaptative.py (Batch Linear Resolution, OOM Handling, and Safety Clipping)</span><a class="headerlink" href="#id4" title="Link to this code">¶</a></div>
+<div class="code-block-caption"><span class="caption-text">src/tam/model/adaptative.py (Batch Linear Resolution and OOM Handling)</span><a class="headerlink" href="#id4" title="Link to this code">¶</a></div>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span>    <span class="k">def</span><span class="w"> </span><span class="nf">simulation</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
 <span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Executes the sliding-window simulation using scalable batch processing.</span>
@@ -771,32 +803,8 @@ Adaptive models can diverge wildly if they train on a window containing purely a
         <span class="n">predictions_flat</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">(</span><span class="n">all_predictions</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
         <span class="n">predictions_cpu</span> <span class="o">=</span> <span class="n">predictions_flat</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">n_groups</span><span class="p">,</span> <span class="n">n_windows</span><span class="p">,</span> <span class="n">window_size_steps</span><span class="p">)</span>
 
-        <span class="n">data_with_predictions</span> <span class="o">=</span> <span class="n">_reassemble_predictions</span><span class="p">(</span>
-            <span class="n">original_data</span><span class="o">=</span><span class="n">balanced_data</span><span class="p">,</span> 
-            <span class="n">predictions_stacked</span><span class="o">=</span><span class="n">predictions_cpu</span><span class="p">,</span>
-            <span class="n">group_col</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">group_col_</span><span class="p">,</span>
-            <span class="n">unique_groups</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">unique_groups_</span><span class="p">,</span> 
-            <span class="n">target_col</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">target_col_</span><span class="p">,</span>
-            <span class="n">date_col</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">date_col_</span>
-        <span class="p">)</span>
-
-        <span class="n">max_res</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">(</span><span class="n">data_bm</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">target_col_</span><span class="p">]</span><span class="o">.</span><span class="n">max</span><span class="p">())</span>
-        <span class="n">min_res</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">(</span><span class="n">data_bm</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">target_col_</span><span class="p">]</span><span class="o">.</span><span class="n">min</span><span class="p">())</span>
-        <span class="n">est_col</span> <span class="o">=</span> <span class="sa">f</span><span class="s1">'Estimated</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">target_col_</span><span class="si">}</span><span class="s1">'</span>
-        
-        <span class="n">data_with_predictions</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">data_with_predictions</span><span class="p">[</span><span class="n">est_col</span><span class="p">]</span> <span class="o">&gt;=</span> <span class="n">max_res</span><span class="p">,</span> <span class="n">est_col</span><span class="p">]</span> <span class="o">=</span> <span class="n">max_res</span>
-        <span class="n">data_with_predictions</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">data_with_predictions</span><span class="p">[</span><span class="n">est_col</span><span class="p">]</span> <span class="o">&lt;=</span> <span class="n">min_res</span><span class="p">,</span> <span class="n">est_col</span><span class="p">]</span> <span class="o">=</span> <span class="n">min_res</span>
-                
-        <span class="n">adapted_col</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">"AdaptedEstimated</span><span class="si">{</span><span class="n">target_col_bm</span><span class="si">}</span><span class="s2">"</span>
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">target_col_</span> <span class="o">==</span> <span class="n">target_col_bm</span><span class="p">:</span>
-            <span class="n">data_with_predictions</span><span class="p">[</span><span class="n">adapted_col</span><span class="p">]</span> <span class="o">=</span> <span class="n">data_with_predictions</span><span class="p">[</span><span class="n">est_col</span><span class="p">]</span><span class="o">.</span><span class="n">fillna</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="n">data_with_predictions</span><span class="p">[</span><span class="n">adapted_col</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
-                <span class="n">data_with_predictions</span><span class="p">[</span><span class="sa">f</span><span class="s1">'Estimated</span><span class="si">{</span><span class="n">target_col_bm</span><span class="si">}</span><span class="s1">'</span><span class="p">]</span> <span class="o">+</span> 
-                <span class="n">data_with_predictions</span><span class="p">[</span><span class="n">est_col</span><span class="p">]</span><span class="o">.</span><span class="n">fillna</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
-            <span class="p">)</span>
-                                                 
-        <span class="bp">self</span><span class="o">.</span><span class="n">predictions_</span> <span class="o">=</span> <span class="n">_cleanup_dummies</span><span class="p">(</span><span class="n">data_with_predictions</span><span class="p">[</span><span class="n">mask</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">group_col_</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">date_col_</span><span class="p">)</span>
+        <span class="n">mask</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">simulation_data_</span><span class="p">[</span><span class="mi">6</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">predictions_</span> <span class="o">=</span> <span class="n">_cleanup_dummies</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_forecast_frame</span><span class="p">(</span><span class="n">predictions_cpu</span><span class="p">)[</span><span class="n">mask</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">group_col_</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">date_col_</span><span class="p">)</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">predictions_</span>
 </pre></div>
 </div>
@@ -926,7 +934,8 @@ Adaptive models can diverge wildly if they train on a window containing purely a
                 <span class="n">update_interval_periods</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">update_interval_periods_</span><span class="p">,</span>
                 <span class="n">training_window_periods</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">training_window_periods_</span><span class="p">,</span>
                 <span class="n">steps_per_period</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">steps_per_period_</span><span class="p">,</span>
-                <span class="n">horizon_steps</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">horizon_steps_</span>
+                <span class="n">horizon_steps</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">horizon_steps_</span><span class="p">,</span>
+                <span class="n">clip_to_train_range</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">clip_to_train_range_</span>
             <span class="p">)</span>
             
             <span class="n">final_adaptive_model_internal</span> <span class="o">=</span> <span class="n">StaticTAM</span><span class="p">(</span>
@@ -938,8 +947,6 @@ Adaptive models can diverge wildly if they train on a window containing purely a
             <span class="p">)</span>
             
             <span class="n">final_model</span><span class="o">.</span><span class="n">adaptive_model_</span> <span class="o">=</span> <span class="n">final_adaptive_model_internal</span>
-            <span class="n">final_model</span><span class="o">.</span><span class="n">norm_params_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">norm_params_</span>
-            <span class="n">final_model</span><span class="o">.</span><span class="n">unique_groups_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">unique_groups_</span>
             <span class="n">final_model</span><span class="o">.</span><span class="n">target_col_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">target_col_</span>
 
             <span class="n">final_model</span><span class="o">.</span><span class="n">predict_online</span><span class="p">(</span><span class="n">data_val</span><span class="p">)</span>
@@ -954,8 +961,8 @@ Adaptive models can diverge wildly if they train on a window containing purely a
 <p>To guarantee speed and safety in operational production pipelines, <code class="docutils literal notranslate"><span class="pre">AdaptiveTAM</span></code> strictly separates the continuous historical simulation from out-of-sample inference.</p>
 <p><strong>Architectural Choice (The <span class="math notranslate nohighlight">\(O(1)\)</span> Inference Optimization):</strong></p>
 <ul class="simple">
-<li><p><strong><code class="docutils literal notranslate"><span class="pre">fit(data)</span></code>:</strong> Instead of running the massive sliding-window simulation over the entire dataset, <code class="docutils literal notranslate"><span class="pre">fit()</span></code> leverages the <code class="docutils literal notranslate"><span class="pre">_save_final_state()</span></code> method. This function slices <em>only</em> the final available training window from the 4D tensor, solves the exact Primal linear system for that single step, and freezes the optimal coefficients (<code class="docutils literal notranslate"><span class="pre">last_state_dict_</span></code>) along with historical safety clipping bounds.</p></li>
-<li><p><strong><code class="docutils literal notranslate"><span class="pre">predict(data)</span></code>:</strong> A purely deterministic, read-only method. It builds the design matrix <span class="math notranslate nohighlight">\(\Phi\)</span> for the new data and multiplies it directly against the frozen coefficients. By completely bypassing sliding-window tensorization and system resolution during inference, it guarantees blazing-fast <span class="math notranslate nohighlight">\(O(1)\)</span> execution time and absolute protection against target leakage.</p></li>
+<li><p><strong><code class="docutils literal notranslate"><span class="pre">fit(data)</span></code>:</strong> Instead of running the massive sliding-window simulation over the entire dataset, <code class="docutils literal notranslate"><span class="pre">fit()</span></code> leverages the <code class="docutils literal notranslate"><span class="pre">_save_final_state()</span></code> method. This function slices <em>only</em> the window a refit would hold after the last row (the last window of the schedule, which may not have a forecast row yet), solves the exact Primal linear system for that single step, and freezes the optimal coefficients (<code class="docutils literal notranslate"><span class="pre">last_state_dict_</span></code>) and that window’s normalisation (<code class="docutils literal notranslate"><span class="pre">norm_params_</span></code>).</p></li>
+<li><p><strong><code class="docutils literal notranslate"><span class="pre">predict(data)</span></code>:</strong> A purely deterministic, read-only method. It normalises the new data with the frozen window’s minimum and maximum (never with the new data’s own range), builds the design matrix <span class="math notranslate nohighlight">\(\Phi\)</span> and multiplies it directly against the frozen coefficients; this is the <code class="docutils literal notranslate"><span class="pre">StaticTAM</span></code> fitted on that window. By completely bypassing sliding-window tensorization and system resolution during inference, it guarantees blazing-fast <span class="math notranslate nohighlight">\(O(1)\)</span> execution time and absolute protection against target leakage.</p></li>
 </ul>
 </section>
 </section>
@@ -1019,7 +1026,7 @@ Adaptive models can diverge wildly if they train on a window containing purely a
 <li><a class="reference internal" href="#design-pattern-instance-composition">Design Pattern: Instance Composition</a></li>
 <li><a class="reference internal" href="#advanced-pytorch-indexing-4d-vectorization">Advanced PyTorch Indexing (4D Vectorization)</a></li>
 <li><a class="reference internal" href="#dynamic-target-and-preparation">Dynamic Target and Preparation</a></li>
-<li><a class="reference internal" href="#batch-execution-and-numerical-safety-clipping">Batch Execution and Numerical Safety (Clipping)</a></li>
+<li><a class="reference internal" href="#batch-execution-and-output">Batch Execution and Output</a></li>
 <li><a class="reference internal" href="#coordinate-descent-search-algorithm">Coordinate Descent Search Algorithm</a></li>
 <li><a class="reference internal" href="#separation-of-concerns-simulation-vs-inference">Separation of Concerns: Simulation vs. Inference</a></li>
 </ul>
@@ -1033,7 +1040,7 @@ Adaptive models can diverge wildly if they train on a window containing purely a
       
     </aside>
   </div>
-</div><script src="../../_static/documentation_options.js?v=28d163b9"></script>
+</div><script src="../../_static/documentation_options.js?v=e358f374"></script>
     <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/scripts/furo.js?v=46bd48cc"></script>
