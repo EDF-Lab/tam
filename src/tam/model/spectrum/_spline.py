@@ -36,6 +36,11 @@ class SplineEffect(BaseEffect):
         self._n_coeffs = self.n_knots + self.spline_degree
         self._cached_knots = None
 
+    def initialize(self, x_cols: torch.Tensor) -> None:
+        r"""Sets the knots from the full training tensor, so that the memory probe (one row per group) never decides them."""
+        if self._cached_knots is None:
+            self._get_knots(x_cols)
+
     def get_n_coeffs(self) -> int:
         return self._n_coeffs
 

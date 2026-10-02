@@ -356,7 +356,7 @@ def initialize_effects(
     feature_columns: Optional[List[str]] = None
 ) -> None:
     """
-    Sets the data-dependent state of every effect (trees, RBF centres) from the full training tensor.
+    Sets the data-dependent state of every effect (spline knots, trees, RBF centres) from the full training tensor.
 
     Routes the columns exactly as ``build_phi_from_effects`` does. Must run before any design matrix is
     built: otherwise the dispatcher's memory probe (one row per group) or the first chunk would set it.
@@ -369,7 +369,7 @@ def initialize_effects(
     for effect in effects_list:
         if isinstance(effect, OffsetEffect):
             continue
-        if isinstance(effect, (TensorProductEffect, NeuralEffect, RBFEffect, TreeEffect, LinearTreeEffect)):
+        if isinstance(effect, (TensorProductEffect, NeuralEffect, RBFEffect, TreeEffect, LinearTreeEffect, SplineEffect)):
             if isinstance(effect, TensorProductEffect):
                 req_features = []
                 for e in effect.effects:
