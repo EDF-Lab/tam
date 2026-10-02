@@ -14,6 +14,7 @@ methods for hyperparameter tuning and model interpretation.
 
 from typing import Dict, List, Any, Tuple, Optional, Union, Sequence
 import re
+import warnings
 import torch
 import pandas as pd
 import numpy as np 
@@ -22,6 +23,7 @@ from tam.common.utils import (
     TORCH_DEVICE, _check_features, _balance_groups, parse_formula_to_terms, 
     _ensure_dummies, _cleanup_dummies
 )
+from tam.common.exceptions import warn_extrapolation, EXTRAPOLATION_TOLERANCE
 from ._base import BaseTAM
 from .safety import SafetyTAM
 from ._data import (
@@ -44,6 +46,9 @@ from .spectrum import (
     TensorProductEffect, TreeEffect, LinearTreeEffect,
     create_effects_from_parsed_terms,
     initialize_effects,
+    categorical_ranges,
+    categorical_features,
+    extrapolating_features,
     build_phi_from_effects,
     build_penalty_from_effects
 )
@@ -365,6 +370,35 @@ class StaticTAM(BaseTAM):
                 info[col] = int(data[col].max(skipna=True)) + 1
         return info
     
+    def _warn_missing_levels(self, data: pd.DataFrame) -> None:
+        r"""
+        Training-time information: a ``c()`` term whose ``n_cat`` is given in the formula expects the levels ``0 .. n_cat - 1``
+        (``1 .. n_cat`` when the codes do not fit there); the levels the training rows do not hold have no data behind them.
+        Features with non-integer codes (a coordinate read by a Fourier topology) are skipped.
+        """
+        for effect in self.effects_list_:
+            if not isinstance(effect, CategoricalEffect) or not getattr(effect, "n_cat_given", True):
+                continue
+            if effect.feature_name not in data.columns:
+                continue
+            codes = data[effect.feature_name].dropna()
+            if codes.empty or not (codes == np.round(codes)).all():
+                continue
+            n = effect.n_categories
+            start = 0 if codes.max() <= n - 1 else int(codes.min())
+            missing = sorted(set(range(start, start + n)) - set(codes.astype(int).unique().tolist()))
+            if not missing:
+                continue
+            effect_of_missing = {
+                "nominal": "Their effect is regularized to 0.",
+                "ordinal": "Their effect follows from their neighbours through the smoothness penalty.",
+                "fourier": "They have no estimate of their own (the effect is a smooth periodic curve).",
+            }[effect.topology]
+            warnings.warn(
+                f"TAM [Info]: the categorical feature '{effect.feature_name}' is configured with {n} categories, but "
+                f"{len(missing)} are missing from the training data: {missing[:12]}{'...' if len(missing) > 12 else ''}. {effect_of_missing}",
+                UserWarning, stacklevel=4)
+
     def summary(self) -> pd.DataFrame:
         """
         Generates a structured summary of the model architecture.
@@ -451,9 +485,13 @@ class StaticTAM(BaseTAM):
             self.norm_params_, self.unique_groups_ = _fit_normalization_params(
                 data=data, 
                 features=self.features_config_["features"], 
-                group_col=self.group_col_
+                group_col=self.group_col_,
+                categorical_levels=categorical_ranges(self.effects_list_)
             )
             
+        if target_col is not None:
+            self._warn_missing_levels(data)
+
         x_stacked, y_stacked = _transform_data_stacked(
             data=data, 
             features=self.features_config_["features"], 
@@ -482,9 +520,48 @@ class StaticTAM(BaseTAM):
                     f"TAM [Data Error]: The target column '{target_col}' "
                     "contains NaN values. Cannot proceed with optimization."
                 )
+        if target_col is not None:
+            self._seen_levels_ = {
+                name: set(np.unique(data[name].dropna().to_numpy()).tolist())
+                for name in categorical_features(self.effects_list_) if name in data.columns
+            }
+        else:
+            self._warn_extrapolation(data, x_stacked)
+
         # The groups stacked in x_stacked, in order: a frame holding only some of the fitted groups stacks only those.
         groups_stacked = _groups_in_data(data, self.group_col_, self.unique_groups_, self.norm_params_)
         return x_stacked, y_stacked, groups_stacked
+
+    def _warn_extrapolation(self, data: pd.DataFrame, x_stacked: torch.Tensor) -> None:
+        r"""
+        Warns, once per model and feature, when a forecast leaves the trained range of a non-linear effect, or holds a categorical
+        level that training never saw (``TAMExtrapolationWarning``). Features are normalised per group, so the range is the group's own.
+        """
+        warned = self.__dict__.setdefault("_extrapolation_warned_", set())
+        features = self.features_config_['features'] if self.features_config_ else []
+        nonlinear = extrapolating_features(self.effects_list_)
+        for j, name in enumerate(features):
+            if name not in nonlinear or name in warned:
+                continue
+            beyond = (x_stacked[..., j].abs() - 1.0).clamp(min=0)
+            outside = beyond > EXTRAPOLATION_TOLERANCE
+            if outside.any():
+                warned.add(name)
+                warn_extrapolation(name,
+                    f"'{name}' leaves the range seen in training on {outside.double().mean().item():.1%} of the rows, by up to "
+                    f"{beyond.max().item():.2f} half-ranges: its non-linear effect is extrapolated and can be far off. "
+                    f"Set extrapolate='constant' on the term to hold it at the edge of the trained range.", stacklevel=4)
+        seen = getattr(self, "_seen_levels_", None) or {}
+        for name, levels in seen.items():
+            key = f"{name} (levels)"
+            if key in warned or name not in data.columns:
+                continue
+            unseen = sorted(set(np.unique(data[name].dropna().to_numpy()).tolist()) - levels)
+            if unseen:
+                warned.add(key)
+                warn_extrapolation(key,
+                    f"'{name}': level(s) {unseen[:10]} not seen in training; the categorical effect has no estimate for them "
+                    f"(a level that falls outside 0..n_cat-1 takes the nearest edge level).", stacklevel=4)
 
     def _build_design_matrix(self, x_data: torch.Tensor) -> torch.Tensor:
         """Builds the global design matrix."""

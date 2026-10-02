@@ -24,6 +24,7 @@ import numpy as np
 import warnings
 
 from .additive import StaticTAM
+from tam.common.exceptions import warn_extrapolation, EXTRAPOLATION_TOLERANCE
 from tam.common.utils import (
     TORCH_DEVICE, _check_features, _balance_groups,
     _ensure_dummies, _cleanup_dummies
@@ -32,8 +33,11 @@ from tam.common.hardware import hw
 from ._memory import get_safe_window_batch_size
 
 from ._data import (
-    _fit_normalization_params,
     _transform_data_adaptive,
+    _transform_data_stacked,
+    _window_starts,
+    _groups_in_data,
+    _check_known_groups,
     _reassemble_predictions
 )
 from ._math import (
@@ -45,9 +49,68 @@ from ._math import (
 from .spectrum import (
     BaseEffect,
     create_effects_from_parsed_terms,
+    categorical_ranges,
+    extrapolating_features,
+    initialize_effects,
     build_phi_from_effects,
     build_penalty_from_effects
 )
+
+def rolling_windows(
+    data: pd.DataFrame,
+    training_window_periods: int,
+    update_interval_periods: int,
+    steps_per_period: int = 1,
+    horizon_steps: int = 1,
+    group_col: Optional[str] = None,
+    date_col: Optional[str] = None
+):
+    r"""
+    The windows an operational refit would use, and the ones ``AdaptiveTAM`` simulates: ``(train_rows, forecast_rows)``.
+
+    Windows are anchored on the start of the data. The first one trains on the first ``training_window_periods * steps_per_period``
+    rows of every group and forecasts the ``update_interval_periods * steps_per_period`` rows that follow, ``horizon_steps - 1`` rows
+    after the end of the training rows (the target of a row is known ``horizon_steps`` rows later). Each next window moves forward by
+    the forecast length, and the last one is cut at the end of the data. Rows before the first forecast are never forecast.
+
+    Each element holds the index labels of ``data`` of all the groups together, so that, for the same windows,
+    ``StaticTAM(...).fit(data.loc[train_rows]).predict(data.loc[forecast_rows])`` is the model ``AdaptiveTAM`` is equal to.
+
+    Args:
+        data: The DataFrame the windows are cut in (its index must hold unique labels).
+        training_window_periods: Training length, in periods.
+        update_interval_periods: Forecast length, in periods.
+        steps_per_period: Rows of one group in a period.
+        horizon_steps: Forecasting horizon.
+        group_col: Grouping column; the windows are cut inside each group.
+        date_col: Column rows are ordered by (the order of ``data`` when None).
+
+    Yields:
+        Tuple[pd.Index, pd.Index]: the labels of the training rows and of the forecast rows of each window.
+    """
+    training_steps = training_window_periods * steps_per_period
+    window_steps = update_interval_periods * steps_per_period
+    if group_col is not None and group_col in data.columns:
+        groups = [frame for _, frame in data.groupby(group_col, sort=True)]
+    else:
+        groups = [data]
+    per_group = []
+    for frame in groups:
+        if date_col is not None and date_col in frame.columns:
+            frame = frame.sort_values(date_col, kind="stable")
+        labels = frame.index
+        starts = _window_starts(len(labels), training_steps, window_steps, horizon_steps)
+        per_group.append((labels, starts))
+    n_windows = max((len(starts) for _, starts in per_group), default=0)
+    for k in range(n_windows):
+        train, forecast = [], []
+        for labels, starts in per_group:
+            if k < len(starts):
+                s = starts[k]
+                train.append(labels[s - (horizon_steps - 1) - training_steps: s - (horizon_steps - 1)])
+                forecast.append(labels[s: s + window_steps])
+        yield train[0].append(train[1:]), forecast[0].append(forecast[1:])
+
 
 #: <init_adaptive>
 class AdaptiveTAM:
@@ -66,7 +129,8 @@ class AdaptiveTAM:
         default_alpha_p: float = -9.0,
         group_col: Optional[str] = None,
         date_col: Optional[str] = None,
-        add_base_effects: bool = False
+        add_base_effects: bool = False,
+        clip_to_train_range: bool = False
     ):
         r"""
         Initializes the AdaptiveTAM model.
@@ -88,6 +152,8 @@ class AdaptiveTAM:
                 Enforces an information delay by truncating the last (H-1) samples from the 
                 training buffer of every group simultaneously.
             default_alpha_p: Default regularization strength (log10).
+            clip_to_train_range: Clips the forecast of every window to the range of the target in the training rows of that
+                same window (False by default: no clipping).
         
         Raises:
             ValueError: If the base_model has not been fitted.
@@ -141,9 +207,10 @@ class AdaptiveTAM:
                         UserWarning
                     )
         
+        self.clip_to_train_range_ = clip_to_train_range
         self.last_state_dict_ = None
-        self.max_res_ = None
-        self.min_res_ = None
+        self.window_layout_ = None
+        self.final_target_range_ = None
 #: </init_adaptive>
 
 #: <prepare_sim>
@@ -175,9 +242,6 @@ class AdaptiveTAM:
         data_bm = _ensure_dummies(data_bm, self.group_col_, self.date_col_)
         data_pred = _ensure_dummies(data_pred, self.group_col_, self.date_col_)
         
-        cols_float = data_bm.select_dtypes(include=['float64']).columns
-        data_bm[cols_float] = data_bm[cols_float].astype('float32')
-
         est_col_name = f'Estimated{target_col_bm}'
 
         if est_col_name not in data_bm.columns:
@@ -209,28 +273,39 @@ class AdaptiveTAM:
                 data_info=data_info
             )
 
-        self.norm_params_, self.unique_groups_ = _fit_normalization_params(
-            data=balanced_data, 
-            features=adaptive_features, 
-            group_col=self.group_col_
-        )
-        
         hw.empty_cache()
 
-        x_stacked, y_stacked, x_to_predict = _transform_data_adaptive(
-            data=balanced_data, 
-            features=adaptive_features, 
+        # Only real rows are windowed: the rows added to balance the groups never train and are never forecast.
+        real = mask.to_numpy()
+        real_data = balanced_data[real]
+        self.unique_groups_ = sorted(real_data[self.group_col_].unique())
+        x_stacked, y_stacked, x_to_predict, self.window_layout_ = _transform_data_adaptive(
+            data=real_data,
+            features=adaptive_features,
             group_col=self.group_col_,
-            norm_params=self.norm_params_,
             unique_groups=self.unique_groups_,
             target_col=self.target_col_,
             update_interval_periods=self.update_interval_periods_,
             training_window_periods=self.training_window_periods_,
             steps_per_period=self.steps_per_period_,
             horizon_steps=self.horizon_steps_,
-            date_col=self.date_col_
+            date_col=self.date_col_,
+            categorical_levels=categorical_ranges(self.adaptive_model_.effects_list_)
         )
-        
+        # Data-dependent state (spline knots) comes from the training windows, never from a memory probe.
+        initialize_effects(
+            x_stacked.reshape(-1, x_stacked.shape[2], x_stacked.shape[3]), self.adaptive_model_.effects_list_,
+            feature_columns=adaptive_features
+        )
+        valid = torch.zeros(x_to_predict.shape[:3], dtype=torch.bool)
+        for i, counts in enumerate(self.window_layout_.n_valid):
+            for j, count in enumerate(counts):
+                valid[i, j, :count] = True
+        self._warn_extrapolation(x_to_predict.cpu(), valid)
+        # Positions in `real_data` -> positions in `balanced_data` (real rows come first when groups are balanced by filling).
+        real_positions = np.flatnonzero(real)
+        self.window_layout_.positions = [real_positions[p] for p in self.window_layout_.positions]
+
         self.simulation_data_ = (
             x_stacked.cpu(), 
             y_stacked.cpu(), 
@@ -329,65 +404,101 @@ class AdaptiveTAM:
         predictions_flat = torch.cat(all_predictions, dim=0).squeeze(-1)
         predictions_cpu = predictions_flat.view(n_groups, n_windows, window_size_steps)
 
-        data_with_predictions = _reassemble_predictions(
-            original_data=balanced_data, 
-            predictions_stacked=predictions_cpu,
-            group_col=self.group_col_,
-            unique_groups=self.unique_groups_, 
-            target_col=self.target_col_,
-            date_col=self.date_col_
-        )
-
-        max_res = np.float32(data_bm[self.target_col_].max())
-        min_res = np.float32(data_bm[self.target_col_].min())
-        est_col = f'Estimated{self.target_col_}'
-        
-        data_with_predictions.loc[data_with_predictions[est_col] >= max_res, est_col] = max_res
-        data_with_predictions.loc[data_with_predictions[est_col] <= min_res, est_col] = min_res
-                
-        adapted_col = f"AdaptedEstimated{target_col_bm}"
-        if self.target_col_ == target_col_bm:
-            data_with_predictions[adapted_col] = data_with_predictions[est_col].fillna(0)
-        else:
-            data_with_predictions[adapted_col] = (
-                data_with_predictions[f'Estimated{target_col_bm}'] + 
-                data_with_predictions[est_col].fillna(0)
-            )
-                                                 
-        self.predictions_ = _cleanup_dummies(data_with_predictions[mask], self.group_col_, self.date_col_)
+        mask = self.simulation_data_[6]
+        self.predictions_ = _cleanup_dummies(self._forecast_frame(predictions_cpu)[mask], self.group_col_, self.date_col_)
         return self.predictions_
 #: </run_sim>
 
+    def _warn_extrapolation(self, x: torch.Tensor, valid: torch.Tensor) -> None:
+        r"""
+        One ``TAMExtrapolationWarning`` per feature (once per model) when forecast rows leave the range of the training rows of
+        their own window on a non-linear effect; the windows are aggregated: the message gives how many of them are affected.
+
+        Args:
+            x: Normalised forecast features, (n_groups, n_windows, rows, features).
+            valid: Which of those rows are real forecast rows, (n_groups, n_windows, rows).
+        """
+        warned = self.__dict__.setdefault("_extrapolation_warned_", set())
+        features = self.adaptive_model_.features_config_['features']
+        nonlinear = extrapolating_features(self.adaptive_model_.effects_list_)
+        for j, name in enumerate(features):
+            if name not in nonlinear or name in warned:
+                continue
+            beyond = (x[..., j].abs() - 1.0).clamp(min=0)
+            outside = (beyond > EXTRAPOLATION_TOLERANCE) & valid
+            if outside.any():
+                warned.add(name)
+                warn_extrapolation(name,
+                    f"'{name}' leaves the range of its training window on {outside.sum().item() / valid.sum().item():.1%} of the "
+                    f"forecast rows ({outside.any(dim=-1).sum().item()} of {valid.any(dim=-1).sum().item()} windows), by up to "
+                    f"{beyond[valid].max().item():.2f} half-ranges: its non-linear effect is extrapolated and can be far off. "
+                    f"Set extrapolate='constant' on the term to hold it at the edge of the trained range.", stacklevel=4)
+
+    def _forecast_frame(self, predictions: torch.Tensor) -> pd.DataFrame:
+        r"""
+        Puts the (n_groups, n_windows, window) forecasts back on the rows they forecast.
+
+        A row that no window forecasts (the first rows, and any row of a group too short for a window) is NaN in
+        ``Estimated{target}``: it is never 0. ``AdaptedEstimated{base target}`` is NaN there when there is no base model, and the
+        base model forecast when there is one (no correction is known yet, the base forecast stands).
+        """
+        _, _, _, balanced_data, _, target_col_bm, mask = self.simulation_data_
+        layout = self.window_layout_
+        values = predictions.double()
+        if self.clip_to_train_range_:
+            values = torch.minimum(torch.maximum(values, layout.y_min.view(*layout.y_min.shape, 1)), layout.y_max.view(*layout.y_max.shape, 1))
+        values = values.numpy()
+
+        est_col = f'Estimated{self.target_col_}'
+        estimate = np.full(len(balanced_data), np.nan)
+        for i in range(len(self.unique_groups_)):
+            for j, (start, n_valid) in enumerate(zip(layout.starts[i], layout.n_valid[i])):
+                if n_valid > 0:
+                    estimate[layout.positions[i][start:start + n_valid]] = values[i, j, :n_valid]
+
+        frame = balanced_data.copy()
+        frame[est_col] = estimate
+        adapted_col = f"AdaptedEstimated{target_col_bm}"
+        if self.target_col_ == target_col_bm:
+            frame[adapted_col] = frame[est_col]
+        else:
+            frame[adapted_col] = frame[f'Estimated{target_col_bm}'] + frame[est_col].fillna(0)
+        return frame
+
     def _save_final_state(self):
         r"""
-        Extracts the final window from the prepared simulation tensors, 
-        solves the linear system to get the most recent adaptive parameters, 
-        and saves them for out-of-sample inference.
+        Solves the window an operational refit holds after the last row (the last window of the simulation, which may not
+        have a forecast row yet) and keeps its coefficients and its normalisation for ``predict()``.
         """
-        x_stacked, y_stacked, _, _, data_bm, _, _ = self.simulation_data_
-        
-        # Save historical bounds for safety clipping during inference
-        self.max_res_ = np.float32(data_bm[self.target_col_].max())
-        self.min_res_ = np.float32(data_bm[self.target_col_].min())
-        
+        x_stacked, y_stacked, _, _, _, _, _ = self.simulation_data_
+        layout = self.window_layout_
+        features = self.adaptive_model_.features_config_['features']
+        with_state = [i for i, k in enumerate(layout.final_index) if k >= 0]
+        if not with_state:
+            raise ValueError("No window could be built: the data are shorter than the training window.")
+
         run_device = TORCH_DEVICE
         num_samples_train = x_stacked.shape[2]
-        
-        # Extract ONLY the last available training window (index -1)
-        x_last = x_stacked[:, -1, :, :].to(run_device)
-        y_last = y_stacked[:, -1, :, :].to(run_device)
-        
+        last = [layout.final_index[i] for i in with_state]
+        x_last = x_stacked[with_state, last].to(run_device)
+        y_last = y_stacked[with_state, last].to(run_device)
+
         loss_L_star_L = self.adaptive_model_._build_loss_matrix().to(run_device)
         sobolev_matrix = self.adaptive_model_._build_penalty_matrix().to(run_device)
-        
+
         phi_train = self.adaptive_model_._build_design_matrix(x_last)
         cov_X, cov_XY = _compute_weighted_covariances(phi_train, y_last, loss_L_star_L)
-        
         final_coeffs = solve_linear_system(cov_X, cov_XY, sobolev_matrix, num_samples_train)
-        
-        self.last_state_dict_ = {}
-        for i, g in enumerate(self.unique_groups_):
-            self.last_state_dict_[g] = final_coeffs[i].cpu().clone()
+
+        self.last_state_dict_, self.norm_params_, self.final_target_range_ = {}, {}, {}
+        for n, (i, k) in enumerate(zip(with_state, last)):
+            g = self.unique_groups_[i]
+            self.last_state_dict_[g] = final_coeffs[n].cpu().clone()
+            self.norm_params_[g] = {
+                'min': pd.Series(layout.norm_min[i, k].numpy(), index=features),
+                'max': pd.Series(layout.norm_max[i, k].numpy(), index=features),
+            }
+            self.final_target_range_[g] = (float(layout.y_min[i, k]), float(layout.y_max[i, k]))
 
     def predict_online(self, data: pd.DataFrame) -> pd.DataFrame:
         r"""
@@ -438,49 +549,46 @@ class AdaptiveTAM:
             dataset=data_bm, group_col=self.group_col_, date_col=self.date_col_, method="fill"
         )
         
-        # --- 2. Adaptive Feature Matrix ---
-        x_pred, _, unique_groups_pred = self.adaptive_model_._prepare_data(
-            balanced_data, target_col=None, ignore_template_check=True
+        _check_known_groups(balanced_data, self.group_col_, self.unique_groups_)
+
+        # --- 2. Adaptive Feature Matrix: normalised with the final window, like StaticTAM.predict after that window's fit ---
+        features = self.adaptive_model_.features_config_['features']
+        x_pred, _ = _transform_data_stacked(
+            data=balanced_data, features=features, group_col=self.group_col_, norm_params=self.norm_params_,
+            unique_groups=self.unique_groups_, date_col=self.date_col_
         )
-        
+        groups_stacked = _groups_in_data(balanced_data, self.group_col_, self.unique_groups_, self.norm_params_)
+
+        self._warn_extrapolation(x_pred.unsqueeze(1).cpu(), torch.ones(x_pred.shape[0], 1, x_pred.shape[1], dtype=torch.bool))
+
         run_device = TORCH_DEVICE
         x_pred = x_pred.to(run_device)
         phi_pred = self.adaptive_model_._build_design_matrix(x_pred)
-        
-        # --- 3. Construct Frozen Coefficient Tensor ---
-        G_pred, N_pred, d_pred = phi_pred.shape
-        coeffs_tensor = torch.zeros((G_pred, d_pred, 1), device=run_device, dtype=phi_pred.dtype)
-        
-        for i, g in enumerate(unique_groups_pred):
-            if g in self.last_state_dict_:
-                coeffs_tensor[i, :, 0] = self.last_state_dict_[g].to(run_device).squeeze(-1)
-                
+
+        # --- 3. Frozen Coefficient Tensor ---
+        coeffs_tensor = torch.stack([self.last_state_dict_[g] for g in groups_stacked]).to(device=run_device, dtype=phi_pred.dtype)
         res_pred_tensor = _predict_from_coeffs(phi_pred, coeffs_tensor)
-        
+        if self.clip_to_train_range_:
+            for i, g in enumerate(groups_stacked):
+                low, high = self.final_target_range_[g]
+                res_pred_tensor[i] = res_pred_tensor[i].clamp(low, high)
+
         data_with_predictions = _reassemble_predictions(
             original_data=balanced_data,
             predictions_stacked=res_pred_tensor.squeeze(-1).cpu(),
             group_col=self.group_col_,
-            unique_groups=unique_groups_pred,
+            unique_groups=groups_stacked,
             target_col=self.target_col_,
             date_col=self.date_col_
         )
-        
-        # --- 4. Safety Bounding and Reassembly ---
+
+        # --- 4. Reassembly ---
         est_col = f'Estimated{self.target_col_}'
         adapted_col = f"AdaptedEstimated{target_col_bm}"
-        
-        if getattr(self, 'max_res_', None) is not None:
-             data_with_predictions.loc[data_with_predictions[est_col] >= self.max_res_, est_col] = self.max_res_
-             data_with_predictions.loc[data_with_predictions[est_col] <= self.min_res_, est_col] = self.min_res_
-
         if self.target_col_ == target_col_bm:
-            data_with_predictions[adapted_col] = data_with_predictions[est_col].fillna(0)
+            data_with_predictions[adapted_col] = data_with_predictions[est_col]
         else:
-            data_with_predictions[adapted_col] = (
-                data_with_predictions[est_col_name] + 
-                data_with_predictions[est_col].fillna(0)
-            )
+            data_with_predictions[adapted_col] = data_with_predictions[est_col_name] + data_with_predictions[est_col].fillna(0)
 
         return _cleanup_dummies(data_with_predictions[mask], self.group_col_, self.date_col_)
 
@@ -497,10 +605,6 @@ class AdaptiveTAM:
         """
         x_stacked, y_stacked, x_to_predict, balanced_data, data_bm, target_col_bm, mask = self.simulation_data_
         
-        if x_stacked.dtype == torch.float64: x_stacked = x_stacked.float()
-        if y_stacked.dtype == torch.float64: y_stacked = y_stacked.float()
-        if x_to_predict.dtype == torch.float64: x_to_predict = x_to_predict.float()
-
         n_groups = x_stacked.shape[0]
         n_windows = x_stacked.shape[1]
         num_samples_train = x_stacked.shape[2]
@@ -581,32 +685,10 @@ class AdaptiveTAM:
                 
             predictions_flat = torch.cat(all_preds_cpu, dim=0).squeeze(-1)
             predictions_stacked = predictions_flat.view(n_groups, n_windows, window_size_steps)
-            
-            data_with_predictions = _reassemble_predictions(
-                original_data=balanced_data.copy(), 
-                predictions_stacked=predictions_stacked,
-                group_col=self.group_col_,
-                unique_groups=self.unique_groups_, 
-                target_col=self.target_col_,
-            date_col=self.date_col_
-            )
 
-            max_res = np.float32(data_bm[self.target_col_].max())
-            min_res = np.float32(data_bm[self.target_col_].min())
-            est_col = f'Estimated{self.target_col_}'
-            
-            data_with_predictions.loc[data_with_predictions[est_col] >= max_res, est_col] = max_res
-            data_with_predictions.loc[data_with_predictions[est_col] <= min_res, est_col] = min_res
-            
+            data_with_predictions = self._forecast_frame(predictions_stacked)
             adapted_col = f"AdaptedEstimated{target_col_bm}"
-            if self.target_col_ == target_col_bm:
-                data_with_predictions[adapted_col] = data_with_predictions[est_col].fillna(0)
-            else:
-                data_with_predictions[adapted_col] = (
-                    data_with_predictions[f'Estimated{target_col_bm}'] + 
-                    data_with_predictions[est_col].fillna(0)
-                )
-            
+
             rmse_df = data_with_predictions[mask]
             rmse_df = rmse_df[[target_col_bm, adapted_col]].copy().dropna()
             
@@ -743,7 +825,8 @@ class AdaptiveTAM:
                 update_interval_periods=self.update_interval_periods_,
                 training_window_periods=self.training_window_periods_,
                 steps_per_period=self.steps_per_period_,
-                horizon_steps=self.horizon_steps_
+                horizon_steps=self.horizon_steps_,
+                clip_to_train_range=self.clip_to_train_range_
             )
             
             final_adaptive_model_internal = StaticTAM(
@@ -755,8 +838,6 @@ class AdaptiveTAM:
             )
             
             final_model.adaptive_model_ = final_adaptive_model_internal
-            final_model.norm_params_ = self.norm_params_
-            final_model.unique_groups_ = self.unique_groups_
             final_model.target_col_ = self.target_col_
 
             final_model.predict_online(data_val)

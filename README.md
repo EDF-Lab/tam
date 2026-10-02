@@ -2,7 +2,7 @@
 
 [🧪 `EXAMPLES`](EXAMPLES.md) | [📚 `THEORY`](THEORY.md) | [📄 `JOSS PAPER`](paper.md)
   
-**Version:** 1.3.3  
+**Version:** 1.3.4  
 **License:** LGPL-3.0-or-later.  
 **Copyright (c):** 2023-2026 EDF (Electricité De France).  
 **Copyright (c):** 2023-2025 Sorbonne Université.  

@@ -20,11 +20,13 @@ import numpy as np
 import torch
 
 from tam.common.utils import TORCH_DEVICE
+from .spectrum._factory import categorical_range
 
 def _fit_normalization_params(
     data: pd.DataFrame, 
     features: List[str], 
-    group_col: str
+    group_col: str,
+    categorical_levels: Optional[Dict[str, int]] = None
 ) -> Tuple[Dict, List]:
     r"""
     Calculates the min/max normalization parameters for features, computed per group.
@@ -33,6 +35,8 @@ def _fit_normalization_params(
         data: The training DataFrame.
         features: A list of feature column names to normalize.
         group_col: The column name used to group the data.
+        categorical_levels: ``{feature: n_cat}`` of the categorical features: their range is the full level range
+            (``categorical_range``), whatever levels the training rows hold.
 
     Returns:
         A tuple (norm_params, unique_groups):
@@ -51,6 +55,12 @@ def _fit_normalization_params(
         }
         for group_name in unique_groups
     }
+    for group_name, params in norm_params.items():
+        for feature, n_cat in (categorical_levels or {}).items():
+            if feature in params['min'].index:
+                column = grouped.get_group(group_name)[feature]
+                params['min'][feature], params['max'][feature] = categorical_range(
+                    n_cat, params['min'][feature], params['max'][feature], bool((column.dropna() == np.round(column.dropna())).all()))
         
     return norm_params, unique_groups
 
@@ -299,118 +309,148 @@ def _reassemble_decomposed_predictions(
 
     return result_df
     
+def _window_starts(n_rows: int, training_steps: int, window_steps: int, horizon_steps: int = 1) -> List[int]:
+    r"""
+    Positions of the first forecast row of every window, anchored on the start of the data.
+
+    The first window trains on the first ``training_steps`` rows and forecasts right after them, ``horizon_steps - 1`` rows later
+    (the target of a row is only known ``horizon_steps`` rows after it); the next windows follow every ``window_steps`` rows, and
+    the last one is cut at the end of the data.
+    """
+    return list(range(training_steps + horizon_steps - 1, n_rows, window_steps))
+
+
 #: <transform_adaptive>
+class _AdaptiveWindows:
+    r"""Where the windows of an adaptive simulation sit in the data, and the normalisation each one trained with."""
+
+    def __init__(self, positions, starts, n_valid, norm_min, norm_max, y_min, y_max):
+        self.positions = positions      # per group: row positions of the group in `data`, in date order
+        self.starts = starts            # per group: first forecast position of each window (the last one may be the data end)
+        self.n_valid = n_valid          # per group: forecast rows of each window that exist in the data
+        self.norm_min = norm_min        # (n_groups, n_windows, n_features): minimum of the training rows of the window
+        self.norm_max = norm_max        # (n_groups, n_windows, n_features)
+        self.y_min = y_min              # (n_groups, n_windows): target range of the training rows of the window
+        self.y_max = y_max
+
+    @property
+    def final_index(self) -> List[int]:
+        r"""Per group, the window an operational refit would hold after the last row (-1 if the group is too short)."""
+        return [len(st) - 1 for st in self.starts]
+
+
 def _transform_data_adaptive(
     data: pd.DataFrame,
     features: List[str],
     group_col: str,
-    norm_params: Dict,
     unique_groups: List,
     target_col: str,
     update_interval_periods: int,
     training_window_periods: int,
     steps_per_period: int,
     horizon_steps: int = 1,
-    date_col: Optional[str] = None
-) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+    date_col: Optional[str] = None,
+    categorical_levels: Optional[Dict[str, int]] = None
+) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, _AdaptiveWindows]:
     r"""
-    Prepares data for adaptive learning using vectorized sliding window indexing.
+    Cuts the data into the windows of a rolling refit, and normalises each window on its own training rows.
 
-    Returns tensors for (X_train, Y_train, X_predict) for each simulation step.
+    A window trains on ``training_window_periods`` periods and forecasts the ``update_interval_periods`` that follow; windows are
+    anchored on the start of the data (see ``_window_starts``). Every (group, window) is normalised to [-1, 1] with the minimum and
+    maximum of its own training rows, applied to its training and its forecast rows: this is what ``StaticTAM.fit`` then
+    ``predict`` does on that window. A group that does not hold a full window gets an all-zero placeholder and no forecast.
 
     Args:
-        data: Validation/Test DataFrame.
+        data: DataFrame holding only real rows (no balancing fill).
         features: Feature list.
         group_col: Grouping column.
-        norm_params: Normalization parameters.
-        unique_groups: Group names.
+        unique_groups: Group names, in the order of the output tensors.
         target_col: Target column.
-        update_interval_periods: Prediction window size.
-        training_window_periods: Training history size.
-        steps_per_period: Samples per period.
-        horizon_steps: Horizon of forecasting
+        update_interval_periods: Forecast length, in periods.
+        training_window_periods: Training length, in periods.
+        steps_per_period: Rows of one group in a period.
+        horizon_steps: Horizon of forecasting.
+        categorical_levels: ``{feature: n_cat}`` of the categorical features: normalised on their full level range.
 
     Returns:
-        Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
-        (x_stacked, y_stacked, x_to_predict)
+        (x_stacked, y_stacked, x_to_predict, windows): (n_groups, n_windows, L, F), (n_groups, n_windows, L, 1),
+        (n_groups, n_windows, W, F) and the layout of the windows.
     """
-    learning_size_steps = training_window_periods * steps_per_period
-    window_size_steps = update_interval_periods * steps_per_period
-
-    all_groups_x_train = []
-    all_groups_y_train = []
-    all_groups_x_predict = []
-    
     if unique_groups is None:
         raise ValueError("`unique_groups` cannot be None.")
-    
-    prep_device = 'cpu'
+    learning_size_steps = training_window_periods * steps_per_period
+    window_size_steps = update_interval_periods * steps_per_period
+    dtype = torch.get_default_dtype()
+    n_features = len(features)
+    categorical = categorical_levels or {}
 
+    x_all = data[features].to_numpy(dtype=np.float64)
+    y_all = data[target_col].to_numpy(dtype=np.float64)
+    group_values = data[group_col].to_numpy()
+    date_values = data[date_col].to_numpy() if date_col is not None else None
+
+    built = []
+    positions, starts_all, n_valid_all = [], [], []
     for group_name in unique_groups:
-        if group_name not in norm_params:
+        pos = np.flatnonzero(group_values == group_name)
+        if date_values is not None:
+            pos = pos[np.argsort(date_values[pos], kind="stable")]
+        n = len(pos)
+        starts = _window_starts(n, learning_size_steps, window_size_steps, horizon_steps)
+        if n >= learning_size_steps + horizon_steps - 1 and (n - (learning_size_steps + horizon_steps - 1)) % window_size_steps == 0:
+            starts.append(n)        # the window an operational refit holds after the last row; it has no forecast row yet
+        positions.append(pos)
+        starts_all.append(starts)
+        n_valid_all.append([int(min(window_size_steps, max(n - s, 0))) for s in starts])
+        if not starts:
+            built.append(None)
             continue
-            
-        data_group = data[data[group_col] == group_name]
-        if date_col is not None:
-            data_group = data_group.sort_values(date_col)
-        data_group = data_group.reset_index(drop=True)
-        
-        params = norm_params.get(group_name)
-        if params is None: continue
-        
-        total_available_steps = len(data_group)
-        required_history = learning_size_steps + (horizon_steps - 1)
-        if total_available_steps <= required_history:
-            continue
+        s = torch.tensor(starts, dtype=torch.long)
+        x_g = torch.tensor(x_all[pos], dtype=torch.float64).view(n, n_features)
+        y_g = torch.tensor(y_all[pos], dtype=torch.float64).view(n, 1)
+        train_idx = s.view(-1, 1) + torch.arange(-(horizon_steps - 1) - learning_size_steps, -(horizon_steps - 1) if horizon_steps > 1 else 0)
+        predict_idx = (s.view(-1, 1) + torch.arange(window_size_steps)).clamp(max=n - 1)
+        x_train = x_g[train_idx]                                                  # (n_windows, L, F)
+        low = x_train.amin(dim=1, keepdim=True)
+        high = x_train.amax(dim=1, keepdim=True)
+        for j, name in enumerate(features):
+            if name in categorical:
+                n_cat = categorical[name]
+                integer = (x_train[..., j] == x_train[..., j].round()).all(dim=1, keepdim=True)
+                start = torch.where(high[..., j] <= n_cat - 1, torch.zeros_like(low[..., j]), low[..., j])
+                low[..., j] = torch.where(integer, start, low[..., j])
+                high[..., j] = torch.where(integer, start + (n_cat - 1), high[..., j])
+        amplitude = high - low
+        amplitude = torch.where(amplitude == 0, torch.ones_like(amplitude), amplitude)
+        center = (high + low) / 2
+        y_train = y_g[train_idx]
+        built.append((
+            ((x_train - center) / (amplitude / 2.0)).to(dtype),
+            y_train.to(dtype),
+            ((x_g[predict_idx] - center) / (amplitude / 2.0)).to(dtype),
+            low.squeeze(1), high.squeeze(1), y_train.amin(dim=(1, 2)), y_train.amax(dim=(1, 2)),
+        ))
 
-        # Normalize group data
-        data_group[features] = normalize(df_to_normalize=data_group[features], params=params)
-        
-        x_group = torch.tensor(data_group[features].values, dtype=torch.float32, device=prep_device)
-        y_group = torch.tensor(data_group[target_col].values, dtype=torch.float32, device=prep_device).view(-1, 1)
-
-        #  Calculate valid start indices (reverse chronological)
-        start_indices_list = []
-        first_predict_start = total_available_steps - (total_available_steps - learning_size_steps) % window_size_steps
-        if first_predict_start == total_available_steps and total_available_steps > learning_size_steps:
-             first_predict_start -= window_size_steps
-        
-        current_predict_start = first_predict_start
-        while current_predict_start >= learning_size_steps:
-            if current_predict_start + window_size_steps <= total_available_steps:
-                start_indices_list.append(current_predict_start)
-            current_predict_start -= window_size_steps
-        
-        if not start_indices_list:
-            continue
-            
-        start_indices_list.reverse()
-        start_indices = torch.tensor(start_indices_list, device=prep_device, dtype=torch.long)
-
-        #  Vectorized Window Indexing
-        train_end_offset = -(horizon_steps - 1) if horizon_steps > 1 else 0
-        train_start_offset = train_end_offset - learning_size_steps       
-        train_offsets = torch.arange(train_start_offset, train_end_offset, device=prep_device)
-        predict_offsets = torch.arange(0, window_size_steps, device=prep_device)
-
-        train_indices = start_indices.view(-1, 1) + train_offsets
-        predict_indices = start_indices.view(-1, 1) + predict_offsets
-
-        #  Gather
-        group_x_train = x_group[train_indices]
-        group_y_train = y_group[train_indices]
-        group_x_predict = x_group[predict_indices]
-        
-        all_groups_x_train.append(group_x_train)
-        all_groups_y_train.append(group_y_train)
-        all_groups_x_predict.append(group_x_predict)
-
-    if not all_groups_x_train:
+    if all(b is None for b in built):
         raise ValueError("No simulation data could be generated. Check dataset length/window sizes.")
 
-    x_stacked = torch.stack(all_groups_x_train).to(TORCH_DEVICE)
-    y_stacked = torch.stack(all_groups_y_train).to(TORCH_DEVICE)
-    x_to_predict = torch.stack(all_groups_x_predict).to(TORCH_DEVICE)
-
-    return x_stacked, y_stacked, x_to_predict
+    n_windows = max(len(st) for st in starts_all)
+    placeholders = (
+        torch.zeros(n_windows, learning_size_steps, n_features, dtype=dtype), torch.zeros(n_windows, learning_size_steps, 1, dtype=dtype),
+        torch.zeros(n_windows, window_size_steps, n_features, dtype=dtype), torch.zeros(n_windows, n_features, dtype=torch.float64),
+        torch.ones(n_windows, n_features, dtype=torch.float64), torch.zeros(n_windows, dtype=torch.float64), torch.ones(n_windows, dtype=torch.float64),
+    )
+    columns = [[] for _ in range(7)]
+    for entry in built:
+        for k in range(7):
+            if entry is None:
+                columns[k].append(placeholders[k])
+                continue
+            tensor = entry[k]
+            if tensor.shape[0] < n_windows:         # a shorter group repeats its last window; the repeats are never read
+                tensor = torch.cat([tensor, tensor[-1:].expand(n_windows - tensor.shape[0], *tensor.shape[1:])], dim=0)
+            columns[k].append(tensor)
+    stacked = [torch.stack(c) for c in columns]
+    windows = _AdaptiveWindows(positions, starts_all, n_valid_all, stacked[3], stacked[4], stacked[5], stacked[6])
+    return stacked[0].to(TORCH_DEVICE), stacked[1].to(TORCH_DEVICE), stacked[2].to(TORCH_DEVICE), windows
 #: </transform_adaptive>

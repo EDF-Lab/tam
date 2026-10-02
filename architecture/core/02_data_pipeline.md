@@ -49,7 +49,8 @@ For the Adaptive meta-learner, managing the continuous shift of historical bound
 
 The `_transform_data_adaptive` function bypasses this by utilizing advanced PyTorch tensor indexing to formalize the adaptive online approach natively on the hardware {cite:p}`doumeche2025forecasting`.
 
-* **Index Calculation:** It calculates the valid starting points by stepping backward from the end of the series.
+* **Index Calculation:** It calculates the starting points from the beginning of each series (the first window trains on the first rows), the last window being cut at the end of the data.
+* **Per-Window Normalisation:** Every window is normalised with the minimum and maximum of its own training rows (applied to its training and forecast rows), as `StaticTAM.fit` then `predict` would on that window.
 * **Offset Broadcasting:** It builds 1D `train_offsets` and `predict_offsets` tensors using `torch.arange`.
 * **Advanced Indexing:** Complete 4D windows are extracted instantaneously via tensor addition by broadcasting the offsets against the reshaped start indices (`start_indices.view(-1, 1) + train_offsets`).
 

@@ -118,6 +118,7 @@ def create_effects_from_parsed_terms(
         #: <parse_categorical>
         elif ttype == 'c':
             n_cat = params_resolved.get('n_cat')
+            n_cat_given = n_cat is not None
             if n_cat is None:
                 if data_info is not None and feature_name in data_info:
                     n_cat = data_info[feature_name]
@@ -129,6 +130,7 @@ def create_effects_from_parsed_terms(
             p_order = int(params_resolved.get('p_order', 1))
             extrap_val = params_resolved.get('extrapolate', 'continue')
             effects_list.append(CategoricalEffect(feature_name, n_cat, topo, lambda_p, p_order, extrap_val))
+            effects_list[-1].n_cat_given = n_cat_given
         #: </parse_categorical>
             
         #: <parse_chebyshev>
@@ -321,6 +323,89 @@ def _infer_feature_columns(effects_list: List[BaseEffect]) -> List[str]:
     return feature_columns
 #: </infer_columns>
 
+def categorical_ranges(effects_list: List[BaseEffect]) -> Dict[str, int]:
+    """
+    ``{feature: n_cat}`` for the features read only by categorical effects (see ``categorical_range`` for the range it gives).
+
+    A categorical code is a level index, so it is normalised on the full level range and not on the levels the
+    training rows happen to contain: a level absent from training keeps its own column instead of landing on an edge level.
+    Only a ``n_cat`` given in the formula states the level set; an inferred one (training maximum + 1) keeps the min/max rule.
+    A feature also read by another effect, or by two categorical effects with different level counts, keeps the min/max rule.
+    """
+    levels: Dict[str, set] = {}
+    other: set = set()
+
+    def visit(effect) -> None:
+        if isinstance(effect, TensorProductEffect):
+            for sub in effect.effects:
+                visit(sub)
+            return
+        if isinstance(effect, OffsetEffect):
+            return
+        if isinstance(effect, CategoricalEffect):
+            if getattr(effect, 'n_cat_given', False):
+                levels.setdefault(effect.feature_name, set()).add(effect.n_categories)
+            else:
+                other.add(effect.feature_name)     # n_cat inferred from the data: the level set is not known, min/max rule
+            return
+        other.update(getattr(effect, 'input_features', None) or [effect.feature_name])
+
+    for effect in effects_list:
+        visit(effect)
+    return {name: int(next(iter(n))) for name, n in levels.items() if name not in other and len(n) == 1}
+
+
+def categorical_range(n_cat: int, low: float, high: float, integer_codes: bool = True) -> tuple:
+    """
+    The ``(min, max)`` a categorical code is normalised with, from the smallest and largest code of the training rows.
+
+    Codes are level indices ``0 .. n_cat - 1``: the range is ``(0, n_cat - 1)``. Codes that do not fit there (``1 .. n_cat``,
+    the other usual coding) keep their own range starting at the smallest code, ``(low, low + n_cat - 1)``, as before.
+    Codes that are not integers (a month coded as a fraction of the year, read by a Fourier topology as a coordinate) are not
+    level indices: they keep the min/max of the training rows.
+    """
+    if not integer_codes:
+        return float(low), float(high)
+    start = 0.0 if high <= n_cat - 1 else float(low)
+    return start, start + n_cat - 1
+
+
+def categorical_features(effects_list: List[BaseEffect]) -> List[str]:
+    """Names of the features read by a categorical effect, in order of appearance."""
+    names: List[str] = []
+
+    def visit(effect) -> None:
+        if isinstance(effect, TensorProductEffect):
+            for sub in effect.effects:
+                visit(sub)
+        elif isinstance(effect, CategoricalEffect) and effect.feature_name not in names:
+            names.append(effect.feature_name)
+
+    for effect in effects_list:
+        visit(effect)
+    return names
+
+
+def extrapolating_features(effects_list: List[BaseEffect]) -> set:
+    """
+    Features read by a non-linear effect (``s``, ``f``, ``p``, ``w``, ``rbf``, ``n``, ``t``, ``phys``, or a ``te`` margin of
+    those): outside [-1, 1] after normalisation, these effects extrapolate. ``l()`` and ``c()`` are not in it.
+    """
+    names: set = set()
+
+    def visit(effect) -> None:
+        if isinstance(effect, TensorProductEffect):
+            for sub in effect.effects:
+                visit(sub)
+        elif isinstance(effect, (SplineEffect, FourierEffect, ChebyshevEffect, WaveletEffect, RBFEffect, NeuralEffect,
+                                 TreeEffect, UniversalPhysicsEffect)):
+            names.update(getattr(effect, 'input_features', None) or [effect.feature_name])
+
+    for effect in effects_list:
+        visit(effect)
+    return names
+
+
 #: <build_phi>
 def initialize_effects(
     x_data: torch.Tensor,
@@ -328,7 +413,7 @@ def initialize_effects(
     feature_columns: Optional[List[str]] = None
 ) -> None:
     """
-    Sets the data-dependent state of every effect (trees, RBF centres) from the full training tensor.
+    Sets the data-dependent state of every effect (spline knots, trees, RBF centres) from the full training tensor.
 
     Routes the columns exactly as ``build_phi_from_effects`` does. Must run before any design matrix is
     built: otherwise the dispatcher's memory probe (one row per group) or the first chunk would set it.
@@ -341,7 +426,7 @@ def initialize_effects(
     for effect in effects_list:
         if isinstance(effect, OffsetEffect):
             continue
-        if isinstance(effect, (TensorProductEffect, NeuralEffect, RBFEffect, TreeEffect, LinearTreeEffect)):
+        if isinstance(effect, (TensorProductEffect, NeuralEffect, RBFEffect, TreeEffect, LinearTreeEffect, SplineEffect)):
             if isinstance(effect, TensorProductEffect):
                 req_features = []
                 for e in effect.effects:
