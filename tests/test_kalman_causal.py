@@ -58,7 +58,7 @@ def _forecast(model, df, col="KalmanAdapted_load"):
     return out.assign(_row=out.groupby("grp").cumcount())[["grp", "_row", col]]
 
 
-# ----------------------------------------------------------------------------- MAIN-10: causal scaling
+# ----------------------------------------------------------------------------- causal scaling
 def test_no_leak_forecasts_up_to_r_do_not_depend_on_later_rows():
     df = _panel()
     with warnings.catch_warnings():
@@ -145,7 +145,7 @@ def test_predict_reuses_the_scaling_stored_at_fit():
     assert not a["KalmanAdapted_load"].isna().any()
 
 
-# ----------------------------------------------------------------------------- MAIN-30: update at every step
+# ----------------------------------------------------------------------------- update at every step
 def test_default_block_size_is_one_and_the_forecast_follows_the_previous_step():
     model = KalmanTAM(kalman_formula=FORMULA, group_col="grp", date_col="timestamp", calibration_steps=CAL)
     assert model.block_size_ == 1
@@ -199,7 +199,7 @@ def test_block_size_one_equals_a_plain_numpy_kalman_filter():
         np.testing.assert_allclose(got[g, :, 0].cpu().numpy(), expected * scale[g, 0, 0] + center[g, 0, 0], rtol=0, atol=1e-10)
 
 
-# ----------------------------------------------------------------------------- MAIN-32: tuning without look-ahead
+# ----------------------------------------------------------------------------- tuning without look-ahead
 GRID = {"observation_noise_var": [0.5, 1.0], "process_noise_var": [1e-4, 1e-2]}
 
 
@@ -227,10 +227,18 @@ def test_tuning_accepts_a_slice_or_the_equivalent_mask():
     assert by_slice[0] == by_mask[0] and by_slice[1] == pytest.approx(by_mask[1])
 
 
+def _warnings_of(fn):
+    """Runs `fn` and returns (result, [(category, message)]) of every warning it issued: nothing leaks into the test report."""
+    with warnings.catch_warnings(record=True) as caught:
+        warnings.simplefilter("always")
+        result = fn()
+    return result, [(w.category, str(w.message)) for w in caught]
+
+
 def test_lookback_days_warns_and_keeps_the_old_window():
     df = _panel(seed=9)
-    with pytest.warns(FutureWarning, match="lookback_days"):
-        old = _kalman().tune_hyperparameters(df, GRID, lookback_days=1)
+    old, issued = _warnings_of(lambda: _kalman().tune_hyperparameters(df, GRID, lookback_days=1))
+    assert any(c is FutureWarning and "lookback_days" in m for c, m in issued)
     # old rule: the last lookback_days * 24 steps of the data
     explicit = _tune(df, calibration_steps=slice(N - 1 - 24, N))
     assert old[0] == explicit[0] and old[1] == pytest.approx(explicit[1])
@@ -238,8 +246,9 @@ def test_lookback_days_warns_and_keeps_the_old_window():
 
 def test_tuning_without_a_period_warns_about_the_legacy_window():
     df = _panel(seed=10)
-    with pytest.warns(FutureWarning, match="calibration_steps"):
-        _kalman().tune_hyperparameters(df, GRID)
+    _, issued = _warnings_of(lambda: _kalman().tune_hyperparameters(df, GRID))
+    assert any(c is FutureWarning and "calibration_steps" in m for c, m in issued)
+    assert any("reference period" in m for _, m in issued)           # the burn-in message comes with it
 
 
 # ----------------------------------------------------------------------------- the operational loop equals the simulation

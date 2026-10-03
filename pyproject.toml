@@ -106,8 +106,13 @@ tam = ["data/*.csv"]
 testpaths = ["tests"]
 addopts   = "-q"
 filterwarnings = [
-    # Suppress the PyTorch 3.14+ JIT deprecation warning during tests
-    "ignore:.*torch\\.jit\\.script.*:DeprecationWarning",
+    # The PyTorch JIT deprecation warning (a DeprecationWarning on Python 3.14, a FutureWarning from torch 2.x)
+    'ignore:.*torch\.jit\.script.*:DeprecationWarning',
+    'ignore:.*torch\.jit\.script.*:FutureWarning',
+    # Information messages many tests trigger on purpose (data leaving the trained range, levels missing at fit): the tests that are
+    # about them capture and assert them (tests/test_extrapolation_warning.py, tests/test_categorical_level_range.py)
+    "ignore::tam.common.exceptions.TAMExtrapolationWarning",
+    'ignore:TAM \[Info\]:UserWarning',
 ]
 
 [tool.coverage.run]

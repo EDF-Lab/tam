@@ -7,7 +7,7 @@
 
 Hyperparameter tuning via standard Grid Search is computationally expensive. While earlier versions relied heavily on "Multi-Start" Coordinate Descent for all parameters, the framework fully automated the continuous penalty optimization via `StaticTAM.auto_fit()`.
 
-This engine leverages the `smart_solve_gcv` dispatcher, implementing Golub's trace trick {cite:p}`golub1979generalized` to find the optimal regularization parameter ($\lambda$) for each effect simultaneously, without requiring K-fold retraining.
+This engine leverages the `smart_solve_gcv` dispatcher, implementing Golub's trace trick {cite:p}`golub1979generalized` to find the optimal regularization parameter ($\lambda$) for each effect simultaneously (for each margin of a `te()`: an effect exposes `penalty_coordinates()` and `set_penalty_coordinates()`, one coordinate by default and one per margin for a tensor product), without requiring K-fold retraining.
 
 ---
 

@@ -33,8 +33,49 @@ def test_split_args_respects_nested_parentheses():
     assert parts == ["s(x, k=5)", "f(y, m=4)"]
 
 
-def test_split_args_trailing_empty_ignored():
-    assert split_args_respecting_parentheses("a, b,") == ["a", "b"]
+def test_split_args_empty_input_is_an_empty_list():
+    assert split_args_respecting_parentheses("") == []
+    assert split_args_respecting_parentheses("   ") == []
+
+
+@pytest.mark.parametrize("text,message", [
+    ("a, b,", "trailing"),                 # used to be ignored silently (before v1.4.0): now an error
+    (",a, b", "leading"),
+    ("a,, b", "consecutive"),
+    ("a, , b", "consecutive"),
+    ("s(x, k=5),", "trailing"),
+])
+def test_split_args_rejects_an_empty_argument(text, message):
+    with pytest.raises(ValueError, match=message):
+        split_args_respecting_parentheses(text)
+
+
+@pytest.mark.parametrize("text", ["s(x, k=5", "s(x, k=5))", ")a(", "a, s(b"])
+def test_split_args_rejects_unbalanced_parentheses(text):
+    with pytest.raises(ValueError, match="parenthes"):
+        split_args_respecting_parentheses(text)
+
+
+@pytest.mark.parametrize("delimiter", ["", ",,", None, 3])
+def test_split_args_delimiter_must_be_one_character(delimiter):
+    with pytest.raises(ValueError, match="single character"):
+        split_args_respecting_parentheses("a, b", delimiter)
+
+
+def test_split_args_other_delimiter_and_nested_terms():
+    assert split_args_respecting_parentheses("s(x) + te(s(a), s(b)) + l(z)", "+") == ["s(x)", "te(s(a), s(b))", "l(z)"]
+    assert split_args_respecting_parentheses("te(s(a, k=5), c(b, n_cat=3)), ap=-4") == ["te(s(a, k=5), c(b, n_cat=3))", "ap=-4"]
+
+
+@pytest.mark.parametrize("formula", ["y ~ s(x,,k=5)", "y ~ s(x, k=5,)", "y ~ te(s(x),, s(z))", "y ~ l(x) + c(k,)"])
+def test_a_formula_with_an_empty_argument_is_rejected(formula):
+    with pytest.raises(ValueError):
+        parse_formula_to_terms(formula)
+
+
+def test_a_valid_nested_formula_still_parses():
+    target, terms = parse_formula_to_terms("y ~ te(s(x, k=5), c(k, n_cat=3, topo='nominal'), ap=-4) + l(z)")
+    assert target == "y" and [t["type"] for t in terms] == ["te", "l"]
 
 
 # ----------------------------- formula parsing ----------------------------- #

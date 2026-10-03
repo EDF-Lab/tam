@@ -36,9 +36,13 @@ def smart_solve_gcv(
     Memory-safe Generalized Cross Validation (GCV) solver.
     Dynamically routes matrix inversions and chunking based on available VRAM.
 
-    On return, every effect in `effects_list` carries the lambda_p that was selected
+    On return, every effect in `effects_list` carries the smoothing weights that were selected
     for it, so rebuilding the penalty from the effects reproduces the fit. A search
     that raises leaves the formula's own weights in place.
+
+    The search runs over one coordinate per smoothing parameter: one per effect, and one per margin
+    for a tensor product (`effect.penalty_coordinates()`). The returned `best_lambda_ps` is the flat
+    vector of all coordinates, effect after effect; `effect.n_penalty_coordinates` splits it.
     """
     run_device = x_data.device
     num_samples = x_data.shape[1]
@@ -64,7 +68,14 @@ def smart_solve_gcv(
         spans.append((c_idx, c_idx + k))
         c_idx += k
 
-    n_effects = len(effects_list)
+    # One GCV coordinate per smoothing parameter: one per effect, except a tensor product, which has one per margin.
+    coords_per_effect = [e.n_penalty_coordinates for e in effects_list]
+    coord_spans = []
+    c_start = 0
+    for count in coords_per_effect:
+        coord_spans.append((c_start, c_start + count))
+        c_start += count
+    n_coords = c_start
 
     def sync_penalty_blocks(
         penalty: torch.Tensor,
@@ -84,24 +95,24 @@ def smart_solve_gcv(
         The trial weight lives on the effect only while its block is built: a search
         that raises must not leave the caller's effects holding a candidate.
         """
-        for i, alpha in enumerate(alpha_ps):
-            if alpha == applied_alpha_ps[i]:
+        for i, effect in enumerate(effects_list):
+            c0, c1 = coord_spans[i]
+            if np.array_equal(alpha_ps[c0:c1], applied_alpha_ps[c0:c1]):
                 continue
 
-            effect = effects_list[i]
-            formula_lambda_p = effect.lambda_p
+            formula_coordinates = effect.penalty_coordinates()
             try:
-                effect.lambda_p = float(10.0 ** alpha)
+                effect.set_penalty_coordinates([float(10.0 ** a) for a in alpha_ps[c0:c1]])
                 mat = effect.build_penalty_matrix()
             finally:
-                effect.lambda_p = formula_lambda_p
+                effect.set_penalty_coordinates(formula_coordinates)
 
             if mat.is_sparse:
                 mat = mat.to_dense()
 
             start, end = spans[i]
             penalty[start:end, start:end] = mat.to(device)
-            applied_alpha_ps[i] = alpha
+            applied_alpha_ps[c0:c1] = alpha_ps[c0:c1]
 
     bytes_per_group = (total_d * total_d * 8) * 5
     total_bytes = bytes_per_group * n_groups
@@ -163,8 +174,8 @@ def smart_solve_gcv(
         return cov_x_total, cov_xy_total, Y_sq_total
 
     initial_alpha_ps = np.array([
-        np.log10(e.lambda_p) if e.lambda_p > 0 else alpha_p_bounds[0]
-        for e in effects_list
+        np.log10(c) if c > 0 else alpha_p_bounds[0]
+        for e in effects_list for c in e.penalty_coordinates()
     ], dtype=np.float64)
 
     if alpha_p_list is None:
@@ -179,7 +190,7 @@ def smart_solve_gcv(
             print("[GCV Engine] VRAM footprint < 30%. Caching covariances globally on GPU.")
         cov_X, cov_XY, Y_sq = _get_chunked_covs(x_data, y_data)
         current_penalty = torch.zeros((total_d, total_d), dtype=torch.get_default_dtype(), device=run_device)
-        applied_alpha_ps = np.full(n_effects, np.nan, dtype=np.float64)
+        applied_alpha_ps = np.full(n_coords, np.nan, dtype=np.float64)
 
         def gcv_objective(alpha_ps: np.ndarray) -> float:
             sync_penalty_blocks(current_penalty, applied_alpha_ps, alpha_ps, run_device)
@@ -205,7 +216,7 @@ def smart_solve_gcv(
             cycle += 1
             improved_in_cycle = False
             
-            for i in range(n_effects):
+            for i in range(n_coords):
                 original_val = current_alpha_ps[i]
                 best_val_for_effect = original_val
                 
@@ -237,8 +248,8 @@ def smart_solve_gcv(
         best_lambda_ps = 10.0 ** current_alpha_ps
 
         sync_penalty_blocks(current_penalty, applied_alpha_ps, current_alpha_ps, run_device)
-        for effect, selected_lambda_p in zip(effects_list, best_lambda_ps):
-            effect.lambda_p = float(selected_lambda_p)
+        for effect, (c0, c1) in zip(effects_list, coord_spans):
+            effect.set_penalty_coordinates([float(v) for v in best_lambda_ps[c0:c1]])
 
         coeffs = solve_linear_system(cov_X, cov_XY, current_penalty, num_samples)
         
@@ -260,7 +271,7 @@ def smart_solve_gcv(
             hw.empty_cache()
             
         current_penalty = torch.zeros((total_d, total_d), dtype=torch.get_default_dtype(), device=eval_device)
-        applied_alpha_ps = np.full(n_effects, np.nan, dtype=np.float64)
+        applied_alpha_ps = np.full(n_coords, np.nan, dtype=np.float64)
 
         def gcv_objective(alpha_ps: np.ndarray) -> float:
             try:
@@ -300,7 +311,7 @@ def smart_solve_gcv(
             cycle += 1
             improved_in_cycle = False
             
-            for i in range(n_effects):
+            for i in range(n_coords):
                 original_val = current_alpha_ps[i]
                 best_val_for_effect = original_val
                 
@@ -332,8 +343,8 @@ def smart_solve_gcv(
         best_lambda_ps = 10.0 ** current_alpha_ps
 
         sync_penalty_blocks(current_penalty, applied_alpha_ps, current_alpha_ps, eval_device)
-        for effect, selected_lambda_p in zip(effects_list, best_lambda_ps):
-            effect.lambda_p = float(selected_lambda_p)
+        for effect, (c0, c1) in zip(effects_list, coord_spans):
+            effect.set_penalty_coordinates([float(v) for v in best_lambda_ps[c0:c1]])
 
         group_coeffs = []
         for g in range(n_groups):

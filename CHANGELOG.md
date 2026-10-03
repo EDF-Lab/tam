@@ -17,6 +17,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ---
 ## [Unreleased]
 
+### Changed
+- **A formula with an empty argument is rejected** (`s(x,,k=5)`, `s(x, k=5,)`, `te(s(x),, s(z))`): `split_args_respecting_parentheses` now raises a `ValueError` on a leading, trailing or doubled delimiter and on unbalanced parentheses (it used to ignore a trailing empty argument silently). Contributed by Amaury Durand.
+- **`te()` has one smoothing parameter per margin** (mgcv semantics): `auto_fit` (GCV) tunes the weight of each margin separately, so a tensor product can be smooth along one axis and rough along another (before, the margins were multiplied by one weight GCV could barely move: on a plane `z = x + y` the surface used 76 effective degrees of freedom, now 4). A weight given to the tensor product itself (`te(..., ap=)` or the default) is folded into each margin once; **with fixed weights the penalty is unchanged** (forecasts are bit-identical), but `auto_fit` results with a `te()` change, because the search can now move the penalty: a larger `gamma` (2.0) can now select an over-smoothed surface, `gamma=1.4` (the default, kept) selects the same fit as before in the cases measured. `auto_fit` reports and `summary()` show one value per margin. New effect API: `penalty_coordinates()`, `set_penalty_coordinates()`, `n_penalty_coordinates` (one coordinate for every effect but a tensor product).
+- **`auto_fit` default `gamma=1.4` kept after re-tuning** on the fixed engine: no other value improves the validation RMSE by more than 0.5% on most cases, and 1.0 can be much worse (see the v1.4.0 Pull Request description on GitHub for the full benchmark and engine diagnosis).
+
+### Added
+- **`KalmanTAM(process_noise_var={term: q, "offset": q, "default": q})`**: one process noise per formula term (a diagonal `Q`); every design column of a term gets the term's `q`, the terms not named use `"default"` (1e-4). A float works as before, bit for bit. `KalmanTAM.term_columns()` lists the terms and their columns; `tune_hyperparameters` accepts one candidate dict per grid entry.
+
+### Fixed
+- **Predictions on a frame with duplicate index labels** (`pd.concat` without `ignore_index`), interleaved groups or rows not in date order: every prediction and every `decompose_prediction` effect is placed on its own row (by position, in date order inside each group); the engine used to fail on repeated labels, and `decompose_prediction` put the effects of a group in frame order, wrong when the rows were not in date order.
+
 ---
 
 ## [1.3.4] - 2026-10-02
