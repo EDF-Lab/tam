@@ -58,7 +58,7 @@ def _forecast(model, df, col="KalmanAdapted_load"):
     return out.assign(_row=out.groupby("grp").cumcount())[["grp", "_row", col]]
 
 
-# ----------------------------------------------------------------------------- MAIN-10: causal scaling
+# ----------------------------------------------------------------------------- causal scaling
 def test_no_leak_forecasts_up_to_r_do_not_depend_on_later_rows():
     df = _panel()
     with warnings.catch_warnings():
@@ -145,7 +145,7 @@ def test_predict_reuses_the_scaling_stored_at_fit():
     assert not a["KalmanAdapted_load"].isna().any()
 
 
-# ----------------------------------------------------------------------------- MAIN-30: update at every step
+# ----------------------------------------------------------------------------- update at every step
 def test_default_block_size_is_one_and_the_forecast_follows_the_previous_step():
     model = KalmanTAM(kalman_formula=FORMULA, group_col="grp", date_col="timestamp", calibration_steps=CAL)
     assert model.block_size_ == 1
@@ -199,7 +199,7 @@ def test_block_size_one_equals_a_plain_numpy_kalman_filter():
         np.testing.assert_allclose(got[g, :, 0].cpu().numpy(), expected * scale[g, 0, 0] + center[g, 0, 0], rtol=0, atol=1e-10)
 
 
-# ----------------------------------------------------------------------------- MAIN-32: tuning without look-ahead
+# ----------------------------------------------------------------------------- tuning without look-ahead
 GRID = {"observation_noise_var": [0.5, 1.0], "process_noise_var": [1e-4, 1e-2]}
 
 

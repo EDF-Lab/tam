@@ -55,4 +55,4 @@ By flattening the group and window dimensions into a single massive 3D tensor ba
 
 ### Equivalence with a Rolling StaticTAM
 
-Each window is normalised on its own training rows only, and no clipping fitted on the whole period is applied. The forecasts of a window therefore equal those of `StaticTAM.fit(training rows).predict(forecast rows)`: `AdaptiveTAM` is the operational loop "refit on the last window, forecast the next rows", computed in one batch (`ta.rolling_windows` cuts the same windows for a reference loop). A feature whose range moves between windows is handled as an operational refit would handle it.
+Each window is normalised with the minimum and maximum of its own training rows only, and no bound fitted on the whole period is applied. The forecasts of a window are therefore those of the estimator fitted on that window's training rows and applied to its forecast rows: the adaptive model is the operational loop "refit on the last window, forecast the next rows", computed in one batch. A feature whose range moves between windows is handled as a refit would handle it.

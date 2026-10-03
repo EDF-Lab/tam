@@ -35,7 +35,7 @@ To achieve optimal, scale-invariant smoothing, the framework applies an **anisot
 
 $$P_{cross} = \sum_{i=1}^{K_{te}} \lambda_i \left( I_1 \otimes \dots \otimes \tilde P_i \otimes \dots \otimes I_{K_{te}} \right)$$
 
-Each $\lambda_i$ is a coordinate of the GCV search, so the surface can be smooth along one axis and rough along another. A weight given to the tensor product itself (`te(..., ap=)`, or the formula default) multiplies every margin's weight once, at construction, so with fixed weights the matrix is the one of a single global weight: $\lambda_{te}\sum_i P_i$ with $P_i = \lambda_i \tilde P_i$.
+Each $\lambda_i$ is a coordinate of the GCV search, so the surface can be smooth along one axis and rough along another. A global weight $\lambda_{te}$ on the whole interaction is equivalent to scaling every margin weight by it: $\lambda_{te}\sum_i \lambda_i\,(I \otimes \dots \otimes \tilde P_i \otimes \dots \otimes I) = \sum_i (\lambda_{te}\lambda_i)\,(I \otimes \dots \otimes \tilde P_i \otimes \dots \otimes I)$.
 
 For the standard two-dimensional case ($K_{te}=2$), this evaluates directly to:
 
