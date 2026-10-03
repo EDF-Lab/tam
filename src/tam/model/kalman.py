@@ -663,6 +663,19 @@ class KalmanTAM:
 
         return _cleanup_dummies(df_final_masked, self.group_col_, self.date_col_)
     
+    def compact(self) -> 'KalmanTAM':
+        r"""
+        Keeps the last row of ``states_history_`` (the state after the last block) and drops the rest, which grows with the number of rows.
+
+        ``final_state_``, ``last_state_dict_`` and the scales are untouched, so ``predict()`` is unchanged to the last bit.
+
+        Returns:
+            self
+        """
+        if self.states_history_ is not None:
+            self.states_history_ = self.states_history_[-1:].clone()
+        return self
+
     def fit(self, data: pd.DataFrame, **kwargs) -> 'KalmanTAM':
         r"""
         Fits the Kalman filter by running the historical tracking simulation.

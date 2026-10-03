@@ -507,6 +507,7 @@ class AdaptiveTAM:
         self.prepare_simulation(data)
         self.simulation()
         self._save_final_state()
+        self._free_simulation()
         return self.predictions_
 
     def fit(self, data: pd.DataFrame) -> 'AdaptiveTAM':
@@ -518,6 +519,25 @@ class AdaptiveTAM:
         """
         self.prepare_simulation(data)
         self._save_final_state()
+        self._free_simulation()
+        return self
+
+    def _free_simulation(self) -> None:
+        r"""Drops the stacked windows and their layout: they hold every overlapping training window and are only needed while simulating."""
+        self.simulation_data_ = None
+        self.window_layout_ = None
+
+    def compact(self) -> 'AdaptiveTAM':
+        r"""
+        Keeps what ``predict()`` and the final adaptive state need and drops what grows with the data (``predictions_``, the simulation cache).
+
+        Forecasts are unchanged to the last bit. ``predictions_`` is lost: keep the frame ``predict_online`` returned if you need it.
+
+        Returns:
+            self
+        """
+        self._free_simulation()
+        self.predictions_ = None
         return self
 
     def predict(self, df: pd.DataFrame) -> pd.DataFrame:
@@ -728,7 +748,12 @@ class AdaptiveTAM:
             print("--- Starting Grid Search (Multi-Start Coordinate Descent) ---")
             
             self.prepare_simulation(data_val)
-            
+            try:
+                return self._grid_search(data_val, grid_search_config)
+            finally:
+                self._free_simulation()
+
+    def _grid_search(self, data_val: pd.DataFrame, grid_search_config: dict) -> 'AdaptiveTAM':
             search_axes, token_names = self.adaptive_model_._parse_grid_axes(grid_search_config)
             
             data_info = self.adaptive_model_._get_data_info(data_val)

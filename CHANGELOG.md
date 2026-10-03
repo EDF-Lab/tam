@@ -25,8 +25,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - **API contract tests** (`tests/test_api_contracts.py`): the signatures of the main models and of the formula parser, the `decompose_prediction` column names and the `summary()` keys are pinned; adding a keyword argument with a default passes, changing an existing parameter fails.
 - **`KalmanTAM(process_noise_var={term: q, "offset": q, "default": q})`**: one process noise per formula term (a diagonal `Q`); every design column of a term gets the term's `q`, the terms not named use `"default"` (1e-4). A float works as before, bit for bit. `KalmanTAM.term_columns()` lists the terms and their columns; `tune_hyperparameters` accepts one candidate dict per grid entry.
+- **`compact()`** on `StaticTAM`, `AdaptiveTAM`, `KalmanTAM` and `OperaTAM`: drops what grows with the data (`predictions_`, the state and weight histories except their last row) and returns the model; `predict()` is unchanged to the last bit. See "Model size and persistence" in the architecture notes.
 
 ### Fixed
+- **`AdaptiveTAM` frees its simulation cache** when `predict_online()`, `fit()` or `grid_search_fit()` ends. Previously, every overlapping window was kept stacked in memory, accounting for the vast majority of the model's pickled size. The model footprint is now drastically reduced (and can be reduced by >95% further using `compact()`). `prepare_simulation()` alone still fills `simulation_data_`.
 - **Predictions on a frame with duplicate index labels** (`pd.concat` without `ignore_index`), interleaved groups or rows not in date order: every prediction and every `decompose_prediction` effect is placed on its own row (by position, in date order inside each group); the engine used to fail on repeated labels, and `decompose_prediction` put the effects of a group in frame order, wrong when the rows were not in date order.
 
 ---
