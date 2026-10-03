@@ -23,6 +23,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **`auto_fit` default `gamma=1.4` kept after re-tuning** on the fixed engine: no other value improves the validation RMSE by more than 0.5% on most cases, and 1.0 can be much worse (see the v1.4.0 Pull Request description on GitHub for the full benchmark and engine diagnosis).
 
 ### Added
+- **API contract tests** (`tests/test_api_contracts.py`): the signatures of the main models and of the formula parser, the `decompose_prediction` column names and the `summary()` keys are pinned; adding a keyword argument with a default passes, changing an existing parameter fails.
 - **`KalmanTAM(process_noise_var={term: q, "offset": q, "default": q})`**: one process noise per formula term (a diagonal `Q`); every design column of a term gets the term's `q`, the terms not named use `"default"` (1e-4). A float works as before, bit for bit. `KalmanTAM.term_columns()` lists the terms and their columns; `tune_hyperparameters` accepts one candidate dict per grid entry.
 
 ### Fixed
