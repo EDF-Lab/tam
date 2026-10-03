@@ -188,6 +188,19 @@ def _check_known_groups(data: pd.DataFrame, group_col: str, known_groups: List) 
         )
 
 
+def _group_positions(data: pd.DataFrame, group_col: str, group_name, date_col: Optional[str] = None) -> np.ndarray:
+    r"""
+    Row positions (0 .. len(data) - 1) of one group, in date order (frame order when there is no date, ties keep frame order).
+
+    Predictions are placed by position, never by index label: a frame built by ``pd.concat`` without ``ignore_index`` repeats
+    labels, and the rows of the groups can be interleaved or in any order.
+    """
+    positions = np.flatnonzero((data[group_col] == group_name).to_numpy())
+    if date_col is not None and date_col in data.columns and len(positions) > 1:
+        positions = positions[np.argsort(data[date_col].to_numpy()[positions], kind="stable")]
+    return positions
+
+
 #: <reassemble>
 def _reassemble_predictions(
     original_data: pd.DataFrame,
@@ -200,6 +213,10 @@ def _reassemble_predictions(
     r"""
     Reassembles stacked tensor predictions back into the original DataFrame structure.
 
+    Every prediction goes on the row it was computed for, whatever the index of `original_data` (duplicate labels, interleaved
+    groups, any row order): rows are located by position, in date order inside each group, and the index is returned unchanged.
+    A group with fewer predictions than rows (a warm-up) is aligned to the end of the group; its first rows stay NaN.
+
     Args:
         original_data: The source DataFrame.
         predictions_stacked: Tensor of predictions (n_groups, n_samples).
@@ -211,14 +228,9 @@ def _reassemble_predictions(
         pd.DataFrame: Original data with a new `Estimated{target_col}` column.
     """
     is_3d_input = predictions_stacked.dim() == 3
-    all_predictions_series = []
-    
+    estimate = np.full(len(original_data), np.nan)
+
     for i, group_name in enumerate(unique_groups):
-        group_indices_full = original_data.index[original_data[group_col] == group_name]
-
-        if date_col is not None and date_col in original_data.columns:
-            group_indices_full = original_data.loc[group_indices_full].sort_values(date_col).index
-
         if i >= predictions_stacked.shape[0]:
             continue
 
@@ -226,25 +238,16 @@ def _reassemble_predictions(
             preds_group = predictions_stacked[i].cpu().numpy().flatten()
         else:
             preds_group = predictions_stacked[i].cpu().numpy()
-        
+
         if len(preds_group) == 0:
             continue
-            
-        # Align to the end of the group's indices (handling potential truncation)
-        group_indices_aligned = group_indices_full[-len(preds_group):]
-        
-        preds_series = pd.Series(preds_group, index=group_indices_aligned)
-        all_predictions_series.append(preds_series)
-    
-    result_df = original_data.copy()
-    
-    if not all_predictions_series:
-         result_df[f"Estimated{target_col}"] = np.nan
-         return result_df
 
-    final_predictions = pd.concat(all_predictions_series)
-    result_df[f"Estimated{target_col}"] = final_predictions
-    
+        positions = _group_positions(original_data, group_col, group_name, date_col)
+        # Align to the end of the group's rows (handling potential truncation)
+        estimate[positions[-len(preds_group):]] = preds_group
+
+    result_df = original_data.copy()
+    result_df[f"Estimated{target_col}"] = estimate
     return result_df
 #: </reassemble>
 
@@ -274,38 +277,35 @@ def _reassemble_decomposed_predictions(
 
     for feature_name, effect_tensor in decomposed_effects.items():
         col_name = f"effect_{feature_name}"
-        result_df[col_name] = np.nan
-        
+        column = np.full(len(original_data), np.nan)
+
         for i, group_name in enumerate(unique_groups):
             if i >= effect_tensor.shape[0]:
                 continue
-            
-            group_mask = (result_df[group_col] == group_name)
-            if date_col is not None and date_col in result_df.columns:
-                sorted_indices = result_df[group_mask].sort_values(date_col).index
-                group_mask = result_df.index.isin(sorted_indices)
-            group_len = group_mask.sum()
-            
+
+            positions = _group_positions(original_data, group_col, group_name, date_col)
+            group_len = len(positions)
+
             if effect_tensor.dim() == 2:
                 effect_data = effect_tensor[i,:].cpu().numpy()
             elif effect_tensor.dim() == 3:
                 effect_data = effect_tensor[i,:,:].cpu().numpy().flatten()
             else:
                 raise ValueError(f"Unrecognized tensor shape: {effect_tensor.shape}")
-            
+
             if group_len == 0 or len(effect_data) == 0:
                 continue
 
             if group_len < len(effect_data):
                 effect_data = effect_data[-group_len:]
-            
+
             # Pad with NaNs at the beginning if necessary
-            padded_effect_data = np.concatenate([
-                np.full(group_len - len(effect_data), np.nan), 
+            column[positions] = np.concatenate([
+                np.full(group_len - len(effect_data), np.nan),
                 effect_data
             ])
-            
-            result_df.loc[group_mask, col_name] = padded_effect_data
+
+        result_df[col_name] = column
 
     return result_df
     
