@@ -108,6 +108,7 @@ class NeuralTAM:
         weight_decay (float): L2 regularization penalty for network weights.
         backfit_cycles (int): Number of Coordinate Descent cycles per group.
         gam_shrinkage (float): Relaxation parameter (0 to 1) for residual updates.
+        seed (int): Seed of the generators behind the validation split, the epoch shuffling and the network initialisation. A fit never reads or advances the global torch generator.
         base_additive_model (StaticTAM): The underlying linear GAM solver.
         mlps_ (Dict[str, Dict[str, nn.Module]]): Trained networks mapped by group and feature.
         x_scalers_ (Dict[str, Dict[str, tuple]]): Z-score scalers for input features.
@@ -130,6 +131,7 @@ class NeuralTAM:
         weight_decay: float = 1e-4,
         backfit_cycles: int = 3,
         gam_shrinkage: float = 1.0,
+        seed: int = 42,
         **kwargs: Any
     ):
         """Initializes the NeuralTAM model configuration."""
@@ -146,6 +148,7 @@ class NeuralTAM:
         self.weight_decay = weight_decay
         self.backfit_cycles = backfit_cycles
         self.gam_shrinkage = gam_shrinkage
+        self.seed = seed
         
         self.base_additive_model = StaticTAM(formula, self.group_col_, self.date_col_, **kwargs)
         
@@ -222,6 +225,11 @@ class NeuralTAM:
             data_train (pd.DataFrame): Training dataset containing full features and target.
             data_val (Optional[pd.DataFrame]): Validation dataset.
         """
+        # Local generators: the fit depends on `seed`, not on the draws made before it, and leaves the global generator untouched.
+        shuffle_gen = torch.Generator(device=TORCH_DEVICE).manual_seed(self.seed)
+        init_gen = torch.Generator().manual_seed(self.seed)
+        fork_devices = [TORCH_DEVICE] if torch.device(TORCH_DEVICE).type == 'cuda' else []
+
         # Ensure dummy columns exist for local grouping logic
         data_train = _ensure_dummies(data_train, self.group_col_, self.date_col_)
         if data_val is not None:
@@ -326,7 +334,7 @@ class NeuralTAM:
                         train_size = num_samples - val_size
                         
                         if self.shuffle_split: 
-                            indices = torch.randperm(num_samples, device=TORCH_DEVICE)
+                            indices = torch.randperm(num_samples, device=TORCH_DEVICE, generator=shuffle_gen)
                         else: 
                             indices = torch.arange(num_samples, device=TORCH_DEVICE)
                             
@@ -334,12 +342,15 @@ class NeuralTAM:
                         X_scaled_val, Y_scaled_val = X_scaled_train[val_idx], Y_scaled_train[val_idx]
                         X_scaled_train, Y_scaled_train = X_scaled_train[train_idx], Y_scaled_train[train_idx]
                     
-                    mlp = DeepNeuralComponent(
-                        input_dim=len(ne.input_features),
-                        n_neurons=ne.n_neurons,
-                        n_hidden_layers=getattr(ne, 'n_hidden_layers', 1),
-                        activation_name=ne.activation
-                    ).to(TORCH_DEVICE)
+                    init_seed = int(torch.randint(0, 2**31 - 1, (1,), generator=init_gen))
+                    with torch.random.fork_rng(devices=fork_devices):
+                        torch.manual_seed(init_seed)
+                        mlp = DeepNeuralComponent(
+                            input_dim=len(ne.input_features),
+                            n_neurons=ne.n_neurons,
+                            n_hidden_layers=getattr(ne, 'n_hidden_layers', 1),
+                            activation_name=ne.activation
+                        ).to(TORCH_DEVICE)
                     
                     optimizer = torch.optim.Adam(mlp.parameters(), lr=self.lr, weight_decay=self.weight_decay)
                     scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
@@ -354,7 +365,7 @@ class NeuralTAM:
                     
                     for _ in range(self.epochs):
                         mlp.train()
-                        epoch_indices = torch.randperm(train_size_curr, device=TORCH_DEVICE)
+                        epoch_indices = torch.randperm(train_size_curr, device=TORCH_DEVICE, generator=shuffle_gen)
                         
                         for start_idx in range(0, train_size_curr, self.batch_size):
                             batch_idx = epoch_indices[start_idx:start_idx + self.batch_size]

@@ -72,3 +72,48 @@ def test_neural_tam_fit_with_neural_effect_backfits(dummy_panel_data):
     preds = model.predict(dummy_panel_data)
     assert "Estimatedload" in preds.columns
     assert len(preds) == len(dummy_panel_data)
+
+
+# ------------------------------------------------------------------ reproducibility: NeuralTAM draws from its own generator
+def _fit_neural(data, seed=None, shuffle_split=True):
+    kwargs = {} if seed is None else {"seed": seed}
+    model = NeuralTAM(
+        formula="load ~ l(temperature) + n(temperature, n_neurons=4)",
+        group_col="smart_meter_id", date_col="timestamp",
+        epochs=4, patience=4, backfit_cycles=1, val_split=0.3, shuffle_split=shuffle_split, **kwargs,
+    )
+    return model.fit(data)
+
+
+def _forecast(model, data):
+    return model.predict(data)["Estimatedload"].to_numpy()
+
+
+@pytest.mark.parametrize("shuffle_split", [True, False])
+def test_two_fits_agree_whatever_the_global_generator_did_in_between(dummy_panel_data, shuffle_split):
+    import numpy as np
+    first = _forecast(_fit_neural(dummy_panel_data, shuffle_split=shuffle_split), dummy_panel_data)
+    torch.rand(1000)                                   # other code draws from the global generator
+    torch.manual_seed(123)
+    second = _forecast(_fit_neural(dummy_panel_data, shuffle_split=shuffle_split), dummy_panel_data)
+    np.testing.assert_array_equal(first, second)
+
+
+def test_a_fit_neither_reads_nor_advances_the_global_generator(dummy_panel_data):
+    torch.manual_seed(7)
+    before = torch.get_rng_state().clone()
+    _fit_neural(dummy_panel_data)
+    assert torch.equal(torch.get_rng_state(), before)
+
+
+def test_the_seed_changes_the_networks(dummy_panel_data):
+    import numpy as np
+    same_a = _forecast(_fit_neural(dummy_panel_data, seed=1), dummy_panel_data)
+    same_b = _forecast(_fit_neural(dummy_panel_data, seed=1), dummy_panel_data)
+    other = _forecast(_fit_neural(dummy_panel_data, seed=2), dummy_panel_data)
+    np.testing.assert_array_equal(same_a, same_b)
+    assert not np.array_equal(same_a, other)
+
+
+def test_the_default_seed_is_42():
+    assert NeuralTAM(formula="load ~ l(temperature)").seed == 42
