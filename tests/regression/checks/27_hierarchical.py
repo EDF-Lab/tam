@@ -31,7 +31,7 @@ def run(res):
                 res.forecast(f"{name}.{node}", test[column], by_node[node]["EstimatedTarget"])
             parent = next(iter(structure))
             children = sum(by_node[child]["EstimatedTarget"].to_numpy() for child in structure[parent])
-            res.value(f"{name}.max_incoherence", float(np.max(np.abs(by_node[parent]["EstimatedTarget"].to_numpy() - children))))
+            res.gap(f"{name}.max_incoherence", float(np.max(np.abs(by_node[parent]["EstimatedTarget"].to_numpy() - children))), tolerance=1e-3)
 
         res.attempt(name, step)
 

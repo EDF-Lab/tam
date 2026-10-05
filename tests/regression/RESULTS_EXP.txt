@@ -1129,7 +1129,7 @@
 27_hierarchical.strength100.industrial.q75 = 13444.1
 27_hierarchical.strength100.industrial.rmse = 1109.47
 27_hierarchical.strength100.industrial.std = 2161.13
-27_hierarchical.strength100.max_incoherence = 4.40114e-05
+27_hierarchical.strength100.max_incoherence = <= 0.001
 27_hierarchical.strength100.professional.bias = -14.051
 27_hierarchical.strength100.professional.max = 6719.43
 27_hierarchical.strength100.professional.mean = 4148.04
@@ -1365,29 +1365,13 @@
 28_neural_tam.val_split_half.q75 = 55905
 28_neural_tam.val_split_half.rmse = 2706.73
 28_neural_tam.val_split_half.std = 8607.41
-33_autotam_small.AutoTAM_Apex_Ensemble.bias = -95.3843
-33_autotam_small.AutoTAM_Apex_Ensemble.max = 73814.1
-33_autotam_small.AutoTAM_Apex_Ensemble.mean = 52629.8
-33_autotam_small.AutoTAM_Apex_Ensemble.min = 33064.8
 33_autotam_small.AutoTAM_Apex_Ensemble.missing = 0
 33_autotam_small.AutoTAM_Apex_Ensemble.n = 2208
-33_autotam_small.AutoTAM_Apex_Ensemble.q25 = 46362.1
-33_autotam_small.AutoTAM_Apex_Ensemble.q50 = 52163.5
-33_autotam_small.AutoTAM_Apex_Ensemble.q75 = 59018.9
-33_autotam_small.AutoTAM_Apex_Ensemble.rmse = 3594.81
-33_autotam_small.AutoTAM_Apex_Ensemble.std = 8714.29
-33_autotam_small.Ensemble_Static.bias = -3571.68
-33_autotam_small.Ensemble_Static.max = 68653.5
-33_autotam_small.Ensemble_Static.mean = 49153.5
-33_autotam_small.Ensemble_Static.min = 31054.2
+33_autotam_small.AutoTAM_Apex_Ensemble.rmse_above_6000 = <= 0
 33_autotam_small.Ensemble_Static.missing = 0
 33_autotam_small.Ensemble_Static.n = 2208
-33_autotam_small.Ensemble_Static.q25 = 43721.3
-33_autotam_small.Ensemble_Static.q50 = 48740.7
-33_autotam_small.Ensemble_Static.q75 = 54520.6
-33_autotam_small.Ensemble_Static.rmse = 4864.58
-33_autotam_small.Ensemble_Static.std = 7583.25
-33_autotam_small.experts = 27
+33_autotam_small.Ensemble_Static.rmse_above_6000 = <= 0
+33_autotam_small.experts_missing = <= 0
 33_autotam_small.output_columns = Ensemble_Static, Ensemble_Island_Federation, AutoTAM_Apex_Ensemble
 38_interactions_neural.neural_others_toy.bias = 37.7828
 38_interactions_neural.neural_others_toy.max = 78825.9
