@@ -299,8 +299,8 @@ class OperaTAM:
             df_g = df_group.sort_values(by=self.date_col) if self.date_col in df_group.columns else df_group.sort_index()
             group_names.append(group_name)
             
-            x_list.append(torch.tensor(df_g[self.expert_cols].values, dtype=torch.get_default_dtype(), device=TORCH_DEVICE))
-            y_list.append(torch.tensor(df_g[self.target_col].values, dtype=torch.get_default_dtype(), device=TORCH_DEVICE).unsqueeze(1))
+            x_list.append(torch.tensor(np.ascontiguousarray(df_g[self.expert_cols].to_numpy()), dtype=torch.get_default_dtype(), device=TORCH_DEVICE))
+            y_list.append(torch.tensor(np.ascontiguousarray(df_g[self.target_col].to_numpy()), dtype=torch.get_default_dtype(), device=TORCH_DEVICE).unsqueeze(1))
             
         # Create contiguous 3D tensors: (Groups, Time, Experts)
         X_tensor_3d = torch.stack(x_list).contiguous()

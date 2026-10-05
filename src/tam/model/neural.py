@@ -296,7 +296,7 @@ class NeuralTAM:
 
             X_train_dict, X_val_dict = {}, {}
             for ne in neural_effects:
-                X_tensor = torch.tensor(group_data_train[ne.input_features].values, dtype=torch.get_default_dtype(), device=TORCH_DEVICE)
+                X_tensor = torch.tensor(np.ascontiguousarray(group_data_train[ne.input_features].to_numpy()), dtype=torch.get_default_dtype(), device=TORCH_DEVICE)
                 X_mean = X_tensor.mean(dim=0, keepdim=True)
                 X_std = X_tensor.std(dim=0, keepdim=True)
                 X_std[X_std < 1e-6] = 1.0 
@@ -305,7 +305,7 @@ class NeuralTAM:
                 X_train_dict[ne.feature_name] = (X_tensor - X_mean) / X_std
                 
                 if group_data_val is not None:
-                    X_val_raw = torch.tensor(group_data_val[ne.input_features].values, dtype=torch.get_default_dtype(), device=TORCH_DEVICE)
+                    X_val_raw = torch.tensor(np.ascontiguousarray(group_data_val[ne.input_features].to_numpy()), dtype=torch.get_default_dtype(), device=TORCH_DEVICE)
                     X_val_dict[ne.feature_name] = (X_val_raw - X_mean) / X_std
 
             for _ in range(self.backfit_cycles):
@@ -453,7 +453,7 @@ class NeuralTAM:
                     continue
                     
                 group_data = data.iloc[mask]
-                X_raw = torch.tensor(group_data[ne.input_features].values, dtype=torch.get_default_dtype(), device=TORCH_DEVICE)
+                X_raw = torch.tensor(np.ascontiguousarray(group_data[ne.input_features].to_numpy()), dtype=torch.get_default_dtype(), device=TORCH_DEVICE)
                 
                 X_mean, X_std = self.x_scalers_[group_name][feature_name]
                 Y_mean, Y_std = self.y_scalers_[group_name][feature_name]
