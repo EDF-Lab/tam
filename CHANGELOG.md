@@ -30,6 +30,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - **`AdaptiveTAM` frees its simulation cache** when `predict_online()`, `fit()` or `grid_search_fit()` ends. Previously, every overlapping window was kept stacked in memory, accounting for the vast majority of the model's pickled size. The model footprint is now drastically reduced (and can be reduced by >95% further using `compact()`). `prepare_simulation()` alone still fills `simulation_data_`.
+- **`NeuralTAM.decompose_prediction` names a network's effect like the other models** (`effect_n_x` when `x` also has a `s()` or `l()` term, as `StaticTAM` does): it added a stray `effect_x` column next to the `effect_n_x` one, so the effects no longer summed to the forecast and an `AdaptiveTAM` behind a `NeuralTAM` saw a different set of columns than behind a `StaticTAM`. Formulas where the network is the only term on its feature are unchanged.
 - **Predictions on a frame with duplicate index labels** (`pd.concat` without `ignore_index`), interleaved groups or rows not in date order: every prediction and every `decompose_prediction` effect is placed on its own row (by position, in date order inside each group); the engine used to fail on repeated labels, and `decompose_prediction` put the effects of a group in frame order, wrong when the rows were not in date order.
 
 ---

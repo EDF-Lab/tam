@@ -18,6 +18,7 @@ import numpy as np
 from typing import Optional, Dict, Any
 
 from tam.model.additive import StaticTAM
+from tam.model._math import decomposition_names
 from tam.model.spectrum import NeuralEffect
 from tam.common.utils import TORCH_DEVICE, _ensure_dummies, _cleanup_dummies
 
@@ -429,11 +430,14 @@ class NeuralTAM:
         decomposed = self.base_additive_model.decompose_prediction(data)
         unique_groups = self.base_additive_model.unique_groups_
         
-        neural_effects = [e for e in self.base_additive_model.effects_list_ if isinstance(e, NeuralEffect)]
-        
-        for ne in neural_effects:
+        effects = self.base_additive_model.effects_list_
+        column_names = decomposition_names(effects)        # the names the base decomposition uses (a shared feature is prefixed by its basis)
+
+        for ne, component in zip(effects, column_names):
+            if not isinstance(ne, NeuralEffect):
+                continue
             feature_name = ne.feature_name
-            col_name = f'effect_{feature_name}'
+            col_name = f'effect_{component}'
             
             if col_name not in decomposed.columns:
                 decomposed[col_name] = 0.0
