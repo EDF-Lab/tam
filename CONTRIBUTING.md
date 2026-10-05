@@ -57,7 +57,8 @@ A body of work too large for one pull request (a new model family, a research co
 2. **Implement your feature** and ensure your code follows the coding standards.
 3. **Write the documentation pair** in the `math/` and `architecture/` folders.
 4. **Compile the docs locally:** Run `build_docs.bat` (Windows) or `build_docs.sh` (Linux/Mac) to ensure the HTML and PDFs compile perfectly without Sphinx or LaTeX warnings.
-5. **Submit your PR:** Provide a clear description of the problem solved, the mathematical approach taken, and the performance implications.
+5. **Run the regression checks:** `python tests/regression/run.py` rewrites `tests/regression/RESULTS.txt` and `RESULTS_EXP.txt`; `git diff tests/regression/` shows what your change moved. If that is what you intended, commit the new file in your pull request and say why the numbers moved; the `Regression` workflow fails when `RESULTS.txt` in the pull request is not the one the checks produce (a different `RESULTS_EXP.txt` is only a warning) (see `tests/regression/README.md`).
+6. **Submit your PR:** Provide a clear description of the problem solved, the mathematical approach taken, and the performance implications.
 
 ---
 *By contributing to TAM, you agree that your contributions will be licensed under the project's LGPL license.*

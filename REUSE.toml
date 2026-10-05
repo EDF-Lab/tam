@@ -10,6 +10,10 @@ path = [
     "math/**",
     "slides/**",
     ".github/**",
+    "tests/regression/README.md",
+    "tests/regression/RESULTS.txt",
+    "tests/regression/RESULTS_EXP.txt",
+    "tests/regression/data/force_2023.sha256",
     "*.md",
     "*.bib",
     "*.cff",
@@ -27,3 +31,10 @@ path = [
 precedence = "closest"
 SPDX-FileCopyrightText = "2025-2026 EDF (Electricité De France)"
 SPDX-License-Identifier = "LGPL-3.0-or-later"
+
+# The frozen dataset of the regression checks: an extract of the FORCE dataset, published under CC BY 4.0.
+[[annotations]]
+path = "tests/regression/data/force_2023.csv"
+precedence = "closest"
+SPDX-FileCopyrightText = "FORCE dataset (French Open Research Catalogue of Energy), Zenodo 10.5281/zenodo.21109134"
+SPDX-License-Identifier = "CC-BY-4.0"

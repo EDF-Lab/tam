@@ -1,0 +1,63 @@
+name: Regression
+
+# One script per functionality of tam runs on a frozen FORCE extract and writes tests/regression/RESULTS.txt (stable modules) and RESULTS_EXP.txt (beta and
+# experimental modules), which are committed.
+# A pull request that moves a stable number changes RESULTS.txt: the job is red until the new file is committed, and the diff is what the maintainer reviews.
+on:
+  pull_request:
+    branches: [main, automl, "feat/**"]
+  workflow_dispatch:
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+concurrency:
+  group: regression-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  regression:
+    name: Regression
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      MPLBACKEND: Agg
+      PYTHONIOENCODING: utf-8
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      # CPU-only PyTorch first: the default Linux wheel bundles the CUDA toolkit (~2.5 GB).
+      - name: Install CPU-only PyTorch
+        run: pip install torch --index-url https://download.pytorch.org/whl/cpu
+
+      - name: Install the package
+        run: pip install -e .
+
+      - name: Run every check
+        run: python tests/regression/run.py
+
+      # The results file is the contract: rerunning must not change it.
+      - name: The results file has not changed
+        run: git diff --exit-code tests/regression/RESULTS.txt
+
+      # Beta and experimental modules (Kalman, hierarchical, neural, AutoTAM, the newer effects) report apart: a change is shown, it does not fail the job.
+      - name: The experimental results file
+        run: |
+          git diff --exit-code tests/regression/RESULTS_EXP.txt || echo "::warning::tests/regression/RESULTS_EXP.txt changed, review the diff and commit the new file if intended"
+
+      - name: Keep the regenerated results files
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: regression-results
+          path: |
+            tests/regression/RESULTS.txt
+            tests/regression/RESULTS_EXP.txt
