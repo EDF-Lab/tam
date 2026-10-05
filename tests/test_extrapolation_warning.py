@@ -126,3 +126,49 @@ def test_a_tiny_overshoot_of_the_trained_range_does_not_warn():
     assert _caught(lambda: model.predict(tiny)) == []
     big = df.assign(z=df["z"].where(df["z"] != df["z"].max(), df["z"].max() + 0.05 * half_range))
     assert len(_caught(lambda: model.predict(big))) == 1
+
+
+# ------------------------------------------------------------------ AdaptiveTAM: a categorical level absent from the training rows of its window
+def _holiday_data(n=160, first_seen=120, level=3):
+    """A weekday-like cycle 0..2 plus one level (`level`) that appears for the first time on day `first_seen` and then every 20 days."""
+    df = _data(n=n)
+    df["h"] = (np.arange(n) % 3).astype(float)
+    df.loc[(df.index >= first_seen) & ((df.index - first_seen) % 20 == 0), "h"] = float(level)
+    return df
+
+
+def _adaptive(formula, **kwargs):
+    return ta.AdaptiveTAM(adaptive_formula=formula, update_interval_periods=10, training_window_periods=40, steps_per_period=1,
+                          date_col="date", **kwargs)
+
+
+@pytest.mark.parametrize("formula", ["y ~ l(x) + c(h, n_cat=4, topo='nominal')", "y ~ l(x) + c(h, topo='nominal')"])
+def test_adaptive_warns_once_for_a_level_absent_from_the_training_rows_of_its_window(formula):
+    df = _holiday_data()
+    model = _adaptive(formula)
+    caught = _caught(lambda: model.predict_online(df))
+    levels = [w for w in caught if "'h'" in str(w.message) and "training rows" in str(w.message)]
+    assert len(levels) == 1, [str(w.message) for w in caught]
+    message = str(levels[0].message)
+    assert "[3.0]" in message and "windows" in message
+    assert _caught(lambda: model.predict_online(df)) == []                      # once per model
+
+
+def test_adaptive_is_silent_when_every_level_was_seen_in_its_window():
+    df = _holiday_data(first_seen=0)                                            # the level occurs from the first rows on, every 20 days
+    model = _adaptive("y ~ l(x) + c(h, n_cat=4, topo='nominal')")
+    assert _caught(lambda: model.predict_online(df)) == []
+
+
+def test_adaptive_without_a_categorical_term_is_silent_about_levels():
+    df = _holiday_data()
+    model = _adaptive("y ~ l(x) + l(h)")
+    assert _caught(lambda: model.predict_online(df)) == []
+
+
+def test_adaptive_level_warning_is_collected_not_raised_inside_collect_extrapolation():
+    df = _holiday_data()
+    model = _adaptive("y ~ l(x) + c(h, n_cat=4, topo='nominal')")
+    with collect_extrapolation() as collected:
+        assert _caught(lambda: model.predict_online(df)) == []
+    assert any("h" in key for key in collected)

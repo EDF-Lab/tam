@@ -50,6 +50,7 @@ from .spectrum import (
     BaseEffect,
     create_effects_from_parsed_terms,
     categorical_ranges,
+    categorical_features,
     extrapolating_features,
     initialize_effects,
     build_phi_from_effects,
@@ -302,6 +303,7 @@ class AdaptiveTAM:
             for j, count in enumerate(counts):
                 valid[i, j, :count] = True
         self._warn_extrapolation(x_to_predict.cpu(), valid)
+        self._warn_unseen_levels(x_stacked.cpu(), x_to_predict.cpu(), valid, real_data)
         # Positions in `real_data` -> positions in `balanced_data` (real rows come first when groups are balanced by filling).
         real_positions = np.flatnonzero(real)
         self.window_layout_.positions = [real_positions[p] for p in self.window_layout_.positions]
@@ -433,6 +435,41 @@ class AdaptiveTAM:
                     f"forecast rows ({outside.any(dim=-1).sum().item()} of {valid.any(dim=-1).sum().item()} windows), by up to "
                     f"{beyond[valid].max().item():.2f} half-ranges: its non-linear effect is extrapolated and can be far off. "
                     f"Set extrapolate='constant' on the term to hold it at the edge of the trained range.", stacklevel=4)
+
+    def _warn_unseen_levels(self, x_train: torch.Tensor, x_pred: torch.Tensor, valid: torch.Tensor, data: pd.DataFrame) -> None:
+        r"""
+        One ``TAMExtrapolationWarning`` per categorical feature (once per model) when forecast rows hold a level that is not in the
+        training rows of their own window: its column is penalised towards zero and the effect has no estimate for it.
+        The windows are aggregated: the message gives the levels and how many windows are affected.
+
+        Args:
+            x_train: Normalised training features, (n_groups, n_windows, train_rows, features).
+            x_pred: Normalised forecast features, (n_groups, n_windows, rows, features).
+            valid: Which of those forecast rows are real, (n_groups, n_windows, rows).
+            data: The rows the windows were cut from (``window_layout_.positions`` indexes them).
+        """
+        warned = self.__dict__.setdefault("_extrapolation_warned_", set())
+        features = self.adaptive_model_.features_config_['features']
+        layout = self.window_layout_
+        for name in categorical_features(self.adaptive_model_.effects_list_):
+            key = f"{name} (levels)"
+            if key in warned or name not in features or name not in data.columns:
+                continue
+            j = features.index(name)
+            seen = ((x_pred[..., j].unsqueeze(-1) - x_train[..., j].unsqueeze(-2)).abs() < 1e-6).any(dim=-1)
+            unseen = (~seen) & valid
+            if not unseen.any():
+                continue
+            raw = data[name].to_numpy().tolist()
+            levels = set()
+            for g, w, r in torch.nonzero(unseen).tolist():
+                levels.add(raw[layout.positions[g][layout.starts[g][w] + r]])
+            warned.add(key)
+            warn_extrapolation(key,
+                f"'{name}': level(s) {sorted(levels)[:10]} not in the training rows of their window, in "
+                f"{unseen.any(dim=-1).sum().item()} of {valid.any(dim=-1).sum().item()} windows "
+                f"({unseen.sum().item() / valid.sum().item():.1%} of the forecast rows): the categorical effect has no estimate for them there.",
+                stacklevel=4)
 
     def _forecast_frame(self, predictions: torch.Tensor) -> pd.DataFrame:
         r"""
