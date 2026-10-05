@@ -1,5 +1,8 @@
-# Packages the use cases compare tam with. They are not dependencies of tam: install them next to it to run the comparisons.
+# Packages the use cases use besides tam: the libraries tam is compared with, and the helpers of utils_cases.py. They are not dependencies of tam:
+# install them next to it to run the use cases.
 #   pip install -e . -r use_cases/requirements.txt
 statsmodels>=0.14.0
 pygam>=0.9.0
 tabicl[regressor,forecast]==2.1.1
+requests>=2.31.0
+ipython>=8.0.0

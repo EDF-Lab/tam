@@ -81,6 +81,26 @@ def test_one_aggregating_check_fails_when_any_script_fails():
     assert "needs.run.result" in WORKFLOW.read_text(encoding="utf-8")
 
 
+def test_every_package_a_use_case_imports_is_installed_by_tam_or_by_the_use_case_requirements():
+    import ast
+
+    installed = {"tam", "torch", "numpy", "pandas", "scipy", "matplotlib", "psutil"}
+    listed = {re.split(r"[\[<>=]", line.strip())[0].lower() for line in (ROOT / "use_cases" / "requirements.txt").read_text(encoding="utf-8").splitlines()
+              if line.strip() and not line.startswith("#")}
+    names = {"ipython": "IPython"}
+    installed |= {names.get(package, package) for package in listed}
+    local = {p.stem for p in (ROOT / "use_cases").rglob("*.py")}
+    missing = set()
+    for script in (ROOT / "use_cases").rglob("*.py"):
+        for node in ast.walk(ast.parse(script.read_text(encoding="utf-8"))):
+            modules = [a.name for a in node.names] if isinstance(node, ast.Import) else [node.module] if isinstance(node, ast.ImportFrom) and node.module and not node.level else []
+            for module in modules:
+                top = module.split(".")[0]
+                if top not in installed and top not in local and top not in sys.stdlib_module_names:
+                    missing.add((script.name, top))
+    assert not missing, f"imported by a use case but installed by nothing: {sorted(missing)}"
+
+
 def test_the_packages_the_use_cases_compare_with_are_listed_once_in_the_use_cases_folder_not_in_the_package():
     packages = ("statsmodels", "tabicl", "pygam")
     metadata = (ROOT / "pyproject.toml").read_text(encoding="utf-8")
