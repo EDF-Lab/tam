@@ -1,0 +1,5 @@
+# Packages the use cases compare tam with. They are not dependencies of tam: install them next to it to run the comparisons.
+#   pip install -e . -r use_cases/requirements.txt
+statsmodels>=0.14.0
+pygam>=0.9.0
+tabicl[regressor,forecast]==2.1.1
