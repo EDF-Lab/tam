@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2025-2026 EDF (Electricité De France)
+# SPDX-FileContributor: Yann Allioux
+# SPDX-License-Identifier: LGPL-3.0-or-later
+
 r"""
 Public API for the Spectrum Effect Library.
 

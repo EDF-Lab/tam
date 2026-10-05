@@ -1,0 +1,29 @@
+version = 1
+
+# Files that carry no SPDX header (documentation, configuration, images, the use cases, empty package markers).
+# Source and test files carry their own header (tests/test_spdx_headers.py checks it).
+[[annotations]]
+path = [
+    "use_cases/**",
+    "docs/**",
+    "architecture/**",
+    "math/**",
+    "slides/**",
+    ".github/**",
+    "*.md",
+    "*.bib",
+    "*.cff",
+    "*.toml",
+    "*.txt",
+    "*.bat",
+    ".gitignore",
+    ".gitattributes",
+    "LICENSE",
+    "src/tam/common/__init__.py",
+    "src/tam/model/autotam/__init__.py",
+    "src/tam/model/autotam/evaluation/__init__.py",
+    "src/tam/model/autotam/pipeline/__init__.py",
+]
+precedence = "closest"
+SPDX-FileCopyrightText = "2025-2026 EDF (Electricité De France)"
+SPDX-License-Identifier = "LGPL-3.0-or-later"

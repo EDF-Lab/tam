@@ -1,6 +1,6 @@
 # SPDX-FileCopyrightText: 2026 EDF (Electricité De France)
+# SPDX-FileContributor: Yann Allioux
 # SPDX-License-Identifier: LGPL-3.0-or-later
-# Author : Yann Allioux
 
 """
 Epistemic (parameter) uncertainty via the Bayesian interpretation of the penalized fit.

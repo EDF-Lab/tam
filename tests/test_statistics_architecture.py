@@ -1,6 +1,6 @@
 # SPDX-FileCopyrightText: 2026 EDF (Electricité De France)
+# SPDX-FileContributor: Yann Allioux
 # SPDX-License-Identifier: LGPL-3.0-or-later
-# Author : Yann Allioux
 
 r"""
 Architecture & routing tests for the "One Atom, Many Statistics" design.

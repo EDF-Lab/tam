@@ -1,6 +1,6 @@
 # SPDX-FileCopyrightText: 2025-2026 EDF (Electricité De France)
+# SPDX-FileContributor: Yann Allioux
 # SPDX-License-Identifier: LGPL-3.0-or-later
-# Author : Yann Allioux
 
 r"""
 Unit tests for ``tam.model.neural``, the Deep-GAM hybrid (NeuralTAM) and its
