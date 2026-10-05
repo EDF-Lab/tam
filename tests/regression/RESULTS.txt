@@ -1661,6 +1661,7 @@
 14_auto_fit_gcv.gamma2.q75 = 56744.6
 14_auto_fit_gcv.gamma2.rmse = 960.714
 14_auto_fit_gcv.gamma2.std = 10269.1
+14_auto_fit_gcv.offset_penalty.rmse_gap = <= 0.001
 14_auto_fit_gcv.steps12.bias = -2.15978
 14_auto_fit_gcv.steps12.max = 77696.6
 14_auto_fit_gcv.steps12.mean = 49772

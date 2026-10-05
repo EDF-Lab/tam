@@ -2,7 +2,10 @@
 # SPDX-FileContributor: Yann Allioux
 # SPDX-License-Identifier: LGPL-3.0-or-later
 """Penalties chosen by generalised cross-validation: the gamma of the criterion, the search bounds and steps, a tensor product, the summary table."""
-from common import BASE
+import numpy as np
+
+import tam as ta
+from common import BASE, DATE, GROUP, TARGET
 
 FORMULA = "load ~ s(temperature, k=10) + s(toy, k=10) + " + BASE
 
@@ -20,6 +23,19 @@ def run(res):
         table = model.summary()
         res.value("summary.columns", ", ".join(table.columns))
         res.value("summary.rows", len(table))
-        res.value("summary.regularisation", ", ".join(str(v) for v in table[table.columns[-1]]))
+        # the penalty of the offset hardly changes the fit: the criterion is flat above 10^3 and the search stops at a point that depends on the machine, so it is capped
+        res.value("summary.regularisation", ", ".join(str(min(float(v), 3.0)) for v in table[table.columns[-1]]))
 
     res.attempt("summary", summary)
+
+    def offset_penalty():
+        train, test = res.train, res.test
+        formula = "load ~ s(temperature, k=10, ap=-3) + s(toy, k=10, ap=-9) + " + BASE
+        rmse = {}
+        for penalty in (3.0, 6.0, 12.0):
+            model = ta.StaticTAM(formula=formula, group_col=GROUP, date_col=DATE, default_alpha_p=penalty).fit(train)
+            error = test[TARGET].to_numpy() - model.predict(test)[f"Estimated{TARGET}"].to_numpy()
+            rmse[penalty] = float(np.sqrt(np.mean(error ** 2)))
+        res.gap("offset_penalty.rmse_gap", max(rmse.values()) - min(rmse.values()), tolerance=1e-3)
+
+    res.attempt("offset_penalty", offset_penalty)
