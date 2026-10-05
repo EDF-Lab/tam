@@ -4,7 +4,7 @@
 
 The **Time series Additive Model (TAM)** project combines foundational theoretical research with modern software engineering to deliver a scalable, interpretable forecasting framework.
 
-⚠️ **Authorship Note (JOSS Compliance):**
+⚠️ **Authorship Note:**
 The current TAM package is a full re-engineering and scientific extension of the original `weakl` research prototype. The contributions below explicitly distinguish between foundational theory, early prototypes, new theoretical extensions, and the production-grade software architecture.
 
 ---
@@ -50,7 +50,7 @@ Primary author of the foundational theory on which TAM builds.
 
 ## 📊 Contribution Summary
 
-To strictly comply with JOSS guidelines, the specific domains of contribution are mapped below:
+The specific domains of contribution are mapped below:
 
 | Area | Primary Contributors |
 | --- | --- |

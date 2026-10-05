@@ -1,6 +1,6 @@
 # TAM (Time series Additive Model)
 
-[🧪 `EXAMPLES`](EXAMPLES.md) | [📚 `THEORY`](THEORY.md) | [📄 `JOSS PAPER`](paper.md)
+[🧪 `EXAMPLES`](EXAMPLES.md) | [📚 `THEORY`](THEORY.md) | [📄 `PAPER`](paper.md)
   
 **Version:** 1.3.4  
 **License:** LGPL-3.0-or-later.  
@@ -35,7 +35,7 @@ Traditional Generalized Additive Models (GAMs) are strictly bound by CPU limits,
 
 ## ⚙️ Stable Framework (v1.2+)
 
-These modules form the mathematically proven, production-ready core of the framework, designed for robust industrial deployment and evaluated for JOSS:
+These modules form the mathematically proven, production-ready core of the framework, designed for robust industrial deployment, covered by tests and the regression suite:
 
 * **Machine Learning for Time Series:** TAM projects a matrix of exogenous features into a finite-dimensional space via basis mappings against a target.
 

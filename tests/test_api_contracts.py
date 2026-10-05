@@ -2,7 +2,7 @@
 # SPDX-FileContributor: Yann Allioux
 # SPDX-License-Identifier: LGPL-3.0-or-later
 r"""
-API contracts: the public signatures that other code (``AutoTAM``, the students' branches, users) relies on are pinned.
+API contracts: the public signatures that other code (``AutoTAM``, the long-lived feature branches, users) relies on are pinned.
 
 Each pinned callable lists its **existing** parameters in order, with their kind and default. A change that renames, removes, reorders or re-defaults
 one of them fails here. Adding a keyword argument with a default after the pinned ones passes: the API is extended, never changed.
