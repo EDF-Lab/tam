@@ -314,7 +314,7 @@ if "auto_fit_1" in make_these_models:
     # Utilizes Generalized Cross Validation (MSP-GCV) to automatically find 
     # the optimal lambda_p penalization surface within bounded constraints.
     model_auto_1 = ta.StaticTAM(formula=formula_tam, group_col="tod", date_col="date")
-    model_auto_1.auto_fit(train_df[cols_ws], alpha_p_bounds=(-30.0, 6.0), number_of_steps=13, gamma=2.0)
+    model_auto_1.auto_fit(train_df[cols_ws], alpha_p_bounds=(-30.0, 6.0), number_of_steps=13, gamma=1.4)
     auto_1_time_fit = time.time() - start
 
     start = time.time()
@@ -335,7 +335,7 @@ if "auto_fit_2" in make_these_models:
     start = time.time()
     
     model_auto_2 = ta.StaticTAM(formula=formula_tam, group_col="tod", date_col="date")
-    model_auto_2.auto_fit(train_df[cols_ws], alpha_p_list=[p for p in range(-30, 6, 3)], gamma=2.0)
+    model_auto_2.auto_fit(train_df[cols_ws], alpha_p_list=[p for p in range(-30, 6, 3)], gamma=1.4)
     auto_2_time_fit = time.time() - start
 
     start = time.time()
@@ -372,55 +372,29 @@ print("Pipeline Complete.")
 
 """
 
-################ 32Go CPU ######################
+################ CPU ######################
 
 ================================================================================
  GLOBAL SPLIT PERFORMANCE (RMSE)
 ================================================================================
                             Model   Fit RMSE   Dev RMSE   Val RMSE  Train RMSE  Test RMSE  Fit Time (s)  Predict Time (s)  Test Drift (%)
-0        StaticTAM (AutoFit List)  1548.7060  1542.4287  1444.2119   1530.2202  1582.6777         2.600             0.835          -12.09
-1      StaticTAM (AutoFit Bounds)  1551.9726  1543.6174  1447.6214   1533.1501  1586.8492         1.306             0.839          -12.27
-2      StaticTAM (Grid Optimized)  1558.6762  1548.3599  1465.4490   1541.3200  1597.8371        34.576             0.795          -13.15
-3  PyGAM Gridsearch (GCV AutoFit)  1573.7996  1552.3650  1466.1536   1552.1879  1617.7197       183.728             0.967          -11.63
-4             StaticTAM (Default)  1537.9896  1528.4297  1431.9910   1518.6975  1705.6027         1.245             0.753            1.09
-5      PyGAM Baseline (Fixed Lam)  1561.0740  1549.1772  1451.8355   1540.8480  4118.9592        13.261             0.785          221.30
+0      StaticTAM (AutoFit Bounds)  1573.3360  1566.4073  1454.7266   1553.0390  1622.7492         4.181             2.650          -12.80
+1      StaticTAM (Grid Optimized)  1586.7329  1573.3476  1477.9975   1566.8948  1635.0837       141.535             3.257          -13.61
+2        StaticTAM (AutoFit List)  1578.3864  1572.9987  1464.4491   1559.0765  1635.6507        10.440             1.824          -10.99
+3  PyGAM Gridsearch (GCV AutoFit)  1601.4873  1576.0738  1478.1317   1577.3468  1675.1848       185.968             2.090           -9.56
+4             StaticTAM (Default)  1565.0569  1551.5235  1444.5099   1543.3530  1785.1642         2.690             2.628            4.67
+5      PyGAM Baseline (Fixed Lam)  1589.8702  1569.3452  1463.4764   1566.0759  3002.4983        17.369             2.116          118.94
 
 ================================================================================
  RESIDUAL & DRIFT DIAGNOSTICS (OUT-OF-SAMPLE TEST SET)
 ================================================================================
-                                Mean Error (Bias)  Std Error  Skewness   Kurtosis  Lag-1 AutoCorr  RMSE_Drift_H2_vs_H1 (%)
-Model                                                                                                                     
-PyGAM Gridsearch (GCV AutoFit)          -183.3817  1607.2922   -2.6943    17.0449          0.9865                 -11.6313
-StaticTAM (Default)                     -200.2063  1693.8117   -2.6858    22.7208          0.9787                   1.0877
-StaticTAM (Grid Optimized)              -215.4070  1583.2508   -2.5272    16.1244          0.9881                 -13.1473
-StaticTAM (AutoFit List)                -216.6747  1567.7758   -2.6430    16.9690          0.9877                 -12.0909
-StaticTAM (AutoFit Bounds)              -228.3481  1570.3336   -2.6375    16.9339          0.9878                 -12.2705
-PyGAM Baseline (Fixed Lam)              -247.3665  4111.5247  -34.8516  1611.9112          0.8299                 221.2971
-
-################ 4Go GPU ######################
-PyGAM does not support GPU, it runs on 32Go CPU
-
-================================================================================
- GLOBAL SPLIT PERFORMANCE (RMSE)
-================================================================================
-                            Model   Fit RMSE   Dev RMSE   Val RMSE  Train RMSE  Test RMSE  Fit Time (s)  Predict Time (s)  Test Drift (%)
-0        StaticTAM (AutoFit List)  1548.7060  1542.4287  1444.2119   1530.2202  1582.6777         3.720             0.610          -12.09
-1      StaticTAM (AutoFit Bounds)  1551.9726  1543.6174  1447.6214   1533.1501  1586.8492         2.010             0.563          -12.27
-2      StaticTAM (Grid Optimized)  1558.6762  1548.3599  1465.4490   1541.3200  1597.8371        19.823             1.082          -13.15
-3  PyGAM Gridsearch (GCV AutoFit)  1573.7996  1552.3650  1466.1536   1552.1879  1617.7197       139.637             0.682          -11.63
-4             StaticTAM (Default)  1537.9896  1528.4297  1431.9910   1518.6975  1705.6027         1.958             0.563            1.09
-5      PyGAM Baseline (Fixed Lam)  1561.0740  1549.1772  1451.8355   1540.8480  4118.9592        12.637             0.667          221.30
-
-================================================================================
- RESIDUAL & DRIFT DIAGNOSTICS (OUT-OF-SAMPLE TEST SET)
-================================================================================
-                                Mean Error (Bias)  Std Error  Skewness   Kurtosis  Lag-1 AutoCorr  RMSE_Drift_H2_vs_H1 (%)
-Model                                                                                                                     
-PyGAM Gridsearch (GCV AutoFit)          -183.3817  1607.2922   -2.6943    17.0449          0.9865                 -11.6313
-StaticTAM (Default)                     -200.2063  1693.8117   -2.6858    22.7208          0.9787                   1.0877
-StaticTAM (Grid Optimized)              -215.4070  1583.2508   -2.5272    16.1244          0.9881                 -13.1473
-StaticTAM (AutoFit List)                -216.6747  1567.7758   -2.6430    16.9690          0.9877                 -12.0909
-StaticTAM (AutoFit Bounds)              -228.3481  1570.3336   -2.6375    16.9339          0.9878                 -12.2705
-PyGAM Baseline (Fixed Lam)              -247.3665  4111.5247  -34.8516  1611.9112          0.8299                 221.2971
+                                Mean Error (Bias)  Std Error  Skewness  Kurtosis  Lag-1 AutoCorr  RMSE_Drift_H2_vs_H1 (%)
+Model
+StaticTAM (AutoFit List)                -197.6907  1623.6599   -2.4139   15.0597          0.9870                 -10.9944
+PyGAM Gridsearch (GCV AutoFit)          -205.6915  1662.5087   -2.5538   15.7365          0.9861                  -9.5566
+StaticTAM (AutoFit Bounds)              -220.9662  1607.6346   -2.4151   15.2934          0.9874                 -12.7954
+StaticTAM (Grid Optimized)              -222.6294  1619.8564   -2.3080   14.6815          0.9881                 -13.6079
+StaticTAM (Default)                     -222.8615  1771.1984   -3.1535   29.9425          0.9792                   4.6690
+PyGAM Baseline (Fixed Lam)              -225.2062  2994.0405  -10.6312  644.1768          0.8694                 118.9404
 
 """

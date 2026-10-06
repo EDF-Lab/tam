@@ -1,4 +1,4 @@
--e / #tam debugging mode
+-e . #tam debugging mode
 
 #tests
 pytest

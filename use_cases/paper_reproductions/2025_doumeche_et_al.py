@@ -249,7 +249,7 @@ if "fourier_auto" in make_these_models:
     start = time.time()
     
     model_auto = ta.StaticTAM(formula=formula_fourier, group_col="tod", date_col="date")
-    model_auto.auto_fit(train_df[cols_ws], alpha_p_list=[p for p in range(-15, 2, 2)], gamma=2.0)
+    model_auto.auto_fit(train_df[cols_ws], alpha_p_list=[p for p in range(-15, 2, 2)], gamma=1.4)
     time_fit_auto = time.time() - start
 
     start = time.time()
@@ -282,51 +282,27 @@ print("Pipeline Complete.")
 
 """
 
-################ 32Go CPU ######################
+################ CPU ######################
 
 ================================================================================
  GLOBAL SPLIT PERFORMANCE (RMSE)
 ================================================================================
                          Model   Fit RMSE   Dev RMSE   Val RMSE  Train RMSE  Test RMSE  Fit Time (s)  Predict Time (s)  Test Drift (%)
-0     StaticTAM (2011 Splines)  1589.2545  1427.8147  1542.4993   1570.7578  1565.4677         1.154             1.131          -11.01
-1  StaticTAM (Fourier AutoFit)  1627.4630  1418.3702  1553.2478   1602.5282  1573.9243         1.012             0.622          -10.94
-2             PyGAM (Baseline)  1622.9534  1434.9088  1528.9668   1597.9963  1582.7181        19.116             1.244           -9.91
-3     StaticTAM (Fourier Grid)  1677.1419  1388.6861  1550.0660   1641.1498  1619.6353         4.524             0.449           -8.71
-4     StaticTAM (2025 Fourier)  1715.5644  1447.9565  1587.6533   1681.0914  1635.6038         0.479             0.582          -10.25
+0     StaticTAM (2011 Splines)  1612.6836  1445.5258  1559.7897   1593.4400  1586.6168         1.843             2.599          -10.64
+1  StaticTAM (Fourier AutoFit)  1648.5443  1445.8928  1573.4479   1624.4177  1597.9510         3.176             1.368          -10.20
+2             PyGAM (Baseline)  1645.2313  1452.2604  1540.4753   1619.3058  1602.7181        18.529             2.009           -9.85
+3     StaticTAM (Fourier Grid)  1697.8380  1411.5477  1568.9750   1662.3829  1638.1408         8.182             1.480           -8.69
+4     StaticTAM (2025 Fourier)  1738.9567  1475.7645  1610.7809   1705.3089  1659.1976         0.653             1.158           -9.94
 
 ================================================================================
  RESIDUAL & DRIFT DIAGNOSTICS (OUT-OF-SAMPLE TEST SET)
 ================================================================================
                              Mean Error (Bias)  Std Error  Skewness  Kurtosis  Lag-1 AutoCorr  RMSE_Drift_H2_vs_H1 (%)
-Model                                                                                                                 
-StaticTAM (2025 Fourier)             -119.2708  1631.2493   -2.0624   15.4512          0.9876                 -10.2468
-StaticTAM (Fourier Grid)             -137.1722  1613.8161   -2.2160   16.6868          0.9871                  -8.7133
-StaticTAM (Fourier AutoFit)          -153.2417  1566.4465   -1.9277   13.6543          0.9869                 -10.9447
-PyGAM (Baseline)                     -156.5984  1574.9519   -1.9038   13.6774          0.9870                  -9.9107
-StaticTAM (2011 Splines)             -166.4243  1556.5963   -1.6227   11.3713          0.9868                 -11.0116
-
-################ 4Go GPU ######################
-PyGAM does not support GPU, it runs on 32Go CPU
-
-================================================================================
- GLOBAL SPLIT PERFORMANCE (RMSE)
-================================================================================
-                         Model   Fit RMSE   Dev RMSE   Val RMSE  Train RMSE  Test RMSE  Fit Time (s)  Predict Time (s)  Test Drift (%)
-0     StaticTAM (2011 Splines)  1589.2545  1427.8147  1542.4993   1570.7578  1565.4677         2.507             1.406          -11.01
-1  StaticTAM (Fourier AutoFit)  1627.4630  1418.3702  1553.2478   1602.5282  1573.9243         2.718             0.999          -10.94
-2             PyGAM (Baseline)  1622.9534  1434.9088  1528.9668   1597.9963  1582.7181        44.436             3.305           -9.91
-3     StaticTAM (Fourier Grid)  1677.1419  1388.6861  1550.0660   1641.1498  1619.6353         3.973             0.925           -8.71
-4     StaticTAM (2025 Fourier)  1715.5644  1447.9565  1587.6533   1681.0914  1635.6038         0.739             0.995          -10.25
-
-================================================================================
- RESIDUAL & DRIFT DIAGNOSTICS (OUT-OF-SAMPLE TEST SET)
-================================================================================
-                             Mean Error (Bias)  Std Error  Skewness  Kurtosis  Lag-1 AutoCorr  RMSE_Drift_H2_vs_H1 (%)
-Model                                                                                                                 
-StaticTAM (2025 Fourier)             -119.2708  1631.2493   -2.0624   15.4512          0.9876                 -10.2468
-StaticTAM (Fourier Grid)             -137.1722  1613.8161   -2.2160   16.6868          0.9871                  -8.7133
-StaticTAM (Fourier AutoFit)          -153.2417  1566.4465   -1.9277   13.6543          0.9869                 -10.9447
-PyGAM (Baseline)                     -156.5984  1574.9519   -1.9038   13.6774          0.9870                  -9.9107
-StaticTAM (2011 Splines)             -166.4243  1556.5963   -1.6227   11.3713          0.9868                 -11.0116
+Model
+StaticTAM (2025 Fourier)             -132.1930  1653.9231   -2.0159   15.2193          0.9895                  -9.9376
+StaticTAM (Fourier Grid)             -158.1151  1630.4922   -2.1866   16.6781          0.9889                  -8.6935
+PyGAM (Baseline)                     -166.4677  1594.0495   -1.8818   13.6334          0.9883                  -9.8452
+StaticTAM (Fourier AutoFit)          -172.3928  1588.6246   -1.9066   13.7354          0.9884                 -10.2008
+StaticTAM (2011 Splines)             -188.0163  1575.4373   -1.6427   11.5101          0.9879                 -10.6401
 
 """
