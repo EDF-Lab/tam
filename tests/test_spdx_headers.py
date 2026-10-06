@@ -72,3 +72,21 @@ def test_every_empty_python_file_is_annotated_in_reuse_toml():
     empty = [p.relative_to(ROOT).as_posix() for p in FILES if not _has_content(p)]
     missing = [name for name in empty if f'"{name}"' not in reuse]
     assert not missing, missing
+
+
+def test_every_licence_used_has_its_text_in_the_licenses_folder():
+    used = set(re.findall(r'SPDX-License-Identifier = "([^"]+)"', (ROOT / "REUSE.toml").read_text(encoding="utf-8")))
+    used |= {m for p in FILES for m in re.findall(r"SPDX-License-Identifier: (\S+)", "\n".join(_header(p)[1]))}
+    assert {"LGPL-3.0-or-later", "CC-BY-4.0", "CC0-1.0"} <= used
+    missing = sorted(name for name in used if not (ROOT / "LICENSES" / f"{name}.txt").exists())
+    assert not missing, missing
+    unused = sorted(p.stem for p in (ROOT / "LICENSES").glob("*.txt") if p.stem not in used)
+    assert not unused, unused
+
+
+def test_every_data_file_is_annotated_in_reuse_toml():
+    reuse = (ROOT / "REUSE.toml").read_text(encoding="utf-8")
+    data = sorted(p.relative_to(ROOT).as_posix() for folder in ("src/tam/data", "tests/regression/data") for p in (ROOT / folder).glob("*.csv"))
+    assert data, "no data file found"
+    missing = [name for name in data if f'"{name}"' not in reuse]
+    assert not missing, missing
