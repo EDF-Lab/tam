@@ -246,16 +246,37 @@ def test_the_guard_decision_is_reproducible_whatever_the_global_generator_did():
     np.testing.assert_array_equal(first.predict(data)["Estimatedy"], second.predict(data)["Estimatedy"])
 
 
-def test_a_network_on_a_shared_feature_is_compared_with_the_closed_form_effect_not_with_zero():
-    # y is a sine of x: the closed-form n() effect captures more of it than a network trained for 300 small steps, so the network must be dropped. Its column in the
-    # base decomposition is effect_n_x here (the feature is shared with l(x)), not effect_x: looking in the wrong column compares the network with zero, keeps it,
-    # and the forecast is ten times worse than the static one.
-    rng = np.random.default_rng(0)
-    x = rng.uniform(0, 6, 500)
-    data = pd.DataFrame({"timestamp": pd.date_range("2022-01-01", periods=500, freq="h"), "g": "a", "x": x, "y": 3 * np.sin(3 * x) + rng.normal(0, 0.1, 500)})
+def test_a_network_on_a_shared_feature_that_beats_the_closed_form_effect_improves_the_forecast():
+    # y is a sine of x and the formula shares x between l(x) and n(x). The column of the closed-form effect of the network in the base decomposition is effect_n_x, not
+    # effect_x: looking in the wrong column starts the backfitting from zero, the network learns the residual left after the closed-form effect and replaces it, and the
+    # forecast is ten times worse than the static one.
+    def frame(n, seed):
+        rng = np.random.default_rng(seed)
+        x = rng.uniform(0, 6, n)
+        return pd.DataFrame({"timestamp": pd.date_range("2022-01-01", periods=n, freq="h"), "g": "a", "x": x, "y": 3 * np.sin(3 * x) + rng.normal(0, 0.1, n)})
+
+    train, test = frame(500, 0), frame(300, 1)
     formula = "y ~ l(x) + n(x, n_neurons=8, act='tanh')"
-    static = ta.StaticTAM(formula=formula, group_col="g", date_col="timestamp").fit(data)
-    with pytest.warns(UserWarning, match="StaticTAM"):
-        neural = _guarded(formula, data, epochs=300, patience=300, lr=0.05, batch_size=64)
-    assert neural.network_used_ == {"a": {"x": False}}
-    np.testing.assert_allclose(neural.predict(data)["Estimatedy"], static.predict(data)["Estimatedy"], rtol=1e-9, atol=1e-9)
+    static = ta.StaticTAM(formula=formula, group_col="g", date_col="timestamp").fit(train)
+    neural = NeuralTAM(formula=formula, group_col="g", date_col="timestamp", epochs=300, patience=300, backfit_cycles=1, lr=0.05, batch_size=64).fit(train)
+    error = lambda model: float(np.sqrt(np.mean((test["y"].to_numpy() - model.predict(test)["Estimatedy"].to_numpy()) ** 2)))
+    assert error(neural) <= error(static), (error(neural), error(static))
+
+
+@pytest.mark.parametrize("target", ["line", "step"])
+def test_a_network_with_the_default_training_learns_what_a_closed_form_effect_learns(target):
+    # The last layer of a network starts at zero, so its validation loss is flat for the first epochs. A learning-rate scheduler with a short patience halves the rate to its
+    # floor during that plateau and the network never moves: it ended three times worse than the closed-form effect on a line and twice worse on a step.
+    make = lambda n, seed: _frame(np.random.default_rng(seed).uniform(0, 6, n), target, seed)
+    train, test = make(600, 0), make(300, 1)
+    formula = "y ~ n(x, n_neurons=16, act='tanh')"
+    static = ta.StaticTAM(formula=formula, group_col="g", date_col="timestamp").fit(train)
+    neural = NeuralTAM(formula=formula, group_col="g", date_col="timestamp", guard=False).fit(train)        # the defaults: 500 epochs, patience 25
+    error = lambda model: float(np.sqrt(np.mean((test["y"].to_numpy() - model.predict(test)["Estimatedy"].to_numpy()) ** 2)))
+    assert error(neural) <= 1.2 * error(static), (error(neural), error(static))
+
+
+def _frame(x, target, seed):
+    signal = 2.0 * x if target == "line" else 3.0 * (x > 3).astype(float)
+    noise = np.random.default_rng(seed + 100).normal(0, 0.1, len(x))
+    return pd.DataFrame({"timestamp": pd.date_range("2022-01-01", periods=len(x), freq="h"), "g": "a", "x": x, "y": signal + noise})

@@ -43,6 +43,7 @@ def run(res):
     fit("guard_off", guard=False)
     fit("shared_feature_guard_off", formula="load ~ l(temperature) + n(temperature, n_neurons=8, act='relu') + " + BASE, guard=False)
     fit("strong_network", epochs=60, lr=0.02, batch_size=64, patience=60)       # long enough for the networks to beat the closed-form effect where they can
+    fit("default_training", epochs=500, lr=0.01, batch_size=1024, patience=25)         # the defaults of the class: a flat start of the validation loss must not stop the learning
 
     def reproducible():
         a = neural(seed=3).fit(train).predict(test)[f"Estimated{TARGET}"].to_numpy()

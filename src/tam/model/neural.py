@@ -378,10 +378,9 @@ class NeuralTAM:
                             activation_name=ne.activation
                         ).to(TORCH_DEVICE)
                     
+                    # The learning rate stays at `lr`: the last layer starts at zero, so the validation loss is flat for the first epochs, and a plateau scheduler
+                    # (patience 5) used to halve the rate to its floor before the network had moved. Early stopping alone ends the training.
                     optimizer = torch.optim.Adam(mlp.parameters(), lr=self.lr, weight_decay=self.weight_decay)
-                    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
-                        optimizer, mode='min', factor=0.5, patience=5, min_lr=1e-5
-                    )
                     criterion = nn.MSELoss()
                     
                     best_val_loss = float('inf')
@@ -403,8 +402,6 @@ class NeuralTAM:
                         mlp.eval()
                         with torch.no_grad():
                             val_loss = criterion(mlp(X_scaled_val), Y_scaled_val).item()
-                        
-                        scheduler.step(val_loss)
                         
                         if val_loss < best_val_loss:
                             best_val_loss = val_loss
