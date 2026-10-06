@@ -190,16 +190,36 @@ def _check_known_groups(data: pd.DataFrame, group_col: str, known_groups: List) 
         )
 
 
-def _group_positions(data: pd.DataFrame, group_col: str, group_name, date_col: Optional[str] = None) -> np.ndarray:
+def _date_keys(data: pd.DataFrame, date_col: Optional[str]) -> Optional[np.ndarray]:
+    r"""
+    Sortable keys of the date column, read once per placement of the predictions (not once per group).
+
+    ``Series.to_numpy()`` on a timezone-aware date column builds a Python ``Timestamp`` per row, every call: with 48 groups that
+    made ``predict`` several times slower. The integer view of the datetimes sorts the same way (a missing date goes last, as
+    for ``datetime64``) and costs nothing.
+    """
+    if date_col is None or date_col not in data.columns:
+        return None
+    column = data[date_col]
+    as_integers = getattr(column.array, "asi8", None)
+    if as_integers is None:
+        return column.to_numpy()
+    return np.where(as_integers == np.iinfo(np.int64).min, np.iinfo(np.int64).max, as_integers)
+
+
+def _group_positions(data: pd.DataFrame, group_col: str, group_name, date_col: Optional[str] = None, date_keys: Optional[np.ndarray] = None) -> np.ndarray:
     r"""
     Row positions (0 .. len(data) - 1) of one group, in date order (frame order when there is no date, ties keep frame order).
 
     Predictions are placed by position, never by index label: a frame built by ``pd.concat`` without ``ignore_index`` repeats
-    labels, and the rows of the groups can be interleaved or in any order.
+    labels, and the rows of the groups can be interleaved or in any order. ``date_keys`` is ``_date_keys(data, date_col)`` when
+    the caller places several groups.
     """
     positions = np.flatnonzero((data[group_col] == group_name).to_numpy())
-    if date_col is not None and date_col in data.columns and len(positions) > 1:
-        positions = positions[np.argsort(data[date_col].to_numpy()[positions], kind="stable")]
+    if date_keys is None:
+        date_keys = _date_keys(data, date_col)
+    if date_keys is not None and len(positions) > 1:
+        positions = positions[np.argsort(date_keys[positions], kind="stable")]
     return positions
 
 
@@ -231,6 +251,7 @@ def _reassemble_predictions(
     """
     is_3d_input = predictions_stacked.dim() == 3
     estimate = np.full(len(original_data), np.nan)
+    date_keys = _date_keys(original_data, date_col)
 
     for i, group_name in enumerate(unique_groups):
         if i >= predictions_stacked.shape[0]:
@@ -244,7 +265,7 @@ def _reassemble_predictions(
         if len(preds_group) == 0:
             continue
 
-        positions = _group_positions(original_data, group_col, group_name, date_col)
+        positions = _group_positions(original_data, group_col, group_name, date_col, date_keys)
         # Align to the end of the group's rows (handling potential truncation)
         estimate[positions[-len(preds_group):]] = preds_group
 
@@ -276,6 +297,7 @@ def _reassemble_decomposed_predictions(
         pd.DataFrame: Data with effect columns added.
     """
     result_df = original_data.copy()
+    date_keys = _date_keys(original_data, date_col)
 
     for feature_name, effect_tensor in decomposed_effects.items():
         col_name = f"effect_{feature_name}"
@@ -285,7 +307,7 @@ def _reassemble_decomposed_predictions(
             if i >= effect_tensor.shape[0]:
                 continue
 
-            positions = _group_positions(original_data, group_col, group_name, date_col)
+            positions = _group_positions(original_data, group_col, group_name, date_col, date_keys)
             group_len = len(positions)
 
             if effect_tensor.dim() == 2:

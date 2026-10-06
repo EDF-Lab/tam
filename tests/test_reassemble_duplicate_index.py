@@ -99,3 +99,52 @@ def test_a_truncated_warm_up_is_aligned_to_the_end_of_each_group_with_duplicate_
         assert np.isnan(values[:2]).all()
         np.testing.assert_array_equal(values[2:], [100.0 * (k + 1) + t for t in range(horizon)])
     assert (out.index.to_numpy() == df.index.to_numpy()).all()
+
+
+# ------------------------------------------------------------------ the date column is read once, not once per group
+def _tz_aware_panel(n_groups: int = 48, n_days: int = 120) -> pd.DataFrame:
+    """One row per group per date, rows ordered by date, dates in UTC: the shape of the national dataset."""
+    dates = pd.date_range("2024-01-01", periods=n_days, freq="D", tz="UTC")
+    frame = pd.DataFrame({"date": np.repeat(dates, n_groups), "g": np.tile(np.arange(n_groups), n_days)})
+    frame["x"] = np.random.default_rng(0).normal(size=len(frame))
+    return frame
+
+
+def test_the_date_column_is_converted_once_when_the_predictions_are_placed(monkeypatch):
+    import torch
+    from tam.model import _data
+
+    frame, calls = _tz_aware_panel(n_groups=6, n_days=20), []
+    original = _data._date_keys
+    monkeypatch.setattr(_data, "_date_keys", lambda *a, **k: calls.append(1) or original(*a, **k))
+    groups = list(range(6))
+    _data._reassemble_predictions(frame, torch.zeros(6, 20, dtype=torch.float64), "g", groups, "y", "date")
+    assert len(calls) == 1
+    calls.clear()
+    effects = {name: torch.zeros(6, 20, dtype=torch.float64) for name in ("a", "b", "c")}
+    _data._reassemble_decomposed_predictions(frame, effects, "g", groups, "date")
+    assert len(calls) == 1
+
+
+def test_timezone_aware_dates_are_placed_like_naive_dates():
+    from tam.model import _data
+
+    frame = _tz_aware_panel(n_groups=4, n_days=15).sample(frac=1.0, random_state=1)          # any row order
+    naive = frame.assign(date=frame["date"].dt.tz_localize(None))
+    for group in range(4):
+        np.testing.assert_array_equal(_data._group_positions(frame, "g", group, "date"), _data._group_positions(naive, "g", group, "date"))
+    assert all(frame["date"].to_numpy()[_data._group_positions(frame, "g", g, "date")].tolist() == sorted(frame.loc[frame["g"] == g, "date"].tolist()) for g in range(4))
+
+
+def test_placing_predictions_on_a_timezone_aware_frame_is_fast():
+    # 17,000 rows in 48 groups, dates in UTC: reading the dates once per group (a Python Timestamp per row each time) took 1.2 s; once takes a few milliseconds.
+    import time
+
+    import torch
+    from tam.model import _data
+
+    frame = _tz_aware_panel(n_groups=48, n_days=360)
+    predictions = torch.zeros(48, 360, dtype=torch.float64)
+    start = time.perf_counter()
+    _data._reassemble_predictions(frame, predictions, "g", list(range(48)), "y", "date")
+    assert time.perf_counter() - start < 0.4
