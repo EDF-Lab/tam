@@ -15,7 +15,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > **[0.0.6]** corresponds to the legacy `weakl` package available on PyPI.
 
 ---
-## [Unreleased]
+## [1.4.0] - 2026-10-06
+
+First release on PyPI and Zenodo since 1.3.1; it also carries everything of 1.3.2 to 1.3.4, which were tags only. **`AdaptiveTAM`, `KalmanTAM` and `NeuralTAM` [EXP] forecasts change** (see 1.3.3, 1.3.4 and the sections below); `StaticTAM` changes only for `te()` with GCV (-2%), a mixture mean (-0.6%) and a prediction without the group column. To get the 1.3.1 behaviour: `pip install tam-ml==1.3.1`.
 
 ### Changed
 - **A formula with an empty argument is rejected** (`s(x,,k=5)`, `s(x, k=5,)`, `te(s(x),, s(z))`): `split_args_respecting_parentheses` now raises a `ValueError` on a leading, trailing or doubled delimiter and on unbalanced parentheses (it used to ignore a trailing empty argument silently). Contributed by Amaury Durand.
@@ -301,7 +303,8 @@ This version introduced the Formula API and the first object-oriented refactorin
 ### Added
 * Initial project setup based on the original `weakl` v0.0.6 package.
 
-[Unreleased]: https://github.com/EDF-Lab/tam/compare/v1.3.4...HEAD
+[Unreleased]: https://github.com/EDF-Lab/tam/compare/v1.4.0...HEAD
+[1.4.0]: https://github.com/EDF-Lab/tam/releases/tag/v1.4.0
 [1.3.4]: https://github.com/EDF-Lab/tam/releases/tag/v1.3.4
 [1.3.3]: https://github.com/EDF-Lab/tam/releases/tag/v1.3.3
 [1.3.2]: https://github.com/EDF-Lab/tam/releases/tag/v1.3.2
