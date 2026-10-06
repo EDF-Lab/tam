@@ -1,6 +1,6 @@
 # SPDX-FileCopyrightText: 2026 EDF (Electricité De France)
+# SPDX-FileContributor: Yann Allioux
 # SPDX-License-Identifier: LGPL-3.0-or-later
-# Author : Yann Allioux
 
 r"""Tests for the Generalized Pareto (peaks-over-threshold) tail model."""
 import numpy as np

@@ -1,7 +1,9 @@
-# SPDX-FileCopyrightText: 2023-2026 EDF (Electricité De France) et Sorbonne Université
+# SPDX-FileCopyrightText: 2023-2026 EDF (Electricité De France)
 # SPDX-FileCopyrightText: 2023-2025 Sorbonne Université
+# SPDX-FileContributor: Yann Allioux
+# SPDX-FileContributor: Nathan Doumèche
+# SPDX-FileContributor: Amaury Durand
 # SPDX-License-Identifier: LGPL-3.0-or-later
-# Authors : Yann Allioux, Nathan Doumèche
 
 r"""
 Utility functions for data loading, preprocessing, and formula parsing.
@@ -31,41 +33,82 @@ else:
 #: </config>
 
 
-def split_args_respecting_parentheses(args_str: str) -> List[str]:
+def split_args_respecting_parentheses(args_str: str, delimiter: str = ",") -> List[str]:
     r"""
-    Splits a comma-separated string while respecting nested parentheses.
+    Splits a delimited string while respecting nested parentheses.
 
-    This ensures that commas inside function calls (e.g., inside a nested term)
-    do not cause incorrect splitting.
+    Ensures that delimiters inside function calls (e.g., commas or pluses inside
+    nested terms) do not cause incorrect splitting.
+
+    Validates delimiter integrity (rejects leading, trailing, or consecutive delimiters)
+    and verifies parenthesis balance (depth never negative and ends at zero).
 
     Args:
-        args_str: The raw arguments string.
+        args_str: The raw arguments or formula terms string.
+        delimiter: Single-character delimiter to split on (defaults to ',').
 
     Returns:
-        A list of separated argument strings.
+        A list of separated and stripped token strings. Empty or all-whitespace
+        input returns an empty list.
+
+    Raises:
+        ValueError: If delimiter is not a single character, if parentheses are
+            unbalanced, or if delimiter integrity is violated (leading, trailing,
+            or consecutive delimiters producing empty tokens).
     """
-    parts = []
-    current_part = []
+    if not isinstance(delimiter, str) or len(delimiter) != 1:
+        raise ValueError(
+            f"Delimiter must be a single character, got: {delimiter!r}"
+        )
+
+    parts: List[str] = []
+    current_chars: List[str] = []
     paren_count = 0
-    
-    for char in args_str:
-        if char == '(':
+
+    for i, char in enumerate(args_str):
+        if char == "(":
             paren_count += 1
-            current_part.append(char)
-        elif char == ')':
+            current_chars.append(char)
+        elif char == ")":
             paren_count -= 1
-            current_part.append(char)
-        elif char == ',' and paren_count == 0:
-            parts.append("".join(current_part).strip())
-            current_part = []
+            if paren_count < 0:
+                raise ValueError(
+                    f"Unbalanced parentheses in '{args_str}': unexpected closing parenthesis at position {i}."
+                )
+            current_chars.append(char)
+        elif char == delimiter and paren_count == 0:
+            token = "".join(current_chars).strip()
+            if not token:
+                if not parts:
+                    raise ValueError(
+                        f"Delimiter integrity error in '{args_str}': leading delimiter '{delimiter}'."
+                    )
+                else:
+                    raise ValueError(
+                        f"Delimiter integrity error in '{args_str}': consecutive delimiters '{delimiter}'."
+                    )
+            parts.append(token)
+            current_chars = []
         else:
-            current_part.append(char)
-            
-    if current_part:
-        part_str = "".join(current_part).strip()
-        if part_str:
-            parts.append(part_str)
-        
+            current_chars.append(char)
+
+    if paren_count != 0:
+        raise ValueError(
+            f"Unbalanced parentheses in '{args_str}': unclosed opening parenthesis (depth {paren_count})."
+        )
+
+    token = "".join(current_chars).strip()
+    if parts:
+        if not token:
+            raise ValueError(
+                f"Delimiter integrity error in '{args_str}': trailing delimiter '{delimiter}'."
+            )
+        parts.append(token)
+    elif token:
+        parts.append(token)
+    else:
+        return []
+
     return parts
 
 #: <parsing>

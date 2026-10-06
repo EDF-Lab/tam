@@ -1,6 +1,6 @@
 # SPDX-FileCopyrightText: 2025-2026 EDF (Electricité De France)
+# SPDX-FileContributor: Yann Allioux
 # SPDX-License-Identifier: LGPL-3.0-or-later
-# Author : Yann Allioux
 
 """
 Time series Additive Model (TAM)
@@ -27,7 +27,7 @@ from .model.statistics import (
 from .evaluation.tracker import BenchmarkTracker
 from .common.plotting import plot_component
 
-__version__ = "1.3.4"
+__version__ = "1.4.0"
 
 __all__ = [
     "StaticTAM",

@@ -1,0 +1,86 @@
+name: Use cases
+
+# Every script of use_cases/ runs headless on each push and pull request: a use case that crashes is never merged.
+on:
+  push:
+    branches: [main, automl, "feat/**", "release/**"]
+  pull_request:
+    branches: [main, automl, "feat/**"]
+  workflow_dispatch:
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+concurrency:
+  group: use-cases-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  list:
+    name: List the use cases
+    runs-on: ubuntu-latest
+    outputs:
+      scripts: ${{ steps.scripts.outputs.scripts }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: scripts
+        run: echo "scripts=$(python .github/scripts/list_use_cases.py use_cases)" >> "$GITHUB_OUTPUT"
+
+  run:
+    name: Use case (${{ matrix.script }})
+    needs: list
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        script: ${{ fromJSON(needs.list.outputs.scripts) }}
+    env:
+      MPLBACKEND: Agg
+      PYTHONIOENCODING: utf-8
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      # CPU-only PyTorch first: the default Linux wheel bundles the CUDA toolkit (~2.5 GB).
+      - name: Install CPU-only PyTorch
+        run: pip install torch --index-url https://download.pytorch.org/whl/cpu
+
+      - name: Install the package and the packages of the use cases
+        run: pip install -e . -r use_cases/requirements.txt
+
+      - name: Import check
+        run: python -c "import tam; print(tam.__version__)"
+
+      # The TabICL checkpoint downloads once from Hugging Face, then comes from the cache.
+      - name: Cache the Hugging Face downloads
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/huggingface
+          key: huggingface-tabicl-v1
+
+      # A scratch folder as working directory: the scripts write their figures and exports relative to it.
+      - name: Run ${{ matrix.script }}
+        run: |
+          mkdir -p "$RUNNER_TEMP/use_case"
+          cd "$RUNNER_TEMP/use_case"
+          python "$GITHUB_WORKSPACE/use_cases/${{ matrix.script }}"
+
+  # The one check to require on the protected branches: it fails when any script failed or was cancelled.
+  use-cases:
+    name: Use cases
+    needs: [list, run]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Every use case passed
+        run: |
+          echo "list: ${{ needs.list.result }}, run: ${{ needs.run.result }}"
+          [ "${{ needs.list.result }}" = "success" ] && [ "${{ needs.run.result }}" = "success" ]

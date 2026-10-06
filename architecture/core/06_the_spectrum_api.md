@@ -33,6 +33,8 @@ The factory merges all distinct penalty matrices into a global block-diagonal sy
 :end-before: "#: </build_penalty>"
 ```
 
+Some effects hold data-dependent state: the knots of a spline, the splits of a tree or a linear tree, the centres of an RBF, and the same state inside the margins of a tensor product. `initialize_effects()` sets it from the full training tensor, routing the columns exactly as `build_phi_from_effects()` does (each effect exposes `initialize(x_cols)`). It runs before any design matrix is built, so that neither the dispatcher's memory probe (one row per group) nor the first chunk of a memory-bounded solve decides the knots or the splits from a subset of the data. An effect already initialised is left unchanged.
+
 ---
 
 ## Linear 

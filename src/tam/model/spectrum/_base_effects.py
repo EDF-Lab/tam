@@ -1,6 +1,6 @@
 # SPDX-FileCopyrightText: 2025-2026 EDF (Electricité De France)
+# SPDX-FileContributor: Yann Allioux
 # SPDX-License-Identifier: LGPL-3.0-or-later
-# Author : Yann Allioux
 
 """Defines the base interface for all effects in the TAM spectrum.
 
@@ -35,6 +35,22 @@ class BaseEffect(ABC):
         self.lambda_p = lambda_p
         self.extrapolate = str(extrapolate).replace("'", "").replace('"', '').strip().lower()
 #: </class_def>
+
+    @property
+    def n_penalty_coordinates(self) -> int:
+        """Number of smoothing parameters GCV tunes for this effect (one, except for a tensor product: one per margin)."""
+        return len(self.penalty_coordinates())
+
+    def penalty_coordinates(self) -> list:
+        """The smoothing weights (lambda, not log10) of this effect, one per coordinate GCV can move independently."""
+        return [self.lambda_p]
+
+    def set_penalty_coordinates(self, values) -> None:
+        """Sets the smoothing weights returned by ``penalty_coordinates()``, in the same order."""
+        values = list(values)
+        if len(values) != 1:
+            raise ValueError(f"{self.__class__.__name__} has 1 penalty coordinate, got {len(values)}.")
+        self.lambda_p = float(values[0])
 
     def _align_device(self, x_data: torch.Tensor, *tensors: torch.Tensor):
         """

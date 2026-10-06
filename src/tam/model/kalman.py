@@ -1,6 +1,6 @@
 # SPDX-FileCopyrightText: 2025-2026 EDF (Electricité De France)
+# SPDX-FileContributor: Yann Allioux
 # SPDX-License-Identifier: LGPL-3.0-or-later
-# Author : Yann Allioux
 
 r"""
 Implements the Kalman TAM (KalmanTAM) Meta-Learner.
@@ -38,7 +38,7 @@ import pandas as pd
 import numpy as np
 import itertools
 import warnings
-from typing import Tuple, Dict, Any, Optional
+from typing import Tuple, Dict, Any, Optional, Union
 
 from tam.common.utils import (
     TORCH_DEVICE, _balance_groups, 
@@ -57,9 +57,10 @@ def _kalman_block_loop_optimized(
     B: int,
     P_init_diag: float,
     observation_noise_var: float,
-    process_noise_var: float,
+    process_noise_diag: torch.Tensor,
     eps: float,
-    offset_boost: float
+    offset_boost: float,
+    offset_q_boost: float
 ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
     r"""
     Compiled TorchScript loop for the Block Kalman Filter.
@@ -73,13 +74,15 @@ def _kalman_block_loop_optimized(
     # Initialize State, Covariance, and Process Noise.
     theta_t = torch.zeros((G, d, 1), device=device, dtype=dtype)
     P_t = torch.eye(d, device=device, dtype=dtype).unsqueeze(0).repeat(G, 1, 1) * P_init_diag
-    Q_matrix = torch.eye(d, device=device, dtype=dtype).unsqueeze(0).repeat(G, 1, 1) * process_noise_var
+    # Process noise: a diagonal Q, one variance per design column (the same for every column of a formula term).
+    Q_matrix = torch.diag_embed(process_noise_diag.to(device=device, dtype=dtype)).unsqueeze(0).repeat(G, 1, 1)
     
     # Asymmetric Tracking: Boost the variance of the offset (index 0) 
     # to allow rapid bias correction without destroying the base physics.
+    # The initial variance is always boosted; the process noise only when the offset has no noise of its own (offset_q_boost).
     if d > 0:
         P_t[:, 0, 0] = P_t[:, 0, 0] * offset_boost
-        Q_matrix[:, 0, 0] = Q_matrix[:, 0, 0] * offset_boost
+        Q_matrix[:, 0, 0] = Q_matrix[:, 0, 0] * offset_q_boost
     
     predictions = torch.zeros((G, N, 1), device=device, dtype=dtype)
     num_blocks = (N + B - 1) // B
@@ -153,7 +156,7 @@ class KalmanTAM:
         default_alpha_p: float = -9.0,
         eps: float = 1e-6,
         offset_boost: float = 100.0,
-        process_noise_var: float = 1e-4,
+        process_noise_var: Union[float, Dict[str, float]] = 1e-4,
         observation_noise_var: float = 1.0,
         P_init_diag: float = 1.0,
         add_base_effects: bool = False,
@@ -176,6 +179,13 @@ class KalmanTAM:
             default_alpha_p: Default regularization parameter for feature scaling.
             eps: Small constant added to the diagonal for numerical stability.
             offset_boost: Multiplier for the offset's process noise to accelerate bias correction.
+            process_noise_var: Variance added to the state at every step (random walk of the tracked coefficients, in the
+                standardised target space). A float gives every coefficient the same variance. A dict
+                ``{term: q, "offset": q, "default": q}`` gives one variance per formula term (a diagonal ``Q``):
+                every design column of a term gets the term's ``q``, the terms not in the dict
+                get ``"default"`` (1e-4 when absent), and ``q = 0`` stops a term from following a changing coefficient.
+                The term names are the keys of ``term_columns()``. ``"offset"`` sets both constant columns and removes the
+                ``offset_boost`` on their noise; without it the offset keeps ``default * offset_boost``.
             calibration_steps: Rows per group, at the start of the data given to ``fit``/``predict_online``, that
                 set the feature normalisation and the target scale (reference period). They are not causal for
                 scoring, so do not score them. Default None: ``min(365, half the rows)``. A value that leaves no row
@@ -220,6 +230,7 @@ class KalmanTAM:
         self.horizon_steps_ = horizon_steps
         self.eps = eps 
         self.offset_boost = offset_boost
+        self._check_process_noise(process_noise_var)
         self.process_noise_var_ = process_noise_var
         self.observation_noise_var_ = observation_noise_var
         self.P_init_diag_ = P_init_diag
@@ -243,6 +254,62 @@ class KalmanTAM:
                     "This will cause a cross-target correction, which is usually unintended.",
                     UserWarning
                 )
+
+    @staticmethod
+    def _check_process_noise(spec: Union[float, Dict[str, float]]) -> None:
+        r"""Every process variance must be a finite number >= 0 (a float, or the values of the per-term dict)."""
+        values = spec.values() if isinstance(spec, dict) else [spec]
+        for q in values:
+            if not np.isfinite(float(q)) or float(q) < 0.0:
+                raise ValueError(f"process_noise_var must be finite and >= 0, got {q!r}.")
+
+    def _term_spans(self) -> Dict[str, list]:
+        r"""
+        Design columns of each formula term: ``{name: [(start, end), ...]}``.
+
+        Column 0 is the systematic offset the filter prepends, then come the effects of the formula in order (the first is its
+        own intercept). Both constant columns belong to the term ``"offset"``; the other names are those of
+        ``decompose_prediction`` (``decomposition_names``).
+        """
+        effects = self.feature_extractor_.effects_list_
+        if not effects:
+            raise RuntimeError("The terms are known once the data are prepared: call fit() or predict_online() first.")
+        names = decomposition_names(effects)
+        spans: Dict[str, list] = {"offset": [(0, 1)]}
+        start = 1
+        for name, effect in zip(names, effects):
+            end = start + effect.get_n_coeffs()
+            spans.setdefault(name, []).append((start, end))
+            start = end
+        return spans
+
+    def term_columns(self) -> Dict[str, int]:
+        r"""
+        Number of design columns of each formula term: the keys ``process_noise_var={term: q}`` accepts (plus ``"default"``).
+
+        ``"offset"`` counts both constant columns: the systematic offset of the filter and the intercept of the formula.
+        """
+        return {name: sum(e - s for s, e in spans) for name, spans in self._term_spans().items()}
+
+    def _noise_diagonal(self, spec: Union[float, Dict[str, float]], d: int) -> Tuple[torch.Tensor, float]:
+        r"""The diagonal of Q (one variance per design column) and the boost on the offset's noise, from ``process_noise_var``."""
+        self._check_process_noise(spec)
+        if not isinstance(spec, dict):
+            return torch.full((d,), float(spec), dtype=torch.get_default_dtype()), float(self.offset_boost)
+        spans = self._term_spans()
+        unknown = [k for k in spec if k != "default" and k not in spans]
+        if unknown:
+            raise ValueError(
+                f"process_noise_var names unknown term(s) {unknown}; the terms of this formula are {list(spans)} "
+                "(plus 'default'). See KalmanTAM.term_columns()."
+            )
+        diag = torch.full((d,), float(spec.get("default", 1e-4)), dtype=torch.get_default_dtype())
+        for name, q in spec.items():
+            if name == "default":
+                continue
+            for start, end in spans[name]:
+                diag[start:end] = float(q)
+        return diag, (1.0 if "offset" in spec else float(self.offset_boost))
 
     def _compute_features(self, data: pd.DataFrame) -> Tuple[pd.DataFrame, str]:
         r"""The tracked features (base model decomposition) and the name of the base prediction column."""
@@ -418,7 +485,7 @@ class KalmanTAM:
         prepared_data: Dict[str, Any],
         P_init_diag: float, 
         observation_noise_var: float,
-        process_noise_var: float
+        process_noise_var: Union[float, Dict[str, float]]
     ) -> torch.Tensor:
         """
         Executes the core Kalman filter loop on normalized data and 
@@ -429,6 +496,7 @@ class KalmanTAM:
         base_pred_stacked = prepared_data["base_pred_stacked"]
 
         actual_block_size = 1 if self.horizon_steps_ > 1 else self.block_size_
+        noise_diag, offset_q_boost = self._noise_diagonal(process_noise_var, phi_matrix.shape[-1])
 
         predictions_norm, state_history_gpu, final_state_gpu = _kalman_block_loop_optimized(
             phi_matrix=phi_matrix,
@@ -437,9 +505,10 @@ class KalmanTAM:
             B=actual_block_size,
             P_init_diag=float(P_init_diag),
             observation_noise_var=float(observation_noise_var),
-            process_noise_var=float(process_noise_var),
+            process_noise_diag=noise_diag,
             eps=self.eps,
-            offset_boost=float(self.offset_boost)
+            offset_boost=float(self.offset_boost),
+            offset_q_boost=offset_q_boost
         )
 
         self.states_history_ = state_history_gpu.squeeze(-1).cpu()
@@ -594,6 +663,19 @@ class KalmanTAM:
 
         return _cleanup_dummies(df_final_masked, self.group_col_, self.date_col_)
     
+    def compact(self) -> 'KalmanTAM':
+        r"""
+        Keeps the last row of ``states_history_`` (the state after the last block) and drops the rest, which grows with the number of rows.
+
+        ``final_state_``, ``last_state_dict_`` and the scales are untouched, so ``predict()`` is unchanged to the last bit.
+
+        Returns:
+            self
+        """
+        if self.states_history_ is not None:
+            self.states_history_ = self.states_history_[-1:].clone()
+        return self
+
     def fit(self, data: pd.DataFrame, **kwargs) -> 'KalmanTAM':
         r"""
         Fits the Kalman filter by running the historical tracking simulation.

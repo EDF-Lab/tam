@@ -1,6 +1,6 @@
 # SPDX-FileCopyrightText: 2025-2026 EDF (Electricité De France)
+# SPDX-FileContributor: Yann Allioux
 # SPDX-License-Identifier: LGPL-3.0-or-later
-# Author : Yann Allioux
 
 r"""
 Abstract base class for TAM models.
@@ -256,6 +256,17 @@ class BaseTAM(ABC):
 
         return self
 #: </fit_method>
+
+    def compact(self) -> 'BaseTAM':
+        r"""
+        Drops what grows with the data and ``predict()`` does not need; forecasts are unchanged to the last bit.
+
+        A fitted ``StaticTAM`` holds its coefficients only, so there is nothing to drop: the size does not depend on the number of training rows.
+
+        Returns:
+            self
+        """
+        return self
 
 #: <predict_method>
     def predict(self, data: pd.DataFrame) -> pd.DataFrame:

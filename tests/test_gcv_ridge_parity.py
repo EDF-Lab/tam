@@ -60,3 +60,34 @@ def test_gcv_scores_the_solver_coefficients():
     expected = (rss / n) / (1 - trace / n) ** 2
     score = compute_gcv_score(cov_x, cov_xy, y_sq, penalty, lambda_p=1.0, n_samples=n, gamma=1.0)
     assert float(score) == pytest.approx(expected, rel=1e-9)
+
+
+@pytest.mark.parametrize("rhs", ["s(x, k=10) + l(z)", "te(s(x, k=6), s(z, k=6)) + l(x)"])
+def test_the_reported_gcv_score_is_the_score_of_the_final_fit(rhs, monkeypatch, capsys):
+    """After auto_fit, the score ``smart_solve_gcv`` reports equals ``compute_gcv_score`` recomputed from the selected penalties."""
+    from tam.model import additive
+    from tam.model._math import _compute_weighted_covariances
+    from tam.model.spectrum import build_penalty_from_effects, build_phi_from_effects
+
+    captured = {}
+    real = additive.smart_solve_gcv
+
+    def spy(**kwargs):
+        result = real(**kwargs)
+        captured.update(kwargs=kwargs, score=result[2])
+        return result
+
+    monkeypatch.setattr(additive, "smart_solve_gcv", spy)
+    df = _data()
+    gamma = 1.4
+    ta.StaticTAM(formula=f"y ~ {rhs}", date_col="date").auto_fit(df, number_of_steps=6, gamma=gamma)
+    capsys.readouterr()
+
+    args = captured["kwargs"]
+    x, y, effects = args["x_data"], args["y_data"], args["effects_list"]
+    phi = build_phi_from_effects(x, effects)
+    cov_x, cov_xy = _compute_weighted_covariances(phi, y, args["loss_matrix"])
+    y_sq = (y ** 2).sum(dim=(1, 2))
+    penalty = build_penalty_from_effects(effects)                    # carries the selected weights
+    recomputed = compute_gcv_score(cov_x, cov_xy, y_sq, penalty, lambda_p=1.0, n_samples=x.shape[1], gamma=gamma)
+    assert float(recomputed) == pytest.approx(captured["score"], rel=1e-9)

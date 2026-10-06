@@ -1,7 +1,9 @@
-# SPDX-FileCopyrightText: 2023-2026 EDF (Electricité De France) et Sorbonne Université
+# SPDX-FileCopyrightText: 2023-2026 EDF (Electricité De France)
 # SPDX-FileCopyrightText: 2023-2025 Sorbonne Université
+# SPDX-FileContributor: Yann Allioux
+# SPDX-FileContributor: Nathan Doumèche
+# SPDX-FileContributor: Éloi Bedek
 # SPDX-License-Identifier: LGPL-3.0-or-later
-# Authors : Yann Allioux, Nathan Doumèche, Éloi Bedek
 
 r"""
 Implements the Adaptive TAM (AdaptiveTAM) model.
@@ -50,6 +52,7 @@ from .spectrum import (
     BaseEffect,
     create_effects_from_parsed_terms,
     categorical_ranges,
+    categorical_features,
     extrapolating_features,
     initialize_effects,
     build_phi_from_effects,
@@ -302,6 +305,7 @@ class AdaptiveTAM:
             for j, count in enumerate(counts):
                 valid[i, j, :count] = True
         self._warn_extrapolation(x_to_predict.cpu(), valid)
+        self._warn_unseen_levels(x_stacked.cpu(), x_to_predict.cpu(), valid, real_data)
         # Positions in `real_data` -> positions in `balanced_data` (real rows come first when groups are balanced by filling).
         real_positions = np.flatnonzero(real)
         self.window_layout_.positions = [real_positions[p] for p in self.window_layout_.positions]
@@ -434,6 +438,41 @@ class AdaptiveTAM:
                     f"{beyond[valid].max().item():.2f} half-ranges: its non-linear effect is extrapolated and can be far off. "
                     f"Set extrapolate='constant' on the term to hold it at the edge of the trained range.", stacklevel=4)
 
+    def _warn_unseen_levels(self, x_train: torch.Tensor, x_pred: torch.Tensor, valid: torch.Tensor, data: pd.DataFrame) -> None:
+        r"""
+        One ``TAMExtrapolationWarning`` per categorical feature (once per model) when forecast rows hold a level that is not in the
+        training rows of their own window: its column is penalised towards zero and the effect has no estimate for it.
+        The windows are aggregated: the message gives the levels and how many windows are affected.
+
+        Args:
+            x_train: Normalised training features, (n_groups, n_windows, train_rows, features).
+            x_pred: Normalised forecast features, (n_groups, n_windows, rows, features).
+            valid: Which of those forecast rows are real, (n_groups, n_windows, rows).
+            data: The rows the windows were cut from (``window_layout_.positions`` indexes them).
+        """
+        warned = self.__dict__.setdefault("_extrapolation_warned_", set())
+        features = self.adaptive_model_.features_config_['features']
+        layout = self.window_layout_
+        for name in categorical_features(self.adaptive_model_.effects_list_):
+            key = f"{name} (levels)"
+            if key in warned or name not in features or name not in data.columns:
+                continue
+            j = features.index(name)
+            seen = ((x_pred[..., j].unsqueeze(-1) - x_train[..., j].unsqueeze(-2)).abs() < 1e-6).any(dim=-1)
+            unseen = (~seen) & valid
+            if not unseen.any():
+                continue
+            raw = data[name].to_numpy().tolist()
+            levels = set()
+            for g, w, r in torch.nonzero(unseen).tolist():
+                levels.add(raw[layout.positions[g][layout.starts[g][w] + r]])
+            warned.add(key)
+            warn_extrapolation(key,
+                f"'{name}': level(s) {sorted(levels)[:10]} not in the training rows of their window, in "
+                f"{unseen.any(dim=-1).sum().item()} of {valid.any(dim=-1).sum().item()} windows "
+                f"({unseen.sum().item() / valid.sum().item():.1%} of the forecast rows): the categorical effect has no estimate for them there.",
+                stacklevel=4)
+
     def _forecast_frame(self, predictions: torch.Tensor) -> pd.DataFrame:
         r"""
         Puts the (n_groups, n_windows, window) forecasts back on the rows they forecast.
@@ -507,6 +546,7 @@ class AdaptiveTAM:
         self.prepare_simulation(data)
         self.simulation()
         self._save_final_state()
+        self._free_simulation()
         return self.predictions_
 
     def fit(self, data: pd.DataFrame) -> 'AdaptiveTAM':
@@ -518,6 +558,25 @@ class AdaptiveTAM:
         """
         self.prepare_simulation(data)
         self._save_final_state()
+        self._free_simulation()
+        return self
+
+    def _free_simulation(self) -> None:
+        r"""Drops the stacked windows and their layout: they hold every overlapping training window and are only needed while simulating."""
+        self.simulation_data_ = None
+        self.window_layout_ = None
+
+    def compact(self) -> 'AdaptiveTAM':
+        r"""
+        Keeps what ``predict()`` and the final adaptive state need and drops what grows with the data (``predictions_``, the simulation cache).
+
+        Forecasts are unchanged to the last bit. ``predictions_`` is lost: keep the frame ``predict_online`` returned if you need it.
+
+        Returns:
+            self
+        """
+        self._free_simulation()
+        self.predictions_ = None
         return self
 
     def predict(self, df: pd.DataFrame) -> pd.DataFrame:
@@ -728,7 +787,12 @@ class AdaptiveTAM:
             print("--- Starting Grid Search (Multi-Start Coordinate Descent) ---")
             
             self.prepare_simulation(data_val)
-            
+            try:
+                return self._grid_search(data_val, grid_search_config)
+            finally:
+                self._free_simulation()
+
+    def _grid_search(self, data_val: pd.DataFrame, grid_search_config: dict) -> 'AdaptiveTAM':
             search_axes, token_names = self.adaptive_model_._parse_grid_axes(grid_search_config)
             
             data_info = self.adaptive_model_._get_data_info(data_val)
