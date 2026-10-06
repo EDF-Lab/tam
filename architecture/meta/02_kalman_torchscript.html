@@ -7,7 +7,7 @@
         <link rel="prefetch" href="../../_static/logo.png" as="image">
 
     <!-- Generated with Sphinx 9.1.0 and Furo 2025.12.19 -->
-        <title>Kalman TorchScript Optimizations &amp; Block Updates [BETA] - TAM 1.3.4 documentation</title>
+        <title>Kalman TorchScript Optimizations &amp; Block Updates [BETA] - TAM 1.4.0 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=d111a655" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo-extensions.css?v=8dab3a3b" />
@@ -162,7 +162,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="../../index.html"><div class="brand">TAM 1.3.4 documentation</div></a>
+      <a href="../../index.html"><div class="brand">TAM 1.4.0 documentation</div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -186,7 +186,7 @@
     <img class="sidebar-logo" src="../../_static/logo.png" alt="Logo"/>
   </div>
   
-  <span class="sidebar-brand-text">TAM 1.3.4 documentation</span>
+  <span class="sidebar-brand-text">TAM 1.4.0 documentation</span>
   
 </a><form class="sidebar-search-container" method="get" action="../../search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
@@ -340,6 +340,7 @@
 <li><p><strong>Related mathematical theory:</strong> <a class="reference internal" href="../../math/meta/02_kalman_filter.html"><span class="std std-doc">See the Mathematical Theory</span></a></p></li>
 </ul>
 <p><strong>Causal scaling (verified by <code class="docutils literal notranslate"><span class="pre">tests/test_kalman_causal.py</span></code>):</strong> <code class="docutils literal notranslate"><span class="pre">KalmanTAM.prepare_data</span></code> computes the tracked features, then <code class="docutils literal notranslate"><span class="pre">_fit_reference</span></code> fixes the feature normalisation (fitted by the internal <code class="docutils literal notranslate"><span class="pre">StaticTAM</span></code> extractor on the reference rows only) and stores the target centre and scale per group (<code class="docutils literal notranslate"><span class="pre">scale_dict_</span></code> for <code class="docutils literal notranslate"><span class="pre">predict()</span></code>); <code class="docutils literal notranslate"><span class="pre">_design</span></code> builds the design matrix with that normalisation. The reference is the first <code class="docutils literal notranslate"><span class="pre">calibration_steps</span></code> rows of each group (burn-in message, <code class="docutils literal notranslate"><span class="pre">calibration_steps_used_</span></code>) or <code class="docutils literal notranslate"><span class="pre">calibration_data</span></code>. <code class="docutils literal notranslate"><span class="pre">block_size=None</span></code> means 1, the exact sequential filter. The TorchScript kernel returns the state after the last update (<code class="docutils literal notranslate"><span class="pre">final_state_</span></code>), which <code class="docutils literal notranslate"><span class="pre">fit</span></code> stores as <code class="docutils literal notranslate"><span class="pre">last_state_dict_</span></code> for <code class="docutils literal notranslate"><span class="pre">predict()</span></code>.</p>
+<p><strong>Process noise per term (verified by <code class="docutils literal notranslate"><span class="pre">tests/test_kalman_per_term_noise.py</span></code>):</strong> the TorchScript kernel takes the diagonal of <span class="math notranslate nohighlight">\(Q\)</span> as a tensor (<code class="docutils literal notranslate"><span class="pre">process_noise_diag</span></code>, one variance per design column) instead of a scalar. <code class="docutils literal notranslate"><span class="pre">KalmanTAM._term_spans</span></code> maps each formula term (the names of <code class="docutils literal notranslate"><span class="pre">decomposition_names</span></code>, plus <code class="docutils literal notranslate"><span class="pre">&quot;offset&quot;</span></code> for the two constant columns: the filter’s systematic offset and the formula’s intercept) to its design columns, and <code class="docutils literal notranslate"><span class="pre">_noise_diagonal</span></code> fills the diagonal from <code class="docutils literal notranslate"><span class="pre">process_noise_var</span></code> (a float, or a dict <code class="docutils literal notranslate"><span class="pre">{term:</span> <span class="pre">q,</span> <span class="pre">&quot;offset&quot;:</span> <span class="pre">q,</span> <span class="pre">&quot;default&quot;:</span> <span class="pre">q}</span></code>). The boost on the offset’s noise (<code class="docutils literal notranslate"><span class="pre">offset_q_boost</span></code>) is <code class="docutils literal notranslate"><span class="pre">offset_boost</span></code> unless the offset has a variance of its own; the initial covariance of the offset keeps <code class="docutils literal notranslate"><span class="pre">offset_boost</span></code>. A float call builds the same diagonal as before, so its forecasts are unchanged.</p>
 <p><strong>Base-model components (verified by <code class="docutils literal notranslate"><span class="pre">tests/test_base_effect_columns.py</span></code>):</strong> with <code class="docutils literal notranslate"><span class="pre">add_base_effects=True</span></code>, one <code class="docutils literal notranslate"><span class="pre">l(effect_&lt;name&gt;)</span></code> term per base-model component is appended to the Kalman formula, with the column names <code class="docutils literal notranslate"><span class="pre">decompose_prediction</span></code> emits (<code class="docutils literal notranslate"><span class="pre">decomposition_names()</span></code>).</p>
 </section>
 
@@ -392,9 +393,11 @@
       
     </aside>
   </div>
-</div><script src="../../_static/documentation_options.js?v=e358f374"></script>
+</div><script src="../../_static/documentation_options.js?v=9172181d"></script>
     <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/scripts/furo.js?v=46bd48cc"></script>
+    <script>window.MathJax = {"options": {"processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+    <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@4/tex-mml-chtml.js"></script>
     </body>
 </html>

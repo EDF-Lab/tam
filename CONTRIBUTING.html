@@ -7,7 +7,7 @@
         <link rel="prefetch" href="_static/logo.png" as="image">
 
     <!-- Generated with Sphinx 9.1.0 and Furo 2025.12.19 -->
-        <title>🤝 Contributing to Time series Additive Model (TAM) - TAM 1.3.4 documentation</title>
+        <title>🤝 Contributing to Time series Additive Model (TAM) - TAM 1.4.0 documentation</title>
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=d111a655" />
     <link rel="stylesheet" type="text/css" href="_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="_static/styles/furo-extensions.css?v=8dab3a3b" />
@@ -162,7 +162,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="index.html"><div class="brand">TAM 1.3.4 documentation</div></a>
+      <a href="index.html"><div class="brand">TAM 1.4.0 documentation</div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -186,7 +186,7 @@
     <img class="sidebar-logo" src="_static/logo.png" alt="Logo"/>
   </div>
   
-  <span class="sidebar-brand-text">TAM 1.3.4 documentation</span>
+  <span class="sidebar-brand-text">TAM 1.4.0 documentation</span>
   
 </a><form class="sidebar-search-container" method="get" action="search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
@@ -359,18 +359,32 @@
 <li><p><strong>OOM Safety:</strong> Ensure your PyTorch implementations strictly respect Out-Of-Memory (OOM) safety protocols. Matrix operations across the group dimension must support dynamic chunking (<code class="docutils literal notranslate"><span class="pre">try/except</span></code> memory routing).</p></li>
 <li><p><strong>Vectorization:</strong> Avoid standard Python <code class="docutils literal notranslate"><span class="pre">for</span></code> loops. Exploit N-dimensional broadcasting and PyTorch tensorization.</p></li>
 <li><p><strong>Docstrings:</strong> We use <strong>Google-style docstrings</strong>. Ensure your functions and classes are fully documented, as Sphinx uses <code class="docutils literal notranslate"><span class="pre">autodoc</span></code> and <code class="docutils literal notranslate"><span class="pre">napoleon</span></code> to generate the API reference automatically.</p></li>
+<li><p><strong>Extend the public API, never change it:</strong> <code class="docutils literal notranslate"><span class="pre">tests/test_api_contracts.py</span></code> pins the signatures of the main models (<code class="docutils literal notranslate"><span class="pre">StaticTAM</span></code>, <code class="docutils literal notranslate"><span class="pre">AdaptiveTAM</span></code>, <code class="docutils literal notranslate"><span class="pre">KalmanTAM</span></code>, <code class="docutils literal notranslate"><span class="pre">OperaTAM</span></code>, <code class="docutils literal notranslate"><span class="pre">HierarchicalTAM</span></code>) and of the formula parser, and the naming of <code class="docutils literal notranslate"><span class="pre">decompose_prediction</span></code> columns and <code class="docutils literal notranslate"><span class="pre">summary()</span></code> keys. Do not rename, remove, reorder or change the default of an existing parameter; add a keyword argument with a default after the existing ones. A deliberate API change updates the pin in the same commit and says so in the pull request.</p></li>
+<li><p><strong>No <code class="docutils literal notranslate"><span class="pre">print()</span></code> in new code:</strong> the library does not print; use warnings for something the user must act on, and exceptions for errors. A logging refactor of the existing code comes later.</p></li>
+<li><p><strong>Headers and credit:</strong> every <code class="docutils literal notranslate"><span class="pre">.py</span></code> file of <code class="docutils literal notranslate"><span class="pre">src/</span></code> and <code class="docutils literal notranslate"><span class="pre">tests/</span></code> starts with the same SPDX header (<code class="docutils literal notranslate"><span class="pre">SPDX-FileCopyrightText</span></code>, then one <code class="docutils literal notranslate"><span class="pre">SPDX-FileContributor:</span> <span class="pre">Name</span></code> line per author, then <code class="docutils literal notranslate"><span class="pre">SPDX-License-Identifier</span></code>; copy the header of a neighbouring file). Add an <code class="docutils literal notranslate"><span class="pre">SPDX-FileContributor</span></code> line, a name and nothing else, when you write a substantial part of a file; credit smaller contributions in the CHANGELOG. <code class="docutils literal notranslate"><span class="pre">AUTHORS.md</span></code> tells who did what; <code class="docutils literal notranslate"><span class="pre">tests/test_spdx_headers.py</span></code> fails on a file with another shape.</p></li>
 <li><p><strong>Type Hinting:</strong> Use strict Python type hints (<code class="docutils literal notranslate"><span class="pre">typing</span></code>) for all function arguments and return types.</p></li>
 <li><p><strong>No Math in Code Comments:</strong> Keep inline Python comments focused strictly on software engineering (e.g., tensor shapes <code class="docutils literal notranslate"><span class="pre">#</span> <span class="pre">Shape:</span> <span class="pre">[B,</span> <span class="pre">T,</span> <span class="pre">D]</span></code>, VRAM allocation, PyTorch workarounds). Leave the mathematical proofs to the <code class="docutils literal notranslate"><span class="pre">math/</span></code> Markdown files.</p></li>
 <li><p><strong>Chronological Tensor Alignment:</strong> When projecting Pandas DataFrames into PyTorch tensors for time-series formulas, row-adjacency must equal chronological adjacency. Always apply <code class="docutils literal notranslate"><span class="pre">.sort_values(date_col)</span></code> before tensor stacking or truncating (e.g., before <code class="docutils literal notranslate"><span class="pre">.groupby().head()</span></code>), and re-sort the target Pandas indices chronologically before mapping tensor predictions back, to prevent silent row-scrambling on unsorted input.</p></li>
 </ul>
 </section>
+<section id="shared-feature-branches">
+<h2>4. Shared Feature Branches<a class="headerlink" href="#shared-feature-branches" title="Link to this heading">¶</a></h2>
+<p>A body of work too large for one pull request (a new model family, a research collaboration, a team or course project) lives on a long-lived <code class="docutils literal notranslate"><span class="pre">feat/*</span></code> branch of the main repository, kept by the maintainer.</p>
+<ol class="arabic simple">
+<li><p><strong>Fork</strong> the repository and create your working branch from the <code class="docutils literal notranslate"><span class="pre">feat/*</span></code> branch of the project you join.</p></li>
+<li><p><strong>Open your pull request into that <code class="docutils literal notranslate"><span class="pre">feat/*</span></code> branch</strong>, never straight into <code class="docutils literal notranslate"><span class="pre">main</span></code>; the <code class="docutils literal notranslate"><span class="pre">feat/*</span></code> branch joins <code class="docutils literal notranslate"><span class="pre">main</span></code> through its own pull request, at a release.</p></li>
+<li><p><strong>Review rhythm:</strong> the maintainer reviews pull requests in two fixed slots a week and answers within three working days; keep pull requests small so a review fits a slot.</p></li>
+<li><p>Follow the rules of the project’s integration guide, shared with its collaborators: branch naming, what is merged when, and how the <code class="docutils literal notranslate"><span class="pre">feat/*</span></code> branch joins <code class="docutils literal notranslate"><span class="pre">main</span></code>.</p></li>
+</ol>
+</section>
 <section id="submitting-a-pull-request-pr">
-<h2>4. Submitting a Pull Request (PR)<a class="headerlink" href="#submitting-a-pull-request-pr" title="Link to this heading">¶</a></h2>
+<h2>5. Submitting a Pull Request (PR)<a class="headerlink" href="#submitting-a-pull-request-pr" title="Link to this heading">¶</a></h2>
 <ol class="arabic simple">
 <li><p><strong>Fork the repository</strong> and create your branch from <code class="docutils literal notranslate"><span class="pre">main</span></code>.</p></li>
 <li><p><strong>Implement your feature</strong> and ensure your code follows the coding standards.</p></li>
 <li><p><strong>Write the documentation pair</strong> in the <code class="docutils literal notranslate"><span class="pre">math/</span></code> and <code class="docutils literal notranslate"><span class="pre">architecture/</span></code> folders.</p></li>
 <li><p><strong>Compile the docs locally:</strong> Run <code class="docutils literal notranslate"><span class="pre">build_docs.bat</span></code> (Windows) or <code class="docutils literal notranslate"><span class="pre">build_docs.sh</span></code> (Linux/Mac) to ensure the HTML and PDFs compile perfectly without Sphinx or LaTeX warnings.</p></li>
+<li><p><strong>Run the regression checks:</strong> <code class="docutils literal notranslate"><span class="pre">python</span> <span class="pre">tests/regression/run.py</span></code> rewrites <code class="docutils literal notranslate"><span class="pre">tests/regression/RESULTS.txt</span></code> and <code class="docutils literal notranslate"><span class="pre">RESULTS_EXP.txt</span></code>; <code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">diff</span> <span class="pre">tests/regression/</span></code> shows what your change moved. If that is what you intended, commit the new file in your pull request and say why the numbers moved; the <code class="docutils literal notranslate"><span class="pre">Regression</span></code> workflow fails when <code class="docutils literal notranslate"><span class="pre">RESULTS.txt</span></code> in the pull request is not the one the checks produce (a different <code class="docutils literal notranslate"><span class="pre">RESULTS_EXP.txt</span></code> is only a warning) (see <code class="docutils literal notranslate"><span class="pre">tests/regression/README.md</span></code>).</p></li>
 <li><p><strong>Submit your PR:</strong> Provide a clear description of the problem solved, the mathematical approach taken, and the performance implications.</p></li>
 </ol>
 <hr class="docutils" />
@@ -440,7 +454,8 @@
 </ul>
 </li>
 <li><a class="reference internal" href="#coding-standards">3. Coding Standards</a></li>
-<li><a class="reference internal" href="#submitting-a-pull-request-pr">4. Submitting a Pull Request (PR)</a></li>
+<li><a class="reference internal" href="#shared-feature-branches">4. Shared Feature Branches</a></li>
+<li><a class="reference internal" href="#submitting-a-pull-request-pr">5. Submitting a Pull Request (PR)</a></li>
 </ul>
 </li>
 </ul>
@@ -452,7 +467,7 @@
       
     </aside>
   </div>
-</div><script src="_static/documentation_options.js?v=e358f374"></script>
+</div><script src="_static/documentation_options.js?v=9172181d"></script>
     <script src="_static/doctools.js?v=fd6eb6e6"></script>
     <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="_static/scripts/furo.js?v=46bd48cc"></script>

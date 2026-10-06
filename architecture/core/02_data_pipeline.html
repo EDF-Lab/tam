@@ -7,7 +7,7 @@
         <link rel="prefetch" href="../../_static/logo.png" as="image">
 
     <!-- Generated with Sphinx 9.1.0 and Furo 2025.12.19 -->
-        <title>The Engineering of Normalization and Padding - TAM 1.3.4 documentation</title>
+        <title>The Engineering of Normalization and Padding - TAM 1.4.0 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=d111a655" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo-extensions.css?v=8dab3a3b" />
@@ -162,7 +162,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="../../index.html"><div class="brand">TAM 1.3.4 documentation</div></a>
+      <a href="../../index.html"><div class="brand">TAM 1.4.0 documentation</div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -186,7 +186,7 @@
     <img class="sidebar-logo" src="../../_static/logo.png" alt="Logo"/>
   </div>
   
-  <span class="sidebar-brand-text">TAM 1.3.4 documentation</span>
+  <span class="sidebar-brand-text">TAM 1.4.0 documentation</span>
   
 </a><form class="sidebar-search-container" method="get" action="../../search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
@@ -650,7 +650,7 @@
 <section id="reassembly-and-decomposition">
 <h2>Reassembly and Decomposition<a class="headerlink" href="#reassembly-and-decomposition" title="Link to this heading">¶</a></h2>
 <p>After the core engine computes the predictions (or decomposes them per-effect), the multidimensional PyTorch tensors must be safely mapped back to the user’s original 2D Pandas DataFrame.</p>
-<p>The <code class="docutils literal notranslate"><span class="pre">_reassemble_decomposed_predictions</span></code> function reverses the stacking process. It flattens the predicted tensors along the batch dimensions and precisely aligns them against the groups actually stacked, in fitted order, to guarantee absolute data integrity. A frame holding only some of the fitted groups stacks only those (<code class="docutils literal notranslate"><span class="pre">_groups_in_data</span></code>), and prediction picks their coefficients by position in <code class="docutils literal notranslate"><span class="pre">unique_groups_</span></code> (<code class="docutils literal notranslate"><span class="pre">_coefficients_of_groups</span></code>); a group never seen in training raises a <code class="docutils literal notranslate"><span class="pre">ValueError</span></code> (<code class="docutils literal notranslate"><span class="pre">_check_known_groups</span></code>).</p>
+<p>The <code class="docutils literal notranslate"><span class="pre">_reassemble_decomposed_predictions</span></code> function reverses the stacking process. It flattens the predicted tensors along the batch dimensions and precisely aligns them against the groups actually stacked, in fitted order, to guarantee absolute data integrity. A frame holding only some of the fitted groups stacks only those (<code class="docutils literal notranslate"><span class="pre">_groups_in_data</span></code>), and prediction picks their coefficients by position in <code class="docutils literal notranslate"><span class="pre">unique_groups_</span></code> (<code class="docutils literal notranslate"><span class="pre">_coefficients_of_groups</span></code>); a group never seen in training raises a <code class="docutils literal notranslate"><span class="pre">ValueError</span></code> (<code class="docutils literal notranslate"><span class="pre">_check_known_groups</span></code>). Predictions and effects are placed <strong>by row position, in date order inside each group</strong> (<code class="docutils literal notranslate"><span class="pre">_group_positions</span></code>), never by index label: a frame with duplicate labels (<code class="docutils literal notranslate"><span class="pre">pd.concat</span></code> without <code class="docutils literal notranslate"><span class="pre">ignore_index</span></code>), interleaved groups or rows in any order gets every value on its own row, and its index is returned unchanged; a group with fewer values than rows (a warm-up) is aligned to its end.</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">def</span><span class="w"> </span><span class="nf">_reassemble_predictions</span><span class="p">(</span>
     <span class="n">original_data</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span>
     <span class="n">predictions_stacked</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
@@ -661,6 +661,10 @@
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
 <span class="w">    </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">    Reassembles stacked tensor predictions back into the original DataFrame structure.</span>
+
+<span class="sd">    Every prediction goes on the row it was computed for, whatever the index of `original_data` (duplicate labels, interleaved</span>
+<span class="sd">    groups, any row order): rows are located by position, in date order inside each group, and the index is returned unchanged.</span>
+<span class="sd">    A group with fewer predictions than rows (a warm-up) is aligned to the end of the group; its first rows stay NaN.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        original_data: The source DataFrame.</span>
@@ -673,14 +677,10 @@
 <span class="sd">        pd.DataFrame: Original data with a new `Estimated{target_col}` column.</span>
 <span class="sd">    """</span>
     <span class="n">is_3d_input</span> <span class="o">=</span> <span class="n">predictions_stacked</span><span class="o">.</span><span class="n">dim</span><span class="p">()</span> <span class="o">==</span> <span class="mi">3</span>
-    <span class="n">all_predictions_series</span> <span class="o">=</span> <span class="p">[]</span>
-    
+    <span class="n">estimate</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">original_data</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">)</span>
+    <span class="n">date_keys</span> <span class="o">=</span> <span class="n">_date_keys</span><span class="p">(</span><span class="n">original_data</span><span class="p">,</span> <span class="n">date_col</span><span class="p">)</span>
+
     <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">group_name</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">unique_groups</span><span class="p">):</span>
-        <span class="n">group_indices_full</span> <span class="o">=</span> <span class="n">original_data</span><span class="o">.</span><span class="n">index</span><span class="p">[</span><span class="n">original_data</span><span class="p">[</span><span class="n">group_col</span><span class="p">]</span> <span class="o">==</span> <span class="n">group_name</span><span class="p">]</span>
-
-        <span class="k">if</span> <span class="n">date_col</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">date_col</span> <span class="ow">in</span> <span class="n">original_data</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
-            <span class="n">group_indices_full</span> <span class="o">=</span> <span class="n">original_data</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">group_indices_full</span><span class="p">]</span><span class="o">.</span><span class="n">sort_values</span><span class="p">(</span><span class="n">date_col</span><span class="p">)</span><span class="o">.</span><span class="n">index</span>
-
         <span class="k">if</span> <span class="n">i</span> <span class="o">&gt;=</span> <span class="n">predictions_stacked</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]:</span>
             <span class="k">continue</span>
 
@@ -688,25 +688,16 @@
             <span class="n">preds_group</span> <span class="o">=</span> <span class="n">predictions_stacked</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span><span class="o">.</span><span class="n">flatten</span><span class="p">()</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="n">preds_group</span> <span class="o">=</span> <span class="n">predictions_stacked</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
-        
+
         <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">preds_group</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
             <span class="k">continue</span>
-            
-        <span class="c1"># Align to the end of the group's indices (handling potential truncation)</span>
-        <span class="n">group_indices_aligned</span> <span class="o">=</span> <span class="n">group_indices_full</span><span class="p">[</span><span class="o">-</span><span class="nb">len</span><span class="p">(</span><span class="n">preds_group</span><span class="p">):]</span>
-        
-        <span class="n">preds_series</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">(</span><span class="n">preds_group</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="n">group_indices_aligned</span><span class="p">)</span>
-        <span class="n">all_predictions_series</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">preds_series</span><span class="p">)</span>
-    
-    <span class="n">result_df</span> <span class="o">=</span> <span class="n">original_data</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
-    
-    <span class="k">if</span> <span class="ow">not</span> <span class="n">all_predictions_series</span><span class="p">:</span>
-         <span class="n">result_df</span><span class="p">[</span><span class="sa">f</span><span class="s2">"Estimated</span><span class="si">{</span><span class="n">target_col</span><span class="si">}</span><span class="s2">"</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span>
-         <span class="k">return</span> <span class="n">result_df</span>
 
-    <span class="n">final_predictions</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span><span class="n">all_predictions_series</span><span class="p">)</span>
-    <span class="n">result_df</span><span class="p">[</span><span class="sa">f</span><span class="s2">"Estimated</span><span class="si">{</span><span class="n">target_col</span><span class="si">}</span><span class="s2">"</span><span class="p">]</span> <span class="o">=</span> <span class="n">final_predictions</span>
-    
+        <span class="n">positions</span> <span class="o">=</span> <span class="n">_group_positions</span><span class="p">(</span><span class="n">original_data</span><span class="p">,</span> <span class="n">group_col</span><span class="p">,</span> <span class="n">group_name</span><span class="p">,</span> <span class="n">date_col</span><span class="p">,</span> <span class="n">date_keys</span><span class="p">)</span>
+        <span class="c1"># Align to the end of the group's rows (handling potential truncation)</span>
+        <span class="n">estimate</span><span class="p">[</span><span class="n">positions</span><span class="p">[</span><span class="o">-</span><span class="nb">len</span><span class="p">(</span><span class="n">preds_group</span><span class="p">):]]</span> <span class="o">=</span> <span class="n">preds_group</span>
+
+    <span class="n">result_df</span> <span class="o">=</span> <span class="n">original_data</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+    <span class="n">result_df</span><span class="p">[</span><span class="sa">f</span><span class="s2">"Estimated</span><span class="si">{</span><span class="n">target_col</span><span class="si">}</span><span class="s2">"</span><span class="p">]</span> <span class="o">=</span> <span class="n">estimate</span>
     <span class="k">return</span> <span class="n">result_df</span>
 </pre></div>
 </div>
@@ -811,7 +802,7 @@ To prevent silent row-scrambling (zipping sorted tensors to unsorted indices), t
       
     </aside>
   </div>
-</div><script src="../../_static/documentation_options.js?v=e358f374"></script>
+</div><script src="../../_static/documentation_options.js?v=9172181d"></script>
     <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/scripts/furo.js?v=46bd48cc"></script>

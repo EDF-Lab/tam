@@ -7,7 +7,7 @@
         <link rel="prefetch" href="../../_static/logo.png" as="image">
 
     <!-- Generated with Sphinx 9.1.0 and Furo 2025.12.19 -->
-        <title>Online Error Correction (AdaptiveTAM) - TAM 1.3.4 documentation</title>
+        <title>Online Error Correction (AdaptiveTAM) - TAM 1.4.0 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=d111a655" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo-extensions.css?v=8dab3a3b" />
@@ -162,7 +162,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="../../index.html"><div class="brand">TAM 1.3.4 documentation</div></a>
+      <a href="../../index.html"><div class="brand">TAM 1.4.0 documentation</div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -186,7 +186,7 @@
     <img class="sidebar-logo" src="../../_static/logo.png" alt="Logo"/>
   </div>
   
-  <span class="sidebar-brand-text">TAM 1.3.4 documentation</span>
+  <span class="sidebar-brand-text">TAM 1.4.0 documentation</span>
   
 </a><form class="sidebar-search-container" method="get" action="../../search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
@@ -689,6 +689,7 @@ The code deliberately transitions from a rigid “Calendar Day” perspective to
             <span class="k">for</span> <span class="n">j</span><span class="p">,</span> <span class="n">count</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">counts</span><span class="p">):</span>
                 <span class="n">valid</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">,</span> <span class="p">:</span><span class="n">count</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_warn_extrapolation</span><span class="p">(</span><span class="n">x_to_predict</span><span class="o">.</span><span class="n">cpu</span><span class="p">(),</span> <span class="n">valid</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_warn_unseen_levels</span><span class="p">(</span><span class="n">x_stacked</span><span class="o">.</span><span class="n">cpu</span><span class="p">(),</span> <span class="n">x_to_predict</span><span class="o">.</span><span class="n">cpu</span><span class="p">(),</span> <span class="n">valid</span><span class="p">,</span> <span class="n">real_data</span><span class="p">)</span>
         <span class="c1"># Positions in `real_data` -&gt; positions in `balanced_data` (real rows come first when groups are balanced by filling).</span>
         <span class="n">real_positions</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">flatnonzero</span><span class="p">(</span><span class="n">real</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">window_layout_</span><span class="o">.</span><span class="n">positions</span> <span class="o">=</span> <span class="p">[</span><span class="n">real_positions</span><span class="p">[</span><span class="n">p</span><span class="p">]</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">window_layout_</span><span class="o">.</span><span class="n">positions</span><span class="p">]</span>
@@ -837,7 +838,12 @@ The forecasts are not clipped by default: a clip to the range of the <em>whole</
             <span class="nb">print</span><span class="p">(</span><span class="s2">"--- Starting Grid Search (Multi-Start Coordinate Descent) ---"</span><span class="p">)</span>
             
             <span class="bp">self</span><span class="o">.</span><span class="n">prepare_simulation</span><span class="p">(</span><span class="n">data_val</span><span class="p">)</span>
-            
+            <span class="k">try</span><span class="p">:</span>
+                <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_grid_search</span><span class="p">(</span><span class="n">data_val</span><span class="p">,</span> <span class="n">grid_search_config</span><span class="p">)</span>
+            <span class="k">finally</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_free_simulation</span><span class="p">()</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_grid_search</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data_val</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span> <span class="n">grid_search_config</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s1">'AdaptiveTAM'</span><span class="p">:</span>
             <span class="n">search_axes</span><span class="p">,</span> <span class="n">token_names</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">adaptive_model_</span><span class="o">.</span><span class="n">_parse_grid_axes</span><span class="p">(</span><span class="n">grid_search_config</span><span class="p">)</span>
             
             <span class="n">data_info</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">adaptive_model_</span><span class="o">.</span><span class="n">_get_data_info</span><span class="p">(</span><span class="n">data_val</span><span class="p">)</span>
@@ -1040,7 +1046,7 @@ The forecasts are not clipped by default: a clip to the range of the <em>whole</
       
     </aside>
   </div>
-</div><script src="../../_static/documentation_options.js?v=e358f374"></script>
+</div><script src="../../_static/documentation_options.js?v=9172181d"></script>
     <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/scripts/furo.js?v=46bd48cc"></script>

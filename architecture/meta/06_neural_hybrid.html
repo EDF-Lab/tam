@@ -7,7 +7,7 @@
         <link rel="prefetch" href="../../_static/logo.png" as="image">
 
     <!-- Generated with Sphinx 9.1.0 and Furo 2025.12.19 -->
-        <title>DeepGAM Engineering &amp; Sequential Encapsulation [EXP] - TAM 1.3.4 documentation</title>
+        <title>DeepGAM Engineering &amp; Sequential Encapsulation [EXP] - TAM 1.4.0 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=d111a655" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo-extensions.css?v=8dab3a3b" />
@@ -162,7 +162,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="../../index.html"><div class="brand">TAM 1.3.4 documentation</div></a>
+      <a href="../../index.html"><div class="brand">TAM 1.4.0 documentation</div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -173,7 +173,7 @@
           <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
         </button>
       </div>
-      <label class="toc-overlay-icon toc-header-icon no-toc" for="__toc">
+      <label class="toc-overlay-icon toc-header-icon" for="__toc">
         <span class="icon"><svg><use href="#svg-toc"></use></svg></span>
       </label>
     </div>
@@ -186,7 +186,7 @@
     <img class="sidebar-logo" src="../../_static/logo.png" alt="Logo"/>
   </div>
   
-  <span class="sidebar-brand-text">TAM 1.3.4 documentation</span>
+  <span class="sidebar-brand-text">TAM 1.4.0 documentation</span>
   
 </a><form class="sidebar-search-container" method="get" action="../../search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
@@ -317,7 +317,7 @@
               <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
             </button>
           </div>
-          <label class="toc-overlay-icon toc-content-icon no-toc" for="__toc">
+          <label class="toc-overlay-icon toc-content-icon" for="__toc">
             <span class="icon"><svg><use href="#svg-toc"></use></svg></span>
           </label>
         </div>
@@ -339,6 +339,18 @@
 <li><p><strong>Theory introduction:</strong> <a class="reference internal" href="../../THEORY.html"><span class="std std-doc">See the Intro</span></a></p></li>
 <li><p><strong>Related mathematical theory:</strong> <a class="reference internal" href="../../math/meta/06_deep_gam_backfitting.html"><span class="std std-doc">See the Mathematical Theory</span></a></p></li>
 </ul>
+<section id="backfitting-and-the-validation-guard">
+<h2>Backfitting and the validation guard<a class="headerlink" href="#backfitting-and-the-validation-guard" title="Link to this heading">¶</a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">NeuralTAM</span></code> first fits its <code class="docutils literal notranslate"><span class="pre">StaticTAM</span></code>, where an <code class="docutils literal notranslate"><span class="pre">n()</span></code> term is a frozen random-feature effect solved in closed form. It then trains one network per group and per <code class="docutils literal notranslate"><span class="pre">n()</span></code> term by backfitting:
+the partial residual of a network is the target minus the other effects (the closed-form contribution of that network is added back), the network is trained on it, and the best epoch by validation loss is kept.</p>
+<ul class="simple">
+<li><p><strong>The closed-form column of a network</strong> is the column of the base decomposition named after the effect: <code class="docutils literal notranslate"><span class="pre">effect_x</span></code> when the network is the only term on <code class="docutils literal notranslate"><span class="pre">x</span></code>, <code class="docutils literal notranslate"><span class="pre">effect_n_x</span></code> when <code class="docutils literal notranslate"><span class="pre">x</span></code> also has a <code class="docutils literal notranslate"><span class="pre">s()</span></code> or <code class="docutils literal notranslate"><span class="pre">l()</span></code> term. <code class="docutils literal notranslate"><span class="pre">neural_effect_columns(effects)</span></code> returns it for every network; the backfitting starts from that contribution.</p></li>
+<li><p><strong>The guard</strong> (<code class="docutils literal notranslate"><span class="pre">guard=True</span></code>, the default): once a network is trained, its validation loss is compared with the loss of the closed-form contribution it would replace, on the same validation rows (the rows of <code class="docutils literal notranslate"><span class="pre">data_val</span></code> when given, otherwise the last <code class="docutils literal notranslate"><span class="pre">val_split</span></code> fraction of the group). The network is kept only if its loss is strictly lower. Otherwise the closed-form column stays in the forecast and the decomposition, <code class="docutils literal notranslate"><span class="pre">mlps_</span></code> has no entry for that group and feature, and <code class="docutils literal notranslate"><span class="pre">network_used_[group][feature]</span></code> is <code class="docutils literal notranslate"><span class="pre">False</span></code>.</p></li>
+<li><p><strong>When no network is kept anywhere</strong>, the model equals its <code class="docutils literal notranslate"><span class="pre">StaticTAM</span></code> and a <code class="docutils literal notranslate"><span class="pre">UserWarning</span></code> says so: give the networks more epochs or neurons, or pass <code class="docutils literal notranslate"><span class="pre">guard=False</span></code> to keep them anyway. A short training (a few epochs, a small network) usually ends there, which is why a <code class="docutils literal notranslate"><span class="pre">NeuralTAM</span></code> is never worse than its <code class="docutils literal notranslate"><span class="pre">StaticTAM</span></code> by more than the noise of the validation rows.</p></li>
+<li><p><strong><code class="docutils literal notranslate"><span class="pre">guard=False</span></code></strong> keeps every network, as the model did before the guard existed.</p></li>
+<li><p><strong>Training</strong> of each network: Adam at the fixed learning rate <code class="docutils literal notranslate"><span class="pre">lr</span></code>, the best epoch by validation loss, and early stopping after <code class="docutils literal notranslate"><span class="pre">patience</span></code> epochs without improvement. There is no learning-rate scheduler: the last layer starts at zero, so the validation loss is flat for the first epochs, and a plateau scheduler used to halve the rate to its floor before the network had moved.</p></li>
+</ul>
+</section>
 </section>
 
         </article>
@@ -384,13 +396,32 @@
         
       </footer>
     </div>
-    <aside class="toc-drawer no-toc">
+    <aside class="toc-drawer">
       
+      
+      <div class="toc-sticky toc-scroll">
+        <div class="toc-title-container">
+          <span class="toc-title">
+            On this page
+          </span>
+        </div>
+        <div class="toc-tree-container">
+          <div class="toc-tree">
+            <ul>
+<li><a class="reference internal" href="#">DeepGAM Engineering &amp; Sequential Encapsulation [EXP]</a><ul>
+<li><a class="reference internal" href="#backfitting-and-the-validation-guard">Backfitting and the validation guard</a></li>
+</ul>
+</li>
+</ul>
+
+          </div>
+        </div>
+      </div>
       
       
     </aside>
   </div>
-</div><script src="../../_static/documentation_options.js?v=e358f374"></script>
+</div><script src="../../_static/documentation_options.js?v=9172181d"></script>
     <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/scripts/furo.js?v=46bd48cc"></script>

@@ -31,17 +31,17 @@ At the global dataset level, evaluating this vector for all $N_{total}$ temporal
 
 Standard multivariate smoothers, such as isotropic Thin Plate Splines, enforce a uniform, rotationally invariant penalty across all dimensions. However, this geometric assumption mathematically fails when the interacting variables operate on radically heterogeneous physical units (e.g., time versus temperature or geographic coordinates versus financial prices). In these cases, a standard Euclidean distance metric becomes arbitrary and meaningless {cite:p}`wood2006low`.
 
-To achieve optimal, scale-invariant smoothing, the framework applies an **anisotropic penalty**. The global structural penalty sub-matrix $P_{cross}$ is constructed by taking the Kronecker product of each marginal penalty matrix $P_i$ with the identity matrix $I$ of the opposing passive spaces, all regulated by a global interaction hyperparameter $\lambda$:
+To achieve optimal, scale-invariant smoothing, the framework applies an **anisotropic penalty** with **one smoothing parameter per margin**, as in `mgcv` {cite:p}`wood2006low`. The global structural penalty sub-matrix $P_{cross}$ is the sum, over the margins, of the Kronecker product of the unit-weight marginal penalty $\tilde P_i$ with the identity matrix $I$ of the opposing passive spaces, each term weighted by its own $\lambda_i$:
 
-$$P_{cross} = \lambda \sum_{i=1}^{K_{te}} \left( I_1 \otimes \dots \otimes P_i \otimes \dots \otimes I_{K_{te}} \right)$$
+$$P_{cross} = \sum_{i=1}^{K_{te}} \lambda_i \left( I_1 \otimes \dots \otimes \tilde P_i \otimes \dots \otimes I_{K_{te}} \right)$$
 
-Crucially, $P_i = \lambda_i P_{\text{effect}_i}$, meaning each marginal penalty matrix is natively pre-scaled by its own specific structural regularization parameter ($\lambda_i$), consistent with the primal definition of all TAM base effects. 
+Each $\lambda_i$ is a coordinate of the GCV search, so the surface can be smooth along one axis and rough along another. A global weight $\lambda_{te}$ on the whole interaction is equivalent to scaling every margin weight by it: $\lambda_{te}\sum_i \lambda_i\,(I \otimes \dots \otimes \tilde P_i \otimes \dots \otimes I) = \sum_i (\lambda_{te}\lambda_i)\,(I \otimes \dots \otimes \tilde P_i \otimes \dots \otimes I)$.
 
 For the standard two-dimensional case ($K_{te}=2$), this evaluates directly to:
 
-$$P_{cross} = \lambda (P_1 \otimes I_2 + I_1 \otimes P_2)$$
+$$P_{cross} = \lambda_1 (\tilde P_1 \otimes I_2) + \lambda_2 (I_1 \otimes \tilde P_2)$$
 
-This explicit formulation reveals how the first term isolates structural roughness strictly along the $x_1$ axis (mathematically bypassing $x_2$ via the Identity matrix $I_2$), while the second term strictly penalizes $x_2$. Summing these orthogonal matrices generates a geometrically complete, scale-invariant regularization surface driven by the singular, dynamically optimized global parameter $\lambda$ {cite:p}`wood2006low`.
+This explicit formulation reveals how the first term isolates structural roughness strictly along the $x_1$ axis (mathematically bypassing $x_2$ via the Identity matrix $I_2$), while the second term strictly penalizes $x_2$. Summing these orthogonal matrices generates a geometrically complete, scale-invariant regularization surface whose smoothness along each axis is estimated separately {cite:p}`wood2006low`.
 
 ## The Geometric Scale of the Kronecker Product
 

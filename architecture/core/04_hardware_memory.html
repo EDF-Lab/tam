@@ -7,7 +7,7 @@
         <link rel="prefetch" href="../../_static/logo.png" as="image">
 
     <!-- Generated with Sphinx 9.1.0 and Furo 2025.12.19 -->
-        <title>Hardware Memory Dispatch &amp; Anti-OOM Systems - TAM 1.3.4 documentation</title>
+        <title>Hardware Memory Dispatch &amp; Anti-OOM Systems - TAM 1.4.0 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=d111a655" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo-extensions.css?v=8dab3a3b" />
@@ -162,7 +162,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="../../index.html"><div class="brand">TAM 1.3.4 documentation</div></a>
+      <a href="../../index.html"><div class="brand">TAM 1.4.0 documentation</div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -186,7 +186,7 @@
     <img class="sidebar-logo" src="../../_static/logo.png" alt="Logo"/>
   </div>
   
-  <span class="sidebar-brand-text">TAM 1.3.4 documentation</span>
+  <span class="sidebar-brand-text">TAM 1.4.0 documentation</span>
   
 </a><form class="sidebar-search-container" method="get" action="../../search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
@@ -617,6 +617,49 @@
 </pre></div>
 </div>
 </section>
+<section id="model-size-and-persistence">
+<h2>Model size and persistence<a class="headerlink" href="#model-size-and-persistence" title="Link to this heading">¶</a></h2>
+<p>A fitted model keeps what <code class="docutils literal notranslate"><span class="pre">predict()</span></code> needs. Because simulation caches and histories scale linearly with the dataset (groups <span class="math notranslate nohighlight">\(\times\)</span> time steps), the <code class="docutils literal notranslate"><span class="pre">compact()</span></code> method strips these structures to drastically reduce the memory footprint for persistence or model pooling.</p>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Model</p></th>
+<th class="head"><p>Memory scaling (fitted)</p></th>
+<th class="head"><p>Size after <code class="docutils literal notranslate"><span class="pre">compact()</span></code></p></th>
+<th class="head"><p>What grows with the data</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">StaticTAM</span></code></p></td>
+<td><p><span class="math notranslate nohighlight">\(\mathcal{O}(1)\)</span> (constant)</p></td>
+<td><p>unchanged</p></td>
+<td><p>nothing: coefficients and normalisation bounds only</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">AdaptiveTAM</span></code></p></td>
+<td><p><span class="math notranslate nohighlight">\(\mathcal{O}(N_{rows})\)</span></p></td>
+<td><p>constant</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">predictions_</span></code>, the forecast frame</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">KalmanTAM</span></code></p></td>
+<td><p><span class="math notranslate nohighlight">\(\mathcal{O}(N_{blocks})\)</span></p></td>
+<td><p>constant</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">states_history_</span></code> (one state per block)</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">OperaTAM</span></code></p></td>
+<td><p><span class="math notranslate nohighlight">\(\mathcal{O}(N_{rows})\)</span></p></td>
+<td><p>constant</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">weights_history_</span></code> (one weight vector per row)</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">AdaptiveTAM</span></code> stacks every overlapping training window to simulate the run (each row appears once per window, so the cache scales with window length <span class="math notranslate nohighlight">\(\times\)</span> data). This cache is freed as soon as <code class="docutils literal notranslate"><span class="pre">predict_online()</span></code>, <code class="docutils literal notranslate"><span class="pre">fit()</span></code> or <code class="docutils literal notranslate"><span class="pre">grid_search_fit()</span></code> ends; <code class="docutils literal notranslate"><span class="pre">prepare_simulation()</span></code> alone still fills <code class="docutils literal notranslate"><span class="pre">simulation_data_</span></code> and <code class="docutils literal notranslate"><span class="pre">window_layout_</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">compact()</span></code> (every model, returns <code class="docutils literal notranslate"><span class="pre">self</span></code>) drops <code class="docutils literal notranslate"><span class="pre">predictions_</span></code>, the state history and the weight history except their last row. The forecasts of <code class="docutils literal notranslate"><span class="pre">predict()</span></code> and the online continuation (<code class="docutils literal notranslate"><span class="pre">last_state_dict_</span></code>) are unchanged to the last bit. <code class="docutils literal notranslate"><span class="pre">OperaTAM.plot_weights</span></code> needs the whole history and raises an error after <code class="docutils literal notranslate"><span class="pre">compact()</span></code>.</p></li>
+<li><p>Histories stay on by default: plots and diagnostics read them. Call <code class="docutils literal notranslate"><span class="pre">compact()</span></code> before keeping many fitted models in memory (e.g. an <code class="docutils literal notranslate"><span class="pre">AutoTAM</span></code> pool) or before pickling one.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">pickle</span></code> is the supported persistence for now.</p></li>
+</ul>
+</section>
 </section>
 
         </article>
@@ -679,6 +722,7 @@
 <li><a class="reference internal" href="#the-memory-oracle-and-safe-chunking">The Memory Oracle and Safe Chunking</a></li>
 <li><a class="reference internal" href="#the-oom-safety-net-in-the-dispatcher">The OOM Safety Net in the Dispatcher</a></li>
 <li><a class="reference internal" href="#sparse-routing-and-in-place-memory-tricks">Sparse Routing and In-Place Memory Tricks</a></li>
+<li><a class="reference internal" href="#model-size-and-persistence">Model size and persistence</a></li>
 </ul>
 </li>
 </ul>
@@ -690,7 +734,7 @@
       
     </aside>
   </div>
-</div><script src="../../_static/documentation_options.js?v=e358f374"></script>
+</div><script src="../../_static/documentation_options.js?v=9172181d"></script>
     <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/scripts/furo.js?v=46bd48cc"></script>

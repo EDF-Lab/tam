@@ -7,7 +7,7 @@
         <link rel="prefetch" href="../../_static/logo.png" as="image">
 
     <!-- Generated with Sphinx 9.1.0 and Furo 2025.12.19 -->
-        <title>The Spectral Dictionary: PyTorch Implementations &amp; Factory Assembly - TAM 1.3.4 documentation</title>
+        <title>The Spectral Dictionary: PyTorch Implementations &amp; Factory Assembly - TAM 1.4.0 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=d111a655" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo-extensions.css?v=8dab3a3b" />
@@ -162,7 +162,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="../../index.html"><div class="brand">TAM 1.3.4 documentation</div></a>
+      <a href="../../index.html"><div class="brand">TAM 1.4.0 documentation</div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -186,7 +186,7 @@
     <img class="sidebar-logo" src="../../_static/logo.png" alt="Logo"/>
   </div>
   
-  <span class="sidebar-brand-text">TAM 1.3.4 documentation</span>
+  <span class="sidebar-brand-text">TAM 1.4.0 documentation</span>
   
 </a><form class="sidebar-search-container" method="get" action="../../search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
@@ -437,6 +437,7 @@
         <span class="k">return</span> <span class="n">P</span>
 </pre></div>
 </div>
+<p>Some effects hold data-dependent state: the knots of a spline, the splits of a tree or a linear tree, the centres of an RBF, and the same state inside the margins of a tensor product. <code class="docutils literal notranslate"><span class="pre">initialize_effects()</span></code> sets it from the full training tensor, routing the columns exactly as <code class="docutils literal notranslate"><span class="pre">build_phi_from_effects()</span></code> does (each effect exposes <code class="docutils literal notranslate"><span class="pre">initialize(x_cols)</span></code>). It runs before any design matrix is built, so that neither the dispatcher’s memory probe (one row per group) nor the first chunk of a memory-bounded solve decides the knots or the splits from a subset of the data. An effect already initialised is left unchanged.</p>
 </section>
 <hr class="docutils" />
 <section id="linear">
@@ -1187,7 +1188,8 @@ Preserves marginal regularization independence via the Kronecker sum.</p>
 <span class="sd">        Builds the anisotropic penalty matrix.</span>
 <span class="sd">        </span>
 <span class="sd">        It sums the penalties of each dimension, expanded by Identity matrices</span>
-<span class="sd">        on other dimensions.</span>
+<span class="sd">        on other dimensions. Each margin penalty carries the weight lambda_i of its own</span>
+<span class="sd">        coordinate, so GCV tunes one smoothing parameter per margin.</span>
 <span class="sd">        """</span>
         <span class="n">dims</span> <span class="o">=</span> <span class="p">[</span><span class="n">e</span><span class="o">.</span><span class="n">get_n_coeffs</span><span class="p">()</span> <span class="k">for</span> <span class="n">e</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">effects</span><span class="p">]</span>
         <span class="n">penalties</span> <span class="o">=</span> <span class="p">[</span><span class="n">e</span><span class="o">.</span><span class="n">build_penalty_matrix</span><span class="p">()</span> <span class="k">for</span> <span class="n">e</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">effects</span><span class="p">]</span>
@@ -1217,7 +1219,7 @@ Preserves marginal regularization independence via the Kronecker sum.</p>
             
             <span class="n">P_total</span> <span class="o">=</span> <span class="n">P_total</span> <span class="o">+</span> <span class="n">current_term</span>
             
-        <span class="c1"># Apply global scaling lambda_p</span>
+        <span class="c1"># Each P_i already carries its margin's lambda_i; the weight of the tensor product itself stays 1</span>
         <span class="k">return</span> <span class="n">P_total</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">lambda_p</span>
 </pre></div>
 </div>
@@ -1768,7 +1770,7 @@ Constructs the block-diagonal encapsulation of the anisotropic sparsity-adaptive
       
     </aside>
   </div>
-</div><script src="../../_static/documentation_options.js?v=e358f374"></script>
+</div><script src="../../_static/documentation_options.js?v=9172181d"></script>
     <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/scripts/furo.js?v=46bd48cc"></script>

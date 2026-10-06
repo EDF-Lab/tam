@@ -1,8 +1,8 @@
 # TAM (Time series Additive Model)
 
-[🧪 `EXAMPLES`](EXAMPLES.md) | [📚 `THEORY`](THEORY.md) | [📄 `JOSS PAPER`](paper.md)
+[🧪 `EXAMPLES`](EXAMPLES.md) | [📚 `THEORY`](THEORY.md) | [📄 `PAPER`](paper.md)
   
-**Version:** 1.3.4  
+**Version:** 1.4.0  
 **License:** LGPL-3.0-or-later.  
 **Copyright (c):** 2023-2026 EDF (Electricité De France).  
 **Copyright (c):** 2023-2025 Sorbonne Université.  
@@ -35,7 +35,7 @@ Traditional Generalized Additive Models (GAMs) are strictly bound by CPU limits,
 
 ## ⚙️ Stable Framework (v1.2+)
 
-These modules form the mathematically proven, production-ready core of the framework, designed for robust industrial deployment and evaluated for JOSS:
+These modules form the mathematically proven, production-ready core of the framework, designed for robust industrial deployment, covered by tests and the regression suite:
 
 * **Machine Learning for Time Series:** TAM projects a matrix of exogenous features into a finite-dimensional space via basis mappings against a target.
 
@@ -167,10 +167,10 @@ If you use these packages in your research, please cite them using their permane
 **TAM**
 ```bibtex
 @misc{tam2026package,
-  title={TAM: Time series Additive Model (v1.3.1)},
+  title={TAM: Time series Additive Model (v1.4.0)},
   author={Allioux, Yann and Goude, Yannig},
   year={2026},
-  doi={10.5281/zenodo.23070877},
+  doi={10.5281/zenodo.23171729},
   note={With foundational WeaKL research by Nathan Doumèche, and tensorisation and adaptive model contributions by Éloi Bedek}
 }
 ```
