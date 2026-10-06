@@ -92,11 +92,9 @@ def test_a_run_pickles_much_smaller_than_the_simulation_cache():
     assert _size(run) < 0.25 * _size(cached), (_size(run), _size(cached))
 
 
-def test_a_compact_adaptive_model_does_not_grow_with_the_data():
-    sizes = []
-    for n in (300, 900):
-        _, model = _adaptive(_data(n=n))
-        sizes.append(_size(model.compact()))
+@pytest.mark.parametrize("build", [lambda df: _adaptive(df)[1], _kalman, _opera], ids=["adaptive", "kalman", "opera"])
+def test_a_compact_model_does_not_grow_with_the_data(build):
+    sizes = [_size(build(_data(n=n)).compact()) for n in (300, 900)]
     assert abs(sizes[1] - sizes[0]) / sizes[0] < 0.02, sizes
 
 

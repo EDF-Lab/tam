@@ -89,9 +89,9 @@ A fitted model keeps what `predict()` needs. Because simulation caches and histo
 | Model | Memory scaling (fitted) | Size after `compact()` | What grows with the data |
 | --- | --- | --- | --- |
 | `StaticTAM` | $\mathcal{O}(1)$ (constant) | unchanged | nothing: coefficients and normalisation bounds only |
-| `AdaptiveTAM` | $\mathcal{O}(N_{rows})$ | > 95% reduction | `predictions_`, the forecast frame |
-| `KalmanTAM` | $\mathcal{O}(N_{blocks})$ | ~ 50% reduction | `states_history_` (one state per block) |
-| `OperaTAM` | $\mathcal{O}(N_{rows})$ | > 80% reduction | `weights_history_` (one weight vector per row) |
+| `AdaptiveTAM` | $\mathcal{O}(N_{rows})$ | constant | `predictions_`, the forecast frame |
+| `KalmanTAM` | $\mathcal{O}(N_{blocks})$ | constant | `states_history_` (one state per block) |
+| `OperaTAM` | $\mathcal{O}(N_{rows})$ | constant | `weights_history_` (one weight vector per row) |
 
 * `AdaptiveTAM` stacks every overlapping training window to simulate the run (each row appears once per window, so the cache scales with window length $\times$ data). This cache is freed as soon as `predict_online()`, `fit()` or `grid_search_fit()` ends; `prepare_simulation()` alone still fills `simulation_data_` and `window_layout_`.
 * `compact()` (every model, returns `self`) drops `predictions_`, the state history and the weight history except their last row. The forecasts of `predict()` and the online continuation (`last_state_dict_`) are unchanged to the last bit. `OperaTAM.plot_weights` needs the whole history and raises an error after `compact()`.
