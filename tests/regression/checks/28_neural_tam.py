@@ -1,7 +1,7 @@
 # SPDX-FileCopyrightText: 2026 EDF (Electricité De France)
 # SPDX-FileContributor: Yann Allioux
 # SPDX-License-Identifier: LGPL-3.0-or-later
-"""NeuralTAM (backfitted networks): the seed, the activations, the validation split, and the decomposition into effects."""
+"""NeuralTAM (backfitted networks): the seed, the activations, the validation split, the guard that keeps a network only where it beats the closed-form effect, and the decomposition into effects."""
 EXPERIMENTAL = True
 import numpy as np
 
@@ -23,6 +23,8 @@ def run(res):
         def step():
             model = neural(**options).fit(train)
             res.forecast(name, test[TARGET], model.predict(test)[f"Estimated{TARGET}"])
+            kept = [used for group in model.network_used_.values() for used in group.values()]
+            res.value(f"{name}.networks_kept", f"{sum(kept)} of {len(kept)}")
             return model
 
         res.attempt(name, step)
@@ -38,6 +40,9 @@ def run(res):
     fit("val_split_half", val_split=0.5)
     fit("two_cycles", backfit_cycles=2)
     fit("shared_feature", formula="load ~ l(temperature) + n(temperature, n_neurons=8, act='relu') + " + BASE)       # the feature of the network is shared with a linear term
+    fit("guard_off", guard=False)
+    fit("shared_feature_guard_off", formula="load ~ l(temperature) + n(temperature, n_neurons=8, act='relu') + " + BASE, guard=False)
+    fit("strong_network", epochs=60, lr=0.02, batch_size=64, patience=60)       # long enough for the networks to beat the closed-form effect where they can
 
     def reproducible():
         a = neural(seed=3).fit(train).predict(test)[f"Estimated{TARGET}"].to_numpy()

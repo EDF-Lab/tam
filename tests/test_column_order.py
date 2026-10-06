@@ -39,7 +39,7 @@ def test_neural_tam_does_not_depend_on_the_storage_order_of_the_columns_of_a_net
     df["y"] = df["x1"] + df["x2"] * df["x3"] + rng.normal(0, 0.1, n)
 
     def forecast(frame):
-        model = NeuralTAM(formula="y ~ l(x1) + n(x1, others='x2|x3', n_neurons=4)", date_col="date", epochs=3, patience=3, backfit_cycles=1).fit(frame)
+        model = NeuralTAM(formula="y ~ l(x1) + n(x1, others='x2|x3', n_neurons=4)", date_col="date", epochs=3, patience=3, backfit_cycles=1, guard=False).fit(frame)
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
             return model.predict(frame)["Estimatedy"].to_numpy()

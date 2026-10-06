@@ -63,7 +63,7 @@ def test_neural_tam_fit_with_neural_effect_backfits(dummy_panel_data):
     model = NeuralTAM(
         formula="load ~ l(temperature) + n(temperature, n_neurons=4)",
         group_col="smart_meter_id", date_col="timestamp",
-        epochs=2, patience=2, backfit_cycles=1,
+        epochs=2, patience=2, backfit_cycles=1, guard=False,        # the guard would drop a network this small: the backfitting itself is under test
     )
     model.fit(dummy_panel_data)
 
@@ -82,7 +82,7 @@ def _fit_neural(data, seed=None, shuffle_split=True):
     model = NeuralTAM(
         formula="load ~ l(temperature) + n(temperature, n_neurons=4)",
         group_col="smart_meter_id", date_col="timestamp",
-        epochs=4, patience=4, backfit_cycles=1, val_split=0.3, shuffle_split=shuffle_split, **kwargs,
+        epochs=4, patience=4, backfit_cycles=1, val_split=0.3, shuffle_split=shuffle_split, guard=False, **kwargs,
     )
     return model.fit(data)
 
@@ -126,7 +126,7 @@ NEURAL_FORMULA = "load ~ l(temperature) + s(temperature, k=5) + n(temperature, n
 def _pair(data):
     static = ta.StaticTAM(formula=NEURAL_FORMULA, group_col="smart_meter_id", date_col="timestamp").fit(data)
     neural = NeuralTAM(formula=NEURAL_FORMULA, group_col="smart_meter_id", date_col="timestamp",
-                       epochs=4, patience=4, backfit_cycles=1).fit(data)
+                       epochs=4, patience=4, backfit_cycles=1, guard=False).fit(data)
     return static, neural
 
 
@@ -164,3 +164,98 @@ def test_an_adaptive_model_runs_behind_a_neural_tam_like_behind_a_static_tam(dum
     effects = lambda frame: [c for c in frame.columns if c.startswith("effect_") or c.startswith("Adapted")]
     assert effects(outputs["neural"]) == effects(outputs["static"])
     assert len(outputs["neural"]) == len(outputs["static"])
+
+
+# ------------------------------------------------------------------ the backfitting starts from the closed-form effect, and a network must beat it to be kept
+def _signal(groups=("a",), n=300, seed=0, noise=0.1):
+    rng = np.random.default_rng(seed)
+    frames = []
+    for g in groups:
+        x = rng.uniform(0, 6, n)
+        frames.append(pd.DataFrame({"timestamp": pd.date_range("2022-01-01", periods=n, freq="h"), "g": g, "x": x, "y": 2.0 * x + rng.normal(0, noise, n)}))
+    return pd.concat(frames, ignore_index=True)
+
+
+def _guarded(formula, data, **kwargs):
+    settings = dict(group_col="g", date_col="timestamp", epochs=3, patience=3, backfit_cycles=1, lr=1e-9)
+    settings.update(kwargs)
+    return NeuralTAM(formula=formula, **settings).fit(data)
+
+
+def test_the_closed_form_column_of_every_network_exists_in_the_base_decomposition():
+    from tam.model.neural import neural_effect_columns
+    for formula in ("y ~ n(x, n_neurons=4)", "y ~ l(x) + n(x, n_neurons=4)", "y ~ l(x) + s(x, k=6) + n(x, n_neurons=4)"):
+        model = NeuralTAM(formula=formula, group_col="g", date_col="timestamp", guard=False).fit(_signal())
+        base = model.base_additive_model.decompose_prediction(_signal())
+        columns = neural_effect_columns(model.base_additive_model.effects_list_)
+        assert columns and all(column in base.columns for column in columns.values()), (formula, columns, list(base.columns))
+
+
+def test_guard_is_on_by_default_and_a_network_that_cannot_learn_leaves_the_static_forecast():
+    data = _signal()
+    formula = "y ~ l(x) + n(x, n_neurons=4)"
+    assert NeuralTAM(formula=formula).guard is True
+    with pytest.warns(UserWarning, match="StaticTAM"):
+        neural = _guarded(formula, data)
+    static = ta.StaticTAM(formula=formula, group_col="g", date_col="timestamp").fit(data)
+    np.testing.assert_allclose(neural.predict(data)["Estimatedy"], static.predict(data)["Estimatedy"], rtol=1e-12)
+    assert neural.network_used_ == {"a": {"x": False}}
+    assert not neural.mlps_["a"]
+
+
+def test_the_guard_can_be_switched_off_and_the_network_then_replaces_the_closed_form_effect():
+    data = _signal()
+    neural = _guarded("y ~ l(x) + n(x, n_neurons=4)", data, guard=False)
+    assert neural.guard is False and "x" in neural.mlps_["a"]
+    assert neural.network_used_ == {"a": {"x": True}}
+
+
+def test_the_decomposition_of_a_rejected_network_is_the_static_one():
+    data = _signal()
+    formula = "y ~ l(x) + n(x, n_neurons=4)"
+    with pytest.warns(UserWarning):
+        neural = _guarded(formula, data)
+    static = ta.StaticTAM(formula=formula, group_col="g", date_col="timestamp").fit(data)
+    effects = lambda frame: [c for c in frame.columns if c.startswith("effect_")]
+    d_neural, d_static = neural.decompose_prediction(data), static.decompose_prediction(data)
+    assert effects(d_neural) == effects(d_static)
+    np.testing.assert_allclose(d_neural[effects(d_neural)].to_numpy(), d_static[effects(d_static)].to_numpy(), rtol=1e-12)
+
+
+def test_a_network_is_kept_only_where_it_beats_the_closed_form_effect():
+    # The closed-form effect is shrunk to nothing by a huge penalty (ap=6): a network that learns the line beats it in the group whose target is a line,
+    # and cannot beat it in the group whose target is noise around a constant.
+    line, noise = _signal(groups=("line",)), _signal(groups=("noise",), seed=1)
+    noise["y"] = np.random.default_rng(5).normal(0, 1.0, len(noise))
+    data = pd.concat([line, noise], ignore_index=True)
+    neural = NeuralTAM(formula="y ~ n(x, n_neurons=8, act='tanh', ap=6)", group_col="g", date_col="timestamp",
+                       epochs=300, patience=300, backfit_cycles=1, lr=0.05, batch_size=64).fit(data)
+    assert neural.network_used_["line"]["x"] is True
+    assert neural.network_used_["noise"]["x"] is False
+    assert "x" in neural.mlps_["line"] and "x" not in neural.mlps_["noise"]
+
+
+def test_the_guard_decision_is_reproducible_whatever_the_global_generator_did():
+    data = _signal()
+    with pytest.warns(UserWarning):
+        first = _guarded("y ~ l(x) + n(x, n_neurons=4)", data, seed=3)
+    torch.rand(500)
+    with pytest.warns(UserWarning):
+        second = _guarded("y ~ l(x) + n(x, n_neurons=4)", data, seed=3)
+    assert first.network_used_ == second.network_used_
+    np.testing.assert_array_equal(first.predict(data)["Estimatedy"], second.predict(data)["Estimatedy"])
+
+
+def test_a_network_on_a_shared_feature_is_compared_with_the_closed_form_effect_not_with_zero():
+    # y is a sine of x: the closed-form n() effect captures more of it than a network trained for 300 small steps, so the network must be dropped. Its column in the
+    # base decomposition is effect_n_x here (the feature is shared with l(x)), not effect_x: looking in the wrong column compares the network with zero, keeps it,
+    # and the forecast is ten times worse than the static one.
+    rng = np.random.default_rng(0)
+    x = rng.uniform(0, 6, 500)
+    data = pd.DataFrame({"timestamp": pd.date_range("2022-01-01", periods=500, freq="h"), "g": "a", "x": x, "y": 3 * np.sin(3 * x) + rng.normal(0, 0.1, 500)})
+    formula = "y ~ l(x) + n(x, n_neurons=8, act='tanh')"
+    static = ta.StaticTAM(formula=formula, group_col="g", date_col="timestamp").fit(data)
+    with pytest.warns(UserWarning, match="StaticTAM"):
+        neural = _guarded(formula, data, epochs=300, patience=300, lr=0.05, batch_size=64)
+    assert neural.network_used_ == {"a": {"x": False}}
+    np.testing.assert_allclose(neural.predict(data)["Estimatedy"], static.predict(data)["Estimatedy"], rtol=1e-9, atol=1e-9)

@@ -11,6 +11,7 @@ maintaining independent neural networks for distinct data groups.
 """
 
 import copy
+import warnings
 import torch
 import torch.nn as nn
 import pandas as pd
@@ -89,6 +90,16 @@ class DeepNeuralComponent(nn.Module):
 #: </deep_neural_component>
 
 #: <neural_tam_init>
+def neural_effect_columns(effects_list: list) -> Dict[int, str]:
+    """
+    Column of the base decomposition that holds the closed-form contribution of each neural effect, keyed by ``id(effect)``.
+
+    A feature shared with another effect (``l(x) + n(x)``) is prefixed by its basis (``effect_n_x``), so the column of a network cannot be guessed from its feature name.
+    """
+    names = decomposition_names(effects_list)
+    return {id(e): f"effect_{n}" for e, n in zip(effects_list, names) if isinstance(e, NeuralEffect)}
+
+
 class NeuralTAM:
     """
     Hybrid Deep-GAM Model managing two-stage structured and neural training.
@@ -109,6 +120,8 @@ class NeuralTAM:
         weight_decay (float): L2 regularization penalty for network weights.
         backfit_cycles (int): Number of Coordinate Descent cycles per group.
         gam_shrinkage (float): Relaxation parameter (0 to 1) for residual updates.
+        guard (bool): If True (default), a network replaces the closed-form effect it was started from only when it beats it on the validation rows; otherwise the closed-form effect is kept for that group and feature.
+        network_used_ (Dict[str, Dict[str, bool]]): For each group and neural feature, whether the network was kept (filled by ``fit``).
         seed (int): Seed of the generators behind the validation split, the epoch shuffling and the network initialisation. A fit never reads or advances the global torch generator.
         base_additive_model (StaticTAM): The underlying linear GAM solver.
         mlps_ (Dict[str, Dict[str, nn.Module]]): Trained networks mapped by group and feature.
@@ -133,6 +146,7 @@ class NeuralTAM:
         backfit_cycles: int = 3,
         gam_shrinkage: float = 1.0,
         seed: int = 42,
+        guard: bool = True,
         **kwargs: Any
     ):
         """Initializes the NeuralTAM model configuration."""
@@ -150,12 +164,14 @@ class NeuralTAM:
         self.backfit_cycles = backfit_cycles
         self.gam_shrinkage = gam_shrinkage
         self.seed = seed
+        self.guard = guard
         
         self.base_additive_model = StaticTAM(formula, self.group_col_, self.date_col_, **kwargs)
         
         self.mlps_: Dict[str, Dict[str, nn.Module]] = {} 
         self.x_scalers_: Dict[str, Dict[str, tuple]] = {}
         self.y_scalers_: Dict[str, Dict[str, tuple]] = {}
+        self.network_used_: Dict[str, Dict[str, bool]] = {}
         
         self.coefficients_ = None 
         self.target_col_ = None
@@ -244,6 +260,8 @@ class NeuralTAM:
         neural_effects = [e for e in self.base_additive_model.effects_list_ if isinstance(e, NeuralEffect)]
         if not neural_effects: 
             return
+        closed_form_column = neural_effect_columns(self.base_additive_model.effects_list_)
+        self.network_used_ = {}
             
         global_res_train_full = data_train[self.target_col_].values - decomposed_train[est_col].values
         
@@ -259,6 +277,7 @@ class NeuralTAM:
             self.mlps_[group_name] = {}
             self.x_scalers_[group_name] = {}
             self.y_scalers_[group_name] = {}
+            self.network_used_[group_name] = {}
             
             mask_train = (data_train[self.group_col_] == group_name).values
             group_data_train = data_train.iloc[mask_train]
@@ -279,7 +298,7 @@ class NeuralTAM:
 
             current_preds_train = {}
             for ne in neural_effects:
-                col_name = f'effect_{ne.feature_name}'
+                col_name = closed_form_column[id(ne)]
                 if col_name in decomposed_train.columns:
                     current_preds_train[ne.feature_name] = decomposed_train.loc[mask_train, col_name].values.copy()
                 else:
@@ -288,11 +307,14 @@ class NeuralTAM:
             current_preds_val = {}
             if group_data_val is not None:
                 for ne in neural_effects:
-                    col_name = f'effect_{ne.feature_name}'
+                    col_name = closed_form_column[id(ne)]
                     if col_name in decomposed_val.columns:
                         current_preds_val[ne.feature_name] = decomposed_val.loc[mask_val, col_name].values.copy()
                     else:
                         current_preds_val[ne.feature_name] = np.zeros_like(group_res_val)
+
+            closed_form_train = {name: values.copy() for name, values in current_preds_train.items()}     # what the closed-form effects contribute before any network
+            closed_form_val = {name: values.copy() for name, values in current_preds_val.items()}
 
             X_train_dict, X_val_dict = {}, {}
             for ne in neural_effects:
@@ -323,12 +345,14 @@ class NeuralTAM:
                     self.y_scalers_[group_name][f_name] = (Y_mean.item(), Y_std.item())
                     Y_scaled_train = (Y_tensor_raw - Y_mean) / Y_std
                     X_scaled_train = X_train_dict[f_name]
+                    closed_form_scaled = (torch.tensor(closed_form_train[f_name], dtype=torch.get_default_dtype(), device=TORCH_DEVICE).unsqueeze(1) - Y_mean) / Y_std
                     
                     if group_data_val is not None:
                         partial_res_val = group_res_val + current_preds_val[f_name]
                         Y_val_raw = torch.tensor(partial_res_val, dtype=torch.get_default_dtype(), device=TORCH_DEVICE).unsqueeze(1)
                         Y_scaled_val = (Y_val_raw - Y_mean) / Y_std
                         X_scaled_val = X_val_dict[f_name]
+                        closed_form_scaled_val = (torch.tensor(closed_form_val[f_name], dtype=torch.get_default_dtype(), device=TORCH_DEVICE).unsqueeze(1) - Y_mean) / Y_std
                     else:
                         num_samples = X_scaled_train.shape[0]
                         val_size = max(1, int(num_samples * self.val_split))
@@ -341,6 +365,7 @@ class NeuralTAM:
                             
                         train_idx, val_idx = indices[:train_size], indices[train_size:]
                         X_scaled_val, Y_scaled_val = X_scaled_train[val_idx], Y_scaled_train[val_idx]
+                        closed_form_scaled_val = closed_form_scaled[val_idx]
                         X_scaled_train, Y_scaled_train = X_scaled_train[train_idx], Y_scaled_train[train_idx]
                     
                     init_seed = int(torch.randint(0, 2**31 - 1, (1,), generator=init_gen))
@@ -395,11 +420,19 @@ class NeuralTAM:
                         mlp.load_state_dict(best_model_state)
                     
                     mlp.eval()
-                    self.mlps_[group_name][f_name] = mlp
+                    # The network replaces the closed-form effect only if it beats it on the same validation rows.
+                    keep_network = (not self.guard) or best_val_loss < criterion(closed_form_scaled_val, Y_scaled_val).item()
+                    self.network_used_[group_name][f_name] = bool(keep_network)
+                    if keep_network:
+                        self.mlps_[group_name][f_name] = mlp
+                    else:
+                        self.mlps_[group_name].pop(f_name, None)
                     
                     with torch.no_grad():
                         preds_scaled_train = mlp(X_train_dict[f_name]).cpu().numpy().flatten()
                         preds_raw_train = (preds_scaled_train * self.y_scalers_[group_name][f_name][1]) + self.y_scalers_[group_name][f_name][0]
+                        if not keep_network:
+                            preds_raw_train = closed_form_train[f_name]
                         
                         updated_pred_train = current_preds_train[f_name] + self.gam_shrinkage * (preds_raw_train - current_preds_train[f_name])
                         group_res_train = partial_res_train - updated_pred_train
@@ -408,10 +441,16 @@ class NeuralTAM:
                         if group_data_val is not None:
                             preds_scaled_val = mlp(X_val_dict[f_name]).cpu().numpy().flatten()
                             preds_raw_val = (preds_scaled_val * self.y_scalers_[group_name][f_name][1]) + self.y_scalers_[group_name][f_name][0]
+                            if not keep_network:
+                                preds_raw_val = closed_form_val[f_name]
                             
                             updated_pred_val = current_preds_val[f_name] + self.gam_shrinkage * (preds_raw_val - current_preds_val[f_name])
                             group_res_val = partial_res_val - updated_pred_val
                             current_preds_val[f_name] = updated_pred_val
+
+        if self.guard and not any(kept for group in self.network_used_.values() for kept in group.values()):
+            warnings.warn("NeuralTAM: no network beat its closed-form effect on the validation rows, so the model equals its StaticTAM. "
+                          "Give the networks more epochs or neurons, or pass guard=False to keep them anyway.", UserWarning, stacklevel=3)
 #: </orthogonal_backfitting>
 
 #: <neural_decompose>
