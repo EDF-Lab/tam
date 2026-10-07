@@ -33,6 +33,8 @@ The factory merges all distinct penalty matrices into a global block-diagonal sy
 :end-before: "#: </build_penalty>"
 ```
 
+Some effects hold data-dependent state: the knots of a spline, the splits of a tree or a linear tree, the centres of an RBF, and the same state inside the margins of a tensor product. `initialize_effects()` sets it from the full training tensor, routing the columns exactly as `build_phi_from_effects()` does (each effect exposes `initialize(x_cols)`). It runs before any design matrix is built, so that neither the dispatcher's memory probe (one row per group) nor the first chunk of a memory-bounded solve decides the knots or the splits from a subset of the data. An effect already initialised is left unchanged.
+
 ---
 
 ## Linear 
@@ -270,7 +272,7 @@ Converts Oblivious Trees into sparse Euclidean bit-strings, modeling Random Binn
 ```
 
 **3. Penalty Matrix**
-Safely instantiates the Anisotropic Sparsity-Adaptive Ridge penalty over the terminal leaves strictly as a sparse COO tensor. It dynamically scales the $L_2$ shrinkage inversely to the empirical data density ($C_i$) captured during initialization, heavily penalizing starved edge leaves to guarantee global matrix rank.
+Safely instantiates the Anisotropic Sparsity-Adaptive Ridge penalty over the terminal leaves strictly as a sparse COO tensor. It dynamically scales the $L_2$ shrinkage inversely to the empirical data density ($C_i$) captured during initialization, heavily penalizing starved edge leaves to guarantee global matrix rank. The counts are pooled over every group and sample (`one_hot_bins.reshape(-1, total_leaves).sum(0)`), one value per leaf.
 ```{literalinclude} ../../../../src/tam/model/spectrum/_tree.py
 :language: python
 :start-after: "#: <penalty_matrix>"
@@ -363,6 +365,10 @@ Constructs a $3 \times 3$ diagonal stiffness matrix. Uniquely applies an artific
 :end-before: "#: </penalty_matrix>"
 ```
 
+**Reading the parameters.** `d_pen` multiplies the ridge penalty of the derivative term only, relative to the penalty `ap` of the effect. With the default penalty (1e-9) that ridge is already negligible, so `d_pen` changes nothing; it acts with an explicit penalty (`ap=-2`), where a large `d_pen` penalises the derivative out. `auto_fit` tunes that penalty, and on a formula that already holds the lag's difference it often shrinks the whole effect, which leaves `d_pen` nothing to scale. The tests `test_d_pen_*` in `tests/spectrum/test_pid.py` pin this behaviour.
+
+**Frame dependence.** The derivative and the rolling mean are computed along the rows of the frame given to `predict()`: the first `w` rows of each group of a frame get values that training never saw. Predict a frame that holds the history (the training rows, then the new rows) and slice the result; a short frame alone gives wrong PID features. With a trending lag that leaves the trained range, the P and I terms extrapolate the raw lag, and `extrapolate='linear'` can be much worse than the default.
+
 ### Control Diagnostics (Bode Stability)
 
 **Core Interface:** `bode.py`
@@ -417,7 +423,7 @@ Natively encapsulates the base `TreeEffect` (local intercept) and computes the K
 ```
 
 **3. Penalty Matrix**
-Constructs the block-diagonal encapsulation of the anisotropic sparsity-adaptive tree penalty (local intercepts) and the Kronecker tensor penalty (local slopes), safely coalescing them into a single sparse COO tensor. Both sub-blocks are weighted by the term's own `lambda_p`. They are seeded with it at construction, and `LinearTreeEffect` exposes `lambda_p` as a property whose setter forwards the new value, so a weight reassigned later, as the GCV search does on every candidate, reaches the blocks it is meant to scale.
+Constructs the block-diagonal encapsulation of the anisotropic sparsity-adaptive tree penalty (local intercepts) and the Kronecker tensor penalty (local slopes), safely coalescing them into a single sparse COO tensor. Both blocks share the term's single weight: the `lambda_p` property forwards every assignment (for instance each GCV candidate) to the intercept tree and to the slope surface.
 
 ```{literalinclude} ../../../../src/tam/model/spectrum/_linear_tree.py
 :language: python

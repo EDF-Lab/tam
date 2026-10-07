@@ -1,6 +1,6 @@
 # SPDX-FileCopyrightText: 2025-2026 EDF (Electricité De France)
+# SPDX-FileContributor: Yann Allioux
 # SPDX-License-Identifier: LGPL-3.0-or-later
-# Author : Yann Allioux
 
 r"""
 Implements the Aggregated TAM (OperaTAM) model.
@@ -259,6 +259,7 @@ class OperaTAM:
             raise ValueError("No valid experts found. Ensure syntax uses 'l(expert_name)'.")
             
         self.weights_history_: Dict[str, np.ndarray] = {}
+        self.compacted_ = False
 
     def predict_online(self, df: pd.DataFrame) -> pd.DataFrame:
         r"""
@@ -298,8 +299,8 @@ class OperaTAM:
             df_g = df_group.sort_values(by=self.date_col) if self.date_col in df_group.columns else df_group.sort_index()
             group_names.append(group_name)
             
-            x_list.append(torch.tensor(df_g[self.expert_cols].values, dtype=torch.get_default_dtype(), device=TORCH_DEVICE))
-            y_list.append(torch.tensor(df_g[self.target_col].values, dtype=torch.get_default_dtype(), device=TORCH_DEVICE).unsqueeze(1))
+            x_list.append(torch.tensor(np.ascontiguousarray(df_g[self.expert_cols].to_numpy()), dtype=torch.get_default_dtype(), device=TORCH_DEVICE))
+            y_list.append(torch.tensor(np.ascontiguousarray(df_g[self.target_col].to_numpy()), dtype=torch.get_default_dtype(), device=TORCH_DEVICE).unsqueeze(1))
             
         # Create contiguous 3D tensors: (Groups, Time, Experts)
         X_tensor_3d = torch.stack(x_list).contiguous()
@@ -408,6 +409,19 @@ class OperaTAM:
         # 3. Cleanup dummies before returning
         return _cleanup_dummies(result, self.group_col, self.date_col)
 
+    def compact(self) -> 'OperaTAM':
+        r"""
+        Keeps the last row of ``weights_history_`` per group, the only one ``predict()`` reads, and drops the rest.
+
+        ``plot_weights`` needs the whole history and raises after ``compact()``.
+
+        Returns:
+            self
+        """
+        self.weights_history_ = {g: w[-1:].copy() for g, w in self.weights_history_.items()}
+        self.compacted_ = True
+        return self
+
     def plot_weights(
         self, 
         df: Optional[pd.DataFrame] = None, 
@@ -417,6 +431,8 @@ class OperaTAM:
         Plots the temporal evolution of dynamic expert weights using stacked area charts.
         Automatically handles datetime indices/columns and multi-group subplots.
         """
+        if getattr(self, 'compacted_', False):
+            raise RuntimeError("The weight history was dropped by compact(): run predict_online() again to plot it.")
         import matplotlib.pyplot as plt
         import matplotlib.ticker as ticker
         import matplotlib.dates as mdates

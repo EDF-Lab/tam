@@ -1,6 +1,6 @@
 # SPDX-FileCopyrightText: 2026 EDF (Electricité De France)
+# SPDX-FileContributor: Yann Allioux
 # SPDX-License-Identifier: LGPL-3.0-or-later
-# Author : Yann Allioux
 
 """
 Location-scale distributional schedule and numerics.
@@ -13,6 +13,7 @@ type(model)(...) so this file never imports StaticTAM (no circular import).
 """
 from __future__ import annotations
 
+import warnings
 from typing import Optional, Sequence, Tuple
 
 import numpy as np
@@ -218,11 +219,26 @@ def mu_sigma(model, data: pd.DataFrame) -> Tuple[np.ndarray, np.ndarray]:
     return mu_hat, np.clip(np.sqrt(conditional_variance), _TINY, None)
 
 
+def _to_response_scale(model_scale: np.ndarray, quantity: str) -> np.ndarray:
+    """exp() of a model-scale value for a log target; a value beyond float64 is inf, with an explicit warning (not numpy's)."""
+    with np.errstate(over="ignore"):
+        response = np.exp(model_scale)
+    overflowed = np.flatnonzero(np.isposinf(response) & (model_scale > 0))
+    if overflowed.size:
+        warnings.warn(
+            f"exp overflow in {quantity}: {overflowed.size} row(s) exceed the float64 range on the response scale "
+            f"and are returned as inf (first rows: {overflowed[:5].tolist()}). The location or scale prediction is "
+            f"far outside the training range there.",
+            UserWarning, stacklevel=3,
+        )
+    return response
+
+
 # --- Prediction / scoring ---------------------------------------------------------------------------
 def predict_median(model, data: pd.DataFrame) -> np.ndarray:
     require_distributional(model, "predict_median")
     mu_hat, _ = mu_sigma(model, data)
-    return np.exp(mu_hat) if model._log_target_ else mu_hat
+    return _to_response_scale(mu_hat, "the median (predict_median)") if model._log_target_ else mu_hat
 
 
 def predict_quantile(model, data: pd.DataFrame, tau) -> np.ndarray:
@@ -232,7 +248,10 @@ def predict_quantile(model, data: pd.DataFrame, tau) -> np.ndarray:
     columns = []
     for level in tau_list:
         model_scale_quantile = mu_hat + sigma_hat * _standardized_ppf(model, float(level))
-        columns.append(np.exp(model_scale_quantile) if model._log_target_ else model_scale_quantile)
+        columns.append(
+            _to_response_scale(model_scale_quantile, f"the quantile at level {float(level)} (predict_quantile)")
+            if model._log_target_ else model_scale_quantile
+        )
     stacked = np.stack(columns, axis=1)
     return stacked[:, 0] if np.isscalar(tau) else stacked
 
@@ -282,7 +301,7 @@ def anomaly_score(model, data: pd.DataFrame) -> pd.DataFrame:
     z_score = (observed - mu_hat) / sigma_hat
     upper_tail = _standardized_cdf(model, z_score)
     tail_pvalue = np.clip(2.0 * np.minimum(upper_tail, 1.0 - upper_tail), _TINY, 1.0)
-    median = np.exp(mu_hat) if model._log_target_ else mu_hat
+    median = _to_response_scale(mu_hat, "the median (anomaly_score)") if model._log_target_ else mu_hat
     return pd.DataFrame({
         "predicted_median": median,
         "z_score": z_score,

@@ -1,0 +1,62 @@
+version = 1
+
+# Files that carry no SPDX header (documentation, configuration, images, the use cases, empty package markers).
+# Source and test files carry their own header (tests/test_spdx_headers.py checks it).
+[[annotations]]
+path = [
+    "use_cases/**",
+    "docs/**",
+    "architecture/**",
+    "math/**",
+    "slides/**",
+    ".github/**",
+    "tests/regression/README.md",
+    "tests/regression/RESULTS.txt",
+    "tests/regression/RESULTS_EXP.txt",
+    "tests/regression/data/force_2023.sha256",
+    "*.md",
+    "*.bib",
+    "*.cff",
+    "*.toml",
+    "*.txt",
+    "*.bat",
+    ".gitignore",
+    ".gitattributes",
+    "LICENSE",
+    "src/tam/common/__init__.py",
+    "src/tam/model/autotam/__init__.py",
+    "src/tam/model/autotam/evaluation/__init__.py",
+    "src/tam/model/autotam/pipeline/__init__.py",
+]
+precedence = "closest"
+SPDX-FileCopyrightText = "2025-2026 EDF (Electricité De France)"
+SPDX-License-Identifier = "LGPL-3.0-or-later"
+
+# The frozen dataset of the regression checks: an extract of the FORCE dataset, published under CC BY 4.0.
+[[annotations]]
+path = "tests/regression/data/force_2023.csv"
+precedence = "closest"
+SPDX-FileCopyrightText = "FORCE dataset (French Open Research Catalogue of Energy), Zenodo 10.5281/zenodo.21109134"
+SPDX-License-Identifier = "CC-BY-4.0"
+
+# The datasets shipped in the package.
+# The national load and temperature dataset is the FORCE dataset, published under CC BY 4.0.
+[[annotations]]
+path = "src/tam/data/dataset_national.csv"
+precedence = "closest"
+SPDX-FileCopyrightText = "FORCE dataset (French Open Research Catalogue of Energy), Zenodo 10.5281/zenodo.21109134"
+SPDX-License-Identifier = "CC-BY-4.0"
+
+# The Air Passengers series (monthly international airline passengers, 1949-1960) of Box, Jenkins and Reinsel: a historical statistical series in the public domain.
+[[annotations]]
+path = "src/tam/data/airpassengers.csv"
+precedence = "closest"
+SPDX-FileCopyrightText = "Box, Jenkins and Reinsel, Time Series Analysis: Forecasting and Control (monthly international airline passengers, 1949-1960)"
+SPDX-License-Identifier = "CC0-1.0"
+
+# The Developer Certificate of Origin 1.1, copied verbatim (changing it is not allowed by its own text).
+[[annotations]]
+path = "DCO"
+precedence = "closest"
+SPDX-FileCopyrightText = "2004, 2006 The Linux Foundation and its contributors"
+SPDX-License-Identifier = "LicenseRef-DCO-1.1"

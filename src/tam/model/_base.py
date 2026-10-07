@@ -1,6 +1,6 @@
 # SPDX-FileCopyrightText: 2025-2026 EDF (Electricité De France)
+# SPDX-FileContributor: Yann Allioux
 # SPDX-License-Identifier: LGPL-3.0-or-later
-# Author : Yann Allioux
 
 r"""
 Abstract base class for TAM models.
@@ -21,7 +21,7 @@ from tam.common.utils import (
 )
 from tam.common.hardware import hw
 from ._math import _predict_from_coeffs
-from ._data import _reassemble_predictions
+from ._data import _reassemble_predictions, _check_known_groups, _coefficients_of_groups
 from ._dispatcher import smart_solve
 
 #: <class_def>
@@ -104,7 +104,7 @@ class BaseTAM(ABC):
 #: </class_def>
 
 #: <predictive_chunking>
-    def _get_chunked_predictions(self, x_data: torch.Tensor) -> torch.Tensor:
+    def _get_chunked_predictions(self, x_data: torch.Tensor, coefficients: Optional[torch.Tensor] = None) -> torch.Tensor:
         r"""
         Memory-safe chunked computation of Phi.theta.
         
@@ -126,7 +126,8 @@ class BaseTAM(ABC):
         bytes_per_group_full_n = num_samples * total_d * 8 * 3.0 
         safe_group_batch = max(1, int(allocatable_bytes // bytes_per_group_full_n)) if bytes_per_group_full_n > 0 else 1
         
-        beta = self.coefficients_.to(run_device)
+        coefficients = self.coefficients_ if coefficients is None else coefficients
+        beta = coefficients.to(run_device)
         predictions = []
         g_start = 0
 
@@ -153,7 +154,7 @@ class BaseTAM(ABC):
                         context="predictive group reduction", 
                         allow_cpu_fallback=True
                     )
-                    beta = self.coefficients_.to(run_device)
+                    beta = coefficients.to(run_device)
                     continue
                 else:
                     raise RuntimeError("A single full group exceeds available physical memory during prediction.")
@@ -256,6 +257,17 @@ class BaseTAM(ABC):
         return self
 #: </fit_method>
 
+    def compact(self) -> 'BaseTAM':
+        r"""
+        Drops what grows with the data and ``predict()`` does not need; forecasts are unchanged to the last bit.
+
+        A fitted ``StaticTAM`` holds its coefficients only, so there is nothing to drop: the size does not depend on the number of training rows.
+
+        Returns:
+            self
+        """
+        return self
+
 #: <predict_method>
     def predict(self, data: pd.DataFrame) -> pd.DataFrame:
         r"""
@@ -282,6 +294,7 @@ class BaseTAM(ABC):
         #  Data Preparation
         required_cols = self.features_config_['features'] + [self.group_col_, self.date_col_]
         _check_features(dataset=data, required_features=required_cols)
+        _check_known_groups(data, self.group_col_, self.unique_groups_)
         
         # Balance by 'fill' to preserve all rows
         mask, balanced_data = _balance_groups(
@@ -297,7 +310,9 @@ class BaseTAM(ABC):
              raise RuntimeError("Training groups not found. Model state is corrupted.")
 
         #  Prediction
-        predictions_stacked = self._get_chunked_predictions(x_predict)
+        predictions_stacked = self._get_chunked_predictions(
+            x_predict, _coefficients_of_groups(self.coefficients_, unique_groups_pred, self.unique_groups_)
+        )
 
         #  Reassembly
         data_with_predictions = _reassemble_predictions(

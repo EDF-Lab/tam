@@ -1,6 +1,6 @@
 # SPDX-FileCopyrightText: 2025-2026 EDF (Electricité De France)
+# SPDX-FileContributor: Yann Allioux
 # SPDX-License-Identifier: LGPL-3.0-or-later
-# Author : Yann Allioux
 
 r"""
 Unit tests for ``tam.model.kalman.KalmanTAM``, the Block Kalman Filter
@@ -13,6 +13,13 @@ import pytest
 
 import tam as ta
 from tam.model.kalman import KalmanTAM
+
+# These tests use small panels, an explicit block_size and the default reference period: the messages are expected.
+pytestmark = [
+    pytest.mark.filterwarnings("ignore:KalmanTAM:UserWarning"),
+    pytest.mark.filterwarnings("ignore:The calibration period includes:UserWarning"),
+    pytest.mark.filterwarnings("ignore:lookback_days is deprecated:FutureWarning"),
+]
 
 
 def test_kalman_standalone_predict_online(dummy_panel_data):
@@ -131,31 +138,23 @@ def test_kalman_fit_predict_operational(dummy_panel_data):
 
 def test_kalman_coherence(dummy_panel_data):
     """
-    Parity Test: Ensures the final step of the dynamic Kalman tracking
-    matches exactly with the frozen static rule applied during inference.
+    Parity Test: the frozen state of ``fit()`` forecasts the next step exactly as the online simulation does
+    (``block_size=1``): fit on all but the last day, predict the last day.
     """
-    # 1. Dynamic continuous tracking
-    model_dyn = KalmanTAM(
-        kalman_formula="load ~ l(temperature)", group_col="smart_meter_id", date_col="timestamp", 
-        block_size=16, horizon_steps=1
-    )
-    res_dyn = model_dyn.predict_online(dummy_panel_data)
-    
-    # 2. Frozen state inference
-    model_stat = KalmanTAM(
-        kalman_formula="load ~ l(temperature)", group_col="smart_meter_id", date_col="timestamp", 
-        block_size=16, horizon_steps=1
-    )
-    model_stat.fit(dummy_panel_data)
-    res_stat = model_stat.predict(dummy_panel_data)
-    
-    # 3. Mathematical Parity Check on the last timestamp
-    group_id = dummy_panel_data['smart_meter_id'].iloc[0]
-    
-    last_dyn = res_dyn[res_dyn['smart_meter_id'] == group_id].iloc[-1]['KalmanAdapted_load']
-    last_stat = res_stat[res_stat['smart_meter_id'] == group_id].iloc[-1]['KalmanAdapted_load']
-    
+    dates = np.sort(dummy_panel_data["timestamp"].unique())
+    history = dummy_panel_data[dummy_panel_data["timestamp"] < dates[-1]]
+    last_day = dummy_panel_data[dummy_panel_data["timestamp"] == dates[-1]]
+
+    kwargs = dict(kalman_formula="load ~ l(temperature)", group_col="smart_meter_id", date_col="timestamp",
+                  block_size=1, horizon_steps=1, calibration_steps=30)
+    res_dyn = KalmanTAM(**kwargs).predict_online(dummy_panel_data)
+    res_dyn = res_dyn[res_dyn["timestamp"] == dates[-1]].set_index("smart_meter_id")["KalmanAdapted_load"]
+
+    model_stat = KalmanTAM(**kwargs)
+    model_stat.fit(history)
+    res_stat = model_stat.predict(last_day.drop(columns=["load"])).set_index("smart_meter_id")["KalmanAdapted_load"]
+
     np.testing.assert_allclose(
-        last_dyn, last_stat, rtol=1e-4, 
-        err_msg="KalmanTAM frozen predict() diverged from the final state of predict_online()."
+        res_stat.reindex(res_dyn.index).to_numpy(), res_dyn.to_numpy(), rtol=1e-9,
+        err_msg="KalmanTAM fit() then predict() of the next day diverged from the online simulation."
     )

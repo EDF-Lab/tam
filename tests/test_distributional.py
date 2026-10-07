@@ -1,6 +1,6 @@
 # SPDX-FileCopyrightText: 2026 EDF (Electricité De France)
+# SPDX-FileContributor: Yann Allioux
 # SPDX-License-Identifier: LGPL-3.0-or-later
-# Author : Yann Allioux
 
 r"""
 Tests for the distributional mode of :class:`StaticTAM`, the log-location-scale fit produced by a
@@ -12,6 +12,7 @@ automatic Normal/Student-t tail diagnostic.
 """
 import numpy as np
 import pandas as pd
+import pytest
 from scipy import stats
 
 from tam import StaticTAM
@@ -96,6 +97,8 @@ def test_anomaly_detection_and_side():
     assert (scored.loc[40:, "side"] == "under").all()
 
 
+# The fixture's scale model reaches sigma ~3e6 on one test row: that quantile is inf and warns explicitly (see test_quantile_overflow.py).
+@pytest.mark.filterwarnings("ignore:exp overflow:UserWarning")
 def test_predict_quantiles_frame_is_labelled_and_non_crossing():
     rng = np.random.default_rng(11)
     model = _fit(rng, dist_kwargs={"tail_family": "normal"})

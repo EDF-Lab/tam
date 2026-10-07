@@ -1,6 +1,6 @@
 # SPDX-FileCopyrightText: 2025-2026 EDF (Electricité De France)
+# SPDX-FileContributor: Yann Allioux
 # SPDX-License-Identifier: LGPL-3.0-or-later
-# Author : Yann Allioux
 
 r"""Implements the P-Spline effect (B-Splines + Difference Penalty)."""
 
@@ -36,12 +36,22 @@ class SplineEffect(BaseEffect):
         self._n_coeffs = self.n_knots + self.spline_degree
         self._cached_knots = None
 
+    def initialize(self, x_cols: torch.Tensor) -> None:
+        r"""Sets the knots from the full training tensor, so that the memory probe (one row per group) never decides them."""
+        if self._cached_knots is None:
+            self._get_knots(x_cols)
+
     def get_n_coeffs(self) -> int:
         return self._n_coeffs
 
     def _get_knots(self, x_data: torch.Tensor, is_dummy: bool = False) -> torch.Tensor:
-        r"""Manually constructs the full knot vector with correct padding."""
-        if self._cached_knots is not None and not is_dummy:
+        r"""Manually constructs the full knot vector with correct padding.
+
+        Once set from the training data, the knots are never recomputed: a prediction must not depend on how many values
+        it is evaluated on. A single value (one row per group, or the lone out-of-range value of a frame) is evaluated on
+        the trained knots like any other.
+        """
+        if self._cached_knots is not None:
             return self._cached_knots
 
         valid_x = x_data[torch.isfinite(x_data)]

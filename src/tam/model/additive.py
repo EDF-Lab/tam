@@ -1,7 +1,8 @@
-# SPDX-FileCopyrightText: 2023-2026 EDF (Electricité De France) et Sorbonne Université
+# SPDX-FileCopyrightText: 2023-2026 EDF (Electricité De France)
 # SPDX-FileCopyrightText: 2023-2025 Sorbonne Université
+# SPDX-FileContributor: Yann Allioux
+# SPDX-FileContributor: Nathan Doumèche
 # SPDX-License-Identifier: LGPL-3.0-or-later
-# Authors : Yann Allioux, Nathan Doumèche
 
 """
 Implements the core Additive TAM (StaticTAM) model.
@@ -14,6 +15,7 @@ methods for hyperparameter tuning and model interpretation.
 
 from typing import Dict, List, Any, Tuple, Optional, Union, Sequence
 import re
+import warnings
 import torch
 import pandas as pd
 import numpy as np 
@@ -22,11 +24,15 @@ from tam.common.utils import (
     TORCH_DEVICE, _check_features, _balance_groups, parse_formula_to_terms, 
     _ensure_dummies, _cleanup_dummies
 )
+from tam.common.exceptions import warn_extrapolation, EXTRAPOLATION_TOLERANCE
 from ._base import BaseTAM
 from .safety import SafetyTAM
 from ._data import (
     _fit_normalization_params,
     _transform_data_stacked,
+    _groups_in_data,
+    _check_known_groups,
+    _coefficients_of_groups,
     _reassemble_decomposed_predictions
 )
 
@@ -40,6 +46,10 @@ from .spectrum import (
     NeuralEffect, RBFEffect, UniversalPhysicsEffect,
     TensorProductEffect, TreeEffect, LinearTreeEffect,
     create_effects_from_parsed_terms,
+    initialize_effects,
+    categorical_ranges,
+    categorical_features,
+    extrapolating_features,
     build_phi_from_effects,
     build_penalty_from_effects
 )
@@ -58,26 +68,6 @@ class StaticTAM(BaseTAM):
     The model minimizes the penalized empirical risk by solving the regularized
     normal equations in the primal space. See the theoretical documentation for
     exact mathematical proofs.
-
-    Three modes share this class, selected by the constructor arguments:
-
-    * **Point (default)**: a string formula. ``loss="l2"`` solves the regularized
-      normal equations once; any other loss (``"gamma"``, ``"poisson"``,
-      ``"binomial"``, ``"expectile"``, ``"huber"``, ``"student_t"``) refits them by
-      iteratively reweighted least squares. ``predict`` returns the point estimate.
-    * **Location-scale (distributional)**: a dict formula
-      ``{"mu": "y ~ ...", "sigma": "y ~ ..."}`` fits a location sub-model and a
-      scale sub-model (``sigma`` defaults to the ``mu`` right-hand side) and selects
-      a Normal or Student-t tail. It exposes ``predict_quantiles(data, taus)``, which
-      returns one ``q<tau>`` column per level, as well as ``predict_quantile``,
-      ``predict_median``, ``cdf``, ``crps`` and ``anomaly_score``. The target is
-      modelled on the log scale unless ``dist_kwargs={"log_target": False}``.
-    * **Mixture**: ``mixture_components=K`` fits K component regressions by EM
-      (``predict_mean``, ``component_means``, ``responsibilities``, ``log_density``).
-
-    Conformal intervals (``calibrate_conformal`` then ``predict_intervals``) wrap
-    the point estimate of any mode: the prediction, the distributional median or
-    the mixture mean.
 
     Attributes:
         effects_list_ (List[BaseEffect]): The list of instantiated effect objects.
@@ -114,22 +104,6 @@ class StaticTAM(BaseTAM):
                 you must pass date_col explicitly to guarantee correct results
                 on data that isn't already sorted by time.
             default_alpha_p: Default log10(lambda_p) regularization strength.
-            loss: Fitting loss. Point mode: "l2" (default; "gaussian" and "normal" are
-                aliases), "gamma", "poisson", "binomial", "expectile", "huber" or
-                "student_t". Distributional mode: a string (the location loss) or a dict
-                {"mu": <location loss>, "sigma": "gamma" | "l2"}; the scale loss defaults
-                to "gamma" (Gamma GLM on squared residuals), and "l2" fits the log squared
-                residual instead.
-            loss_kwargs: Loss parameters, e.g. {"tau": 0.9} for "expectile",
-                {"delta": 1.345} for "huber", {"nu": 4.0} for "student_t".
-            dist_kwargs: Distributional and mixture options: log_target (default True),
-                tail_family ("auto"), kurtosis_threshold (1.0), scale_shrinkage (0.0, in
-                [0, 1]), location_alpha_p and scale_alpha_p (log10 penalties of the location
-                and scale sub-models; scale_alpha_p defaults to default_alpha_p + 2).
-            mixture_components: Number K of mixture components; enables mixture mode.
-                Incompatible with a dict formula.
-            mixture_kwargs: Mixture EM options: seed (0), n_init (1), max_iter (100),
-                tol (1e-5).
             _internal_effects_list: (Internal) Used for restoring state during grid search.
             _internal_features_config: (Internal) Used for restoring state during grid search.
         """
@@ -397,6 +371,35 @@ class StaticTAM(BaseTAM):
                 info[col] = int(data[col].max(skipna=True)) + 1
         return info
     
+    def _warn_missing_levels(self, data: pd.DataFrame) -> None:
+        r"""
+        Training-time information: a ``c()`` term whose ``n_cat`` is given in the formula expects the levels ``0 .. n_cat - 1``
+        (``1 .. n_cat`` when the codes do not fit there); the levels the training rows do not hold have no data behind them.
+        Features with non-integer codes (a coordinate read by a Fourier topology) are skipped.
+        """
+        for effect in self.effects_list_:
+            if not isinstance(effect, CategoricalEffect) or not getattr(effect, "n_cat_given", True):
+                continue
+            if effect.feature_name not in data.columns:
+                continue
+            codes = data[effect.feature_name].dropna()
+            if codes.empty or not (codes == np.round(codes)).all():
+                continue
+            n = effect.n_categories
+            start = 0 if codes.max() <= n - 1 else int(codes.min())
+            missing = sorted(set(range(start, start + n)) - set(codes.astype(int).unique().tolist()))
+            if not missing:
+                continue
+            effect_of_missing = {
+                "nominal": "Their effect is regularized to 0.",
+                "ordinal": "Their effect follows from their neighbours through the smoothness penalty.",
+                "fourier": "They have no estimate of their own (the effect is a smooth periodic curve).",
+            }[effect.topology]
+            warnings.warn(
+                f"TAM [Info]: the categorical feature '{effect.feature_name}' is configured with {n} categories, but "
+                f"{len(missing)} are missing from the training data: {missing[:12]}{'...' if len(missing) > 12 else ''}. {effect_of_missing}",
+                UserWarning, stacklevel=4)
+
     def summary(self) -> pd.DataFrame:
         """
         Generates a structured summary of the model architecture.
@@ -445,14 +448,16 @@ class StaticTAM(BaseTAM):
             else:
                 details = "Custom"
 
-            lambda_p_log = np.log10(effect.lambda_p) if effect.lambda_p > 0 else -np.inf
+            coordinates = effect.penalty_coordinates()
+            logs = [round(float(np.log10(c)), 2) if c > 0 else -np.inf for c in coordinates]
+            lambda_p_log = logs[0] if len(logs) == 1 else " / ".join(f"{v:.2f}" for v in logs)
 
             summary_data.append({
                 "Feature": name,
                 "Type": eff_type_raw,
                 "Complexity (D)": complexity,
                 "Structure / Params": details,
-                "Reg (log10)": round(lambda_p_log, 2)
+                "Reg (log10)": lambda_p_log
             })
             
         return pd.DataFrame(summary_data)
@@ -483,9 +488,13 @@ class StaticTAM(BaseTAM):
             self.norm_params_, self.unique_groups_ = _fit_normalization_params(
                 data=data, 
                 features=self.features_config_["features"], 
-                group_col=self.group_col_
+                group_col=self.group_col_,
+                categorical_levels=categorical_ranges(self.effects_list_)
             )
             
+        if target_col is not None:
+            self._warn_missing_levels(data)
+
         x_stacked, y_stacked = _transform_data_stacked(
             data=data, 
             features=self.features_config_["features"], 
@@ -495,20 +504,67 @@ class StaticTAM(BaseTAM):
             unique_groups=self.unique_groups_,
             date_col=self.date_col_
         )
-        
+
         if torch.isnan(x_stacked).any():
             raise ValueError(
                 "TAM [Data Error]: The input features (X) contain NaN values. "
                 "Please clean or impute your dataset."
             )
             
+        # Trees and RBF centres are set from the full training tensor, never from a memory probe or a chunk.
+        # Only the training call reaches this with uninitialised effects; later calls leave them unchanged.
+        if target_col is not None:
+            feature_names = self.features_config_['features'] if self.features_config_ else None
+            initialize_effects(x_stacked, self.effects_list_, feature_columns=feature_names)
+
         if target_col is not None and y_stacked is not None:
             if torch.isnan(y_stacked).any():
                 raise ValueError(
                     f"TAM [Data Error]: The target column '{target_col}' "
                     "contains NaN values. Cannot proceed with optimization."
                 )
-        return x_stacked, y_stacked, self.unique_groups_
+        if target_col is not None:
+            self._seen_levels_ = {
+                name: set(np.unique(data[name].dropna().to_numpy()).tolist())
+                for name in categorical_features(self.effects_list_) if name in data.columns
+            }
+        else:
+            self._warn_extrapolation(data, x_stacked)
+
+        # The groups stacked in x_stacked, in order: a frame holding only some of the fitted groups stacks only those.
+        groups_stacked = _groups_in_data(data, self.group_col_, self.unique_groups_, self.norm_params_)
+        return x_stacked, y_stacked, groups_stacked
+
+    def _warn_extrapolation(self, data: pd.DataFrame, x_stacked: torch.Tensor) -> None:
+        r"""
+        Warns, once per model and feature, when a forecast leaves the trained range of a non-linear effect, or holds a categorical
+        level that training never saw (``TAMExtrapolationWarning``). Features are normalised per group, so the range is the group's own.
+        """
+        warned = self.__dict__.setdefault("_extrapolation_warned_", set())
+        features = self.features_config_['features'] if self.features_config_ else []
+        nonlinear = extrapolating_features(self.effects_list_)
+        for j, name in enumerate(features):
+            if name not in nonlinear or name in warned:
+                continue
+            beyond = (x_stacked[..., j].abs() - 1.0).clamp(min=0)
+            outside = beyond > EXTRAPOLATION_TOLERANCE
+            if outside.any():
+                warned.add(name)
+                warn_extrapolation(name,
+                    f"'{name}' leaves the range seen in training on {outside.double().mean().item():.1%} of the rows, by up to "
+                    f"{beyond.max().item():.2f} half-ranges: its non-linear effect is extrapolated and can be far off. "
+                    f"Set extrapolate='constant' on the term to hold it at the edge of the trained range.", stacklevel=4)
+        seen = getattr(self, "_seen_levels_", None) or {}
+        for name, levels in seen.items():
+            key = f"{name} (levels)"
+            if key in warned or name not in data.columns:
+                continue
+            unseen = sorted(set(np.unique(data[name].dropna().to_numpy()).tolist()) - levels)
+            if unseen:
+                warned.add(key)
+                warn_extrapolation(key,
+                    f"'{name}': level(s) {unseen[:10]} not seen in training; the categorical effect has no estimate for them "
+                    f"(a level that falls outside 0..n_cat-1 takes the nearest edge level).", stacklevel=4)
 
     def _build_design_matrix(self, x_data: torch.Tensor) -> torch.Tensor:
         """Builds the global design matrix."""
@@ -541,17 +597,20 @@ class StaticTAM(BaseTAM):
 
         required_cols = self.features_config_['features'] + [self.group_col_, self.date_col_]
         _check_features(dataset=data, required_features=required_cols)
+        _check_known_groups(data, self.group_col_, self.unique_groups_)
         
         mask, balanced_data = _balance_groups(
             dataset=data, group_col=self.group_col_, date_col=self.date_col_, method="fill"
         )
 
-        x_predict, _, _ = self._prepare_data(balanced_data)
+        x_predict, _, groups_stacked = self._prepare_data(balanced_data)
         
-        final_decomposed_effects = smart_decompose(x_predict, self.coefficients_, self.effects_list_)
+        final_decomposed_effects = smart_decompose(
+            x_predict, _coefficients_of_groups(self.coefficients_, groups_stacked, self.unique_groups_), self.effects_list_
+        )
 
         decomposed_df = _reassemble_decomposed_predictions(
-            balanced_data, final_decomposed_effects, self.group_col_, self.unique_groups_, date_col=self.date_col_
+            balanced_data, final_decomposed_effects, self.group_col_, groups_stacked, date_col=self.date_col_
         )
 
         return _cleanup_dummies(decomposed_df[mask], self.group_col_, self.date_col_)
@@ -862,10 +921,18 @@ class StaticTAM(BaseTAM):
         )
         
         print(f"\nFinal GCV Score: {gcv_score:.4f}")
-        print("Optimal lambda_ps found per effect:")
-        for i, effect in enumerate(self.effects_list_):
-            effect.lambda_p = float(best_lambda_ps[i])
-            print(f" - {effect.feature_name}: {best_lambda_ps[i]:.2e} (log10 = {np.log10(best_lambda_ps[i]):.2f})")
+        print("Optimal lambda_ps found per effect (per margin for a tensor product):")
+        position = 0
+        for effect in self.effects_list_:
+            count = effect.n_penalty_coordinates
+            values = best_lambda_ps[position:position + count]
+            position += count
+            effect.set_penalty_coordinates([float(v) for v in values])
+            if isinstance(effect, TensorProductEffect):
+                for margin, value in zip(effect.effects, values):
+                    print(f" - te({', '.join(m.feature_name for m in effect.effects)})[{margin.feature_name}]: {value:.2e} (log10 = {np.log10(value):.2f})")
+            else:
+                print(f" - {effect.feature_name}: {values[0]:.2e} (log10 = {np.log10(values[0]):.2f})")
         
         return self
 #: </auto_fit>

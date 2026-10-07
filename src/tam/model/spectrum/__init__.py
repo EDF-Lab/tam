@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2025-2026 EDF (Electricité De France)
+# SPDX-FileContributor: Yann Allioux
+# SPDX-License-Identifier: LGPL-3.0-or-later
+
 r"""
 Public API for the Spectrum Effect Library.
 
@@ -40,6 +44,11 @@ from ._pid import PIDEffect
 # Utility functions exposed for the StaticTAM model
 from ._factory import (
     create_effects_from_parsed_terms,
+    initialize_effects,
+    categorical_ranges,
+    categorical_range,
+    categorical_features,
+    extrapolating_features,
     build_phi_from_effects,
     build_penalty_from_effects
 )
@@ -66,6 +75,11 @@ __all__ = [
 
     # Factory / Assembly
     "create_effects_from_parsed_terms",
+    "initialize_effects",
+    "categorical_ranges",
+    "categorical_range",
+    "categorical_features",
+    "extrapolating_features",
     "build_phi_from_effects",
     "build_penalty_from_effects",
 ]

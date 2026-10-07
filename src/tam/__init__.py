@@ -1,16 +1,17 @@
 # SPDX-FileCopyrightText: 2025-2026 EDF (Electricité De France)
+# SPDX-FileContributor: Yann Allioux
 # SPDX-License-Identifier: LGPL-3.0-or-later
-# Author : Yann Allioux
 
 """
 Time series Additive Model (TAM)
 The unified framework for interpretable, physics-informed, and high-performance time series forecasting.
 """
 
+from .common.exceptions import TAMExtrapolationWarning
 from .model.additive import StaticTAM
 from .model.opera import OperaTAM
 from .model.kalman import KalmanTAM
-from .model.adaptative import AdaptiveTAM
+from .model.adaptative import AdaptiveTAM, rolling_windows
 from .model.hierarchical import HierarchicalTAM
 from .model.neural import NeuralTAM
 from .model.safety import SafetyTAM
@@ -24,14 +25,17 @@ from .model.statistics import (
     adaptive_conformal_intervals,
 )
 from .evaluation.tracker import BenchmarkTracker
+from .common.plotting import plot_component
 
-__version__ = "1.3.0"
+__version__ = "1.4.0"
 
 __all__ = [
     "StaticTAM",
     "OperaTAM",
     "KalmanTAM",
     "AdaptiveTAM",
+    "rolling_windows",
+    "TAMExtrapolationWarning",
     "HierarchicalTAM",
     "NeuralTAM",
     "SafetyTAM",
@@ -43,5 +47,6 @@ __all__ = [
     "adaptive_conformal_scores",
     "adaptive_conformal_intervals",
     "BenchmarkTracker",
+    "plot_component",
     "__version__"
 ]

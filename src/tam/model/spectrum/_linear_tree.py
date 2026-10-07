@@ -1,6 +1,6 @@
 # SPDX-FileCopyrightText: 2025-2026 EDF (Electricité De France)
+# SPDX-FileContributor: Yann Allioux
 # SPDX-License-Identifier: LGPL-3.0-or-later
-# Author : Yann Allioux
 
 r"""Implements the Linear Tree (Varying-Coefficient) Effect."""
 
@@ -47,10 +47,16 @@ class LinearTreeEffect(BaseEffect):
             sparsity_alpha, split_strategy
         )
         self.linear = LinearEffect(slope_feature, scaled=np.pi, lambda_p=1.0, extrapolate='continue')
-        self.tensor = TensorProductEffect([self.slope_tree, self.linear], lambda_p, 'continue')
+        self.tensor = TensorProductEffect([self.slope_tree, self.linear], lambda_p, 'continue', fold_weight=False)
         
         self.tree_features = getattr(self.base_tree, 'input_features', [feature_name])
         self.input_features = self.tree_features + [slope_feature]
+
+    def initialize(self, x_cols: torch.Tensor) -> None:
+        r"""Initialises both trees from the tree columns of the full training tensor."""
+        x_tree = x_cols[..., 0 : len(self.tree_features)]
+        self.base_tree.initialize(x_tree)
+        self.slope_tree.initialize(x_tree)
 
     def get_n_coeffs(self) -> int:
         return self.base_tree.get_n_coeffs() + self.tensor.get_n_coeffs()

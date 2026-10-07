@@ -1,7 +1,8 @@
-# SPDX-FileCopyrightText: 2023-2026 EDF (Electricité De France) et Sorbonne Université
+# SPDX-FileCopyrightText: 2023-2026 EDF (Electricité De France)
 # SPDX-FileCopyrightText: 2023-2025 Sorbonne Université
+# SPDX-FileContributor: Yann Allioux
+# SPDX-FileContributor: Nathan Doumèche
 # SPDX-License-Identifier: LGPL-3.0-or-later
-# Authors : Yann Allioux, Nathan Doumèche
 
 """
 Core Mathematical Solver Functions.
@@ -14,12 +15,15 @@ linear algebra operations, system solving, and scoring metrics.
 
 from typing import Dict, List, Union, Callable, Optional
 from collections import Counter
+import logging
 import torch
 from tam.common.utils import TORCH_DEVICE
 from tam.common.hardware import hw
 
 # Import abstract classes for type hinting
 from .spectrum import BaseEffect, OffsetEffect
+
+logger = logging.getLogger(__name__)
 
 #: <weighted_cov>
 def _compute_weighted_covariances(
@@ -85,6 +89,23 @@ def _compute_weighted_covariances(
 #: </weighted_cov>
 
 #: <solve_system>
+def _ridge_floor(
+    n_samples: Union[int, float],
+    size: int,
+    dtype: torch.dtype,
+    device: Union[str, torch.device]
+) -> torch.Tensor:
+    r"""
+    The ridge added to every regularised system for numerical stability: ``1e-6 * n * I``.
+
+    The covariances are sums over the n samples, so the effective system is
+    ``(Phi'Phi / n) + P + 1e-6 * I``: a penalty below about 1e-6 (``ap < -6``) is dominated by this floor.
+    The solver and the GCV score use this one helper, so the penalty GCV selects gives the same
+    coefficients when the model is refitted with it.
+    """
+    return (1e-6 * n_samples) * torch.eye(size, device=device, dtype=dtype)
+
+
 def solve_linear_system(
     cov_X: torch.Tensor,
     cov_XY: torch.Tensor,
@@ -122,13 +143,8 @@ def solve_linear_system(
     # LHS construction
     matrix_to_invert = cov_X + regularization_term
     
-    # Add Jitter for numerical stability (regularize diagonal)
-    jitter_scale = 1e-6 * n_samples
-    jitter = jitter_scale * torch.eye(
-        matrix_to_invert.shape[-1], 
-        device=TORCH_DEVICE, 
-        dtype=matrix_to_invert.dtype
-    )
+    # Ridge floor for numerical stability (shared with compute_gcv_score)
+    jitter = _ridge_floor(n_samples, matrix_to_invert.shape[-1], matrix_to_invert.dtype, TORCH_DEVICE)
     matrix_to_invert += jitter.view(*([1] * dims_to_add), *jitter.shape)
 
     # Solve system: A^-1 @ B
@@ -279,7 +295,7 @@ def compute_gcv_score(
     Args:
         cov_X: Weighted feature covariance (Phi'Phi). Shape (B, K, K).
         cov_XY: Feature-Target covariance (Phi'Y). Shape (B, K, 1).
-        Y_sq: Ground truth Y. Shape (B, N, 1).
+        Y_sq: Sum of squared targets Y'Y, one scalar per group. Shape (B,).
         penalty_M_star_M: Penalty structure P. Shape (K, K).
         lambda_p: The regularization strength scalar to evaluate.
         n_samples: Number of samples (n).
@@ -299,9 +315,8 @@ def compute_gcv_score(
     
     A = cov_X + reg_term
     
-    # Add jitter for numerical stability during inversion
-    jitter = 1e-6 * torch.eye(A.shape[-1], device=cov_X.device, dtype=cov_X.dtype)
-    A = A + jitter
+    # Same ridge floor as solve_linear_system, so the scored model is the one fit() would return
+    A = A + _ridge_floor(n_samples, A.shape[-1], cov_X.dtype, cov_X.device)
     
     #  Solve for Coefficients: Beta = A^-1 @ cov_XY
     try:
@@ -319,7 +334,12 @@ def compute_gcv_score(
     quad_term = (coeffs.mT @ cov_X @ coeffs).squeeze(-1).squeeze(-1)
     
     # Residual Sum of Squares (RSS)
-    rss = torch.abs(Y_sq - cross_term + quad_term)
+    rss = Y_sq - cross_term + quad_term
+    # The expansion can dip below 0 by rounding when the fit is near-exact; clamp instead of folding it with abs()
+    min_rss = torch.min(rss)
+    if min_rss < -1e-8 * torch.max(torch.abs(Y_sq)).clamp(min=1.0):
+        logger.debug("GCV: negative RSS %.3e clamped to 0 (rounding in Y'Y - 2B'Phi'Y + B'Phi'PhiB).", min_rss.item())
+    rss = torch.clamp(rss, min=0.0)
     mse = rss / n_samples
     
     #  Compute Denominator: Effective Degrees of Freedom (Trace of S)

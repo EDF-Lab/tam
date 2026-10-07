@@ -1,6 +1,6 @@
 # SPDX-FileCopyrightText: 2025-2026 EDF (Electricité De France)
+# SPDX-FileContributor: Yann Allioux
 # SPDX-License-Identifier: LGPL-3.0-or-later
-# Author : Yann Allioux
 
 r"""Implements Tensor Product effects (Interactions)."""
 
@@ -25,19 +25,57 @@ class TensorProductEffect(BaseEffect):
         effects (List[BaseEffect]): The list of sub-effects to cross.
     """
 
-    def __init__(self, effects: List[BaseEffect], lambda_p: float, extrapolate: str):
+    def __init__(self, effects: List[BaseEffect], lambda_p: float, extrapolate: str, fold_weight: bool = True):
         r"""
         Initializes the tensor product effect.
         
         Args:
             effects: List of initialized BaseEffect objects (e.g., [Spline(x), Spline(y)]).
             lambda_p: Global regularization scaling factor for the interaction surface.
+            fold_weight: Fold ``lambda_p`` into the margins (one smoothing parameter per margin, the default). ``False`` keeps
+                it as the single weight of the tensor product, as a ``LinearTreeEffect`` needs for its slope surface.
 
         """
         # Name example: "te_s_temp_x_f_hour"
         name = "te_" + "_x_".join([e.feature_name for e in effects])
+        # One smoothing parameter per margin (mgcv semantics): the weight of the tensor product itself, formula default or te-level
+        # `ap`, is folded into each margin once, so the penalty matrix of fixed weights is the one it always was.
+        if fold_weight:
+            for margin in effects:
+                if margin.n_penalty_coordinates == 1:
+                    margin.lambda_p = float(lambda_p) * margin.lambda_p
+            lambda_p = 1.0
         super().__init__(name, "tensor_product", lambda_p, extrapolate)
         self.effects = effects
+        self._fold_weight = fold_weight
+
+    def penalty_coordinates(self) -> list:
+        r"""The smoothing weight of each margin: ``sum_i lambda_i (I x ... x P_i x ... x I)``."""
+        if not self._fold_weight:
+            return [self.lambda_p]
+        coordinates = []
+        for margin in self.effects:
+            if margin.n_penalty_coordinates != 1:
+                raise NotImplementedError("A tensor product nested in a tensor product has no per-margin smoothing coordinates.")
+            coordinates.append(margin.lambda_p)
+        return coordinates
+
+    def set_penalty_coordinates(self, values) -> None:
+        values = list(values)
+        if not self._fold_weight:
+            return super().set_penalty_coordinates(values)
+        if len(values) != len(self.effects):
+            raise ValueError(f"The tensor product {self.feature_name} has {len(self.effects)} penalty coordinates, got {len(values)}.")
+        for margin, value in zip(self.effects, values):
+            margin.lambda_p = float(value)
+
+    def initialize(self, x_cols: torch.Tensor) -> None:
+        r"""Initialises each margin from its columns, sliced as in ``build_feature_map``."""
+        col_idx = 0
+        for effect in self.effects:
+            n_cols = len(getattr(effect, 'input_features', [effect.feature_name]))
+            effect.initialize(x_cols[..., col_idx : col_idx + n_cols])
+            col_idx += n_cols
 
     def get_n_coeffs(self) -> int:
         r"""
@@ -100,7 +138,8 @@ class TensorProductEffect(BaseEffect):
         Builds the anisotropic penalty matrix.
         
         It sums the penalties of each dimension, expanded by Identity matrices
-        on other dimensions.
+        on other dimensions. Each margin penalty carries the weight lambda_i of its own
+        coordinate, so GCV tunes one smoothing parameter per margin.
         """
         dims = [e.get_n_coeffs() for e in self.effects]
         penalties = [e.build_penalty_matrix() for e in self.effects]
@@ -130,6 +169,6 @@ class TensorProductEffect(BaseEffect):
             
             P_total = P_total + current_term
             
-        # Apply global scaling lambda_p
+        # Each P_i already carries its margin's lambda_i; the weight of the tensor product itself stays 1
         return P_total * self.lambda_p
 #: </penalty_matrix>

@@ -58,7 +58,7 @@ Both the Gaussian and Matérn functions are strictly positive definite, shift-in
 
 In classical machine learning (e.g., standard RBF Neural Networks), training involves simultaneously learning the structural weights, the centroid locations $c_j$, and the bandwidths $\gamma$ via gradient descent. This creates a notoriously unstable, highly non-convex loss landscape prone to saddle points.
 
-By strategically fixing the centroids (either via $K$-means sampling or uniform spatial grids) and mapping the evaluations directly into the continuous Primal design matrix $\Phi$, the framework fundamentally re-architects the optimization. The pairwise Euclidean distances ($\|x - c\|_2$) are computed natively and efficiently on the GPU via hardware-accelerated tensor routing (`torch.cdist`).
+By strategically fixing the centroids (in the implementation, `n_centers` training points drawn at random by a generator seeded with the term's `seed`, default 42, so the centres and the fit are reproducible) and mapping the evaluations directly into the continuous Primal design matrix $\Phi$, the framework fundamentally re-architects the optimization. The pairwise Euclidean distances ($\|x - c\|_2$) are computed natively and efficiently on the GPU via hardware-accelerated tensor routing (`torch.cdist`).
 
 The historically non-convex RBF network is rigorously flattened into a strictly convex Primal projection. It is evaluated and solved optimally alongside global polynomials and spatial trees via the core TAM group equation:
 

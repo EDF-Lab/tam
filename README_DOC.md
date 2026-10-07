@@ -150,7 +150,7 @@ To ensure the pipelines compile our PDFs and HTML flawlessly, all contributors m
 TAM/
 │
 ├── README.md                # Home (Auto-copied by Sphinx)
-├── paper.md                 # JOSS Paper (Independent from Sphinx)
+├── paper.md                 # Software paper (Independent from Sphinx)
 │
 ├── src/tam/                 # 🐍 SOURCE CODE 
 │

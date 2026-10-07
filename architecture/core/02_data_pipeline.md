@@ -49,7 +49,8 @@ For the Adaptive meta-learner, managing the continuous shift of historical bound
 
 The `_transform_data_adaptive` function bypasses this by utilizing advanced PyTorch tensor indexing to formalize the adaptive online approach natively on the hardware {cite:p}`doumeche2025forecasting`.
 
-* **Index Calculation:** It calculates the valid starting points by stepping backward from the end of the series.
+* **Index Calculation:** It calculates the starting points from the beginning of each series (the first window trains on the first rows), the last window being cut at the end of the data.
+* **Per-Window Normalisation:** Every window is normalised with the minimum and maximum of its own training rows (applied to its training and forecast rows), as `StaticTAM.fit` then `predict` would on that window.
 * **Offset Broadcasting:** It builds 1D `train_offsets` and `predict_offsets` tensors using `torch.arange`.
 * **Advanced Indexing:** Complete 4D windows are extracted instantaneously via tensor addition by broadcasting the offsets against the reshaped start indices (`start_indices.view(-1, 1) + train_offsets`).
 
@@ -69,7 +70,7 @@ This was a deliberate engineering choice for performance and memory safety. By c
 
 After the core engine computes the predictions (or decomposes them per-effect), the multidimensional PyTorch tensors must be safely mapped back to the user's original 2D Pandas DataFrame. 
 
-The `_reassemble_decomposed_predictions` function reverses the stacking process. It flattens the predicted tensors along the batch dimensions and precisely aligns them against the original `unique_groups` order to guarantee absolute data integrity.
+The `_reassemble_decomposed_predictions` function reverses the stacking process. It flattens the predicted tensors along the batch dimensions and precisely aligns them against the groups actually stacked, in fitted order, to guarantee absolute data integrity. A frame holding only some of the fitted groups stacks only those (`_groups_in_data`), and prediction picks their coefficients by position in `unique_groups_` (`_coefficients_of_groups`); a group never seen in training raises a `ValueError` (`_check_known_groups`). Predictions and effects are placed **by row position, in date order inside each group** (`_group_positions`), never by index label: a frame with duplicate labels (`pd.concat` without `ignore_index`), interleaved groups or rows in any order gets every value on its own row, and its index is returned unchanged; a group with fewer values than rows (a warm-up) is aligned to its end.
 
 ```{literalinclude} ../../../../src/tam/model/_data.py
 :language: python
@@ -97,4 +98,4 @@ if date_col is not None and date_col in original_data.columns:
 
 ```
 
-This bidirectional safeguard completely neutralizes order-sensitivity vulnerabilities. If the user provides cross-sectional data with no temporal component (`date_col=None`), the pipeline defaults to the internal `__dummy_date__` mechanic, locking the tensors to the user's exact input sequence.
+This bidirectional safeguard completely neutralizes order-sensitivity vulnerabilities. If the user provides cross-sectional data with no temporal component (`date_col=None`), the pipeline defaults to the internal `__dummy_date__` mechanic, locking the tensors to the user's exact input sequence. The dummy dates are spaced one second apart from 2000-01-01, so any row count fits inside the pandas datetime range (a daily spacing overflowed past roughly 95,000 rows, the year-2262 bound).

@@ -52,3 +52,7 @@ Solving for $\theta$ yields the exact local primal minimizer computed via direct
 $$\hat{\theta}_{adapt, t} = \left( \Phi_{adapt, W}^\top \Lambda_{W}^\top \Lambda_{W} \Phi_{adapt, W} + W \cdot P \right)^{-1} \Phi_{adapt, W}^\top \Lambda_{W}^\top \Lambda_{W} \epsilon_{W}$$
 
 By flattening the group and window dimensions into a single massive 3D tensor batch, the framework computes these dynamic corrector weights simultaneously across all groups and time steps.  This isolates the regularization scale for each distinct topological window and neutralizes concept drift, bypassing the computational overhead typically associated with rolling dense matrix inversions.
+
+### Equivalence with a Rolling StaticTAM
+
+Each window is normalised with the minimum and maximum of its own training rows only, and no bound fitted on the whole period is applied. The forecasts of a window are therefore those of the estimator fitted on that window's training rows and applied to its forecast rows: the adaptive model is the operational loop "refit on the last window, forecast the next rows", computed in one batch. A feature whose range moves between windows is handled as a refit would handle it.

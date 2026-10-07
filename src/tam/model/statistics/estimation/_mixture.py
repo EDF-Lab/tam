@@ -1,6 +1,6 @@
 # SPDX-FileCopyrightText: 2026 EDF (Electricité De France)
+# SPDX-FileContributor: Yann Allioux
 # SPDX-License-Identifier: LGPL-3.0-or-later
-# Author : Yann Allioux
 
 """
 Gaussian-mixture-of-TAM-regressions schedule and EM numerics.
@@ -15,6 +15,8 @@ purpose so the two distributional extensions stay fully decoupled.
 """
 from __future__ import annotations
 
+import warnings
+
 import numpy as np
 import torch
 from scipy.stats import norm
@@ -27,6 +29,17 @@ _TINY: float = 1e-12
 
 def _to_model_scale(model, y: np.ndarray) -> np.ndarray:
     return np.log(np.clip(y, _TINY, None)) if model._log_target_ else np.asarray(y, dtype=float)
+
+
+def _to_response_scale(model_scale: np.ndarray, quantity: str) -> np.ndarray:
+    """exp() of a model-scale value; a value beyond float64 is inf, with an explicit warning (not numpy's)."""
+    with np.errstate(over="ignore"):
+        response = np.exp(model_scale)
+    overflowed = int(np.count_nonzero(np.isposinf(response) & (model_scale > 0)))
+    if overflowed:
+        warnings.warn(f"exp overflow in {quantity}: {overflowed} value(s) exceed the float64 range and are returned as inf.",
+                      UserWarning, stacklevel=3)
+    return response
 
 
 def require_mixture(model, method_name: str) -> None:
@@ -154,7 +167,7 @@ def component_means(model, data):
     """Per-component conditional means on the response scale. Shape (n, K)."""
     require_mixture(model, "component_means")
     means = _component_means_matrix(model, _mixture_design(model, data))
-    return np.exp(means) if model._log_target_ else means
+    return _to_response_scale(means, "the component means (component_means)") if model._log_target_ else means
 
 
 def predict_mean(model, data):
@@ -162,7 +175,9 @@ def predict_mean(model, data):
     require_mixture(model, "predict_mean")
     means = _component_means_matrix(model, _mixture_design(model, data))
     if model._log_target_:
-        component_response_mean = np.exp(means + 0.5 * model.component_scales_[None, :] ** 2)
+        component_response_mean = _to_response_scale(
+            means + 0.5 * model.component_scales_[None, :] ** 2, "the mixture mean (predict_mean)"
+        )
     else:
         component_response_mean = means
     return np.sum(model.mixing_weights_[None, :] * component_response_mean, axis=1)

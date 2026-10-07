@@ -1,7 +1,7 @@
 # SPDX-FileCopyrightText: 2025-2026 EDF (Electricité De France)
+# SPDX-FileContributor: Yann Allioux
 # SPDX-FileContributor: Amaury Durand
 # SPDX-License-Identifier: LGPL-3.0-or-later
-# Author : Yann Allioux
 
 """
 AutoTAM Orchestrator (TAM AutoML Layer).
@@ -26,6 +26,7 @@ from .evolution_reporter import EvolutionReporter
 from tam.model.kalman import KalmanTAM
 from tam.model.adaptative import AdaptiveTAM
 from tam.model.opera import OperaTAM
+from tam.common.exceptions import collect_extrapolation
 #: </auto_tam_imports>
 
 #: <auto_tam_class>
@@ -100,6 +101,7 @@ class AutoTAM:
         self.chronological_test_log = []
         self.online_weights_ = {}   # populated by predict_online(): MLpol weight trajectories
         self.apex_members_ = []     # the whole Apex pool, aggregated by predict_online()
+        self.extrapolating_features_ = []
 #: </auto_tam_init>
 
 #: <auto_tam_fit>
@@ -131,19 +133,22 @@ class AutoTAM:
         self.ctx.optimization_metric = optimization_metric
         self.ctx.complexity_penalty = self.complexity_penalty
         
-        island_champions, draga_engine = self.discoverer.search(self.ctx)
-        self.reporter.export_evolutionary_diagnostics(draga_engine)
-        
-        candidate_pool = self.expander.generate_experts(island_champions, self.ctx, self.chronological_test_log, self.reporter)
-        
-        if not candidate_pool:
-            print("Warning: No candidates generated. The model will remain unfitted.")
-            return self
+        # The search fits and scores hundreds of models: their extrapolation warnings are collected, not raised one by one.
+        with collect_extrapolation() as extrapolating:
+            island_champions, draga_engine = self.discoverer.search(self.ctx)
+            self.reporter.export_evolutionary_diagnostics(draga_engine)
 
-        self.trained_experts, self.league_weights, self.weights_top10, self.island_aliases, self.oof_predictions_ = self.selector.evaluate_and_refit(
-            candidate_pool, self.ctx, self.chronological_test_log, self.reporter, self.expander, refit_on_full_train=refit_on_full_train
-        )
+            candidate_pool = self.expander.generate_experts(island_champions, self.ctx, self.chronological_test_log, self.reporter)
+
+            if not candidate_pool:
+                print("Warning: No candidates generated. The model will remain unfitted.")
+                return self
+
+            self.trained_experts, self.league_weights, self.weights_top10, self.island_aliases, self.oof_predictions_ = self.selector.evaluate_and_refit(
+                candidate_pool, self.ctx, self.chronological_test_log, self.reporter, self.expander, refit_on_full_train=refit_on_full_train
+            )
         self.apex_members_ = list(getattr(self.selector, "apex_members_", []))
+        self.extrapolating_features_ = sorted(extrapolating)
         
         if not self.trained_experts:
             print("Warning: All experts failed evaluation. The model is effectively empty.")
@@ -401,6 +406,8 @@ class AutoTAM:
 #: <auto_tam_utils>
     def summary(self) -> None:
         self.reporter.print_summary(self.trained_experts, {}, {})
+        if getattr(self, 'extrapolating_features_', None):
+            print(f"\nFeatures extrapolated outside the trained range during the search: {', '.join(self.extrapolating_features_)}")
 
     def print_performance_board(self) -> None:
         print("\n" + "="*90 + "\nTAM: Global Model Performance Leaderboard\n" + "="*90)

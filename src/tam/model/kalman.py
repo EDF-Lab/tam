@@ -1,6 +1,6 @@
 # SPDX-FileCopyrightText: 2025-2026 EDF (Electricité De France)
+# SPDX-FileContributor: Yann Allioux
 # SPDX-License-Identifier: LGPL-3.0-or-later
-# Author : Yann Allioux
 
 r"""
 Implements the Kalman TAM (KalmanTAM) Meta-Learner.
@@ -22,6 +22,9 @@ Architectural Highlights:
     4. Systematic Offset & Scaling: The target space is group-normalized to stabilize
        noise matrices (Q, R), and a constant offset is systematically appended to the 
        design matrix to track global bias drift.
+    5. Causal Scaling: the feature normalisation and the target scale come from a reference
+       period (the first ``calibration_steps`` rows of each group, or ``calibration_data``),
+       never from the whole online period, so no forecast depends on a later observation.
 
 References:
     - [Statistical Theory] de Vilmarest, J., Wintenberger, O. (2020). Stochastic 
@@ -35,7 +38,7 @@ import pandas as pd
 import numpy as np
 import itertools
 import warnings
-from typing import Tuple, Dict, Any, Optional
+from typing import Tuple, Dict, Any, Optional, Union
 
 from tam.common.utils import (
     TORCH_DEVICE, _balance_groups, 
@@ -43,6 +46,7 @@ from tam.common.utils import (
 )
 from .additive import StaticTAM
 from ._data import _reassemble_predictions
+from ._math import decomposition_names
 
 #: <jit_woodbury_block>
 @torch.jit.script
@@ -53,10 +57,11 @@ def _kalman_block_loop_optimized(
     B: int,
     P_init_diag: float,
     observation_noise_var: float,
-    process_noise_var: float,
+    process_noise_diag: torch.Tensor,
     eps: float,
-    offset_boost: float
-) -> Tuple[torch.Tensor, torch.Tensor]:
+    offset_boost: float,
+    offset_q_boost: float
+) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
     r"""
     Compiled TorchScript loop for the Block Kalman Filter.
     Executes the Predict and Update phases across all groups simultaneously 
@@ -69,13 +74,15 @@ def _kalman_block_loop_optimized(
     # Initialize State, Covariance, and Process Noise.
     theta_t = torch.zeros((G, d, 1), device=device, dtype=dtype)
     P_t = torch.eye(d, device=device, dtype=dtype).unsqueeze(0).repeat(G, 1, 1) * P_init_diag
-    Q_matrix = torch.eye(d, device=device, dtype=dtype).unsqueeze(0).repeat(G, 1, 1) * process_noise_var
+    # Process noise: a diagonal Q, one variance per design column (the same for every column of a formula term).
+    Q_matrix = torch.diag_embed(process_noise_diag.to(device=device, dtype=dtype)).unsqueeze(0).repeat(G, 1, 1)
     
     # Asymmetric Tracking: Boost the variance of the offset (index 0) 
     # to allow rapid bias correction without destroying the base physics.
+    # The initial variance is always boosted; the process noise only when the offset has no noise of its own (offset_q_boost).
     if d > 0:
         P_t[:, 0, 0] = P_t[:, 0, 0] * offset_boost
-        Q_matrix[:, 0, 0] = Q_matrix[:, 0, 0] * offset_boost
+        Q_matrix[:, 0, 0] = Q_matrix[:, 0, 0] * offset_q_boost
     
     predictions = torch.zeros((G, N, 1), device=device, dtype=dtype)
     num_blocks = (N + B - 1) // B
@@ -122,7 +129,9 @@ def _kalman_block_loop_optimized(
         P_t = P_t + (Q_matrix * float(curr_B))
         P_t = (P_t + P_t.transpose(-2, -1)) * 0.5 # Maintain Symmetry.
 
-    return predictions, state_history_gpu
+    # state_history_gpu holds the state each block was predicted with (before its update); theta_t is the state after
+    # the last update: the one that forecasts the next, unseen steps.
+    return predictions, state_history_gpu, theta_t
 #: </jit_woodbury_block>
 
 class KalmanTAM:
@@ -130,6 +139,9 @@ class KalmanTAM:
     A Meta-Learner that tracks drifting physical effects using a Block Kalman Filter.
     Optimized for GPU batch processing, TorchScript compilation, and missing-data resilience.
     Automatically standardizes the target space to stabilize hyperparameters.
+
+    The standardisation is causal: the feature normalisation and the target scale come from a reference
+    period (see ``calibration_steps`` and ``calibration_data``), never from the whole online period.
     """
     
     def __init__(
@@ -139,15 +151,17 @@ class KalmanTAM:
         group_col: Optional[str] = None,
         date_col: Optional[str] = None,
         use_decomposition: bool = True,
-        block_size: int = 128,
+        block_size: Optional[int] = None,
         horizon_steps: int = 1,
         default_alpha_p: float = -9.0,
         eps: float = 1e-6,
         offset_boost: float = 100.0,
-        process_noise_var: float = 1e-4,
+        process_noise_var: Union[float, Dict[str, float]] = 1e-4,
         observation_noise_var: float = 1.0,
         P_init_diag: float = 1.0,
-        add_base_effects: bool = False
+        add_base_effects: bool = False,
+        calibration_steps: Optional[int] = None,
+        calibration_data: Optional[pd.DataFrame] = None
     ):
         """
         Initializes the Kalman Tracker.
@@ -158,18 +172,35 @@ class KalmanTAM:
             group_col: Optional column name for grouping data.
             date_col: Optional column name for time indexing.
             use_decomposition: If True, extracts components from the base model.
-            block_size: The chunk size (B) for Woodbury matrix inversion.
+            block_size: Observations per Woodbury block. Default None: 1, the exact sequential filter that
+                ``horizon_steps=1`` promises (the state is updated at every step, every day with ``group_col="tod"``).
+                An explicit ``B > 1`` is faster but updates the state only every B steps, and warns.
             horizon_steps: Number of forward steps to delay the state application, preventing target leakage in multi-step forecasting. Default is 1 (standard online filtering).
             default_alpha_p: Default regularization parameter for feature scaling.
             eps: Small constant added to the diagonal for numerical stability.
             offset_boost: Multiplier for the offset's process noise to accelerate bias correction.
+            process_noise_var: Variance added to the state at every step (random walk of the tracked coefficients, in the
+                standardised target space). A float gives every coefficient the same variance. A dict
+                ``{term: q, "offset": q, "default": q}`` gives one variance per formula term (a diagonal ``Q``):
+                every design column of a term gets the term's ``q``, the terms not in the dict
+                get ``"default"`` (1e-4 when absent), and ``q = 0`` stops a term from following a changing coefficient.
+                The term names are the keys of ``term_columns()``. ``"offset"`` sets both constant columns and removes the
+                ``offset_boost`` on their noise; without it the offset keeps ``default * offset_boost``.
+            calibration_steps: Rows per group, at the start of the data given to ``fit``/``predict_online``, that
+                set the feature normalisation and the target scale (reference period). They are not causal for
+                scoring, so do not score them. Default None: ``min(365, half the rows)``. A value that leaves no row
+                to track (>= rows per group) raises a ValueError.
+            calibration_data: A separate historical DataFrame (same columns, with the target) that sets the scaling
+                instead of the first rows; then every row of the online data can be scored. ``calibration_steps`` is
+                ignored.
         """
         if base_model is not None and getattr(base_model, 'coefficients_', None) is None:
             raise ValueError("The base_model must be fitted before initializing KalmanTAM.")
         
         if add_base_effects and base_model is not None:
-            for effect in base_model.effects_list_:
-                effect_col = f"effect_{effect.feature_name}"
+            # Column names as decompose_prediction emits them (shared features are basis-prefixed).
+            for name in decomposition_names(base_model.effects_list_):
+                effect_col = f"effect_{name}"
                 if effect_col not in kalman_formula:
                     kalman_formula += f" + l({effect_col})"
             use_decomposition = True
@@ -182,10 +213,24 @@ class KalmanTAM:
         self.date_col_ = date_col or getattr(base_model, 'date_col_', "__dummy_date__")
         
         self.use_decomposition_ = use_decomposition if base_model is not None else False
-        self.block_size_ = block_size
+        if block_size is not None and block_size > 1:
+            warnings.warn(
+                f"KalmanTAM: block_size={block_size} updates the state only every {block_size} steps "
+                f"(every {block_size} days with group_col='tod'), not at every step. "
+                "Leave block_size=None for the exact sequential filter.",
+                UserWarning, stacklevel=2,
+            )
+        self.block_size_ = 1 if block_size is None else int(block_size)
+        if calibration_steps is not None and calibration_steps < 1:
+            raise ValueError("calibration_steps must be at least 1.")
+        self.calibration_steps_ = calibration_steps
+        self.calibration_data_ = calibration_data
+        self.calibration_steps_used_ = None
+        self._reference_center_, self._reference_scale_ = {}, {}
         self.horizon_steps_ = horizon_steps
         self.eps = eps 
         self.offset_boost = offset_boost
+        self._check_process_noise(process_noise_var)
         self.process_noise_var_ = process_noise_var
         self.observation_noise_var_ = observation_noise_var
         self.P_init_diag_ = P_init_diag
@@ -210,16 +255,64 @@ class KalmanTAM:
                     UserWarning
                 )
 
-    def _prepare_kalman_features(
-        self, 
-        data: pd.DataFrame,
-        is_inference: bool = False
-    ) -> Tuple[torch.Tensor, Optional[torch.Tensor], torch.Tensor, list, pd.DataFrame]:
+    @staticmethod
+    def _check_process_noise(spec: Union[float, Dict[str, float]]) -> None:
+        r"""Every process variance must be a finite number >= 0 (a float, or the values of the per-term dict)."""
+        values = spec.values() if isinstance(spec, dict) else [spec]
+        for q in values:
+            if not np.isfinite(float(q)) or float(q) < 0.0:
+                raise ValueError(f"process_noise_var must be finite and >= 0, got {q!r}.")
+
+    def _term_spans(self) -> Dict[str, list]:
         r"""
-        Extracts tracking features and the base model's full prediction.
-        Builds the normalized Design Matrix required for Residual Tracking,
-        and systematically injects a constant offset tracker.
+        Design columns of each formula term: ``{name: [(start, end), ...]}``.
+
+        Column 0 is the systematic offset the filter prepends, then come the effects of the formula in order (the first is its
+        own intercept). Both constant columns belong to the term ``"offset"``; the other names are those of
+        ``decompose_prediction`` (``decomposition_names``).
         """
+        effects = self.feature_extractor_.effects_list_
+        if not effects:
+            raise RuntimeError("The terms are known once the data are prepared: call fit() or predict_online() first.")
+        names = decomposition_names(effects)
+        spans: Dict[str, list] = {"offset": [(0, 1)]}
+        start = 1
+        for name, effect in zip(names, effects):
+            end = start + effect.get_n_coeffs()
+            spans.setdefault(name, []).append((start, end))
+            start = end
+        return spans
+
+    def term_columns(self) -> Dict[str, int]:
+        r"""
+        Number of design columns of each formula term: the keys ``process_noise_var={term: q}`` accepts (plus ``"default"``).
+
+        ``"offset"`` counts both constant columns: the systematic offset of the filter and the intercept of the formula.
+        """
+        return {name: sum(e - s for s, e in spans) for name, spans in self._term_spans().items()}
+
+    def _noise_diagonal(self, spec: Union[float, Dict[str, float]], d: int) -> Tuple[torch.Tensor, float]:
+        r"""The diagonal of Q (one variance per design column) and the boost on the offset's noise, from ``process_noise_var``."""
+        self._check_process_noise(spec)
+        if not isinstance(spec, dict):
+            return torch.full((d,), float(spec), dtype=torch.get_default_dtype()), float(self.offset_boost)
+        spans = self._term_spans()
+        unknown = [k for k in spec if k != "default" and k not in spans]
+        if unknown:
+            raise ValueError(
+                f"process_noise_var names unknown term(s) {unknown}; the terms of this formula are {list(spans)} "
+                "(plus 'default'). See KalmanTAM.term_columns()."
+            )
+        diag = torch.full((d,), float(spec.get("default", 1e-4)), dtype=torch.get_default_dtype())
+        for name, q in spec.items():
+            if name == "default":
+                continue
+            for start, end in spans[name]:
+                diag[start:end] = float(q)
+        return diag, (1.0 if "offset" in spec else float(self.offset_boost))
+
+    def _compute_features(self, data: pd.DataFrame) -> Tuple[pd.DataFrame, str]:
+        r"""The tracked features (base model decomposition) and the name of the base prediction column."""
         if self.base_model_ is not None:
             # Get the full base prediction to compute residuals.
             df_base = self.base_model_.predict(data)
@@ -244,7 +337,18 @@ class KalmanTAM:
             df_features = data.copy()
             base_pred_col = "__dummy_base_pred__"
             df_features[base_pred_col] = 0.0
-            
+        return df_features, base_pred_col
+
+    def _design(
+        self,
+        df_features: pd.DataFrame,
+        base_pred_col: str,
+        is_inference: bool = False
+    ) -> Tuple[torch.Tensor, Optional[torch.Tensor], torch.Tensor, list, pd.DataFrame]:
+        r"""
+        Builds the normalized Design Matrix required for Residual Tracking (normalisation fitted once, on the
+        reference period), and systematically injects a constant offset tracker.
+        """
         # Build the normalized Kalman design matrix and extract targets.
         target_col_to_use = None if is_inference else self.target_col_
         x_stacked, y_stacked, unique_groups = self.feature_extractor_._prepare_data(
@@ -265,10 +369,78 @@ class KalmanTAM:
         
         return phi_matrix_with_offset, y_stacked, base_pred_stacked, unique_groups, df_features
 
+    def _prepare_kalman_features(
+        self,
+        data: pd.DataFrame,
+        is_inference: bool = False
+    ) -> Tuple[torch.Tensor, Optional[torch.Tensor], torch.Tensor, list, pd.DataFrame]:
+        r"""Extracts tracking features and the base model's full prediction, then builds the design matrix."""
+        df_features, base_pred_col = self._compute_features(data)
+        return self._design(df_features, base_pred_col, is_inference)
+
+    @staticmethod
+    def _target_center_scale(y_ref: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
+        r"""Per-group centre and half-amplitude of the reference target (NaN-safe), shapes (G, 1, 1)."""
+        y_for_max = torch.where(torch.isnan(y_ref), torch.tensor(-float('inf'), device=y_ref.device, dtype=y_ref.dtype), y_ref)
+        y_for_min = torch.where(torch.isnan(y_ref), torch.tensor(float('inf'), device=y_ref.device, dtype=y_ref.dtype), y_ref)
+        y_max = torch.max(y_for_max, dim=1, keepdim=True)[0]
+        y_min = torch.min(y_for_min, dim=1, keepdim=True)[0]
+        # Fallback for completely empty or constant groups
+        y_max = torch.where(torch.isinf(y_max), torch.zeros_like(y_max), y_max)
+        y_min = torch.where(torch.isinf(y_min), torch.zeros_like(y_min), y_min)
+        amplitude = y_max - y_min
+        amplitude = torch.where(amplitude == 0.0, torch.ones_like(amplitude), amplitude)
+        return (y_max + y_min) / 2.0, amplitude / 2.0
+
+    def _fit_reference(self, df_features: pd.DataFrame) -> None:
+        r"""
+        Fixes the feature normalisation and the target scale from the reference period.
+
+        The reference is ``calibration_data`` when given, else the first ``calibration_steps`` rows of each group of
+        `df_features` (burn-in: their forecasts are not causal and must not be scored). The normalisation is fitted by
+        the feature extractor on those rows only and then reused for every row; the target centre and scale are stored
+        per group for ``predict()``.
+        """
+        extractor = self.feature_extractor_
+        extractor.norm_params_, extractor.unique_groups_, extractor.effects_list_ = None, None, []
+        group_col, date_col = self.group_col_, self.date_col_
+
+        if self.calibration_data_ is not None:
+            reference = _ensure_dummies(self.calibration_data_, group_col, date_col)
+            _, reference = _balance_groups(dataset=reference, group_col=group_col, date_col=date_col, method="fill")
+            reference, _ = self._compute_features(reference)
+            self.calibration_steps_used_ = None
+        else:
+            rows = int(df_features.groupby(group_col).size().min())
+            steps = self.calibration_steps_ if self.calibration_steps_ is not None else min(365, rows // 2)
+            if steps < 1 or steps >= rows:
+                raise ValueError(
+                    f"KalmanTAM: calibration_steps={steps} leaves no row to track ({rows} rows per group). "
+                    "Pass a smaller calibration_steps, or calibration_data= (for example the training set)."
+                )
+            ordered = df_features.sort_values([group_col, date_col], kind="stable")
+            reference = ordered.groupby(group_col, sort=False).head(steps)
+            self.calibration_steps_used_ = steps
+            warnings.warn(
+                f"KalmanTAM: the first {steps} rows of each group are the reference period: they set the feature "
+                "normalisation and the target scale, so their forecasts are not causal and should not be scored. "
+                "Pass calibration_data= (for example the training set) to score every row, or calibration_steps= to "
+                "change the length.",
+                UserWarning, stacklevel=3,
+            )
+
+        if self.target_col_ not in reference.columns:
+            raise ValueError(f"KalmanTAM: the reference period has no target column '{self.target_col_}'.")
+        _, y_ref, groups_ref = extractor._prepare_data(reference, target_col=self.target_col_)
+        center, scale = self._target_center_scale(y_ref.to(TORCH_DEVICE))
+        self._reference_center_ = {g: center[i].clone() for i, g in enumerate(groups_ref)}
+        self._reference_scale_ = {g: scale[i].clone() for i, g in enumerate(groups_ref)}
+
     def prepare_data(self, data: pd.DataFrame) -> Dict[str, Any]:
         """
         Balances groups, prepares tensors, and normalizes the target space 
-        to stabilize Kalman process matrices. Compatible with older PyTorch versions.
+        to stabilize Kalman process matrices, from the reference period only (causal scaling).
+        Compatible with older PyTorch versions.
         """
         # Inject dummies before balancing to maintain chronologies
         data = _ensure_dummies(data, self.group_col_, self.date_col_)
@@ -280,27 +452,18 @@ class KalmanTAM:
             method="fill"
         )
         
-        phi_matrix, y_stacked, base_pred_stacked, unique_groups, df_original = self._prepare_kalman_features(balanced_data)
+        df_features, base_pred_col = self._compute_features(balanced_data)
+        self._fit_reference(df_features)
+        phi_matrix, y_stacked, base_pred_stacked, unique_groups, df_original = self._design(df_features, base_pred_col)
         
         y_stacked = y_stacked.to(TORCH_DEVICE)
         base_pred_stacked = base_pred_stacked.to(TORCH_DEVICE)
         
-        # Replace NaNs with limits to safely ignore missing data
-        y_for_max = torch.where(torch.isnan(y_stacked), torch.tensor(-float('inf'), device=TORCH_DEVICE, dtype=y_stacked.dtype), y_stacked)
-        y_for_min = torch.where(torch.isnan(y_stacked), torch.tensor(float('inf'), device=TORCH_DEVICE, dtype=y_stacked.dtype), y_stacked)
-        
-        y_max = torch.max(y_for_max, dim=1, keepdim=True)[0]
-        y_min = torch.min(y_for_min, dim=1, keepdim=True)[0]
-        
-        # Fallback for completely empty or constant groups
-        y_max = torch.where(torch.isinf(y_max), torch.zeros_like(y_max), y_max)
-        y_min = torch.where(torch.isinf(y_min), torch.zeros_like(y_min), y_min)
-        
-        amplitude = y_max - y_min
-        amplitude = torch.where(amplitude == 0.0, torch.ones_like(amplitude), amplitude)
-        
-        center = (y_max + y_min) / 2.0
-        scale = amplitude / 2.0
+        unknown = [g for g in unique_groups if g not in self._reference_scale_]
+        if unknown:
+            raise ValueError(f"KalmanTAM: group(s) {unknown[:10]} are not in the reference period.")
+        center = torch.stack([self._reference_center_[g] for g in unique_groups]).to(TORCH_DEVICE)
+        scale = torch.stack([self._reference_scale_[g] for g in unique_groups]).to(TORCH_DEVICE)
         
         # Standardize the target and base predictions
         y_norm = (y_stacked - center) / scale
@@ -322,7 +485,7 @@ class KalmanTAM:
         prepared_data: Dict[str, Any],
         P_init_diag: float, 
         observation_noise_var: float,
-        process_noise_var: float
+        process_noise_var: Union[float, Dict[str, float]]
     ) -> torch.Tensor:
         """
         Executes the core Kalman filter loop on normalized data and 
@@ -333,20 +496,23 @@ class KalmanTAM:
         base_pred_stacked = prepared_data["base_pred_stacked"]
 
         actual_block_size = 1 if self.horizon_steps_ > 1 else self.block_size_
+        noise_diag, offset_q_boost = self._noise_diagonal(process_noise_var, phi_matrix.shape[-1])
 
-        predictions_norm, state_history_gpu = _kalman_block_loop_optimized(
+        predictions_norm, state_history_gpu, final_state_gpu = _kalman_block_loop_optimized(
             phi_matrix=phi_matrix,
             y_stacked=y_stacked,
             base_pred_stacked=base_pred_stacked,
             B=actual_block_size,
             P_init_diag=float(P_init_diag),
             observation_noise_var=float(observation_noise_var),
-            process_noise_var=float(process_noise_var),
+            process_noise_diag=noise_diag,
             eps=self.eps,
-            offset_boost=float(self.offset_boost)
+            offset_boost=float(self.offset_boost),
+            offset_q_boost=offset_q_boost
         )
 
         self.states_history_ = state_history_gpu.squeeze(-1).cpu()
+        self.final_state_ = final_state_gpu.squeeze(-1).cpu()   # (G, d): the state after the last observation
 
         if self.horizon_steps_ > 1:
             shift = self.horizon_steps_ - 1
@@ -365,64 +531,100 @@ class KalmanTAM:
         self,
         data: pd.DataFrame,
         param_grid: Dict[str, list],
-        lookback_days: int = 30
+        calibration_steps: Optional[Any] = None,
+        calibration_mask: Optional[Any] = None,
+        lookback_days: Optional[int] = None
     ) -> Tuple[Dict[str, float], float]:
         """
-        Optimizes noise parameters by dynamically locating valid validation windows.
-        Because targets are internally normalized, the hyperparameter grid is highly 
+        Optimizes noise parameters on a calibration period chosen by the caller.
+        Because targets are internally normalized, the hyperparameter grid is highly
         stable and invariant to the original data's scale.
 
         Args:
             data: The full dataset for preparation.
             param_grid: Dictionary of hyperparameters to test.
-            lookback_days: Number of days to include in the validation slice.
+            calibration_steps: The time steps (positions along each group's time axis, after balancing) on which the
+                RMSE is computed: a ``slice``, a ``range`` or a list of positions. Tune on a period that ends before
+                the period you will report, and not on the burn-in rows (see ``calibration_steps`` of the constructor).
+            calibration_mask: The same selection as a boolean array with one entry per time step.
+            lookback_days: Deprecated (FutureWarning, removed in 1.5.0): scores the last ``lookback_days * 24`` steps
+                of `data`, which is look-ahead when `data` holds the period you report.
 
         Returns:
             Tuple containing the best parameters and corresponding RMSE.
         """
-        print("1. Preparing data, standardizing targets, and searching for valid validation window...")
+        if calibration_steps is not None and calibration_mask is not None:
+            raise ValueError("Pass either calibration_steps or calibration_mask, not both.")
+        print("1. Preparing data, standardizing targets, and selecting the calibration period...")
         prepared_data = self.prepare_data(data)
-        
+
         y_orig = (prepared_data["y_stacked"] * prepared_data["y_scale"]) + prepared_data["y_center"]
-        
-        valid_indices = torch.where(torch.isfinite(y_orig).any(dim=0).any(dim=-1))[0]
-        
-        if len(valid_indices) == 0:
-            raise ValueError("No valid target data found in the entire dataset. Tuning is impossible.")
-        
-        last_valid_idx = valid_indices[-1].item()
-        val_start_idx = max(0, last_valid_idx - (lookback_days * 24)) 
-        
-        print(f"   -> Data density confirmed. Validation window: indices {val_start_idx} to {last_valid_idx}.")
-        
-        y_val_orig = y_orig[:, val_start_idx:last_valid_idx+1, :]
+        n_steps = y_orig.shape[1]
+
+        if calibration_steps is None and calibration_mask is None:
+            warnings.warn(
+                ("lookback_days is deprecated" if lookback_days is not None else "tune_hyperparameters without a period")
+                + ": it scores the last lookback_days * 24 steps of `data` (look-ahead when `data` holds the period you "
+                "report; the * 24 assumes hourly steps). Pass calibration_steps= or calibration_mask=; "
+                "the lookback_days rule is removed in 1.5.0.",
+                FutureWarning, stacklevel=2,
+            )
+            valid_indices = torch.where(torch.isfinite(y_orig).any(dim=0).any(dim=-1))[0]
+            if len(valid_indices) == 0:
+                raise ValueError("No valid target data found in the entire dataset. Tuning is impossible.")
+            last_valid_idx = valid_indices[-1].item()
+            val_start_idx = max(0, last_valid_idx - ((30 if lookback_days is None else lookback_days) * 24))
+            selected = np.zeros(n_steps, dtype=bool)
+            selected[val_start_idx:last_valid_idx + 1] = True
+        elif calibration_mask is not None:
+            selected = np.asarray(calibration_mask, dtype=bool)
+            if selected.shape != (n_steps,):
+                raise ValueError(f"calibration_mask must have one entry per time step ({n_steps}), got {selected.shape}.")
+        else:
+            selected = np.zeros(n_steps, dtype=bool)
+            positions = np.arange(n_steps)[calibration_steps] if isinstance(calibration_steps, slice) else np.asarray(list(calibration_steps), dtype=int)
+            selected[positions] = True
+
+        if not selected.any():
+            raise ValueError("The calibration period selects no time step.")
+        burn_in = self.calibration_steps_used_
+        if burn_in is not None and selected[:burn_in].any():
+            warnings.warn(
+                f"The calibration period includes the first {burn_in} steps, the reference period that sets the "
+                "scaling: their forecasts are not causal. Start the calibration period after them.",
+                UserWarning, stacklevel=2,
+            )
+        print(f"   -> Calibration period: {int(selected.sum())} steps, from index {int(np.argmax(selected))}.")
+
+        selected_t = torch.as_tensor(selected, device=y_orig.device)
+        y_val_orig = y_orig[:, selected_t, :]
         best_score, best_params = float('inf'), None
         combinations = [dict(zip(param_grid.keys(), v)) for v in itertools.product(*param_grid.values())]
-        
+
         print(f"2. Testing {len(combinations)} scale-invariant hyperparameter combinations...")
         for i, params in enumerate(combinations):
             preds_denorm = self._run_filter(
-                prepared_data, 
-                params.get("P_init_diag", 1.0), 
-                params["observation_noise_var"], 
+                prepared_data,
+                params.get("P_init_diag", 1.0),
+                params["observation_noise_var"],
                 params["process_noise_var"]
             )
-            
-            preds_val = preds_denorm[:, val_start_idx:last_valid_idx+1, :]
-            
+
+            preds_val = preds_denorm[:, selected_t, :]
+
             sq_err = (y_val_orig - preds_val)**2
             valid_mask = ~torch.isnan(sq_err)
-            
+
             if valid_mask.sum() > 0:
                 rmse = torch.sqrt(sq_err[valid_mask].mean()).item()
             else:
                 rmse = float('nan')
-            
+
             print(f"  - Combo {i+1}/{len(combinations)}: {params} -> RMSE: {rmse:.4f}")
-            
+
             if rmse < best_score and not np.isnan(rmse):
                 best_score, best_params = rmse, params
-                
+
         return best_params, best_score
 
     def predict_online(self, data: pd.DataFrame, **kwargs) -> pd.DataFrame:
@@ -456,15 +658,29 @@ class KalmanTAM:
         self.last_state_dict_ = {}
         self.scale_dict_ = {}
         for i, g in enumerate(prepared_data["unique_groups"]):
-            self.last_state_dict_[g] = self.states_history_[-1, i, :].clone()
+            self.last_state_dict_[g] = self.final_state_[i, :].clone()
             self.scale_dict_[g] = prepared_data["y_scale"][i, 0, 0].cpu().clone()
 
         return _cleanup_dummies(df_final_masked, self.group_col_, self.date_col_)
     
+    def compact(self) -> 'KalmanTAM':
+        r"""
+        Keeps the last row of ``states_history_`` (the state after the last block) and drops the rest, which grows with the number of rows.
+
+        ``final_state_``, ``last_state_dict_`` and the scales are untouched, so ``predict()`` is unchanged to the last bit.
+
+        Returns:
+            self
+        """
+        if self.states_history_ is not None:
+            self.states_history_ = self.states_history_[-1:].clone()
+        return self
+
     def fit(self, data: pd.DataFrame, **kwargs) -> 'KalmanTAM':
         r"""
         Fits the Kalman filter by running the historical tracking simulation.
-        Learns and saves the optimal state (drift weights) per group.
+        Learns and saves the state (drift weights) per group after the last observation, so that ``predict()`` of the
+        next steps equals what the online simulation would forecast for them (with ``block_size=1``).
 
         Args:
             data: Training DataFrame.
@@ -479,8 +695,9 @@ class KalmanTAM:
         r"""
         Applies the frozen end-of-training Kalman state to new (test) data.
         
-        Uses the last updated tracking weights from the historical simulation 
-        to project the drift forward as a stable, static rule.
+        Uses the tracking weights after the last update of the historical simulation 
+        to project the drift forward as a stable, static rule: the forecast of the step
+        that follows the training data includes the last observation.
 
         Args:
             df: New DataFrame containing the features.
