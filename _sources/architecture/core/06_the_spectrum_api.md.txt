@@ -365,6 +365,10 @@ Constructs a $3 \times 3$ diagonal stiffness matrix. Uniquely applies an artific
 :end-before: "#: </penalty_matrix>"
 ```
 
+**Reading the parameters.** `d_pen` multiplies the ridge penalty of the derivative term only, relative to the penalty `ap` of the effect. With the default penalty (1e-9) that ridge is already negligible, so `d_pen` changes nothing; it acts with an explicit penalty (`ap=-2`), where a large `d_pen` penalises the derivative out. `auto_fit` tunes that penalty, and on a formula that already holds the lag's difference it often shrinks the whole effect, which leaves `d_pen` nothing to scale. The tests `test_d_pen_*` in `tests/spectrum/test_pid.py` pin this behaviour.
+
+**Frame dependence.** The derivative and the rolling mean are computed along the rows of the frame given to `predict()`: the first `w` rows of each group of a frame get values that training never saw. Predict a frame that holds the history (the training rows, then the new rows) and slice the result; a short frame alone gives wrong PID features. With a trending lag that leaves the trained range, the P and I terms extrapolate the raw lag, and `extrapolate='linear'` can be much worse than the default.
+
 ### Control Diagnostics (Bode Stability)
 
 **Core Interface:** `bode.py`

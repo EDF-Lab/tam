@@ -387,8 +387,16 @@
 <li><p><strong>Run the regression checks:</strong> <code class="docutils literal notranslate"><span class="pre">python</span> <span class="pre">tests/regression/run.py</span></code> rewrites <code class="docutils literal notranslate"><span class="pre">tests/regression/RESULTS.txt</span></code> and <code class="docutils literal notranslate"><span class="pre">RESULTS_EXP.txt</span></code>; <code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">diff</span> <span class="pre">tests/regression/</span></code> shows what your change moved. If that is what you intended, commit the new file in your pull request and say why the numbers moved; the <code class="docutils literal notranslate"><span class="pre">Regression</span></code> workflow fails when <code class="docutils literal notranslate"><span class="pre">RESULTS.txt</span></code> in the pull request is not the one the checks produce (a different <code class="docutils literal notranslate"><span class="pre">RESULTS_EXP.txt</span></code> is only a warning) (see <code class="docutils literal notranslate"><span class="pre">tests/regression/README.md</span></code>).</p></li>
 <li><p><strong>Submit your PR:</strong> Provide a clear description of the problem solved, the mathematical approach taken, and the performance implications.</p></li>
 </ol>
+</section>
 <hr class="docutils" />
-<p><em>By contributing to TAM, you agree that your contributions will be licensed under the project’s LGPL license.</em></p>
+<section id="licence-of-contributions-and-sign-off-dco">
+<h2>6. Licence of Contributions and Sign-off (DCO)<a class="headerlink" href="#licence-of-contributions-and-sign-off-dco" title="Link to this heading">¶</a></h2>
+<p>By contributing, you agree that your contribution is licensed under the licence of the file it changes (LGPL-3.0-or-later for the code, see <code class="docutils literal notranslate"><span class="pre">LICENSES/</span></code> and <code class="docutils literal notranslate"><span class="pre">REUSE.toml</span></code> for the data and documents).</p>
+<p>Every commit must carry a sign-off line, which certifies the <a class="reference internal" href="#DCO"><span class="xref myst">Developer Certificate of Origin 1.1</span></a>:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">Signed</span><span class="o">-</span><span class="n">off</span><span class="o">-</span><span class="n">by</span><span class="p">:</span> <span class="n">Your</span> <span class="n">Name</span> <span class="o">&lt;</span><span class="n">your</span><span class="o">.</span><span class="n">email</span><span class="nd">@example</span><span class="o">.</span><span class="n">com</span><span class="o">&gt;</span>
+</pre></div>
+</div>
+<p><code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">commit</span> <span class="pre">-s</span> <span class="pre">-m</span> <span class="pre">&quot;short</span> <span class="pre">phrase&quot;</span></code> adds it. The <code class="docutils literal notranslate"><span class="pre">DCO</span></code> check of a pull request fails when a commit lacks it. How to fix a missing sign-off: <a class="reference internal" href="#docs/contributing/dco_howto.md"><span class="xref myst">docs/contributing/dco_howto.md</span></a>.</p>
 </section>
 </section>
 
@@ -456,6 +464,7 @@
 <li><a class="reference internal" href="#coding-standards">3. Coding Standards</a></li>
 <li><a class="reference internal" href="#shared-feature-branches">4. Shared Feature Branches</a></li>
 <li><a class="reference internal" href="#submitting-a-pull-request-pr">5. Submitting a Pull Request (PR)</a></li>
+<li><a class="reference internal" href="#licence-of-contributions-and-sign-off-dco">6. Licence of Contributions and Sign-off (DCO)</a></li>
 </ul>
 </li>
 </ul>

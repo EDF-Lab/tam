@@ -61,4 +61,15 @@ A body of work too large for one pull request (a new model family, a research co
 6. **Submit your PR:** Provide a clear description of the problem solved, the mathematical approach taken, and the performance implications.
 
 ---
-*By contributing to TAM, you agree that your contributions will be licensed under the project's LGPL license.*
+
+## 6. Licence of Contributions and Sign-off (DCO)
+
+By contributing, you agree that your contribution is licensed under the licence of the file it changes (LGPL-3.0-or-later for the code, see `LICENSES/` and `REUSE.toml` for the data and documents).
+
+Every commit must carry a sign-off line, which certifies the [Developer Certificate of Origin 1.1](DCO):
+
+```
+Signed-off-by: Your Name <your.email@example.com>
+```
+
+`git commit -s -m "short phrase"` adds it. The `DCO` check of a pull request fails when a commit lacks it. How to fix a missing sign-off: [docs/contributing/dco_howto.md](docs/contributing/dco_howto.md).
