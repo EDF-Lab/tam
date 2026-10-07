@@ -2,12 +2,13 @@
 AutoTAM with mandatory terms and mandatory variables.
 
 Same synthetic data and split as cheatsheet.py, same small AutoTAM settings as its section 10. Three models:
-  - AutoTAM_Free          : y ~ AutoPipe(...)                      (reference, the cheatsheet champion)
+  - AutoTAM_Free          : y ~ AutoPipe(...)                      (reference: no mandatory constraint)
   - AutoTAM_MandatoryTerm : y ~ s(x1, k=10) + AutoPipe(...)        (the term is kept by every static model)
   - AutoTAM_MandatoryVar  : free formula, mandatory_variables=["x10"] (x10 appears in every static model)
 
+The model scored is the Apex ensemble (``AutoTAM_Apex_Ensemble``), the final output of AutoTAM.
 The script fails if a static model of the search lacks the mandatory term or variable, so a regression of the feature is caught
-by the regression check (pre_push.py, own use cases), not only by the unit tests.
+by the regression check, not only by the unit tests.
 """
 
 import random
@@ -74,6 +75,7 @@ cols_to_keep = ["date", "y", "x1", "x2", "x3", "x4", "x5", "x6", "x7", "x8", "x1
 PIPE = "AutoPipe(x1, x2, x3, x4, x5, x6, x7, x8, x10, Lag_y)"
 MANDATORY_TERM = "s(x1, k=10)"
 MANDATORY_VAR = "x10"
+APEX = "AutoTAM_Apex_Ensemble"  # the final AutoTAM model: the MLpol aggregation of the experts kept by the search
 
 # ==============================================================================
 # 2. The three models
@@ -124,8 +126,13 @@ for name, kwargs in models.items():
             assert any(tm.get("feature") == MANDATORY_VAR for tm in terms), f"{name}: mandatory variable missing in {f}"
 
     df_preds = auto_model.predict(df[cols_to_keep], date_col='date')
-    pred_col = [c for c in df_preds.columns if c != 'date'][0]
-    df[name] = df_preds[pred_col].values
+    assert APEX in df_preds.columns, f"{name}: predict() returned no {APEX}"
+    df[name] = df_preds[APEX].values
+    # predict() returns one column per expert in search order, then the ensembles: its first column is only the first expert.
+    first_col = [c for c in df_preds.columns if c != 'date'][0]
+    in_test = df.index.isin(d_dict['test'].index)
+    first_rmse = float(np.sqrt(np.mean((df_preds[first_col].to_numpy()[in_test] - df['y'].to_numpy()[in_test]) ** 2)))
+    print(f"(information) first column of predict(): {first_col}, test RMSE {first_rmse:.5f}")
 
     tr = ta.BenchmarkTracker(name)
     tr.y_pred_full = df[name].values
