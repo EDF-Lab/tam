@@ -11,6 +11,8 @@ generate_experts() pipeline is not exercised here because it depends on
 a complete AutoTAM search run (per the NEWTODO.md guardrail).
 """
 
+import logging
+
 import numpy as np
 import pandas as pd
 import pytest
@@ -90,6 +92,30 @@ def test_evaluate_model_cv_crashing_model_returns_inf():
     folds = [(pd.DataFrame({"load": [1.0]}), pd.DataFrame({"load": [1.0]}))]
     score = ExpertExpander()._evaluate_model_cv(_CrashModel(), folds, "load")
     assert score == float("inf")
+
+
+def test_evaluate_model_cv_failure_is_logged_with_formula_and_fold(caplog):
+    class _NamedCrashModel(_CrashModel):
+        formula_ = "load ~ s(temp, k=10)"
+
+    folds = [(pd.DataFrame({"load": [1.0]}), pd.DataFrame({"load": [1.0]}))] * 2
+    with caplog.at_level(logging.WARNING, logger="tam.model.autotam.pipeline.expert_expander"):
+        score = ExpertExpander()._evaluate_model_cv(_NamedCrashModel(), folds, "load")
+
+    assert score == float("inf")
+    warnings = [r.getMessage() for r in caplog.records if r.levelno == logging.WARNING]
+    assert len(warnings) == 2
+    for fold_index, message in enumerate(warnings):
+        assert f"fold {fold_index}" in message
+        assert "load ~ s(temp, k=10)" in message
+        assert "intentional failure" in message
+
+
+def test_evaluate_model_cv_success_logs_nothing(caplog):
+    folds = [(pd.DataFrame({"load": [1.0]}), pd.DataFrame({"load": [1.0, 2.0]}))]
+    with caplog.at_level(logging.WARNING, logger="tam.model.autotam.pipeline.expert_expander"):
+        ExpertExpander()._evaluate_model_cv(_PerfectModel(), folds, "load")
+    assert not [r for r in caplog.records if r.levelno == logging.WARNING]
 
 
 def test_evaluate_model_cv_empty_folds_returns_inf():
