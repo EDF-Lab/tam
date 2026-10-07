@@ -76,7 +76,7 @@ def test_every_empty_python_file_is_annotated_in_reuse_toml():
 
 def test_every_licence_used_has_its_text_in_the_licenses_folder():
     used = set(re.findall(r'SPDX-License-Identifier = "([^"]+)"', (ROOT / "REUSE.toml").read_text(encoding="utf-8")))
-    used |= {m for p in FILES for m in re.findall(r"SPDX-License-Identifier: (\S+)", "\n".join(_header(p)[1]))}
+    used |= {m for p in FILES for m in re.findall(r"SPDX-License-" r"Identifier: (\S+)", "\n".join(_header(p)[1]))}
     assert {"LGPL-3.0-or-later", "CC-BY-4.0", "CC0-1.0"} <= used
     missing = sorted(name for name in used if not (ROOT / "LICENSES" / f"{name}.txt").exists())
     assert not missing, missing
@@ -90,3 +90,11 @@ def test_every_data_file_is_annotated_in_reuse_toml():
     assert data, "no data file found"
     missing = [name for name in data if f'"{name}"' not in reuse]
     assert not missing, missing
+
+
+def test_a_file_carries_one_licence_tag_not_a_pattern_that_looks_like_one():
+    # `reuse lint` reads every licence tag it finds, in code and strings included: a regular expression written with the tag in one piece made a test file fail it
+    # ("invalid SPDX license expression"). A file holds its header tag and nothing that looks like another.
+    tag = "SPDX-License-" + "Identifier:"
+    several = {p.relative_to(ROOT).as_posix(): n for p in FILES if (n := p.read_text(encoding="utf-8", errors="replace").count(tag)) > 1}
+    assert not several, several

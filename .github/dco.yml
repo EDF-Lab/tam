@@ -1,0 +1,4 @@
+# DCO GitHub App: require a sign-off on every commit of a pull request.
+# Members of the organisation are checked too (no exemption).
+require:
+  members: true

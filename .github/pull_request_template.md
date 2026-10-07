@@ -14,6 +14,7 @@ Fill one row per line you add to `CHANGELOG.md`. "Not needed" is an answer only 
 - [ ] No frozen public API change: existing parameters keep their name, order and default (`tests/test_api_contracts.py`); new ones are keyword arguments with a default.
 - [ ] No `print()` in new code.
 - [ ] Data used by tests and examples is public.
+- [ ] Every commit is signed off (`git commit -s`, see CONTRIBUTING.md).
 - [ ] Every added file keeps its `SPDX-FileCopyrightText` and `SPDX-License-Identifier` header; its author is named as `SPDX-FileContributor`.
 
 ## Pre-push verdict
