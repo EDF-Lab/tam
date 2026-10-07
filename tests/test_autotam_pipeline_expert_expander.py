@@ -17,7 +17,10 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from tam.model.autotam.pipeline.expert_expander import ExpertExpander
+from tam.model.autotam.auto_tam import AutoTAM
+from tam.model.autotam.pipeline.expert_expander import ExpertExpander, kalman_formula_from_effects
+from tam.model.additive import StaticTAM
+from tam.model.kalman import KalmanTAM
 from tam.model.autotam.pipeline.context import PipelineContext
 
 
@@ -202,3 +205,58 @@ def test_generate_experts_grid_preserves_tensor_terms():
     assert "te(" in tokenized_form
     assert "interaction" not in tokenized_form
 
+
+# --------------------------------------------------------------------------- #
+# Kalman experts: the state formula and the search
+# --------------------------------------------------------------------------- #
+
+def _static_model_and_frame(n=120):
+    rng = np.random.default_rng(3)
+    frame = pd.DataFrame({
+        "date": pd.date_range("2021-01-01", periods=n, freq="D"),
+        "x1": rng.normal(size=n),
+        "x2": rng.normal(size=n),
+    })
+    frame["y"] = 2.0 * frame["x1"] - frame["x2"] + rng.normal(scale=0.1, size=n)
+    model = StaticTAM(formula="y ~ l(x1) + l(x2)", date_col="date")
+    model.fit(frame)
+    return model, frame
+
+
+def test_kalman_formula_has_one_linear_term_per_effect_column():
+    assert kalman_formula_from_effects("y", ["effect_offset", "effect_x1"]) == "y ~ l(effect_offset) + l(effect_x1)"
+
+
+@pytest.mark.filterwarnings("ignore:KalmanTAM:UserWarning")
+@pytest.mark.filterwarnings("ignore:The calibration period includes:UserWarning")
+def test_kalman_formula_built_from_the_effects_of_a_base_model_is_accepted_by_kalman_tam():
+    model, frame = _static_model_and_frame()
+    effects = [c for c in model.decompose_prediction(frame).columns if c.startswith("effect_")]
+    assert effects, "the base model exposes no effect column"
+
+    formula = kalman_formula_from_effects("y", effects)
+    KalmanTAM(base_model=model, kalman_formula=formula, date_col="date", horizon_steps=1)
+
+    bare_names = "y ~ " + " + ".join(effects) + " - 1"
+    with pytest.raises(ValueError, match="must be function calls"):
+        KalmanTAM(base_model=model, kalman_formula=bare_names, date_col="date", horizon_steps=1)
+
+
+@pytest.mark.filterwarnings("ignore::DeprecationWarning")
+def test_the_search_builds_kalman_experts(tmp_path, monkeypatch):
+    """Every Kalman candidate used to fail on its formula and was dropped without a trace."""
+    monkeypatch.chdir(tmp_path)
+    rng = np.random.default_rng(42)
+    n = 100
+    frame = pd.DataFrame({
+        "ds": pd.date_range("2023-01-01", periods=n, freq="D"),
+        "load": rng.normal(100, 10, n),
+        "temp": rng.normal(20, 5, n),
+        "humidity": rng.uniform(30, 90, n),
+    })
+    search = AutoTAM("load ~ AutoPipe(temp, humidity)", n_experts=1, pop_size=4, use_opera=False)
+    search.fit(frame, date_col="ds",
+               expansions={"prior": True, "autofit": False, "kalman": True, "adaptive": False, "grid": False})
+
+    kalman_candidates = [e for e in search.chronological_test_log if e.get("Model_Type") == "KalmanTAM"]
+    assert kalman_candidates, "no KalmanTAM candidate was built by the search"

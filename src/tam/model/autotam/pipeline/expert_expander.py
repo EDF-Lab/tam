@@ -28,6 +28,25 @@ from tam.model.adaptative import AdaptiveTAM
 logger = logging.getLogger(__name__)
 #: </expert_expander_imports>
 
+#: <expert_expander_kalman_formula>
+def kalman_formula_from_effects(target: str, effect_columns: List[str]) -> str:
+    """Builds the state formula of a KalmanTAM expert from the effect columns of its base model.
+
+    The filter tracks one coefficient per effect of the base model, so the formula holds one linear
+    term ``l(effect_...)`` per column returned by the base model's ``decompose_prediction``. The
+    formula grammar accepts function terms only, and an intercept is already carried by the
+    ``effect_offset`` column.
+
+    Args:
+        target: Name of the target column.
+        effect_columns: Names of the ``effect_`` columns of the base model.
+
+    Returns:
+        The formula string, for example ``y ~ l(effect_offset) + l(effect_x1)``.
+    """
+    return f"{target} ~ " + " + ".join(f"l({column})" for column in effect_columns)
+#: </expert_expander_kalman_formula>
+
 #: <expert_expander_class>
 class ExpertExpander:
     """Expands every island's top formulas into full static and dynamic state-spaces."""
@@ -204,7 +223,7 @@ class ExpertExpander:
 
                         if self.expansions.get("kalman"):
                             base_effects = [c for c in best_static_model.decompose_prediction(df_fit_clean).columns if c.startswith("effect_")]
-                            dynamic_formula = f"{ctx.target} ~ {' + '.join(base_effects)} - 1"
+                            dynamic_formula = kalman_formula_from_effects(ctx.target, base_effects)
                             combined_formula = f"{dynamic_formula} + {getattr(best_static_model, 'formula_', '')}"
                             comp = ctx.estimate_complexity(combined_formula)
                             pen_score = ctx.penalize_score(best_static_cv, combined_formula, n_samples)

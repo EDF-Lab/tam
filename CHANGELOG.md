@@ -53,6 +53,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Time-Series Integrity:** Fixed Kalman/Adaptive prediction backtest alignment, patched a `groupby` crash caused by Daylight Saving Time (DST) duplicates, and prevented `__dummy_date__` overflows on massive inputs.
 - **Grid-Search Experts:** the grid-search experts of `ExpertExpander` were never fitted (the `grid_search_fit(cv_folds=...)` call did not match the engine's `grid_search_fit(data_train, data_val, grid_search_config)`); they are now fitted on the first cross-validation fold.
 - **Parenthesis Mismatch:** combining mandatory terms and mandatory variables no longer produces formulas with unbalanced parentheses.
+- **Kalman Experts:** the search never trained a KalmanTAM expert: the formula it gave each one used bare effect names, which the formula grammar rejects, and the error was swallowed. Each expert now tracks one linear term `l(effect_...)` per effect of its base model, so Kalman experts enter the candidate pool and AutoTAM forecasts change.
 
 ---
 

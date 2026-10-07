@@ -166,6 +166,15 @@ Once the `DragTAM` engine concludes, the `BaseDiscoverer` acts as the parser and
 
 These extracted champion topologies are routed to the `ExpertExpander`. This module physically instantiates the tracking environments, building local Adaptive Error Correction Models (ECM) and mapping the base architectures to the Extended Kalman Filter (EKF).
 
+The state of a Kalman expert holds one coefficient per effect of its base model, so its formula has one linear term per effect column returned by `decompose_prediction` (function terms only: the formula grammar rejects bare names):
+
+```{literalinclude} ../../../../src/tam/model/autotam/pipeline/expert_expander.py
+:language: python
+:start-after: "#: <expert_expander_kalman_formula>"
+:end-before: "#: </expert_expander_kalman_formula>"
+:caption: src/tam/model/autotam/pipeline/expert_expander.py (Kalman State Formula)
+```
+
 ```{literalinclude} ../../../../src/tam/model/autotam/pipeline/expert_expander.py
 :language: python
 :start-after: "#: <expert_expander_generate>"
