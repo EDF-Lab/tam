@@ -53,3 +53,10 @@ path = "src/tam/data/airpassengers.csv"
 precedence = "closest"
 SPDX-FileCopyrightText = "Box, Jenkins and Reinsel, Time Series Analysis: Forecasting and Control (monthly international airline passengers, 1949-1960)"
 SPDX-License-Identifier = "CC0-1.0"
+
+# The Developer Certificate of Origin 1.1, copied verbatim (changing it is not allowed by its own text).
+[[annotations]]
+path = "DCO"
+precedence = "closest"
+SPDX-FileCopyrightText = "2004, 2006 The Linux Foundation and its contributors"
+SPDX-License-Identifier = "LicenseRef-DCO-1.1"
