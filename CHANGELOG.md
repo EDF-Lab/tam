@@ -20,6 +20,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - The `DCO` sign-off is required on every commit of a pull request (`DCO`, `CONTRIBUTING.md`, `docs/contributing/dco_howto.md`); a `REUSE` workflow runs `reuse lint` on each push and pull request.
 - The `pid()` page of `architecture/core/06_the_spectrum_api.md` says when `d_pen` acts and that the derivative is computed along the frame given to `predict()`; three tests pin `pid` behaviour.
 
+### Added
+- **`SafetyTAM.predict_quantiles(y_pred, levels, scale=None, signed=False)`**: conformal quantiles at several levels in one call (`q<level>` columns, sorted on each row). By default the symmetric bands of `predict_intervals`; `signed=True` calibrates each tail on the signed residuals kept by `calibrate()` (one-sided split conformal), for skewed errors. `calibrate(..., verbose=False)` silences the sample-count line, printed by default as before.
+
 ### Fixed
 - **A distributional or mixture `StaticTAM` with the default log target rejects a training target with values `<= 0`** (`ValueError` naming the count and `dist_kwargs={"log_target": False}`). They were clipped to a tiny constant before the log, i.e. silently turned into huge negative outliers, and the fitted location, scale and quantiles were meaningless. Positive targets are unchanged.
 

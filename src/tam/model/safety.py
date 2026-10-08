@@ -33,6 +33,7 @@ class SafetyTAM:
         """alpha is the target error rate (e.g. 0.1 for 90% coverage)."""
         self.alpha_target = alpha
         self.residuals_calib_ = None
+        self.signed_scores_ = None
 
     def calibrate_scores(self, scores: np.ndarray) -> "SafetyTAM":
         """Calibrate directly on a supplied array of nonconformity scores (the generic entry point)."""
@@ -45,18 +46,35 @@ class SafetyTAM:
         y_pred: np.ndarray,
         scale: Optional[np.ndarray] = None,
         scores: Optional[np.ndarray] = None,
+        verbose: bool = True,
     ) -> "SafetyTAM":
         """Calibrate on a hold-out set.
 
         The nonconformity score defaults to the absolute residual `|y - y_pred|`; passing scale normalizes it
-        to `|y - y_pred|` / scale (studentized conformal), and passing scores uses them directly.
+        to `|y - y_pred|` / scale (studentized conformal), and passing scores uses them directly. The signed
+        residuals `(y - y_pred)` / scale are kept too, for the per-tail quantiles of `predict_quantiles(..., signed=True)`.
+
+        Args:
+            y_true: Observed values of the hold-out set.
+            y_pred: Point predictions for the same rows.
+            scale: Optional per-row scale (studentized scores).
+            scores: Optional nonconformity scores used as given (then no signed residuals are kept).
+            verbose: Print the number of calibration samples (the default, as before); False is silent.
+
+        Returns:
+            self
         """
+        self.signed_scores_ = None
         if scores is not None:
             self.residuals_calib_ = np.asarray(scores, dtype=float)
         else:
-            residual = np.abs(np.asarray(y_true, dtype=float) - np.asarray(y_pred, dtype=float))
-            self.residuals_calib_ = residual / np.asarray(scale, dtype=float) if scale is not None else residual
-        print(f"Safety calibrated on {len(self.residuals_calib_)} samples.")
+            signed = np.asarray(y_true, dtype=float) - np.asarray(y_pred, dtype=float)
+            if scale is not None:
+                signed = signed / np.asarray(scale, dtype=float)
+            self.signed_scores_ = signed
+            self.residuals_calib_ = np.abs(signed)
+        if verbose:
+            print(f"Safety calibrated on {len(self.residuals_calib_)} samples.")
         return self
 
     def conformal_quantile(self, alpha: Optional[float] = None) -> float:
@@ -117,3 +135,59 @@ class SafetyTAM:
             result['Actual'] = np.asarray(y_true_online, dtype=float)
             result['Covered'] = (result['Actual'] >= result['Lower']) & (result['Actual'] <= result['Upper'])
         return result
+
+    def predict_quantiles(
+        self,
+        y_pred: np.ndarray,
+        levels,
+        scale: Optional[np.ndarray] = None,
+        signed: bool = False,
+    ) -> pd.DataFrame:
+        """Conformal quantiles at several levels in one call.
+
+        Symmetric mode (default): the level tau < 0.5 is `y_pred - q * scale` and 1 - tau is `y_pred + q * scale`, with
+        q = conformal_quantile(2 * tau) of the absolute scores (the bands of `predict_intervals`); 0.5 is `y_pred`.
+        Signed mode: each level is `y_pred + s_(k) * scale`, s_(k) the k-th smallest signed calibration score, with
+        k = ceil((n + 1) * tau) above the median and k = floor((n + 1) * tau) below it (one-sided split conformal),
+        so skewed errors get a short and a long tail. The levels are sorted on each row (no crossing).
+
+        Args:
+            y_pred: Point predictions.
+            levels: Quantile levels in (0, 1).
+            scale: Optional per-row scale (the one used at calibration for studentized scores).
+            signed: Use the signed scores kept by `calibrate` (not available after `calibrate_scores`).
+
+        Returns:
+            A DataFrame with one column per level, named `q<level>`.
+
+        Raises:
+            RuntimeError: If the engine is not calibrated.
+            ValueError: If `signed=True` but no signed scores were kept, or a level is outside (0, 1).
+        """
+        if self.residuals_calib_ is None:
+            raise RuntimeError("You must call .calibrate() or .calibrate_scores() before predicting quantiles.")
+        levels = [float(t) for t in levels]
+        if any(not 0.0 < t < 1.0 for t in levels):
+            raise ValueError(f"Quantile levels must lie in (0, 1); got {levels}.")
+        if signed and self.signed_scores_ is None:
+            raise ValueError("signed=True needs the signed residuals kept by .calibrate(y_true, y_pred); "
+                             ".calibrate_scores() keeps only absolute scores.")
+        y_pred = np.asarray(y_pred, dtype=float)
+        scale_vector = np.ones_like(y_pred) if scale is None else np.asarray(scale, dtype=float)
+
+        columns = []
+        if signed:
+            ordered = np.sort(self.signed_scores_)
+            n = len(ordered)
+            for tau in levels:
+                k = int(np.ceil((n + 1) * tau)) if tau >= 0.5 else int(np.floor((n + 1) * tau))
+                columns.append(y_pred + ordered[min(max(k, 1), n) - 1] * scale_vector)
+        else:
+            for tau in levels:
+                if tau == 0.5:
+                    columns.append(y_pred.copy())
+                    continue
+                radius = self.conformal_quantile(round(2.0 * min(tau, 1.0 - tau), 12))
+                columns.append(y_pred + np.sign(tau - 0.5) * radius * scale_vector)
+        table = np.sort(np.column_stack(columns), axis=1)
+        return pd.DataFrame(table, columns=[f"q{t}" for t in levels])

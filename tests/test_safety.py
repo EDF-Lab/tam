@@ -88,3 +88,59 @@ def test_normalized_intervals_scale_with_sigma():
     intervals = model.predict_intervals(np.zeros(5), scale=test_scale)
     ratio = intervals["Width"].to_numpy() / test_scale
     assert np.allclose(ratio, ratio[0])
+
+
+
+# --- verbose and multi-level quantiles ------------------------------------------------------------------------------
+_LEVELS = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]
+
+
+def test_calibrate_prints_by_default_and_verbose_false_is_silent(capsys):
+    y = np.random.default_rng(0).standard_normal(100)
+    SafetyTAM(alpha=0.1).calibrate(y, np.zeros(100))
+    assert "calibrated on 100 samples" in capsys.readouterr().out
+    SafetyTAM(alpha=0.1).calibrate(y, np.zeros(100), verbose=False)
+    assert capsys.readouterr().out == ""
+
+
+def test_symmetric_quantiles_match_the_intervals():
+    rng = np.random.default_rng(1)
+    y_pred, scale = rng.normal(size=50), rng.uniform(0.5, 2.0, 50)
+    engine = SafetyTAM(alpha=0.2).calibrate(rng.standard_normal(500), np.zeros(500), verbose=False)
+    table = engine.predict_quantiles(y_pred, _LEVELS, scale=scale)
+    assert list(table.columns) == [f"q{t}" for t in _LEVELS]
+    band = engine.predict_intervals(y_pred, scale=scale)  # alpha 0.2 -> levels 0.1 and 0.9
+    np.testing.assert_allclose(table["q0.1"], band["Lower"])
+    np.testing.assert_allclose(table["q0.9"], band["Upper"])
+    np.testing.assert_allclose(table["q0.5"], y_pred)
+
+
+def test_quantiles_are_non_decreasing_across_levels():
+    rng = np.random.default_rng(2)
+    engine = SafetyTAM().calibrate(rng.lognormal(size=300), np.ones(300), verbose=False)
+    for signed in (False, True):
+        table = engine.predict_quantiles(rng.normal(size=40), _LEVELS, signed=signed).to_numpy()
+        assert (np.diff(table, axis=1) >= 0).all()
+
+
+def test_signed_quantiles_cover_each_tail_of_skewed_errors():
+    # Lognormal errors are skewed: the symmetric (absolute-score) band is too wide on the short side and too narrow on
+    # the long one; signed scores calibrate each tail on its own.
+    rng = np.random.default_rng(3)
+    errors = lambda n: rng.lognormal(0.0, 0.8, n) - np.exp(0.32)  # noqa: E731 - centred at the mean
+    engine = SafetyTAM().calibrate(errors(4000), np.zeros(4000), verbose=False)
+    future = errors(20000)
+    for signed, tolerance in ((True, 0.02), (False, None)):
+        table = engine.predict_quantiles(np.zeros_like(future), [0.1, 0.9], signed=signed)
+        below_lower = float(np.mean(future < table["q0.1"]))
+        above_upper = float(np.mean(future > table["q0.9"]))
+        if signed:
+            assert abs(below_lower - 0.1) < tolerance and abs(above_upper - 0.1) < tolerance
+        else:
+            assert below_lower < 0.08 and above_upper > 0.12  # the symmetric band misplaces both tails (about 6.5 % and 13 %)
+
+
+def test_signed_quantiles_need_signed_scores():
+    engine = SafetyTAM().calibrate_scores(np.abs(np.random.default_rng(4).standard_normal(100)))
+    with pytest.raises(ValueError, match="signed"):
+        engine.predict_quantiles(np.zeros(3), _LEVELS, signed=True)

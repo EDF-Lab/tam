@@ -15,6 +15,16 @@ One source of truth for conformal: the static engine `safety.py::SafetyTAM` hold
 :pyobject: SafetyTAM.conformal_quantile
 ```
 
+`calibrate()` keeps the signed residuals (`signed_scores_`, studentized when a scale is given) next to the absolute scores, and prints the
+sample count unless `verbose=False`. `predict_quantiles()` returns several levels at once, `q<level>` columns: symmetric bands from
+`conformal_quantile(2 * tau)` by default (the bands of `predict_intervals`), or one-sided bounds per tail from the signed scores with
+`signed=True`; the levels are sorted on each row.
+
+```{literalinclude} ../../../../src/tam/model/safety.py
+:language: python
+:pyobject: SafetyTAM.predict_quantiles
+```
+
 ## Adaptive Conformal Inference (streaming, model-agnostic)
 
 ```{literalinclude} ../../../../src/tam/model/statistics/risk/aci.py
