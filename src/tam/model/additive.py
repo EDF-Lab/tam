@@ -106,6 +106,10 @@ class StaticTAM(BaseTAM):
                 you must pass date_col explicitly to guarantee correct results
                 on data that isn't already sorted by time.
             default_alpha_p: Default log10(lambda_p) regularization strength.
+            dist_kwargs: Options of the distributional and mixture modes: ``tail_family``, ``kurtosis_threshold``,
+                ``scale_shrinkage``, ``location_alpha_p``, ``scale_alpha_p``, and the target scale: ``target_transform``
+                (``"log"`` by default, ``"none"``, ``"asinh"`` for a skewed target with negative values, ``"logit"`` for a
+                bounded one, with ``bounds=(low, high)`` or estimated) or the older ``log_target`` (True = ``"log"``).
             _internal_effects_list: (Internal) Used for restoring state during grid search.
             _internal_features_config: (Internal) Used for restoring state during grid search.
         """
@@ -120,7 +124,9 @@ class StaticTAM(BaseTAM):
 
         dk = dist_kwargs or {}
         # Extracted universally since both distributional and mixture modes use the target scale transformation.
-        self._log_target_ = bool(dk.get("log_target", True))
+        self._target_transform_, self._log_target_, self._transform_bounds_ = _distributional.resolve_target_transform(
+            dk, mixture=mixture_components is not None
+        )
         # Conformal state (set by calibrate_conformal; used by predict_intervals).
         self._safety_ = None
         self._conformal_studentized_ = False
@@ -243,6 +249,9 @@ class StaticTAM(BaseTAM):
     # --- Distributional API: thin delegates to statistics.estimation._distributional ---
     def _to_model_scale(self, y: np.ndarray) -> np.ndarray:
         return _distributional._to_model_scale(self, y)
+
+    def _from_model_scale(self, z: np.ndarray, quantity: str = "the back-transformed values") -> np.ndarray:
+        return _distributional.from_model_scale(self, z, quantity)
 
     def _mu_sigma(self, data: pd.DataFrame) -> Tuple[np.ndarray, np.ndarray]:
         return _distributional.mu_sigma(self, data)

@@ -19,6 +19,7 @@ from typing import Optional, Sequence, Tuple
 import numpy as np
 import pandas as pd
 from scipy import stats
+from scipy.special import expit
 
 _TINY: float = 1e-12
 # Mean of log(chi^2_1); de-biases an L2 fit on log(r^2) back to log(sigma^2).
@@ -104,6 +105,7 @@ def init_config(model, formulas, loss, group_col, date_col, default_alpha_p,
     model.tail_family_ = None
     model.nu_ = None
     model._global_scale_variance_ = None
+    model._transform_params_ = {}
 
 
 # --- Helpers ----------------------------------------------------------------------------------------
@@ -131,8 +133,120 @@ def require_positive_target(model, y: np.ndarray) -> None:
         )
 
 
+_TRANSFORMS = ("none", "log", "asinh", "logit")
+# Offset from the bounds of a logit target, as a fraction of the interval: a value on a bound is nudged inside.
+_LOGIT_EPS: float = 1e-6
+# Margin added on each side of the observed range when the bounds of a logit target are estimated.
+_LOGIT_MARGIN: float = 0.05
+
+
+def resolve_target_transform(dist_kwargs: dict, mixture: bool = False) -> Tuple[str, bool, Optional[Tuple[float, float]]]:
+    """Read ``target_transform``, ``log_target`` and ``bounds`` of ``dist_kwargs``.
+
+    Args:
+        dist_kwargs: The ``dist_kwargs`` of the model.
+        mixture: Whether the model is a mixture (only ``"none"`` and ``"log"`` are available there).
+
+    Returns:
+        ``(transform, log_target, bounds)``: the transform name, ``transform == "log"``, and the given bounds or None.
+
+    Raises:
+        ValueError: On an unknown transform, a contradiction with ``log_target``, invalid ``bounds``, or a mixture with
+            ``"asinh"`` or ``"logit"``.
+    """
+    transform = dist_kwargs.get("target_transform")
+    if transform is None:
+        transform = "log" if bool(dist_kwargs.get("log_target", True)) else "none"
+    elif transform not in _TRANSFORMS:
+        raise ValueError(f"target_transform must be one of {_TRANSFORMS}; got {transform!r}")
+    elif "log_target" in dist_kwargs and bool(dist_kwargs["log_target"]) != (transform == "log"):
+        raise ValueError(
+            f"dist_kwargs target_transform={transform!r} contradicts log_target={dist_kwargs['log_target']!r}; give one of them."
+        )
+    if mixture and transform in ("asinh", "logit"):
+        raise ValueError(f"target_transform={transform!r} is not available for a mixture; use 'log' or 'none'.")
+    bounds = dist_kwargs.get("bounds")
+    if bounds is not None:
+        if transform != "logit":
+            raise ValueError("bounds applies to target_transform='logit' only.")
+        low, high = float(bounds[0]), float(bounds[1])
+        if not low < high:
+            raise ValueError(f"bounds must be (low, high) with low < high; got {bounds!r}")
+        bounds = (low, high)
+    return transform, transform == "log", bounds
+
+
+def fit_target_transform(model, y: np.ndarray) -> None:
+    """Estimate and store the parameters of the target transform on the training target.
+
+    ``"asinh"`` stores the median and a robust scale (normalised MAD, else the standard deviation, else 1); ``"logit"`` stores
+    the bounds (given, or the observed range widened by a margin).
+
+    Args:
+        model: A distributional StaticTAM.
+        y: The training target.
+
+    Raises:
+        ValueError: If a ``"logit"`` target has values outside the given bounds.
+    """
+    values = np.asarray(y, dtype=float)
+    finite = values[np.isfinite(values)]
+    params: dict = {}
+    if model._target_transform_ == "asinh":
+        centre = float(np.median(finite))
+        scale = float(1.4826 * np.median(np.abs(finite - centre)))
+        if not scale > 0.0:
+            scale = float(np.std(finite))
+        params = {"centre": centre, "scale": scale if scale > 0.0 else 1.0}
+    elif model._target_transform_ == "logit":
+        bounds = model._transform_bounds_
+        if bounds is None:
+            low, high = float(finite.min()), float(finite.max())
+            margin = _LOGIT_MARGIN * (high - low if high > low else 1.0)
+            bounds = (low - margin, high + margin)
+        elif finite.min() < bounds[0] or finite.max() > bounds[1]:
+            n_out = int(np.count_nonzero((finite < bounds[0]) | (finite > bounds[1])))
+            raise ValueError(f"{n_out} training target values lie outside the bounds {bounds} of the logit transform.")
+        params = {"bounds": bounds}
+    model._transform_params_ = params
+
+
 def _to_model_scale(model, y: np.ndarray) -> np.ndarray:
-    return np.log(np.clip(y, _TINY, None)) if model._log_target_ else np.asarray(y, dtype=float)
+    values = np.asarray(y, dtype=float)
+    transform = model._target_transform_
+    if transform == "log":
+        return np.log(np.clip(values, _TINY, None))
+    if transform == "asinh":
+        return np.arcsinh((values - model._transform_params_["centre"]) / model._transform_params_["scale"])
+    if transform == "logit":
+        low, high = model._transform_params_["bounds"]
+        unit = np.clip((values - low) / (high - low), _LOGIT_EPS, 1.0 - _LOGIT_EPS)
+        return np.log(unit / (1.0 - unit))
+    return values
+
+
+def from_model_scale(model, z: np.ndarray, quantity: str = "the back-transformed values") -> np.ndarray:
+    """Back-transform model-scale values to the response scale (exact for a monotone transform, quantiles included).
+
+    Args:
+        model: A distributional StaticTAM.
+        z: Values on the model scale.
+        quantity: Name used in the overflow warning of the log transform.
+
+    Returns:
+        The values on the response scale.
+    """
+    values = np.asarray(z, dtype=float)
+    transform = model._target_transform_
+    if transform == "log":
+        return _to_response_scale(values, quantity)
+    if transform == "asinh":
+        with np.errstate(over="ignore"):
+            return model._transform_params_["centre"] + model._transform_params_["scale"] * np.sinh(values)
+    if transform == "logit":
+        low, high = model._transform_params_["bounds"]
+        return low + (high - low) * expit(values)
+    return values
 
 
 def _estimated(predicted: pd.DataFrame, internal_target: str) -> np.ndarray:
@@ -182,6 +296,7 @@ def fit(model, data: pd.DataFrame, select: str = "fixed",
     """
     working = data.copy()
     require_positive_target(model, working[model.target_col_].to_numpy())
+    fit_target_transform(model, working[model.target_col_].to_numpy())
     working["__mu__"] = _to_model_scale(model, working[model.target_col_].to_numpy())
 
     location_alpha = model._location_alpha_p_ if model._location_alpha_p_ is not None else model.default_alpha_p_
@@ -263,7 +378,7 @@ def _to_response_scale(model_scale: np.ndarray, quantity: str) -> np.ndarray:
 def predict_median(model, data: pd.DataFrame) -> np.ndarray:
     require_distributional(model, "predict_median")
     mu_hat, _ = mu_sigma(model, data)
-    return _to_response_scale(mu_hat, "the median (predict_median)") if model._log_target_ else mu_hat
+    return from_model_scale(model, mu_hat, "the median (predict_median)")
 
 
 def predict_quantile(model, data: pd.DataFrame, tau) -> np.ndarray:
@@ -273,10 +388,7 @@ def predict_quantile(model, data: pd.DataFrame, tau) -> np.ndarray:
     columns = []
     for level in tau_list:
         model_scale_quantile = mu_hat + sigma_hat * _standardized_ppf(model, float(level))
-        columns.append(
-            _to_response_scale(model_scale_quantile, f"the quantile at level {float(level)} (predict_quantile)")
-            if model._log_target_ else model_scale_quantile
-        )
+        columns.append(from_model_scale(model, model_scale_quantile, f"the quantile at level {float(level)} (predict_quantile)"))
     stacked = np.stack(columns, axis=1)
     return stacked[:, 0] if np.isscalar(tau) else stacked
 
@@ -326,7 +438,7 @@ def anomaly_score(model, data: pd.DataFrame) -> pd.DataFrame:
     z_score = (observed - mu_hat) / sigma_hat
     upper_tail = _standardized_cdf(model, z_score)
     tail_pvalue = np.clip(2.0 * np.minimum(upper_tail, 1.0 - upper_tail), _TINY, 1.0)
-    median = _to_response_scale(mu_hat, "the median (anomaly_score)") if model._log_target_ else mu_hat
+    median = from_model_scale(model, mu_hat, "the median (anomaly_score)")
     return pd.DataFrame({
         "predicted_median": median,
         "z_score": z_score,
