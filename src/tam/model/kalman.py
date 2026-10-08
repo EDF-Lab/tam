@@ -38,7 +38,8 @@ import pandas as pd
 import numpy as np
 import itertools
 import warnings
-from typing import Tuple, Dict, Any, Optional, Union
+from typing import Tuple, Dict, Any, Optional, Sequence, Union
+from scipy import stats
 
 from tam.common.utils import (
     TORCH_DEVICE, _balance_groups, 
@@ -60,12 +61,19 @@ def _kalman_block_loop_optimized(
     process_noise_diag: torch.Tensor,
     eps: float,
     offset_boost: float,
-    offset_q_boost: float
-) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+    offset_q_boost: float,
+    with_variance: bool,
+    horizon_steps: int
+) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
     r"""
     Compiled TorchScript loop for the Block Kalman Filter.
     Executes the Predict and Update phases across all groups simultaneously 
     while keeping the temporal recursion entirely within the compiled C++ backend.
+
+    With ``with_variance`` the fourth output holds, for every forecast row, the predictive variance ``x' P x + R`` of the
+    standardised target: ``P`` is the covariance of the state that forecasts the row (a priori at its block; for a delayed
+    state of ``horizon_steps > 1``, the covariance of the state ``horizon_steps - 1`` steps before, grown by that many steps
+    of process noise). Without it the fourth output is empty and the filter is unchanged.
     """
     G, N, d = phi_matrix.shape
     dtype = phi_matrix.dtype
@@ -85,6 +93,12 @@ def _kalman_block_loop_optimized(
         Q_matrix[:, 0, 0] = Q_matrix[:, 0, 0] * offset_q_boost
     
     predictions = torch.zeros((G, N, 1), device=device, dtype=dtype)
+    variance_history = torch.zeros((G, N if with_variance else 0, 1), device=device, dtype=dtype)
+    if with_variance and horizon_steps > 1:
+        # The first rows are forecast by the initial state (zero), whose covariance is the initial one.
+        for j in range(min(horizon_steps - 1, N)):
+            x_j = phi_matrix[:, j : j + 1, :]
+            variance_history[:, j : j + 1, :] = torch.bmm(torch.bmm(x_j, P_t), x_j.transpose(-2, -1)) + observation_noise_var
     num_blocks = (N + B - 1) // B
     state_history_gpu = torch.zeros((num_blocks, G, d, 1), device=device, dtype=dtype)
     
@@ -103,6 +117,18 @@ def _kalman_block_loop_optimized(
         predictions[:, t : t + curr_B, :] = y_hat_B
         state_history_gpu[i] = theta_t 
         
+        if with_variance:
+            if horizon_steps > 1:
+                forecast_row = t + horizon_steps - 1
+                if forecast_row < N:
+                    x_h = phi_matrix[:, forecast_row : forecast_row + 1, :]
+                    P_h = P_t + Q_matrix * float(horizon_steps - 1)
+                    variance_history[:, forecast_row : forecast_row + 1, :] = (
+                        torch.bmm(torch.bmm(x_h, P_h), x_h.transpose(-2, -1)) + observation_noise_var
+                    )
+            else:
+                variance_history[:, t : t + curr_B, :] = (torch.bmm(X_B, P_t) * X_B).sum(dim=-1, keepdim=True) + observation_noise_var
+
         # --- UPDATE PHASE (A-Posteriori) ---
         innovations = Y_B - y_hat_B
         
@@ -131,7 +157,7 @@ def _kalman_block_loop_optimized(
 
     # state_history_gpu holds the state each block was predicted with (before its update); theta_t is the state after
     # the last update: the one that forecasts the next, unseen steps.
-    return predictions, state_history_gpu, theta_t
+    return predictions, state_history_gpu, theta_t, variance_history
 #: </jit_woodbury_block>
 
 class KalmanTAM:
@@ -485,11 +511,15 @@ class KalmanTAM:
         prepared_data: Dict[str, Any],
         P_init_diag: float, 
         observation_noise_var: float,
-        process_noise_var: Union[float, Dict[str, float]]
+        process_noise_var: Union[float, Dict[str, float]],
+        with_variance: bool = False
     ) -> torch.Tensor:
         """
         Executes the core Kalman filter loop on normalized data and 
         denormalizes the results before returning.
+
+        With ``with_variance`` the predictive variance of every forecast row (standardised target space) is also kept in
+        ``_predictive_variance_``, shape ``(groups, rows, 1)``; the returned predictions are the same.
         """
         phi_matrix = prepared_data["phi_matrix"]
         y_stacked = prepared_data["y_stacked"]
@@ -498,7 +528,7 @@ class KalmanTAM:
         actual_block_size = 1 if self.horizon_steps_ > 1 else self.block_size_
         noise_diag, offset_q_boost = self._noise_diagonal(process_noise_var, phi_matrix.shape[-1])
 
-        predictions_norm, state_history_gpu, final_state_gpu = _kalman_block_loop_optimized(
+        predictions_norm, state_history_gpu, final_state_gpu, variance_history = _kalman_block_loop_optimized(
             phi_matrix=phi_matrix,
             y_stacked=y_stacked,
             base_pred_stacked=base_pred_stacked,
@@ -508,8 +538,11 @@ class KalmanTAM:
             process_noise_diag=noise_diag,
             eps=self.eps,
             offset_boost=float(self.offset_boost),
-            offset_q_boost=offset_q_boost
+            offset_q_boost=offset_q_boost,
+            with_variance=bool(with_variance),
+            horizon_steps=int(self.horizon_steps_)
         )
+        self._predictive_variance_ = variance_history if with_variance else None
 
         self.states_history_ = state_history_gpu.squeeze(-1).cpu()
         self.final_state_ = final_state_gpu.squeeze(-1).cpu()   # (G, d): the state after the last observation
@@ -632,12 +665,17 @@ class KalmanTAM:
         Main interface to adapt a base model to current drift.
         Reassembles tensors into the user's original DataFrame shape.
         """
+        return self._online(data)
+
+    def _online(self, data: pd.DataFrame, with_variance: bool = False) -> pd.DataFrame:
+        """The online simulation of ``predict_online``; with ``with_variance`` the frame also holds the ``__sd__`` column."""
         prepared_data = self.prepare_data(data)
         preds_denorm = self._run_filter(
             prepared_data, 
             self.P_init_diag_,
             self.observation_noise_var_, 
-            self.process_noise_var_
+            self.process_noise_var_,
+            with_variance=with_variance
         )
         
         df_final = _reassemble_predictions(
@@ -651,7 +689,15 @@ class KalmanTAM:
         
         res_col = f"Estimated{self.target_col_}"
         df_final = df_final.rename(columns={res_col: f"KalmanAdapted_{self.target_col_}"})
-        
+        if with_variance:
+            # Standard deviation of the predictive distribution in the target scale (the variance is in standardised units).
+            sd_stacked = torch.sqrt(self._predictive_variance_.clamp_min(0.0)) * prepared_data["y_scale"]
+            sd_frame = _reassemble_predictions(
+                prepared_data["df_original"], sd_stacked.squeeze(-1).cpu(), self.group_col_,
+                prepared_data["unique_groups"], "PredictiveSd", date_col=self.date_col_
+            )
+            df_final["__sd__"] = sd_frame["EstimatedPredictiveSd"]
+
         df_final_masked = df_final[prepared_data["mask"]]
 
         # Save frozen states and scales for out-of-sample inference
@@ -663,6 +709,39 @@ class KalmanTAM:
 
         return _cleanup_dummies(df_final_masked, self.group_col_, self.date_col_)
     
+#: <kalman_quantiles>
+    def predict_quantiles(self, data: pd.DataFrame, taus: Sequence[float] = (0.05, 0.5, 0.95)) -> pd.DataFrame:
+        r"""
+        Gaussian quantiles of the online forecast, from the predictive variance of the filter.
+
+        The forecast of a row is Gaussian with the mean of ``predict_online`` and the variance ``x' P x + R`` (``P`` the covariance
+        of the state that forecasts the row, ``R`` the observation noise; for ``horizon_steps > 1`` the covariance of the delayed
+        state grown by the process noise of the delay), converted back to the target scale. Like ``predict_online``, ``data`` must
+        hold the target and the state of the model is refitted on it. The variance is a function of the design and the noise
+        parameters only, so a later target never moves an earlier quantile.
+
+        The intervals are as calibrated as ``observation_noise_var`` and ``process_noise_var`` are (``tune_hyperparameters``
+        sets them). A row without a target does not move the state but still shrinks the covariance, as in the filter.
+
+        Args:
+            data: The rows to forecast, with the target.
+            taus: Quantile levels in (0, 1).
+
+        Returns:
+            A DataFrame with one ``q<tau>`` column per level, on the rows of ``predict_online(data)``.
+
+        Raises:
+            ValueError: If a level is outside (0, 1).
+        """
+        levels = [float(tau) for tau in taus]
+        if any(not 0.0 < tau < 1.0 for tau in levels):
+            raise ValueError(f"taus must lie in (0, 1); got {list(taus)!r}")
+        frame = self._online(data, with_variance=True)
+        mean = frame[f"KalmanAdapted_{self.target_col_}"].to_numpy(dtype=float)
+        sd = frame["__sd__"].to_numpy(dtype=float)
+        return pd.DataFrame({f"q{tau}": mean + sd * stats.norm.ppf(tau) for tau in levels}, index=frame.index)
+#: </kalman_quantiles>
+
     def compact(self) -> 'KalmanTAM':
         r"""
         Keeps the last row of ``states_history_`` (the state after the last block) and drops the rest, which grows with the number of rows.
