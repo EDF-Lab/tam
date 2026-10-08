@@ -188,3 +188,42 @@ def test_scale_shrinkage_monotonically_shrinks_scale_dispersion():
         dispersions.append(float(np.std(sigma_hat)))
     assert all(later <= earlier + 1e-9 for earlier, later in zip(dispersions, dispersions[1:]))
     assert dispersions[-1] < dispersions[0]
+
+
+
+# --- log_target on a target that is not positive -------------------------------------------------------------------
+def _signed_frame(rng, n=400):
+    x = rng.uniform(0.0, 1.0, n)
+    return pd.DataFrame({"x": x, "y": 2.0 * x - 1.0 + 0.3 * rng.standard_normal(n)})  # about half the values are negative
+
+
+def test_log_target_rejects_non_positive_training_target():
+    # The default log transform used to clip y <= 0 to a tiny constant before taking the log, so every such value became
+    # a huge negative outlier and the fitted location and scale were meaningless, without any message.
+    frame = _signed_frame(np.random.default_rng(0))
+    n_bad = int((frame["y"] <= 0).sum())
+    with pytest.raises(ValueError, match=rf"{n_bad} of {len(frame)} .*log_target"):
+        _distributional().fit(frame)
+
+
+def test_log_target_false_fits_a_signed_target():
+    frame = _signed_frame(np.random.default_rng(1))
+    model = _distributional(dist_kwargs={"log_target": False}).fit(frame)
+    q = model.predict_quantiles(frame.head(5), taus=(0.1, 0.5, 0.9))
+    assert np.isfinite(q.to_numpy()).all()
+    assert (q["q0.1"] < q["q0.9"]).all()
+
+
+def test_mixture_log_target_rejects_non_positive_training_target():
+    frame = _signed_frame(np.random.default_rng(2))
+    with pytest.raises(ValueError, match="log_target"):
+        StaticTAM("y ~ s(x)", mixture_components=2).fit(frame)
+
+
+def test_cdf_of_a_non_positive_observation_still_works():
+    # Only the training target is checked: the CDF of a new observation y <= 0 under a log-scale law is ~0, a valid answer.
+    rng = np.random.default_rng(3)
+    frame, _, _ = _heteroscedastic_lognormal(rng, 2000)
+    model = _distributional().fit(frame)
+    probe = frame.head(3).assign(y=[-1.0, 0.0, 1e-9])
+    assert np.allclose(model.cdf(probe), 0.0, atol=1e-6)

@@ -36,6 +36,16 @@ never numpy's silent overflow warning:
 :pyobject: _to_response_scale
 ```
 
+The log target is the default (`dist_kwargs={"log_target": True}`). `fit` first checks the training target: a value `<= 0` has no
+logarithm, and clipping it to a tiny constant would turn it into a huge negative outlier, so the fit raises a `ValueError` naming the
+count and the option `log_target=False` instead. The mixture mode (`_mixture.py`) runs the same check. Only the training target is
+checked: the CDF of a new observation `<= 0` under a log-scale law is ~0, a valid answer.
+
+```{literalinclude} ../../../../src/tam/model/statistics/estimation/_distributional.py
+:language: python
+:pyobject: require_positive_target
+```
+
 ## The `additive.py` bridge (one-line delegates)
 
 ```{literalinclude} ../../../../src/tam/model/additive.py

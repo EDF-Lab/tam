@@ -23,6 +23,7 @@ from scipy.stats import norm
 
 from tam.common.utils import _ensure_dummies, _balance_groups
 from ..._base import BaseTAM
+from ._distributional import require_positive_target
 
 _TINY: float = 1e-12
 
@@ -129,6 +130,7 @@ def _prepare_for_em(model, data, with_target: bool):
 def fit(model, data):
     """Fit a K-component Gaussian mixture by EM; the M-step is the responsibility-weighted atom."""
     working = data.copy()
+    require_positive_target(model, working[model.target_col_].to_numpy())
     working[model.target_col_] = _to_model_scale(model, working[model.target_col_].to_numpy())
 
     # Establish normalization, effects and a baseline L2 fit on the (log-)target scale.

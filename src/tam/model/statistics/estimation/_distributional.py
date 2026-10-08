@@ -107,6 +107,30 @@ def init_config(model, formulas, loss, group_col, date_col, default_alpha_p,
 
 
 # --- Helpers ----------------------------------------------------------------------------------------
+def require_positive_target(model, y: np.ndarray) -> None:
+    """Reject a training target with values <= 0 when the model works on log(y).
+
+    Args:
+        model: A distributional or mixture StaticTAM.
+        y: The training target.
+
+    Raises:
+        ValueError: If ``log_target`` is on and some finite values are <= 0 (they would be clipped to a tiny constant
+            before the log, i.e. turned into huge negative outliers).
+    """
+    if not model._log_target_:
+        return
+    values = np.asarray(y, dtype=float)
+    finite = values[np.isfinite(values)]
+    n_bad = int(np.count_nonzero(finite <= 0))
+    if n_bad:
+        raise ValueError(
+            f"{n_bad} of {finite.size} training target values are <= 0, but the model works on log(y) "
+            "(the default for a distributional or mixture StaticTAM). Pass dist_kwargs={'log_target': False} "
+            "to model the target on its own scale, or shift it to positive values."
+        )
+
+
 def _to_model_scale(model, y: np.ndarray) -> np.ndarray:
     return np.log(np.clip(y, _TINY, None)) if model._log_target_ else np.asarray(y, dtype=float)
 
@@ -157,6 +181,7 @@ def fit(model, data: pd.DataFrame, select: str = "fixed",
     smoothing stays fixed (Gaussian GCV is invalid for the Gamma GLM).
     """
     working = data.copy()
+    require_positive_target(model, working[model.target_col_].to_numpy())
     working["__mu__"] = _to_model_scale(model, working[model.target_col_].to_numpy())
 
     location_alpha = model._location_alpha_p_ if model._location_alpha_p_ is not None else model.default_alpha_p_

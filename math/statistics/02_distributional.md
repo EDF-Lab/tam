@@ -9,7 +9,8 @@ A `{ "mu": ..., "sigma": ... }` formula fits a 2-parameter location-scale distri
 
 ## The two-stage schedule
 
-1. **Location.** Fit $\mu(x)$ with an L2 atom on the (log-)target $t=\log y$.
+1. **Location.** Fit $\mu(x)$ with an L2 atom on the (log-)target $t=\log y$. The log scale requires $y>0$: $\log y$ is undefined at and
+   below zero, so a target taking such values is modelled on its own scale, $t=y$.
 2. **Scale.** Read the squared residuals $r^2=(t-\hat\mu)^2$ and fit $\sigma(x)$ as a **Gamma-GLM** atom on $r^2$ (or an L2 atom on $\log r^2$ with a $\log\chi^2_1$ bias correction).
 
 ## The tail law and quantiles
