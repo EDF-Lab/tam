@@ -79,6 +79,8 @@ Raw data flows through dynamic normalizers before being processed by the `Static
 pip install tam-ml
 ```
 
+> **Threads:** to limit the CPU threads, set `OMP_NUM_THREADS` and `MKL_NUM_THREADS` in the environment before starting Python (see `architecture/core/04_hardware_memory.md`).
+
 > ⚠️ **Hardware Note:** TAM relies heavily on PyTorch for VRAM management and tensor acceleration. Ensure you have installed the correct PyTorch distribution (CUDA for NVIDIA, or MPS for Apple Silicon) for your specific hardware to fully leverage the framework's GPU capabilities.
 
 ---
