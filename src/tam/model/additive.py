@@ -56,6 +56,7 @@ from .spectrum import (
     build_penalty_from_effects
 )
 from .statistics.estimation import build_strategy, _distributional, _mixture
+from .statistics.estimation._count_families import predict_count_quantiles
 
 _TINY: float = 1e-12
 
@@ -163,6 +164,7 @@ class StaticTAM(BaseTAM):
         # scalar-loss reweighting strategy. None (l2/gaussian/normal, or mixture mode) keeps the default
         # single unweighted solve; any other loss builds an IRLS strategy from loss_kwargs.
         self.loss_ = loss
+        self.dispersion_ = None
         if self._mixture_components_ is not None:
             self._reweighting_strategy_ = None
         else:
@@ -263,6 +265,12 @@ class StaticTAM(BaseTAM):
         return _distributional.predict_quantile(self, data, tau)
 
     def predict_quantiles(self, data: pd.DataFrame, taus: Sequence[float] = (0.05, 0.5, 0.95)) -> pd.DataFrame:
+        """Quantiles on the response scale: of the location-scale law (distributional mode), or of the fitted law of a
+        ``poisson``, ``negative_binomial`` or ``tweedie`` loss (discrete quantiles for the counts, the compound Poisson-gamma
+        law for Tweedie; non-negative by construction)."""
+        strategy = getattr(self, "_reweighting_strategy_", None)
+        if getattr(self, "_mode_", "plain") != "distributional" and hasattr(strategy, "quantiles"):
+            return predict_count_quantiles(self, data, taus)
         return _distributional.predict_quantiles(self, data, taus)
 
     def cdf(self, data: pd.DataFrame) -> np.ndarray:
