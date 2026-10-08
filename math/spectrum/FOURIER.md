@@ -14,7 +14,13 @@ To achieve Gigadata scalability while strictly preserving the theoretical guaran
 
 ## Formula Definition: The Real Spectral Basis ($\Phi$)
 
-As established in the data preparation phase, the input variable $x$ is normalized to the domain $[-1, 1]$. To properly evaluate the trigonometric basis, this domain is linearly rescaled:
+As established in the data preparation phase, the input variable $x$ is normalized to the domain $[-1, 1]$. By default the normalization
+maps the training range $[\min x, \max x]$ onto $[-1, 1]$; for a periodic phenomenon this takes the training rows to span exactly one
+period. For a position sampled on a regular grid $x_0<x_1<\dots<x_J$ with step $\delta$, one period is $[x_0, x_J+\delta]$ (the last value is
+one step before the first of the next cycle), which the training rows give when they cover a whole cycle. When the period of the input
+is known, $[a, b]$ (one year for a time-of-year position, one day for a time of day), the input is normalized on $[a, b]$ instead: a history covering part of the cycle is then read as that part, and the unobserved part of the cycle is
+constrained only by the Sobolev penalty below (few harmonics give a smooth continuation; many leave it weakly determined). Since the
+basis is periodic, an input beyond $[a, b]$ falls back on the cycle. To properly evaluate the trigonometric basis, this domain is linearly rescaled:
 
 $$x_{scaled} = \pi x$$
 

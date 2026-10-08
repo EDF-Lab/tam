@@ -2,7 +2,7 @@
 
 [🧪 `EXAMPLES`](EXAMPLES.md) | [📚 `THEORY`](THEORY.md) | [📄 `PAPER`](paper.md)
   
-**Version:** 1.4.0  
+**Version:** 1.4.1  
 **License:** LGPL-3.0-or-later.  
 **Copyright (c):** 2023-2026 EDF (Electricité De France).  
 **Copyright (c):** 2023-2025 Sorbonne Université.  
@@ -78,6 +78,8 @@ Raw data flows through dynamic normalizers before being processed by the `Static
 ```bash
 pip install tam-ml
 ```
+
+> **Threads:** to limit the CPU threads, set `OMP_NUM_THREADS` and `MKL_NUM_THREADS` in the environment before starting Python (see `architecture/core/04_hardware_memory.md`).
 
 > ⚠️ **Hardware Note:** TAM relies heavily on PyTorch for VRAM management and tensor acceleration. Ensure you have installed the correct PyTorch distribution (CUDA for NVIDIA, or MPS for Apple Silicon) for your specific hardware to fully leverage the framework's GPU capabilities.
 
@@ -167,10 +169,10 @@ If you use these packages in your research, please cite them using their permane
 **TAM**
 ```bibtex
 @misc{tam2026package,
-  title={TAM: Time series Additive Model (v1.4.0)},
+  title={TAM: Time series Additive Model (v1.4.1)},
   author={Allioux, Yann and Goude, Yannig},
   year={2026},
-  doi={10.5281/zenodo.23171729},
+  doi={10.5281/zenodo.23248249},
   note={With foundational WeaKL research by Nathan Doumèche, and tensorisation and adaptive model contributions by Éloi Bedek}
 }
 ```

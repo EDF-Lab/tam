@@ -35,7 +35,8 @@ from tam.common.utils import TORCH_DEVICE, _balance_groups, _ensure_dummies, _cl
 def _mlpol_loop_optimized_3d(
     experts_tensor: torch.Tensor,
     y_true: torch.Tensor,
-    loss_type: str
+    loss_type: str,
+    tau: float = 0.5
 ) -> Tuple[torch.Tensor, torch.Tensor]:
     r"""
     Compiled TorchScript loop for MLpol (Polynomial Minimax Strategy).
@@ -45,7 +46,8 @@ def _mlpol_loop_optimized_3d(
     Args:
         experts_tensor: Predictions from experts, shape (B, T, K).
         y_true: Ground truth targets, shape (B, T, 1).
-        loss_type: The loss function to use ('square' or 'absolute').
+        loss_type: The loss function to use ('square', 'absolute' or 'pinball').
+        tau: Quantile level of the pinball loss (ignored by the other losses).
         
     Returns:
         Tuple containing the mixed predictions (B, T) and weights history (B, T, K).
@@ -91,6 +93,10 @@ def _mlpol_loop_optimized_3d(
         
         if loss_type == 'square':
             r = 2.0 * (y_hat_scaled.unsqueeze(1) - yt_scaled.unsqueeze(1)) * (y_hat_scaled.unsqueeze(1) - xt_scaled)
+        elif loss_type == 'pinball':
+            # Subgradient of the pinball loss in the forecast: 1{y_hat > y} - tau.
+            above = (y_hat_scaled > yt_scaled).to(dtype)
+            r = (above - tau).unsqueeze(1) * (y_hat_scaled.unsqueeze(1) - xt_scaled)
         else:
             r = torch.sign(y_hat_scaled.unsqueeze(1) - yt_scaled.unsqueeze(1)) * (y_hat_scaled.unsqueeze(1) - xt_scaled)
             
@@ -126,7 +132,8 @@ def _ewa_loop_optimized_3d(
     experts_tensor: torch.Tensor,
     y_true: torch.Tensor,
     loss_type: str,
-    eta: float
+    eta: float,
+    tau: float = 0.5
 ) -> Tuple[torch.Tensor, torch.Tensor]:
     r"""
     Compiled TorchScript loop for EWA (Exponentially Weighted Aggregation).
@@ -155,6 +162,9 @@ def _ewa_loop_optimized_3d(
         # Compute expert losses
         if loss_type == 'square':
             losses = (xt - yt.unsqueeze(1)) ** 2
+        elif loss_type == 'pinball':
+            diff = yt.unsqueeze(1) - xt
+            losses = torch.maximum(tau * diff, (tau - 1.0) * diff)
         else:
             losses = torch.abs(xt - yt.unsqueeze(1))
             
@@ -189,7 +199,8 @@ class OperaTAM:
         formula (str): Aggregation topology (e.g., 'Target ~ l(Expert1) + l(Expert2)').
         algorithm (str): The aggregation strategy to use ('EWA' or 'MLPOL').
         eta (float): Learning rate parameter (primarily for EWA).
-        loss_type (str): The loss function to evaluate experts ('square' or 'absolute').
+        loss_type (str): The loss function to evaluate experts ('square', 'absolute' or 'pinball').
+        tau (float): Quantile level of the pinball loss.
         horizon_steps (int): Number of steps to shift the learned weights forward to enforce causal boundaries in multi-step forecasting.
         group_col (str, optional): Column name for independent group processing.
         date_col (str): Column name for time indexing to ensure chronological evaluation.
@@ -208,7 +219,8 @@ class OperaTAM:
         loss_type: str = 'square',
         horizon_steps: int = 1,
         group_col: Optional[str] = None,
-        date_col: Optional[str] = None
+        date_col: Optional[str] = None,
+        tau: float = 0.5
     ):
         r"""
         Initializes the Native GPU Aggregator.
@@ -219,10 +231,11 @@ class OperaTAM:
             expert_cols (list, optional): List of expert column names (used if formula is not provided).
             algorithm (str): 'EWA' or 'MLPOL'.
             eta (float): Learning rate parameter (used by EWA).
-            loss_type (str): Loss formulation ('square' or 'absolute').
+            loss_type (str): Loss formulation ('square', 'absolute', or 'pinball' to aggregate quantile forecasts of level tau).
             horizon_steps (int): Number of steps to shift the learned weights forward to enforce causal boundaries in multi-step forecasting. Default is 1.
             group_col (str, optional): If provided, runs aggregation independently per group.
             date_col (str, optional): Column name utilized for temporal sorting and padding.
+            tau (float): Quantile level in (0, 1) of the pinball loss (used only with loss_type='pinball').
         """
 
         if formula is None:
@@ -240,12 +253,15 @@ class OperaTAM:
         self.date_col = date_col or "__dummy_date__"
         self.loss_type = loss_type
         self.horizon_steps = horizon_steps
+        self.tau = float(tau)
 
         if self.algorithm not in ['EWA', 'MLPOL']:
             raise ValueError("Algorithm must be 'EWA' or 'MLPOL'.")
             
-        if self.loss_type not in ['square', 'absolute']:
-            raise ValueError("Unsupported loss_type. Use 'square' or 'absolute'.")
+        if self.loss_type not in ['square', 'absolute', 'pinball']:
+            raise ValueError("Unsupported loss_type. Use 'square', 'absolute' or 'pinball'.")
+        if self.loss_type == 'pinball' and not 0.0 < self.tau < 1.0:
+            raise ValueError(f"The pinball loss needs a quantile level tau in (0, 1); got {tau}.")
             
         if '~' not in self.formula:
             raise ValueError("Formula must contain '~' separating target and experts.")
@@ -308,9 +324,9 @@ class OperaTAM:
         
         # Computation Phase: Execute the entire historical simulation in one GPU pass
         if self.algorithm == 'MLPOL':
-            preds_3d, weights_3d = _mlpol_loop_optimized_3d(X_tensor_3d, Y_tensor_3d, self.loss_type)
+            preds_3d, weights_3d = _mlpol_loop_optimized_3d(X_tensor_3d, Y_tensor_3d, self.loss_type, self.tau)
         else:
-            preds_3d, weights_3d = _ewa_loop_optimized_3d(X_tensor_3d, Y_tensor_3d, self.loss_type, self.eta)
+            preds_3d, weights_3d = _ewa_loop_optimized_3d(X_tensor_3d, Y_tensor_3d, self.loss_type, self.eta, self.tau)
             
         # Reassembly Phase
         preds_np = preds_3d.cpu().numpy()
@@ -544,3 +560,46 @@ class OperaTAM:
         plt.tight_layout(rect=[0, 0, 0.85, 0.95]) 
         
         plt.show()
+
+
+#: <aggregate_quantiles>
+def aggregate_quantiles(
+    df: pd.DataFrame,
+    target_col: str,
+    expert_cols_by_level: Dict[float, list],
+    algorithm: str = 'MLPOL',
+    eta: float = 1.0,
+    horizon_steps: int = 1,
+    group_col: Optional[str] = None,
+    date_col: Optional[str] = None,
+) -> pd.DataFrame:
+    r"""
+    Online aggregation of quantile forecasts: one ``OperaTAM`` with the pinball loss per level, levels sorted on each row.
+
+    Args:
+        df: Data holding the target and, for each level, the experts' forecasts of that quantile.
+        target_col: Target column.
+        expert_cols_by_level: ``{tau: [expert columns forecasting the tau-quantile]}``.
+        algorithm: 'MLPOL' or 'EWA'.
+        eta: Learning rate (EWA).
+        horizon_steps: Delay of the weights, as in ``OperaTAM``.
+        group_col: Optional group column (independent aggregation per group).
+        date_col: Optional date column (chronological order).
+
+    Returns:
+        A DataFrame with one ``q<tau>`` column per level, in the row order of ``OperaTAM.predict_online`` and the level
+        order of ``expert_cols_by_level``; the aggregated levels are sorted on each row so they never cross.
+    """
+    levels = list(expert_cols_by_level)
+    columns = []
+    index = None
+    for tau in levels:
+        out = OperaTAM(target_col=target_col, expert_cols=list(expert_cols_by_level[tau]), algorithm=algorithm, eta=eta,
+                       loss_type='pinball', tau=tau, horizon_steps=horizon_steps, group_col=group_col,
+                       date_col=date_col).predict_online(df)
+        index = out.index if index is None else index
+        columns.append(out.loc[index, 'prediction_opera'].to_numpy(dtype=float))
+    ordered = np.argsort(levels)
+    table = np.sort(np.column_stack(columns)[:, ordered], axis=1)[:, np.argsort(ordered)]
+    return pd.DataFrame(table, index=index, columns=[f"q{tau}" for tau in levels])
+#: </aggregate_quantiles>

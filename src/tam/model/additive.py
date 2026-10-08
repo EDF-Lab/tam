@@ -28,6 +28,7 @@ from tam.common.exceptions import warn_extrapolation, EXTRAPOLATION_TOLERANCE
 from ._base import BaseTAM
 from .safety import SafetyTAM
 from ._data import (
+    _resolve_fixed_ranges,
     _fit_normalization_params,
     _transform_data_stacked,
     _groups_in_data,
@@ -48,12 +49,14 @@ from .spectrum import (
     create_effects_from_parsed_terms,
     initialize_effects,
     categorical_ranges,
+    fixed_ranges,
     categorical_features,
     extrapolating_features,
     build_phi_from_effects,
     build_penalty_from_effects
 )
 from .statistics.estimation import build_strategy, _distributional, _mixture
+from .statistics.estimation._count_families import predict_count_quantiles
 
 _TINY: float = 1e-12
 
@@ -104,6 +107,10 @@ class StaticTAM(BaseTAM):
                 you must pass date_col explicitly to guarantee correct results
                 on data that isn't already sorted by time.
             default_alpha_p: Default log10(lambda_p) regularization strength.
+            dist_kwargs: Options of the distributional and mixture modes: ``tail_family``, ``kurtosis_threshold``,
+                ``scale_shrinkage``, ``location_alpha_p``, ``scale_alpha_p``, and the target scale: ``target_transform``
+                (``"log"`` by default, ``"none"``, ``"asinh"`` for a skewed target with negative values, ``"logit"`` for a
+                bounded one, with ``bounds=(low, high)`` or estimated) or the older ``log_target`` (True = ``"log"``).
             _internal_effects_list: (Internal) Used for restoring state during grid search.
             _internal_features_config: (Internal) Used for restoring state during grid search.
         """
@@ -118,7 +125,9 @@ class StaticTAM(BaseTAM):
 
         dk = dist_kwargs or {}
         # Extracted universally since both distributional and mixture modes use the target scale transformation.
-        self._log_target_ = bool(dk.get("log_target", True))
+        self._target_transform_, self._log_target_, self._transform_bounds_ = _distributional.resolve_target_transform(
+            dk, mixture=mixture_components is not None
+        )
         # Conformal state (set by calibrate_conformal; used by predict_intervals).
         self._safety_ = None
         self._conformal_studentized_ = False
@@ -155,6 +164,7 @@ class StaticTAM(BaseTAM):
         # scalar-loss reweighting strategy. None (l2/gaussian/normal, or mixture mode) keeps the default
         # single unweighted solve; any other loss builds an IRLS strategy from loss_kwargs.
         self.loss_ = loss
+        self.dispersion_ = None
         if self._mixture_components_ is not None:
             self._reweighting_strategy_ = None
         else:
@@ -242,6 +252,9 @@ class StaticTAM(BaseTAM):
     def _to_model_scale(self, y: np.ndarray) -> np.ndarray:
         return _distributional._to_model_scale(self, y)
 
+    def _from_model_scale(self, z: np.ndarray, quantity: str = "the back-transformed values") -> np.ndarray:
+        return _distributional.from_model_scale(self, z, quantity)
+
     def _mu_sigma(self, data: pd.DataFrame) -> Tuple[np.ndarray, np.ndarray]:
         return _distributional.mu_sigma(self, data)
 
@@ -252,6 +265,12 @@ class StaticTAM(BaseTAM):
         return _distributional.predict_quantile(self, data, tau)
 
     def predict_quantiles(self, data: pd.DataFrame, taus: Sequence[float] = (0.05, 0.5, 0.95)) -> pd.DataFrame:
+        """Quantiles on the response scale: of the location-scale law (distributional mode), or of the fitted law of a
+        ``poisson``, ``negative_binomial`` or ``tweedie`` loss (discrete quantiles for the counts, the compound Poisson-gamma
+        law for Tweedie; non-negative by construction)."""
+        strategy = getattr(self, "_reweighting_strategy_", None)
+        if getattr(self, "_mode_", "plain") != "distributional" and hasattr(strategy, "quantiles"):
+            return predict_count_quantiles(self, data, taus)
         return _distributional.predict_quantiles(self, data, taus)
 
     def cdf(self, data: pd.DataFrame) -> np.ndarray:
@@ -489,7 +508,8 @@ class StaticTAM(BaseTAM):
                 data=data, 
                 features=self.features_config_["features"], 
                 group_col=self.group_col_,
-                categorical_levels=categorical_ranges(self.effects_list_)
+                categorical_levels=categorical_ranges(self.effects_list_),
+                fixed_ranges=_resolve_fixed_ranges(data, fixed_ranges(self.effects_list_))
             )
             
         if target_col is not None:
@@ -959,8 +979,8 @@ class StaticTAM(BaseTAM):
             {
                 "Token": "f(x)", 
                 "Effect": "Fourier", 
-                "Syntax Example": "f(doy, m=6, s=1, cyclic=True)",
-                "Specific Params": "m (harmonics), s (smoothness), cyclic (bool)"
+                "Syntax Example": "f(hour, m=6, s=1, cyclic=True, period='auto')",
+                "Specific Params": "m (harmonics), s (smoothness), cyclic (bool), period (None: training range; 'auto': first to last value + one step; (low, high): given)"
             },
             {
                 "Token": "c(x)", 

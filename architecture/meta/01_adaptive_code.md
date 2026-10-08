@@ -96,6 +96,28 @@ The `grid_search_fit()` method implements the "Multi-Start" hyperparameter solve
 :caption: src/tam/model/adaptative.py (Coordinate Descent Algorithm for Hyperparameters)
 ```
 
+## Online Quantiles from a Distributional Base
+
+`AdaptiveTAM(base_model=...)` also accepts a fitted distributional `StaticTAM` (a dict formula). The correction is then fitted on the model scale of its location sub-model (the target `__mu__`, the target after its transform): the constructor redirects the base to that sub-model, maps `Residual<target>` in `adaptive_formula` to `Residual__mu__`, and `_with_model_target` adds the model-scale column to any frame that holds the target. The forecasts of a plain base are untouched.
+
+`predict_quantiles(data, taus)` is the probabilistic counterpart of `predict_online`, so `data` holds the target. It runs the online simulation, then rescales the scale of the base with `_online_scale`, a rolling root mean square of the standardized residuals computed per group from cumulative sums (vectorised), and goes back to the response scale with the transform of the base:
+
+```{literalinclude} ../../../../src/tam/model/adaptative.py
+:language: python
+:start-after: "#: <online_scale>"
+:end-before: "#: </online_scale>"
+:caption: src/tam/model/adaptative.py (rolling scale of the standardized residuals)
+```
+
+```{literalinclude} ../../../../src/tam/model/adaptative.py
+:language: python
+:start-after: "#: <adaptive_quantiles>"
+:end-before: "#: </adaptive_quantiles>"
+:caption: src/tam/model/adaptative.py (online quantiles)
+```
+
+The first window forecasts the row `training_window_periods + horizon_steps - 1` of a group, and the scale is renewed every `update_interval_periods` rows; each renewal reads the residuals of the `training_window_periods` rows that are at least `horizon_steps` old, so no residual of a later row enters an earlier quantile. A renewal with fewer than five usable residuals keeps the scale of the base. A plain base raises a `ValueError`.
+
 ## Separation of Concerns: Simulation vs. Inference
 
 To guarantee speed and safety in operational production pipelines, `AdaptiveTAM` strictly separates the continuous historical simulation from out-of-sample inference.

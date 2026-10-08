@@ -31,3 +31,15 @@ The tracked coefficients follow a random walk $\theta_{t+1} = \theta_t + w_t$, $
 $$Q = \mathrm{diag}\big(q_{\text{offset}},\; q_{1}\,\mathbf{1}_{d_1},\; q_{2}\,\mathbf{1}_{d_2},\; \dots\big)$$
 
 All the $d_k$ design columns of term $k$ share its variance $q_k$. Variational Bayesian variance tracking {cite:p}`vilmarest2024viking` estimates such variances dynamically, online; the variances of `KalmanTAM` stay static: set by the user or tuned offline on a calibration period. A variance of $0$ lets the covariance of the term shrink with every observation, so the term follows a changing coefficient less and less. The variances are best chosen on a calibration period that ends before the period that is reported.
+
+## Predictive variance and quantiles
+
+The covariance recursion of the filter does not depend on the observations: it is a function of the design rows $x_t$, the observation noise $R$ and the process noise $Q$. Before the update at step $t$, the state has mean $\hat\theta_t$ and covariance $P_t$, so the one-step forecast of the standardised target is Gaussian,
+
+$$ y_t \mid y_{<t} \sim \mathcal{N}\big(b_t + x_t^\top\hat\theta_t,\;\; x_t^\top P_t\,x_t + R\big), $$
+
+with $b_t$ the forecast of the base model. The quantile of level $\tau$ follows from the standard Normal quantile $z_\tau$ and is mapped back to the target scale by the reference scale $s$ and centre $c$,
+
+$$ Q_\tau(t) = c + s\Big(b_t + x_t^\top\hat\theta_t + z_\tau\sqrt{x_t^\top P_t\,x_t + R}\Big). $$
+
+For a forecast made $h$ steps ahead the state is the one from $h-1$ steps earlier, which has not seen the last $h-1$ observations; the random walk of the coefficients adds $(h-1)Q$ to its covariance, so the variance becomes $x_t^\top\big(P_{t-h+1} + (h-1)Q\big)x_t + R$ and the intervals widen with the horizon. The intervals are calibrated exactly when the noise levels $R$ and $Q$ are the true ones and the model is linear and Gaussian; otherwise they inherit the misspecification of those two parameters.

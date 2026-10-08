@@ -60,6 +60,12 @@ Rather than tracking absolute losses, MLpol tracks the **Linearized Pseudo-Regre
 $$r_{k,t} = \nabla \ell(\hat{y}_t, y_t) \cdot (x_{k,t} - \hat{y}_t)$$
 $$R_{k,t} = \sum_{s=1}^t r_{k,s}$$
 
+**Quantile forecasts (pinball loss).** To aggregate experts that forecast the $\tau$-quantile, the loss is the pinball loss
+$\ell_\tau(\hat y, y)=\max\{\tau(y-\hat y),\,(\tau-1)(y-\hat y)\}$, whose subgradient in the forecast is $\mathbb{1}\{\hat y>y\}-\tau$.
+At $\tau=\tfrac12$ it is half the subgradient of the absolute loss, and the adaptive learning rates below make MLpol insensitive to a
+constant factor on the regrets. Each level is aggregated on its own {cite:p}`gaillard2016opera`; the aggregated levels are then
+sorted on each time step so that the quantile forecasts are monotone in $\tau$ (they never cross).
+
 According to the polynomial potential bounds established by Cesa-Bianchi and Lugosi {cite:p}`cesa2006prediction`, the optimal weight update is proportional to the gradient of the squared positive regret. The TAM implementation strictly translates this as applying a Rectified Linear Unit (ReLU) to the cumulative regret, multiplied by an adaptive learning rate $\eta_{k,t}$:
 
 $$w_{k,t+1} = \frac{\eta_{k,t} \max(0, R_{k,t})}{\sum_{j=1}^K \eta_{j,t} \max(0, R_{j,t})}$$
