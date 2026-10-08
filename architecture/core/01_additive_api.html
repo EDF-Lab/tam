@@ -7,7 +7,7 @@
         <link rel="prefetch" href="../../_static/logo.png" as="image">
 
     <!-- Generated with Sphinx 9.1.0 and Furo 2025.12.19 -->
-        <title>The Additive API and Object-Oriented Architecture - TAM 1.4.0 documentation</title>
+        <title>The Additive API and Object-Oriented Architecture - TAM 1.4.1 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=d111a655" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo-extensions.css?v=8dab3a3b" />
@@ -162,7 +162,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="../../index.html"><div class="brand">TAM 1.4.0 documentation</div></a>
+      <a href="../../index.html"><div class="brand">TAM 1.4.1 documentation</div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -186,7 +186,7 @@
     <img class="sidebar-logo" src="../../_static/logo.png" alt="Logo"/>
   </div>
   
-  <span class="sidebar-brand-text">TAM 1.4.0 documentation</span>
+  <span class="sidebar-brand-text">TAM 1.4.1 documentation</span>
   
 </a><form class="sidebar-search-container" method="get" action="../../search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
@@ -533,6 +533,10 @@
 <span class="sd">                you must pass date_col explicitly to guarantee correct results</span>
 <span class="sd">                on data that isn't already sorted by time.</span>
 <span class="sd">            default_alpha_p: Default log10(lambda_p) regularization strength.</span>
+<span class="sd">            dist_kwargs: Options of the distributional and mixture modes: ``tail_family``, ``kurtosis_threshold``,</span>
+<span class="sd">                ``scale_shrinkage``, ``location_alpha_p``, ``scale_alpha_p``, and the target scale: ``target_transform``</span>
+<span class="sd">                (``"log"`` by default, ``"none"``, ``"asinh"`` for a skewed target with negative values, ``"logit"`` for a</span>
+<span class="sd">                bounded one, with ``bounds=(low, high)`` or estimated) or the older ``log_target`` (True = ``"log"``).</span>
 <span class="sd">            _internal_effects_list: (Internal) Used for restoring state during grid search.</span>
 <span class="sd">            _internal_features_config: (Internal) Used for restoring state during grid search.</span>
 <span class="sd">        """</span>
@@ -547,7 +551,9 @@
 
         <span class="n">dk</span> <span class="o">=</span> <span class="n">dist_kwargs</span> <span class="ow">or</span> <span class="p">{}</span>
         <span class="c1"># Extracted universally since both distributional and mixture modes use the target scale transformation.</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_log_target_</span> <span class="o">=</span> <span class="nb">bool</span><span class="p">(</span><span class="n">dk</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"log_target"</span><span class="p">,</span> <span class="kc">True</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_target_transform_</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_log_target_</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_transform_bounds_</span> <span class="o">=</span> <span class="n">_distributional</span><span class="o">.</span><span class="n">resolve_target_transform</span><span class="p">(</span>
+            <span class="n">dk</span><span class="p">,</span> <span class="n">mixture</span><span class="o">=</span><span class="n">mixture_components</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+        <span class="p">)</span>
         <span class="c1"># Conformal state (set by calibrate_conformal; used by predict_intervals).</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_safety_</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_conformal_studentized_</span> <span class="o">=</span> <span class="kc">False</span>
@@ -584,6 +590,7 @@
         <span class="c1"># scalar-loss reweighting strategy. None (l2/gaussian/normal, or mixture mode) keeps the default</span>
         <span class="c1"># single unweighted solve; any other loss builds an IRLS strategy from loss_kwargs.</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">loss_</span> <span class="o">=</span> <span class="n">loss</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dispersion_</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_mixture_components_</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_reweighting_strategy_</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="k">else</span><span class="p">:</span>
@@ -1134,7 +1141,7 @@
       
     </aside>
   </div>
-</div><script src="../../_static/documentation_options.js?v=9172181d"></script>
+</div><script src="../../_static/documentation_options.js?v=350a9c04"></script>
     <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/scripts/furo.js?v=46bd48cc"></script>

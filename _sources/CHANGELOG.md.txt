@@ -15,10 +15,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > **[0.0.6]** corresponds to the legacy `weakl` package available on PyPI.
 
 ---
-## [Unreleased]
+## [1.4.1] - 2026-10-08
+
+Patch release for probabilistic forecasting: new methods and options only, plus one fix. Existing calls give the same forecasts; the only change of behaviour is that a distributional or mixture `StaticTAM` with the default log target now raises on a training target with values `<= 0` instead of returning a meaningless model (see "Fixed").
 
 - The `DCO` sign-off is required on every commit of a pull request (`DCO`, `CONTRIBUTING.md`, `docs/contributing/dco_howto.md`); a `REUSE` workflow runs `reuse lint` on each push and pull request.
 - The `pid()` page of `architecture/core/06_the_spectrum_api.md` says when `d_pen` acts and that the derivative is computed along the frame given to `predict()`; three tests pin `pid` behaviour.
+
+### Added
+- **Limiting the CPU threads is documented and tested** (`architecture/core/04_hardware_memory.md`, README): set `OMP_NUM_THREADS` and `MKL_NUM_THREADS` before starting Python. The page also describes a hang of `torch.set_num_threads(n)` seen on one PyTorch / oneMKL build, which reproduces without `tam`; the results of `tam` are unchanged.
+- **`loss="negative_binomial"` and `loss="tweedie"`** on `StaticTAM` (log link): overdispersed counts, and positive targets with exact zeros (sparse retail, rain, night-time solar). The negative binomial dispersion is estimated by maximum likelihood after the IRLS fit (or fixed with `loss_kwargs={"dispersion": alpha}`); the Tweedie power is `loss_kwargs={"power": p}` with `1 < p < 2` (1.5 by default) and its dispersion is the Pearson estimate. The estimate is `model.dispersion_`. A negative target raises a `ValueError`.
+- **`StaticTAM.predict_quantiles(data, taus)` for `poisson`, `negative_binomial` and `tweedie`**: discrete quantiles for the counts and the quantiles of the compound Poisson-gamma law for Tweedie, which are `0` where the probability of zero exceeds the level; non-negative and non-decreasing in the level by construction. The Poisson loss is otherwise unchanged.
+- **`KalmanTAM.predict_quantiles(data, taus)`**: Gaussian quantiles of the online forecast from the predictive variance of the filter, `x' P x + R` in the target scale (for `horizon_steps > 1`, the covariance of the delayed state grown by the process noise of the delay). Returns a DataFrame with `q<tau>` columns, like the distributional `StaticTAM`; like `predict_online`, `data` holds the target. The constructor, `predict_online`, `predict` and `fit` are unchanged. The intervals are as calibrated as `observation_noise_var` and `process_noise_var` are.
+- **`AdaptiveTAM.predict_quantiles(data, taus)`**: online quantile forecasts when the `base_model` is a distributional `StaticTAM` (a dict formula). The adaptive correction moves the location; the scale of the base is rescaled at each update by the root mean square of the standardized residuals of the last `training_window_periods` rows that are at least `horizon_steps` old (past residuals only), and the quantiles go back through the target transform of the base. Returns a DataFrame with `q<tau>` columns, like the distributional `StaticTAM`; like `predict_online`, `data` holds the target. A plain base raises a `ValueError`. `predict_online`, `predict` and `fit` give the same results as before for a plain base, and now also accept a distributional one.
+- **`dist_kwargs={"target_transform": "asinh" | "logit"}`** on a distributional `StaticTAM`: the location-scale law sits on `arsinh((y - c) / s)` (centre and robust scale estimated on the training target; a skewed, heavy-tailed target with negative values, such as electricity prices) or on the logit of `(y - a) / (b - a)` (a target bounded in `bounds=(a, b)`, estimated from the training range when not given). `predict_median`, `predict_quantile(s)`, `cdf`, `crps`, `anomaly_score` and the conformal intervals work through the transform, and quantiles stay inside the bounds for the logit. `target_transform="log"` is the default and the same as `log_target=True`; `"none"` the same as `log_target=False`. A mixture accepts `"none"` and `"log"` only.
+- **`f(x, ..., period=...)`**: the range of one cycle of a Fourier input, on which the feature is normalised in `StaticTAM` and in each rolling window of `AdaptiveTAM`. `period=None` (default): the minimum and maximum of the training rows, as before. `period='auto'`: first value to last value plus one step, the step read from the training rows (hours 0 to 23 give (0, 24), months 1 to 12 give (1, 13)). `period=(low, high)`: given, for a history covering only part of the cycle (`(0, 1)` for a time of year trained on half a year). Without it the training range is still taken as one period, which glues the last value of an integer-coded position onto the first (`f(hour, cyclic=True)` with hours 0 to 23 forces 23:00 = 0:00; Sunday = Monday for 0 to 6; December = January for 1 to 12) and reads a history covering half a year (or a 60-day adaptive window) as a whole year: use `'auto'` for the first case and a given range for the second. Results without `period` are unchanged.
+- **`OperaTAM(..., loss_type='pinball', tau=0.9)`**: online aggregation of quantile forecasts with the pinball loss of level `tau` (MLpol and EWA). `tam.model.opera.aggregate_quantiles(df, target_col, expert_cols_by_level)` aggregates every level and sorts them on each row. The square and absolute losses are unchanged.
+- **`SafetyTAM.predict_quantiles(y_pred, levels, scale=None, signed=False)`**: conformal quantiles at several levels in one call (`q<level>` columns, sorted on each row). By default the symmetric bands of `predict_intervals`; `signed=True` calibrates each tail on the signed residuals kept by `calibrate()` (one-sided split conformal), for skewed errors. `calibrate(..., verbose=False)` silences the sample-count line, printed by default as before.
+
+### Fixed
+- **A distributional or mixture `StaticTAM` with the default log target rejects a training target with values `<= 0`** (`ValueError` naming the count and `dist_kwargs={"log_target": False}`). They were clipped to a tiny constant before the log, i.e. silently turned into huge negative outliers, and the fitted location, scale and quantiles were meaningless. Positive targets are unchanged.
 
 ## [1.4.0] - 2026-10-06
 
@@ -308,7 +324,8 @@ This version introduced the Formula API and the first object-oriented refactorin
 ### Added
 * Initial project setup based on the original `weakl` v0.0.6 package.
 
-[Unreleased]: https://github.com/EDF-Lab/tam/compare/v1.4.0...HEAD
+[Unreleased]: https://github.com/EDF-Lab/tam/compare/v1.4.1...HEAD
+[1.4.1]: https://github.com/EDF-Lab/tam/releases/tag/v1.4.1
 [1.4.0]: https://github.com/EDF-Lab/tam/releases/tag/v1.4.0
 [1.3.4]: https://github.com/EDF-Lab/tam/releases/tag/v1.3.4
 [1.3.3]: https://github.com/EDF-Lab/tam/releases/tag/v1.3.3

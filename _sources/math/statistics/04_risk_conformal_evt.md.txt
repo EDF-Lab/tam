@@ -23,6 +23,13 @@ The framework implements the **Split Conformal** method {cite:p}`lei2018distribu
    $$ \hat q = \mathrm{Quantile}\!\left(\{s_i\},\ (1-\alpha)\big(1+\tfrac1n\big)\right) $$
 4. **Prediction Interval:** For any new observation at time $t$, the prediction interval is symmetrically defined around the baseline by $\hat{q}$.
 
+**Several quantile levels and skewed errors.** A quantile at level $\tau<\tfrac12$ is the lower end of the symmetric interval with $\alpha=2\tau$,
+and $1-\tau$ its upper end. With skewed errors one radius cannot fit both tails: the band is too wide on the short side and too narrow on the
+long one. Keeping the signed scores $r_i=(Y_i-\hat Y_i)/\hat s_i$ and calibrating each tail on its own gives one-sided split-conformal
+bounds: with $r_{(1)}\le\dots\le r_{(n)}$, the level-$\tau$ quantile is $\hat Y+\hat s\,r_{(k)}$ with $k=\lceil (n+1)\tau\rceil$ for $\tau\ge\tfrac12$
+and $k=\lfloor (n+1)\tau\rfloor$ for $\tau<\tfrac12$, so that $P(Y\le \hat Q_\tau)\ge\tau$ above the median and $P(Y<\hat Q_\tau)\le\tau$ below it
+under exchangeability {cite:p}`lei2018distribution`.
+
 ---
 
 ## Adaptive Conformal Inference (ACI)

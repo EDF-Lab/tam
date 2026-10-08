@@ -7,7 +7,7 @@
         <link rel="prefetch" href="../../_static/logo.png" as="image">
 
     <!-- Generated with Sphinx 9.1.0 and Furo 2025.12.19 -->
-        <title>Hardware Memory Dispatch &amp; Anti-OOM Systems - TAM 1.4.0 documentation</title>
+        <title>Hardware Memory Dispatch &amp; Anti-OOM Systems - TAM 1.4.1 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=d111a655" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo-extensions.css?v=8dab3a3b" />
@@ -162,7 +162,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="../../index.html"><div class="brand">TAM 1.4.0 documentation</div></a>
+      <a href="../../index.html"><div class="brand">TAM 1.4.1 documentation</div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -186,7 +186,7 @@
     <img class="sidebar-logo" src="../../_static/logo.png" alt="Logo"/>
   </div>
   
-  <span class="sidebar-brand-text">TAM 1.4.0 documentation</span>
+  <span class="sidebar-brand-text">TAM 1.4.1 documentation</span>
   
 </a><form class="sidebar-search-container" method="get" action="../../search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
@@ -379,6 +379,15 @@
 </div>
 </section>
 <hr class="docutils" />
+<section id="limiting-the-cpu-threads">
+<h2>Limiting the CPU threads<a class="headerlink" href="#limiting-the-cpu-threads" title="Link to this heading">¶</a></h2>
+<p>To share a machine between several fits (a benchmark, an AutoTAM search run in parallel), limit the threads <strong>through the environment, before Python starts</strong>:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nv">OMP_NUM_THREADS</span><span class="o">=</span><span class="m">2</span><span class="w"> </span><span class="nv">MKL_NUM_THREADS</span><span class="o">=</span><span class="m">2</span><span class="w"> </span>python<span class="w"> </span>my_script.py
+</pre></div>
+</div>
+<p>On Windows PowerShell: <code class="docutils literal notranslate"><span class="pre">$env:OMP_NUM_THREADS=2;</span> <span class="pre">$env:MKL_NUM_THREADS=2;</span> <span class="pre">python</span> <span class="pre">my_script.py</span></code>. <code class="docutils literal notranslate"><span class="pre">torch.get_num_threads()</span></code> then returns 2 (<code class="docutils literal notranslate"><span class="pre">tests/test_thread_limits.py</span></code> runs a grouped fit this way in a fresh process).</p>
+<p><strong>Known issue on one build.</strong> With the PyTorch 2.14.0 CPU wheel on Windows (Intel oneMKL 2026.1), calling <code class="docutils literal notranslate"><span class="pre">torch.set_num_threads(n)</span></code> with <code class="docutils literal notranslate"><span class="pre">n</span> <span class="pre">&gt;=</span> <span class="pre">2</span></code> made every later batched LU factorisation of matrices of a few hundred rows (<code class="docutils literal notranslate"><span class="pre">torch.linalg.solve</span></code>, <code class="docutils literal notranslate"><span class="pre">lu_factor</span></code>, <code class="docutils literal notranslate"><span class="pre">inv</span></code>, which the grouped solves use) print <code class="docutils literal notranslate"><span class="pre">Intel</span> <span class="pre">oneMKL</span> <span class="pre">ERROR:</span> <span class="pre">Parameter</span> <span class="pre">6</span> <span class="pre">was</span> <span class="pre">incorrect</span> <span class="pre">on</span> <span class="pre">entry</span> <span class="pre">to</span> <span class="pre">DLASWP</span></code> and hang. It reproduces with PyTorch alone, without <code class="docutils literal notranslate"><span class="pre">tam</span></code>, so it is not specific to this library (Cholesky factorisations, unbatched solves and <code class="docutils literal notranslate"><span class="pre">n</span> <span class="pre">=</span> <span class="pre">1</span></code> were not affected). Other platforms and builds were not tested. If a fit prints that message on your setup, remove the <code class="docutils literal notranslate"><span class="pre">torch.set_num_threads</span></code> call and use the environment variables above.</p>
+</section>
 <section id="the-memory-oracle-and-safe-chunking">
 <h2>The Memory Oracle and Safe Chunking<a class="headerlink" href="#the-memory-oracle-and-safe-chunking" title="Link to this heading">¶</a></h2>
 <p>To proactively avoid invoking the OOM handler, the framework utilizes <code class="docutils literal notranslate"><span class="pre">_memory.py</span></code> as an advanced predictive oracle.</p>
@@ -719,6 +728,7 @@
             <ul>
 <li><a class="reference internal" href="#">Hardware Memory Dispatch &amp; Anti-OOM Systems</a><ul>
 <li><a class="reference internal" href="#the-hardware-abstraction-layer-hal">The Hardware Abstraction Layer (HAL)</a></li>
+<li><a class="reference internal" href="#limiting-the-cpu-threads">Limiting the CPU threads</a></li>
 <li><a class="reference internal" href="#the-memory-oracle-and-safe-chunking">The Memory Oracle and Safe Chunking</a></li>
 <li><a class="reference internal" href="#the-oom-safety-net-in-the-dispatcher">The OOM Safety Net in the Dispatcher</a></li>
 <li><a class="reference internal" href="#sparse-routing-and-in-place-memory-tricks">Sparse Routing and In-Place Memory Tricks</a></li>
@@ -734,7 +744,7 @@
       
     </aside>
   </div>
-</div><script src="../../_static/documentation_options.js?v=9172181d"></script>
+</div><script src="../../_static/documentation_options.js?v=350a9c04"></script>
     <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/scripts/furo.js?v=46bd48cc"></script>

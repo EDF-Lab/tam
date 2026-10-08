@@ -7,7 +7,7 @@
         <link rel="prefetch" href="../../_static/logo.png" as="image">
 
     <!-- Generated with Sphinx 9.1.0 and Furo 2025.12.19 -->
-        <title>OPERA GPU Tensor Batching - TAM 1.4.0 documentation</title>
+        <title>OPERA GPU Tensor Batching - TAM 1.4.1 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=d111a655" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo-extensions.css?v=8dab3a3b" />
@@ -162,7 +162,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="../../index.html"><div class="brand">TAM 1.4.0 documentation</div></a>
+      <a href="../../index.html"><div class="brand">TAM 1.4.1 documentation</div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -186,7 +186,7 @@
     <img class="sidebar-logo" src="../../_static/logo.png" alt="Logo"/>
   </div>
   
-  <span class="sidebar-brand-text">TAM 1.4.0 documentation</span>
+  <span class="sidebar-brand-text">TAM 1.4.1 documentation</span>
   
 </a><form class="sidebar-search-container" method="get" action="../../search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
@@ -365,7 +365,8 @@ A <code class="docutils literal notranslate"><span class="pre">torch.where</span
 <span class="k">def</span><span class="w"> </span><span class="nf">_mlpol_loop_optimized_3d</span><span class="p">(</span>
     <span class="n">experts_tensor</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
     <span class="n">y_true</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
-    <span class="n">loss_type</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">loss_type</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">tau</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.5</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]:</span>
 <span class="w">    </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">    Compiled TorchScript loop for MLpol (Polynomial Minimax Strategy).</span>
@@ -375,7 +376,8 @@ A <code class="docutils literal notranslate"><span class="pre">torch.where</span
 <span class="sd">    Args:</span>
 <span class="sd">        experts_tensor: Predictions from experts, shape (B, T, K).</span>
 <span class="sd">        y_true: Ground truth targets, shape (B, T, 1).</span>
-<span class="sd">        loss_type: The loss function to use ('square' or 'absolute').</span>
+<span class="sd">        loss_type: The loss function to use ('square', 'absolute' or 'pinball').</span>
+<span class="sd">        tau: Quantile level of the pinball loss (ignored by the other losses).</span>
 <span class="sd">        </span>
 <span class="sd">    Returns:</span>
 <span class="sd">        Tuple containing the mixed predictions (B, T) and weights history (B, T, K).</span>
@@ -421,6 +423,10 @@ A <code class="docutils literal notranslate"><span class="pre">torch.where</span
         
         <span class="k">if</span> <span class="n">loss_type</span> <span class="o">==</span> <span class="s1">'square'</span><span class="p">:</span>
             <span class="n">r</span> <span class="o">=</span> <span class="mf">2.0</span> <span class="o">*</span> <span class="p">(</span><span class="n">y_hat_scaled</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span> <span class="o">-</span> <span class="n">yt_scaled</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">1</span><span class="p">))</span> <span class="o">*</span> <span class="p">(</span><span class="n">y_hat_scaled</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span> <span class="o">-</span> <span class="n">xt_scaled</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">loss_type</span> <span class="o">==</span> <span class="s1">'pinball'</span><span class="p">:</span>
+            <span class="c1"># Subgradient of the pinball loss in the forecast: 1{y_hat &gt; y} - tau.</span>
+            <span class="n">above</span> <span class="o">=</span> <span class="p">(</span><span class="n">y_hat_scaled</span> <span class="o">&gt;</span> <span class="n">yt_scaled</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">dtype</span><span class="p">)</span>
+            <span class="n">r</span> <span class="o">=</span> <span class="p">(</span><span class="n">above</span> <span class="o">-</span> <span class="n">tau</span><span class="p">)</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="n">y_hat_scaled</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span> <span class="o">-</span> <span class="n">xt_scaled</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="n">r</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">sign</span><span class="p">(</span><span class="n">y_hat_scaled</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span> <span class="o">-</span> <span class="n">yt_scaled</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">1</span><span class="p">))</span> <span class="o">*</span> <span class="p">(</span><span class="n">y_hat_scaled</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span> <span class="o">-</span> <span class="n">xt_scaled</span><span class="p">)</span>
             
@@ -459,7 +465,8 @@ A <code class="docutils literal notranslate"><span class="pre">torch.where</span
     <span class="n">experts_tensor</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
     <span class="n">y_true</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
     <span class="n">loss_type</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
-    <span class="n">eta</span><span class="p">:</span> <span class="nb">float</span>
+    <span class="n">eta</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+    <span class="n">tau</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.5</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]:</span>
 <span class="w">    </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">    Compiled TorchScript loop for EWA (Exponentially Weighted Aggregation).</span>
@@ -488,6 +495,9 @@ A <code class="docutils literal notranslate"><span class="pre">torch.where</span
         <span class="c1"># Compute expert losses</span>
         <span class="k">if</span> <span class="n">loss_type</span> <span class="o">==</span> <span class="s1">'square'</span><span class="p">:</span>
             <span class="n">losses</span> <span class="o">=</span> <span class="p">(</span><span class="n">xt</span> <span class="o">-</span> <span class="n">yt</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">1</span><span class="p">))</span> <span class="o">**</span> <span class="mi">2</span>
+        <span class="k">elif</span> <span class="n">loss_type</span> <span class="o">==</span> <span class="s1">'pinball'</span><span class="p">:</span>
+            <span class="n">diff</span> <span class="o">=</span> <span class="n">yt</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span> <span class="o">-</span> <span class="n">xt</span>
+            <span class="n">losses</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="n">tau</span> <span class="o">*</span> <span class="n">diff</span><span class="p">,</span> <span class="p">(</span><span class="n">tau</span> <span class="o">-</span> <span class="mf">1.0</span><span class="p">)</span> <span class="o">*</span> <span class="n">diff</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="n">losses</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">xt</span> <span class="o">-</span> <span class="n">yt</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">1</span><span class="p">))</span>
             
@@ -510,6 +520,50 @@ A <code class="docutils literal notranslate"><span class="pre">torch.where</span
     <span class="k">return</span> <span class="n">predictions</span><span class="p">,</span> <span class="n">weights_history</span>
 </pre></div>
 </div>
+</div>
+<p><code class="docutils literal notranslate"><span class="pre">loss_type='pinball'</span></code> with <code class="docutils literal notranslate"><span class="pre">tau</span></code> aggregates quantile forecasts: the MLpol loop uses the subgradient <code class="docutils literal notranslate"><span class="pre">1{y_hat</span> <span class="pre">&gt;</span> <span class="pre">y}</span> <span class="pre">-</span> <span class="pre">tau</span></code> in place
+of the square or absolute one, the EWA loop the pinball loss of each expert. <code class="docutils literal notranslate"><span class="pre">aggregate_quantiles</span></code> runs one <code class="docutils literal notranslate"><span class="pre">OperaTAM</span></code> per level (each
+with its own expert columns) and sorts the levels on each row:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">def</span><span class="w"> </span><span class="nf">aggregate_quantiles</span><span class="p">(</span>
+    <span class="n">df</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span>
+    <span class="n">target_col</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">expert_cols_by_level</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">list</span><span class="p">],</span>
+    <span class="n">algorithm</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">'MLPOL'</span><span class="p">,</span>
+    <span class="n">eta</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">,</span>
+    <span class="n">horizon_steps</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span>
+    <span class="n">group_col</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">date_col</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">"""</span>
+<span class="sd">    Online aggregation of quantile forecasts: one ``OperaTAM`` with the pinball loss per level, levels sorted on each row.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        df: Data holding the target and, for each level, the experts' forecasts of that quantile.</span>
+<span class="sd">        target_col: Target column.</span>
+<span class="sd">        expert_cols_by_level: ``{tau: [expert columns forecasting the tau-quantile]}``.</span>
+<span class="sd">        algorithm: 'MLPOL' or 'EWA'.</span>
+<span class="sd">        eta: Learning rate (EWA).</span>
+<span class="sd">        horizon_steps: Delay of the weights, as in ``OperaTAM``.</span>
+<span class="sd">        group_col: Optional group column (independent aggregation per group).</span>
+<span class="sd">        date_col: Optional date column (chronological order).</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        A DataFrame with one ``q&lt;tau&gt;`` column per level, in the row order of ``OperaTAM.predict_online`` and the level</span>
+<span class="sd">        order of ``expert_cols_by_level``; the aggregated levels are sorted on each row so they never cross.</span>
+<span class="sd">    """</span>
+    <span class="n">levels</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">expert_cols_by_level</span><span class="p">)</span>
+    <span class="n">columns</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">index</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="k">for</span> <span class="n">tau</span> <span class="ow">in</span> <span class="n">levels</span><span class="p">:</span>
+        <span class="n">out</span> <span class="o">=</span> <span class="n">OperaTAM</span><span class="p">(</span><span class="n">target_col</span><span class="o">=</span><span class="n">target_col</span><span class="p">,</span> <span class="n">expert_cols</span><span class="o">=</span><span class="nb">list</span><span class="p">(</span><span class="n">expert_cols_by_level</span><span class="p">[</span><span class="n">tau</span><span class="p">]),</span> <span class="n">algorithm</span><span class="o">=</span><span class="n">algorithm</span><span class="p">,</span> <span class="n">eta</span><span class="o">=</span><span class="n">eta</span><span class="p">,</span>
+                       <span class="n">loss_type</span><span class="o">=</span><span class="s1">'pinball'</span><span class="p">,</span> <span class="n">tau</span><span class="o">=</span><span class="n">tau</span><span class="p">,</span> <span class="n">horizon_steps</span><span class="o">=</span><span class="n">horizon_steps</span><span class="p">,</span> <span class="n">group_col</span><span class="o">=</span><span class="n">group_col</span><span class="p">,</span>
+                       <span class="n">date_col</span><span class="o">=</span><span class="n">date_col</span><span class="p">)</span><span class="o">.</span><span class="n">predict_online</span><span class="p">(</span><span class="n">df</span><span class="p">)</span>
+        <span class="n">index</span> <span class="o">=</span> <span class="n">out</span><span class="o">.</span><span class="n">index</span> <span class="k">if</span> <span class="n">index</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">index</span>
+        <span class="n">columns</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">out</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">index</span><span class="p">,</span> <span class="s1">'prediction_opera'</span><span class="p">]</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">))</span>
+    <span class="n">ordered</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">argsort</span><span class="p">(</span><span class="n">levels</span><span class="p">)</span>
+    <span class="n">table</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sort</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">column_stack</span><span class="p">(</span><span class="n">columns</span><span class="p">)[:,</span> <span class="n">ordered</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)[:,</span> <span class="n">np</span><span class="o">.</span><span class="n">argsort</span><span class="p">(</span><span class="n">ordered</span><span class="p">)]</span>
+    <span class="k">return</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">table</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="n">index</span><span class="p">,</span> <span class="n">columns</span><span class="o">=</span><span class="p">[</span><span class="sa">f</span><span class="s2">"q</span><span class="si">{</span><span class="n">tau</span><span class="si">}</span><span class="s2">"</span> <span class="k">for</span> <span class="n">tau</span> <span class="ow">in</span> <span class="n">levels</span><span class="p">])</span>
+</pre></div>
 </div>
 </section>
 </section>
@@ -604,7 +658,7 @@ To standardize the deployment pipeline, <code class="docutils literal notranslat
       
     </aside>
   </div>
-</div><script src="../../_static/documentation_options.js?v=9172181d"></script>
+</div><script src="../../_static/documentation_options.js?v=350a9c04"></script>
     <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/scripts/furo.js?v=46bd48cc"></script>

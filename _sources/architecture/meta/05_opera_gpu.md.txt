@@ -60,6 +60,16 @@ A `torch.where` mask safely intercepts any groups with perfectly zero targets to
 :caption: src/tam/model/opera.py (TorchScript Compiled EWA Loop)
 ```
 
+`loss_type='pinball'` with `tau` aggregates quantile forecasts: the MLpol loop uses the subgradient `1{y_hat > y} - tau` in place
+of the square or absolute one, the EWA loop the pinball loss of each expert. `aggregate_quantiles` runs one `OperaTAM` per level (each
+with its own expert columns) and sorts the levels on each row:
+
+```{literalinclude} ../../../../src/tam/model/opera.py
+:language: python
+:start-after: "#: <aggregate_quantiles>"
+:end-before: "#: </aggregate_quantiles>"
+```
+
 ---
 
 ## Causal Boundary Enforcement (Horizon Shifting)

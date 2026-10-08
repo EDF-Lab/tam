@@ -53,6 +53,18 @@ $$\hat{\theta}_{adapt, t} = \left( \Phi_{adapt, W}^\top \Lambda_{W}^\top \Lambda
 
 By flattening the group and window dimensions into a single massive 3D tensor batch, the framework computes these dynamic corrector weights simultaneously across all groups and time steps.  This isolates the regularization scale for each distinct topological window and neutralizes concept drift, bypassing the computational overhead typically associated with rolling dense matrix inversions.
 
+### Online Scale for Quantile Forecasts
+
+When the long-term expert is a location-scale law with location $\mu_0$ and scale $\sigma_0$, the corrected location $\hat\mu_t=\mu_0+\hat\epsilon_t$ moves with the data but the scale does not, so the intervals do not follow a change of variance. The standardized residual $r_s=(y_s-\hat\mu_s)/\sigma_{0,s}$ has unit scale when the expert is calibrated; its root mean square over the most recent training window,
+
+$$ s_t = \sqrt{\frac{1}{|\mathcal{W}_t|}\sum_{u\in\mathcal{W}_t} r_u^2}, $$
+
+measures the miscalibration, and the quantile of level $\tau$ is
+
+$$ Q_\tau(t) = \hat\mu_t + s_t\,\sigma_{0,t}\,F^{-1}(\tau), $$
+
+with $F$ the standardized law of the expert. The window $\mathcal{W}_t$ holds only residuals observed before the update that serves $t$, at least one forecast horizon back, so the construction is causal. After a break from variance $1$ to variance $9$, $s_t$ rises to $3$ within one window and the interval widens by the same factor, which restores the nominal coverage.
+
 ### Equivalence with a Rolling StaticTAM
 
 Each window is normalised with the minimum and maximum of its own training rows only, and no bound fitted on the whole period is applied. The forecasts of a window are therefore those of the estimator fitted on that window's training rows and applied to its forecast rows: the adaptive model is the operational loop "refit on the last window, forecast the next rows", computed in one batch. A feature whose range moves between windows is handled as a refit would handle it.

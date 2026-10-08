@@ -7,7 +7,7 @@
         <link rel="prefetch" href="../../_static/logo.png" as="image">
 
     <!-- Generated with Sphinx 9.1.0 and Furo 2025.12.19 -->
-        <title>Adaptive Online Learning (AdaptiveTAM) - TAM 1.4.0 documentation</title>
+        <title>Adaptive Online Learning (AdaptiveTAM) - TAM 1.4.1 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=d111a655" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo-extensions.css?v=8dab3a3b" />
@@ -162,7 +162,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="../../index.html"><div class="brand">TAM 1.4.0 documentation</div></a>
+      <a href="../../index.html"><div class="brand">TAM 1.4.1 documentation</div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -186,7 +186,7 @@
     <img class="sidebar-logo" src="../../_static/logo.png" alt="Logo"/>
   </div>
   
-  <span class="sidebar-brand-text">TAM 1.4.0 documentation</span>
+  <span class="sidebar-brand-text">TAM 1.4.1 documentation</span>
   
 </a><form class="sidebar-search-container" method="get" action="../../search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
@@ -383,6 +383,20 @@
 </div>
 <p>By flattening the group and window dimensions into a single massive 3D tensor batch, the framework computes these dynamic corrector weights simultaneously across all groups and time steps.  This isolates the regularization scale for each distinct topological window and neutralizes concept drift, bypassing the computational overhead typically associated with rolling dense matrix inversions.</p>
 </section>
+<section id="online-scale-for-quantile-forecasts">
+<h3>Online Scale for Quantile Forecasts<a class="headerlink" href="#online-scale-for-quantile-forecasts" title="Link to this heading">¶</a></h3>
+<p>When the long-term expert is a location-scale law with location <span class="math notranslate nohighlight">\(\mu_0\)</span> and scale <span class="math notranslate nohighlight">\(\sigma_0\)</span>, the corrected location <span class="math notranslate nohighlight">\(\hat\mu_t=\mu_0+\hat\epsilon_t\)</span> moves with the data but the scale does not, so the intervals do not follow a change of variance. The standardized residual <span class="math notranslate nohighlight">\(r_s=(y_s-\hat\mu_s)/\sigma_{0,s}\)</span> has unit scale when the expert is calibrated; its root mean square over the most recent training window,</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[ s_t = \sqrt{\frac{1}{|\mathcal{W}_t|}\sum_{u\in\mathcal{W}_t} r_u^2}, \]</div>
+</div>
+<p>measures the miscalibration, and the quantile of level <span class="math notranslate nohighlight">\(\tau\)</span> is</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[ Q_\tau(t) = \hat\mu_t + s_t\,\sigma_{0,t}\,F^{-1}(\tau), \]</div>
+</div>
+<p>with <span class="math notranslate nohighlight">\(F\)</span> the standardized law of the expert. The window <span class="math notranslate nohighlight">\(\mathcal{W}_t\)</span> holds only residuals observed before the update that serves <span class="math notranslate nohighlight">\(t\)</span>, at least one forecast horizon back, so the construction is causal. After a break from variance <span class="math notranslate nohighlight">\(1\)</span> to variance <span class="math notranslate nohighlight">\(9\)</span>, <span class="math notranslate nohighlight">\(s_t\)</span> rises to <span class="math notranslate nohighlight">\(3\)</span> within one window and the interval widens by the same factor, which restores the nominal coverage.</p>
+</section>
 <section id="equivalence-with-a-rolling-statictam">
 <h3>Equivalence with a Rolling StaticTAM<a class="headerlink" href="#equivalence-with-a-rolling-statictam" title="Link to this heading">¶</a></h3>
 <p>Each window is normalised with the minimum and maximum of its own training rows only, and no bound fitted on the whole period is applied. The forecasts of a window are therefore those of the estimator fitted on that window’s training rows and applied to its forecast rows: the adaptive model is the operational loop “refit on the last window, forecast the next rows”, computed in one batch. A feature whose range moves between windows is handled as a refit would handle it.</p>
@@ -453,6 +467,7 @@
 </li>
 <li><a class="reference internal" href="#mathematical-formulation-of-the-parallel-sliding-window">Mathematical Formulation of the Parallel Sliding-Window</a><ul>
 <li><a class="reference internal" href="#the-exact-local-erm-solution">The Exact Local ERM Solution</a></li>
+<li><a class="reference internal" href="#online-scale-for-quantile-forecasts">Online Scale for Quantile Forecasts</a></li>
 <li><a class="reference internal" href="#equivalence-with-a-rolling-statictam">Equivalence with a Rolling StaticTAM</a></li>
 </ul>
 </li>
@@ -467,7 +482,7 @@
       
     </aside>
   </div>
-</div><script src="../../_static/documentation_options.js?v=9172181d"></script>
+</div><script src="../../_static/documentation_options.js?v=350a9c04"></script>
     <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/scripts/furo.js?v=46bd48cc"></script>

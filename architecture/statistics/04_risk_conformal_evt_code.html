@@ -7,7 +7,7 @@
         <link rel="prefetch" href="../../_static/logo.png" as="image">
 
     <!-- Generated with Sphinx 9.1.0 and Furo 2025.12.19 -->
-        <title>Risk: Static Conformal, Streaming ACI, EVT &amp; Epistemic - TAM 1.4.0 documentation</title>
+        <title>Risk: Static Conformal, Streaming ACI, EVT &amp; Epistemic - TAM 1.4.1 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=d111a655" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo-extensions.css?v=8dab3a3b" />
@@ -162,7 +162,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="../../index.html"><div class="brand">TAM 1.4.0 documentation</div></a>
+      <a href="../../index.html"><div class="brand">TAM 1.4.1 documentation</div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -186,7 +186,7 @@
     <img class="sidebar-logo" src="../../_static/logo.png" alt="Logo"/>
   </div>
   
-  <span class="sidebar-brand-text">TAM 1.4.0 documentation</span>
+  <span class="sidebar-brand-text">TAM 1.4.1 documentation</span>
   
 </a><form class="sidebar-search-container" method="get" action="../../search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
@@ -343,6 +343,67 @@
         <span class="k">return</span> <span class="nb">float</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">quantile</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">residuals_calib_</span><span class="p">,</span> <span class="n">q_level</span><span class="p">))</span>
 </pre></div>
 </div>
+<p><code class="docutils literal notranslate"><span class="pre">calibrate()</span></code> keeps the signed residuals (<code class="docutils literal notranslate"><span class="pre">signed_scores_</span></code>, studentized when a scale is given) next to the absolute scores, and prints the
+sample count unless <code class="docutils literal notranslate"><span class="pre">verbose=False</span></code>. <code class="docutils literal notranslate"><span class="pre">predict_quantiles()</span></code> returns several levels at once, <code class="docutils literal notranslate"><span class="pre">q&lt;level&gt;</span></code> columns: symmetric bands from
+<code class="docutils literal notranslate"><span class="pre">conformal_quantile(2</span> <span class="pre">*</span> <span class="pre">tau)</span></code> by default (the bands of <code class="docutils literal notranslate"><span class="pre">predict_intervals</span></code>), or one-sided bounds per tail from the signed scores with
+<code class="docutils literal notranslate"><span class="pre">signed=True</span></code>; the levels are sorted on each row.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span>    <span class="k">def</span><span class="w"> </span><span class="nf">predict_quantiles</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">y_pred</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+        <span class="n">levels</span><span class="p">,</span>
+        <span class="n">scale</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">signed</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Conformal quantiles at several levels in one call.</span>
+
+<span class="sd">        Symmetric mode (default): the level tau &lt; 0.5 is `y_pred - q * scale` and 1 - tau is `y_pred + q * scale`, with</span>
+<span class="sd">        q = conformal_quantile(2 * tau) of the absolute scores (the bands of `predict_intervals`); 0.5 is `y_pred`.</span>
+<span class="sd">        Signed mode: each level is `y_pred + s_(k) * scale`, s_(k) the k-th smallest signed calibration score, with</span>
+<span class="sd">        k = ceil((n + 1) * tau) above the median and k = floor((n + 1) * tau) below it (one-sided split conformal),</span>
+<span class="sd">        so skewed errors get a short and a long tail. The levels are sorted on each row (no crossing).</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            y_pred: Point predictions.</span>
+<span class="sd">            levels: Quantile levels in (0, 1).</span>
+<span class="sd">            scale: Optional per-row scale (the one used at calibration for studentized scores).</span>
+<span class="sd">            signed: Use the signed scores kept by `calibrate` (not available after `calibrate_scores`).</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            A DataFrame with one column per level, named `q&lt;level&gt;`.</span>
+
+<span class="sd">        Raises:</span>
+<span class="sd">            RuntimeError: If the engine is not calibrated.</span>
+<span class="sd">            ValueError: If `signed=True` but no signed scores were kept, or a level is outside (0, 1).</span>
+<span class="sd">        """</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">residuals_calib_</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s2">"You must call .calibrate() or .calibrate_scores() before predicting quantiles."</span><span class="p">)</span>
+        <span class="n">levels</span> <span class="o">=</span> <span class="p">[</span><span class="nb">float</span><span class="p">(</span><span class="n">t</span><span class="p">)</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">levels</span><span class="p">]</span>
+        <span class="k">if</span> <span class="nb">any</span><span class="p">(</span><span class="ow">not</span> <span class="mf">0.0</span> <span class="o">&lt;</span> <span class="n">t</span> <span class="o">&lt;</span> <span class="mf">1.0</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">levels</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Quantile levels must lie in (0, 1); got </span><span class="si">{</span><span class="n">levels</span><span class="si">}</span><span class="s2">."</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">signed</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">signed_scores_</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"signed=True needs the signed residuals kept by .calibrate(y_true, y_pred); "</span>
+                             <span class="s2">".calibrate_scores() keeps only absolute scores."</span><span class="p">)</span>
+        <span class="n">y_pred</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">y_pred</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+        <span class="n">scale_vector</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="n">y_pred</span><span class="p">)</span> <span class="k">if</span> <span class="n">scale</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">scale</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+
+        <span class="n">columns</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">if</span> <span class="n">signed</span><span class="p">:</span>
+            <span class="n">ordered</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sort</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">signed_scores_</span><span class="p">)</span>
+            <span class="n">n</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">ordered</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">tau</span> <span class="ow">in</span> <span class="n">levels</span><span class="p">:</span>
+                <span class="n">k</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">ceil</span><span class="p">((</span><span class="n">n</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">tau</span><span class="p">))</span> <span class="k">if</span> <span class="n">tau</span> <span class="o">&gt;=</span> <span class="mf">0.5</span> <span class="k">else</span> <span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">floor</span><span class="p">((</span><span class="n">n</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">tau</span><span class="p">))</span>
+                <span class="n">columns</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">y_pred</span> <span class="o">+</span> <span class="n">ordered</span><span class="p">[</span><span class="nb">min</span><span class="p">(</span><span class="nb">max</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="n">n</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="n">scale_vector</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">tau</span> <span class="ow">in</span> <span class="n">levels</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">tau</span> <span class="o">==</span> <span class="mf">0.5</span><span class="p">:</span>
+                    <span class="n">columns</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">y_pred</span><span class="o">.</span><span class="n">copy</span><span class="p">())</span>
+                    <span class="k">continue</span>
+                <span class="n">radius</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">conformal_quantile</span><span class="p">(</span><span class="nb">round</span><span class="p">(</span><span class="mf">2.0</span> <span class="o">*</span> <span class="nb">min</span><span class="p">(</span><span class="n">tau</span><span class="p">,</span> <span class="mf">1.0</span> <span class="o">-</span> <span class="n">tau</span><span class="p">),</span> <span class="mi">12</span><span class="p">))</span>
+                <span class="n">columns</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">y_pred</span> <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">sign</span><span class="p">(</span><span class="n">tau</span> <span class="o">-</span> <span class="mf">0.5</span><span class="p">)</span> <span class="o">*</span> <span class="n">radius</span> <span class="o">*</span> <span class="n">scale_vector</span><span class="p">)</span>
+        <span class="n">table</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sort</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">column_stack</span><span class="p">(</span><span class="n">columns</span><span class="p">),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">table</span><span class="p">,</span> <span class="n">columns</span><span class="o">=</span><span class="p">[</span><span class="sa">f</span><span class="s2">"q</span><span class="si">{</span><span class="n">t</span><span class="si">}</span><span class="s2">"</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">levels</span><span class="p">])</span>
+</pre></div>
+</div>
 </section>
 <section id="adaptive-conformal-inference-streaming-model-agnostic">
 <h2>Adaptive Conformal Inference (streaming, model-agnostic)<a class="headerlink" href="#adaptive-conformal-inference-streaming-model-agnostic" title="Link to this heading">¶</a></h2>
@@ -448,8 +509,8 @@
             <span class="n">lower</span> <span class="o">=</span> <span class="n">mu_hat</span><span class="p">[</span><span class="n">position</span><span class="p">]</span> <span class="o">-</span> <span class="n">sigma_hat</span><span class="p">[</span><span class="n">position</span><span class="p">]</span> <span class="o">*</span> <span class="n">radius</span>
             <span class="n">upper</span> <span class="o">=</span> <span class="n">mu_hat</span><span class="p">[</span><span class="n">position</span><span class="p">]</span> <span class="o">+</span> <span class="n">sigma_hat</span><span class="p">[</span><span class="n">position</span><span class="p">]</span> <span class="o">*</span> <span class="n">radius</span>
             <span class="n">inside</span> <span class="o">=</span> <span class="n">lower</span> <span class="o">&lt;=</span> <span class="n">observed</span><span class="p">[</span><span class="n">position</span><span class="p">]</span> <span class="o">&lt;=</span> <span class="n">upper</span>
-            <span class="n">lowers</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">lower</span><span class="p">)</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">_log_target_</span> <span class="k">else</span> <span class="n">lower</span><span class="p">)</span>
-            <span class="n">uppers</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">upper</span><span class="p">)</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">_log_target_</span> <span class="k">else</span> <span class="n">upper</span><span class="p">)</span>
+            <span class="n">lowers</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">_from_model_scale</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">lower</span><span class="p">]),</span> <span class="s2">"the lower bound"</span><span class="p">)[</span><span class="mi">0</span><span class="p">]))</span>
+            <span class="n">uppers</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">_from_model_scale</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">upper</span><span class="p">]),</span> <span class="s2">"the upper bound"</span><span class="p">)[</span><span class="mi">0</span><span class="p">]))</span>
             <span class="n">levels</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">alpha_t</span><span class="p">)</span>
             <span class="n">alpha_t</span> <span class="o">=</span> <span class="n">update_risk_level</span><span class="p">(</span><span class="n">alpha_t</span><span class="p">,</span> <span class="mf">0.0</span> <span class="k">if</span> <span class="n">inside</span> <span class="k">else</span> <span class="mf">1.0</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">alpha</span><span class="p">,</span> <span class="n">gamma</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">({</span><span class="s2">"lower"</span><span class="p">:</span> <span class="n">lowers</span><span class="p">,</span> <span class="s2">"upper"</span><span class="p">:</span> <span class="n">uppers</span><span class="p">,</span> <span class="s2">"alpha_t"</span><span class="p">:</span> <span class="n">levels</span><span class="p">},</span> <span class="n">index</span><span class="o">=</span><span class="n">ordered_data</span><span class="o">.</span><span class="n">index</span><span class="p">)</span>
@@ -656,7 +717,7 @@
       
     </aside>
   </div>
-</div><script src="../../_static/documentation_options.js?v=9172181d"></script>
+</div><script src="../../_static/documentation_options.js?v=350a9c04"></script>
     <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/scripts/furo.js?v=46bd48cc"></script>

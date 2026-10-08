@@ -7,7 +7,7 @@
         <link rel="prefetch" href="_static/logo.png" as="image">
 
     <!-- Generated with Sphinx 9.1.0 and Furo 2025.12.19 -->
-        <title>TAM (Time series Additive Model) - TAM 1.4.0 documentation</title>
+        <title>TAM (Time series Additive Model) - TAM 1.4.1 documentation</title>
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=d111a655" />
     <link rel="stylesheet" type="text/css" href="_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="_static/styles/furo-extensions.css?v=8dab3a3b" />
@@ -162,7 +162,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="index.html"><div class="brand">TAM 1.4.0 documentation</div></a>
+      <a href="index.html"><div class="brand">TAM 1.4.1 documentation</div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -186,7 +186,7 @@
     <img class="sidebar-logo" src="_static/logo.png" alt="Logo"/>
   </div>
   
-  <span class="sidebar-brand-text">TAM 1.4.0 documentation</span>
+  <span class="sidebar-brand-text">TAM 1.4.1 documentation</span>
   
 </a><form class="sidebar-search-container" method="get" action="search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
@@ -325,7 +325,7 @@
           <section class="tex2jax_ignore mathjax_ignore" id="tam-time-series-additive-model">
 <h1>TAM (Time series Additive Model)<a class="headerlink" href="#tam-time-series-additive-model" title="Link to this heading">¶</a></h1>
 <p><a class="reference internal" href="EXAMPLES.html"><span class="std std-doc">🧪 <code class="docutils literal notranslate"><span class="pre">EXAMPLES</span></code></span></a> | <a class="reference internal" href="THEORY.html"><span class="std std-doc">📚 <code class="docutils literal notranslate"><span class="pre">THEORY</span></code></span></a> | <a class="reference internal" href="#paper.md"><span class="xref myst">📄 <code class="docutils literal notranslate"><span class="pre">PAPER</span></code></span></a></p>
-<p><strong>Version:</strong> 1.4.0<br />
+<p><strong>Version:</strong> 1.4.1<br />
 <strong>License:</strong> LGPL-3.0-or-later.<br />
 <strong>Copyright (c):</strong> 2023-2026 EDF (Electricité De France).<br />
 <strong>Copyright (c):</strong> 2023-2025 Sorbonne Université.</p>
@@ -392,6 +392,9 @@
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>pip<span class="w"> </span>install<span class="w"> </span>tam-ml
 </pre></div>
 </div>
+<blockquote>
+<div><p><strong>Threads:</strong> to limit the CPU threads, set <code class="docutils literal notranslate"><span class="pre">OMP_NUM_THREADS</span></code> and <code class="docutils literal notranslate"><span class="pre">MKL_NUM_THREADS</span></code> in the environment before starting Python (see <code class="docutils literal notranslate"><span class="pre">architecture/core/04_hardware_memory.md</span></code>).</p>
+</div></blockquote>
 <blockquote>
 <div><p>⚠️ <strong>Hardware Note:</strong> TAM relies heavily on PyTorch for VRAM management and tensor acceleration. Ensure you have installed the correct PyTorch distribution (CUDA for NVIDIA, or MPS for Apple Silicon) for your specific hardware to fully leverage the framework’s GPU capabilities.</p>
 </div></blockquote>
@@ -480,10 +483,10 @@
 </ul>
 <p><strong>TAM</strong></p>
 <div class="highlight-bibtex notranslate"><div class="highlight"><pre><span></span><span class="nc">@misc</span><span class="p">{</span><span class="nl">tam2026package</span><span class="p">,</span>
-<span class="w">  </span><span class="na">title</span><span class="p">=</span><span class="s">{TAM: Time series Additive Model (v1.4.0)}</span><span class="p">,</span>
+<span class="w">  </span><span class="na">title</span><span class="p">=</span><span class="s">{TAM: Time series Additive Model (v1.4.1)}</span><span class="p">,</span>
 <span class="w">  </span><span class="na">author</span><span class="p">=</span><span class="s">{Allioux, Yann and Goude, Yannig}</span><span class="p">,</span>
 <span class="w">  </span><span class="na">year</span><span class="p">=</span><span class="s">{2026}</span><span class="p">,</span>
-<span class="w">  </span><span class="na">doi</span><span class="p">=</span><span class="s">{10.5281/zenodo.23171729}</span><span class="p">,</span>
+<span class="w">  </span><span class="na">doi</span><span class="p">=</span><span class="s">{10.5281/zenodo.23248249}</span><span class="p">,</span>
 <span class="w">  </span><span class="na">note</span><span class="p">=</span><span class="s">{With foundational WeaKL research by Nathan Doumèche, and tensorisation and adaptive model contributions by Éloi Bedek}</span>
 <span class="p">}</span>
 </pre></div>
@@ -600,7 +603,7 @@
       
     </aside>
   </div>
-</div><script src="_static/documentation_options.js?v=9172181d"></script>
+</div><script src="_static/documentation_options.js?v=350a9c04"></script>
     <script src="_static/doctools.js?v=fd6eb6e6"></script>
     <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="_static/scripts/furo.js?v=46bd48cc"></script>

@@ -7,7 +7,7 @@
         <link rel="prefetch" href="../../_static/logo.png" as="image">
 
     <!-- Generated with Sphinx 9.1.0 and Furo 2025.12.19 -->
-        <title>Kalman TorchScript Optimizations &amp; Block Updates [BETA] - TAM 1.4.0 documentation</title>
+        <title>Kalman TorchScript Optimizations &amp; Block Updates [BETA] - TAM 1.4.1 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=d111a655" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo-extensions.css?v=8dab3a3b" />
@@ -162,7 +162,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="../../index.html"><div class="brand">TAM 1.4.0 documentation</div></a>
+      <a href="../../index.html"><div class="brand">TAM 1.4.1 documentation</div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -173,7 +173,7 @@
           <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
         </button>
       </div>
-      <label class="toc-overlay-icon toc-header-icon no-toc" for="__toc">
+      <label class="toc-overlay-icon toc-header-icon" for="__toc">
         <span class="icon"><svg><use href="#svg-toc"></use></svg></span>
       </label>
     </div>
@@ -186,7 +186,7 @@
     <img class="sidebar-logo" src="../../_static/logo.png" alt="Logo"/>
   </div>
   
-  <span class="sidebar-brand-text">TAM 1.4.0 documentation</span>
+  <span class="sidebar-brand-text">TAM 1.4.1 documentation</span>
   
 </a><form class="sidebar-search-container" method="get" action="../../search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
@@ -317,7 +317,7 @@
               <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
             </button>
           </div>
-          <label class="toc-overlay-icon toc-content-icon no-toc" for="__toc">
+          <label class="toc-overlay-icon toc-content-icon" for="__toc">
             <span class="icon"><svg><use href="#svg-toc"></use></svg></span>
           </label>
         </div>
@@ -342,6 +342,46 @@
 <p><strong>Causal scaling (verified by <code class="docutils literal notranslate"><span class="pre">tests/test_kalman_causal.py</span></code>):</strong> <code class="docutils literal notranslate"><span class="pre">KalmanTAM.prepare_data</span></code> computes the tracked features, then <code class="docutils literal notranslate"><span class="pre">_fit_reference</span></code> fixes the feature normalisation (fitted by the internal <code class="docutils literal notranslate"><span class="pre">StaticTAM</span></code> extractor on the reference rows only) and stores the target centre and scale per group (<code class="docutils literal notranslate"><span class="pre">scale_dict_</span></code> for <code class="docutils literal notranslate"><span class="pre">predict()</span></code>); <code class="docutils literal notranslate"><span class="pre">_design</span></code> builds the design matrix with that normalisation. The reference is the first <code class="docutils literal notranslate"><span class="pre">calibration_steps</span></code> rows of each group (burn-in message, <code class="docutils literal notranslate"><span class="pre">calibration_steps_used_</span></code>) or <code class="docutils literal notranslate"><span class="pre">calibration_data</span></code>. <code class="docutils literal notranslate"><span class="pre">block_size=None</span></code> means 1, the exact sequential filter. The TorchScript kernel returns the state after the last update (<code class="docutils literal notranslate"><span class="pre">final_state_</span></code>), which <code class="docutils literal notranslate"><span class="pre">fit</span></code> stores as <code class="docutils literal notranslate"><span class="pre">last_state_dict_</span></code> for <code class="docutils literal notranslate"><span class="pre">predict()</span></code>.</p>
 <p><strong>Process noise per term (verified by <code class="docutils literal notranslate"><span class="pre">tests/test_kalman_per_term_noise.py</span></code>):</strong> the TorchScript kernel takes the diagonal of <span class="math notranslate nohighlight">\(Q\)</span> as a tensor (<code class="docutils literal notranslate"><span class="pre">process_noise_diag</span></code>, one variance per design column) instead of a scalar. <code class="docutils literal notranslate"><span class="pre">KalmanTAM._term_spans</span></code> maps each formula term (the names of <code class="docutils literal notranslate"><span class="pre">decomposition_names</span></code>, plus <code class="docutils literal notranslate"><span class="pre">&quot;offset&quot;</span></code> for the two constant columns: the filter’s systematic offset and the formula’s intercept) to its design columns, and <code class="docutils literal notranslate"><span class="pre">_noise_diagonal</span></code> fills the diagonal from <code class="docutils literal notranslate"><span class="pre">process_noise_var</span></code> (a float, or a dict <code class="docutils literal notranslate"><span class="pre">{term:</span> <span class="pre">q,</span> <span class="pre">&quot;offset&quot;:</span> <span class="pre">q,</span> <span class="pre">&quot;default&quot;:</span> <span class="pre">q}</span></code>). The boost on the offset’s noise (<code class="docutils literal notranslate"><span class="pre">offset_q_boost</span></code>) is <code class="docutils literal notranslate"><span class="pre">offset_boost</span></code> unless the offset has a variance of its own; the initial covariance of the offset keeps <code class="docutils literal notranslate"><span class="pre">offset_boost</span></code>. A float call builds the same diagonal as before, so its forecasts are unchanged.</p>
 <p><strong>Base-model components (verified by <code class="docutils literal notranslate"><span class="pre">tests/test_base_effect_columns.py</span></code>):</strong> with <code class="docutils literal notranslate"><span class="pre">add_base_effects=True</span></code>, one <code class="docutils literal notranslate"><span class="pre">l(effect_&lt;name&gt;)</span></code> term per base-model component is appended to the Kalman formula, with the column names <code class="docutils literal notranslate"><span class="pre">decompose_prediction</span></code> emits (<code class="docutils literal notranslate"><span class="pre">decomposition_names()</span></code>).</p>
+<section id="predictive-quantiles">
+<h2>Predictive quantiles<a class="headerlink" href="#predictive-quantiles" title="Link to this heading">¶</a></h2>
+<p>The compiled loop can also return the predictive variance of every forecast row (<code class="docutils literal notranslate"><span class="pre">with_variance</span></code>, off by default: the filter and its outputs are then identical to before). Per block it adds one batched product <code class="docutils literal notranslate"><span class="pre">X</span> <span class="pre">P</span> <span class="pre">Xᵀ</span></code> on the a priori covariance, and for <code class="docutils literal notranslate"><span class="pre">horizon_steps</span> <span class="pre">&gt;</span> <span class="pre">1</span></code> the covariance of the delayed state grown by <code class="docutils literal notranslate"><span class="pre">(h</span> <span class="pre">-</span> <span class="pre">1)</span> <span class="pre">Q</span></code>, written at the row it forecasts. <code class="docutils literal notranslate"><span class="pre">_run_filter</span></code> keeps it in <code class="docutils literal notranslate"><span class="pre">_predictive_variance_</span></code>; <code class="docutils literal notranslate"><span class="pre">_online</span></code> is the former body of <code class="docutils literal notranslate"><span class="pre">predict_online</span></code>, which now calls it, and <code class="docutils literal notranslate"><span class="pre">predict_quantiles</span></code> converts the standard deviation to the target scale with the reference scale and adds <code class="docutils literal notranslate"><span class="pre">z_tau</span></code> standard deviations to the online forecast:</p>
+<div class="literal-block-wrapper docutils container" id="id1">
+<div class="code-block-caption"><span class="caption-text">src/tam/model/kalman.py (Gaussian quantiles from the filter variance)</span><a class="headerlink" href="#id1" title="Link to this code">¶</a></div>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span>    <span class="k">def</span><span class="w"> </span><span class="nf">predict_quantiles</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span> <span class="n">taus</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="mf">0.05</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">,</span> <span class="mf">0.95</span><span class="p">))</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
+<span class="sd">        Gaussian quantiles of the online forecast, from the predictive variance of the filter.</span>
+
+<span class="sd">        The forecast of a row is Gaussian with the mean of ``predict_online`` and the variance ``x' P x + R`` (``P`` the covariance</span>
+<span class="sd">        of the state that forecasts the row, ``R`` the observation noise; for ``horizon_steps &gt; 1`` the covariance of the delayed</span>
+<span class="sd">        state grown by the process noise of the delay), converted back to the target scale. Like ``predict_online``, ``data`` must</span>
+<span class="sd">        hold the target and the state of the model is refitted on it. The variance is a function of the design and the noise</span>
+<span class="sd">        parameters only, so a later target never moves an earlier quantile.</span>
+
+<span class="sd">        The intervals are as calibrated as ``observation_noise_var`` and ``process_noise_var`` are (``tune_hyperparameters``</span>
+<span class="sd">        sets them). A row without a target does not move the state but still shrinks the covariance, as in the filter.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            data: The rows to forecast, with the target.</span>
+<span class="sd">            taus: Quantile levels in (0, 1).</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            A DataFrame with one ``q&lt;tau&gt;`` column per level, on the rows of ``predict_online(data)``.</span>
+
+<span class="sd">        Raises:</span>
+<span class="sd">            ValueError: If a level is outside (0, 1).</span>
+<span class="sd">        """</span>
+        <span class="n">levels</span> <span class="o">=</span> <span class="p">[</span><span class="nb">float</span><span class="p">(</span><span class="n">tau</span><span class="p">)</span> <span class="k">for</span> <span class="n">tau</span> <span class="ow">in</span> <span class="n">taus</span><span class="p">]</span>
+        <span class="k">if</span> <span class="nb">any</span><span class="p">(</span><span class="ow">not</span> <span class="mf">0.0</span> <span class="o">&lt;</span> <span class="n">tau</span> <span class="o">&lt;</span> <span class="mf">1.0</span> <span class="k">for</span> <span class="n">tau</span> <span class="ow">in</span> <span class="n">levels</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"taus must lie in (0, 1); got </span><span class="si">{</span><span class="nb">list</span><span class="p">(</span><span class="n">taus</span><span class="p">)</span><span class="si">!r}</span><span class="s2">"</span><span class="p">)</span>
+        <span class="n">frame</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_online</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">with_variance</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="n">mean</span> <span class="o">=</span> <span class="n">frame</span><span class="p">[</span><span class="sa">f</span><span class="s2">"KalmanAdapted_</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">target_col_</span><span class="si">}</span><span class="s2">"</span><span class="p">]</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+        <span class="n">sd</span> <span class="o">=</span> <span class="n">frame</span><span class="p">[</span><span class="s2">"__sd__"</span><span class="p">]</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">({</span><span class="sa">f</span><span class="s2">"q</span><span class="si">{</span><span class="n">tau</span><span class="si">}</span><span class="s2">"</span><span class="p">:</span> <span class="n">mean</span> <span class="o">+</span> <span class="n">sd</span> <span class="o">*</span> <span class="n">stats</span><span class="o">.</span><span class="n">norm</span><span class="o">.</span><span class="n">ppf</span><span class="p">(</span><span class="n">tau</span><span class="p">)</span> <span class="k">for</span> <span class="n">tau</span> <span class="ow">in</span> <span class="n">levels</span><span class="p">},</span> <span class="n">index</span><span class="o">=</span><span class="n">frame</span><span class="o">.</span><span class="n">index</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<p>The constructor and the outputs of <code class="docutils literal notranslate"><span class="pre">predict_online</span></code>, <code class="docutils literal notranslate"><span class="pre">predict</span></code> and <code class="docutils literal notranslate"><span class="pre">fit</span></code> are unchanged. One limit of the filter carries over: a row without a target leaves the state unchanged but still reduces the covariance, so the variance after a long gap of missing targets is understated.</p>
+</section>
 </section>
 
         </article>
@@ -387,13 +427,32 @@
         
       </footer>
     </div>
-    <aside class="toc-drawer no-toc">
+    <aside class="toc-drawer">
       
+      
+      <div class="toc-sticky toc-scroll">
+        <div class="toc-title-container">
+          <span class="toc-title">
+            On this page
+          </span>
+        </div>
+        <div class="toc-tree-container">
+          <div class="toc-tree">
+            <ul>
+<li><a class="reference internal" href="#">Kalman TorchScript Optimizations &amp; Block Updates [BETA]</a><ul>
+<li><a class="reference internal" href="#predictive-quantiles">Predictive quantiles</a></li>
+</ul>
+</li>
+</ul>
+
+          </div>
+        </div>
+      </div>
       
       
     </aside>
   </div>
-</div><script src="../../_static/documentation_options.js?v=9172181d"></script>
+</div><script src="../../_static/documentation_options.js?v=350a9c04"></script>
     <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/scripts/furo.js?v=46bd48cc"></script>

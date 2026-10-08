@@ -7,7 +7,7 @@
         <link rel="prefetch" href="../../_static/logo.png" as="image">
 
     <!-- Generated with Sphinx 9.1.0 and Furo 2025.12.19 -->
-        <title>The Spectral Dictionary: PyTorch Implementations &amp; Factory Assembly - TAM 1.4.0 documentation</title>
+        <title>The Spectral Dictionary: PyTorch Implementations &amp; Factory Assembly - TAM 1.4.1 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=d111a655" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo-extensions.css?v=8dab3a3b" />
@@ -162,7 +162,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="../../index.html"><div class="brand">TAM 1.4.0 documentation</div></a>
+      <a href="../../index.html"><div class="brand">TAM 1.4.1 documentation</div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -186,7 +186,7 @@
     <img class="sidebar-logo" src="../../_static/logo.png" alt="Logo"/>
   </div>
   
-  <span class="sidebar-brand-text">TAM 1.4.0 documentation</span>
+  <span class="sidebar-brand-text">TAM 1.4.1 documentation</span>
   
 </a><form class="sidebar-search-container" method="get" action="../../search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
@@ -482,7 +482,57 @@ The linear effect applies direct spatial scaling, and its penalty is a standard 
             <span class="n">cyclic_raw</span> <span class="o">=</span> <span class="n">params_resolved</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">'cyclic'</span><span class="p">,</span> <span class="s1">'False'</span><span class="p">)</span>
             <span class="n">is_cyclic</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">cyclic_raw</span><span class="p">)</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">'true'</span><span class="p">,</span> <span class="s1">'1'</span><span class="p">,</span> <span class="s1">'t'</span><span class="p">,</span> <span class="s1">'y'</span><span class="p">,</span> <span class="s1">'yes'</span><span class="p">]</span>
             <span class="n">extrap_val</span> <span class="o">=</span> <span class="n">params_resolved</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">'extrapolate'</span><span class="p">,</span> <span class="s1">'continue'</span><span class="p">)</span>
-            <span class="n">effects_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">FourierEffect</span><span class="p">(</span><span class="n">feature_name</span><span class="p">,</span> <span class="n">m</span><span class="p">,</span> <span class="n">s</span><span class="p">,</span> <span class="n">lambda_p</span><span class="p">,</span> <span class="n">is_cyclic</span><span class="p">,</span> <span class="n">extrap_val</span><span class="p">))</span>
+            <span class="n">period</span> <span class="o">=</span> <span class="n">_parse_period</span><span class="p">(</span><span class="n">params_resolved</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">'period'</span><span class="p">),</span> <span class="n">feature_name</span><span class="p">)</span>
+            <span class="n">effects_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">FourierEffect</span><span class="p">(</span><span class="n">feature_name</span><span class="p">,</span> <span class="n">m</span><span class="p">,</span> <span class="n">s</span><span class="p">,</span> <span class="n">lambda_p</span><span class="p">,</span> <span class="n">is_cyclic</span><span class="p">,</span> <span class="n">extrap_val</span><span class="p">,</span> <span class="n">period</span><span class="o">=</span><span class="n">period</span><span class="p">))</span>
+</pre></div>
+</div>
+<p><strong>Declared period.</strong> <code class="docutils literal notranslate"><span class="pre">f(x,</span> <span class="pre">...,</span> <span class="pre">period=...)</span></code> makes the feature normalised on the range of one cycle instead of the minimum and
+maximum of the training rows: <code class="docutils literal notranslate"><span class="pre">None</span></code> (default) keeps the training range, <code class="docutils literal notranslate"><span class="pre">'auto'</span></code> uses (first value, last value + one step), the
+step being the smallest gap between the distinct training values (resolved once on all training rows by <code class="docutils literal notranslate"><span class="pre">_resolve_fixed_ranges</span></code>,
+so every group and adaptive window shares it), and <code class="docutils literal notranslate"><span class="pre">(low,</span> <span class="pre">high)</span></code> is used as given (a history covering part of the cycle). This applies in <code class="docutils literal notranslate"><span class="pre">StaticTAM</span></code> and in every rolling window
+of <code class="docutils literal notranslate"><span class="pre">AdaptiveTAM</span></code> (<code class="docutils literal notranslate"><span class="pre">KalmanTAM</span></code> fits through a <code class="docutils literal notranslate"><span class="pre">StaticTAM</span></code>). Without it the training range is the period, as before: an integer-coded position
+has its last value glued onto its first (hours 0 to 23 give 23:00 = 0:00; use <code class="docutils literal notranslate"><span class="pre">period='auto'</span></code> or <code class="docutils literal notranslate"><span class="pre">(0,</span> <span class="pre">24)</span></code>), and a history covering half a cycle is read as a whole cycle. <code class="docutils literal notranslate"><span class="pre">fixed_ranges</span></code> collects the declared periods (tensor products included) and
+<code class="docutils literal notranslate"><span class="pre">_fit_normalization_params</span></code> / <code class="docutils literal notranslate"><span class="pre">_transform_data_adaptive</span></code> apply them; two different periods for one feature raise. The default
+<code class="docutils literal notranslate"><span class="pre">extrapolate='continue'</span></code> lets an input beyond the period wrap around the cycle (<code class="docutils literal notranslate"><span class="pre">'constant'</span></code> would clamp it).</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">def</span><span class="w"> </span><span class="nf">fixed_ranges</span><span class="p">(</span><span class="n">effects_list</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">BaseEffect</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">"""</span>
+<span class="sd">    ``{feature: (low, high) or "auto"}`` for the features read by a Fourier effect with a ``period`` (``f(x, cyclic=True, period=(0, 1))``).</span>
+
+<span class="sd">    Every feature is normalised to [-1, 1] with the minimum and maximum of its training rows, and a cyclic term takes [-1, 1] as</span>
+<span class="sd">    one period: a history covering half a cycle (January to June of a time of year in [0, 1]) would be read as a whole cycle and</span>
+<span class="sd">    the forecast of July would start the cycle again. A declared period is the range the feature is normalised on instead, so the</span>
+<span class="sd">    history is read as the part of the cycle it covers. ``"auto"`` is resolved on the training rows by ``_resolve_fixed_ranges``</span>
+<span class="sd">    (first value, last value + one step). Without ``period`` nothing changes. The declared range also applies to</span>
+<span class="sd">    the other non-categorical effects reading the feature (an affine rescaling for them); a feature also read by a categorical</span>
+<span class="sd">    effect keeps the categorical rule.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        effects_list: The effects of a model, tensor products included.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        The features to normalise on a declared range, with that range.</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">        ValueError: If two Fourier effects declare different periods for the same feature.</span>
+<span class="sd">    """</span>
+    <span class="n">periods</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="n">categorical</span><span class="p">:</span> <span class="nb">set</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">visit</span><span class="p">(</span><span class="n">effect</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">effect</span><span class="p">,</span> <span class="n">TensorProductEffect</span><span class="p">):</span>
+            <span class="k">for</span> <span class="n">sub</span> <span class="ow">in</span> <span class="n">effect</span><span class="o">.</span><span class="n">effects</span><span class="p">:</span>
+                <span class="n">visit</span><span class="p">(</span><span class="n">sub</span><span class="p">)</span>
+            <span class="k">return</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">effect</span><span class="p">,</span> <span class="n">CategoricalEffect</span><span class="p">):</span>
+            <span class="n">categorical</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">effect</span><span class="o">.</span><span class="n">feature_name</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">effect</span><span class="p">,</span> <span class="n">FourierEffect</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">effect</span><span class="p">,</span> <span class="s1">'period'</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">known</span> <span class="o">=</span> <span class="n">periods</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="n">effect</span><span class="o">.</span><span class="n">feature_name</span><span class="p">,</span> <span class="n">effect</span><span class="o">.</span><span class="n">period</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">known</span> <span class="o">!=</span> <span class="n">effect</span><span class="o">.</span><span class="n">period</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Two periods declared for '</span><span class="si">{</span><span class="n">effect</span><span class="o">.</span><span class="n">feature_name</span><span class="si">}</span><span class="s2">': </span><span class="si">{</span><span class="n">known</span><span class="si">}</span><span class="s2"> and </span><span class="si">{</span><span class="n">effect</span><span class="o">.</span><span class="n">period</span><span class="si">}</span><span class="s2">."</span><span class="p">)</span>
+
+    <span class="k">for</span> <span class="n">effect</span> <span class="ow">in</span> <span class="n">effects_list</span><span class="p">:</span>
+        <span class="n">visit</span><span class="p">(</span><span class="n">effect</span><span class="p">)</span>
+    <span class="k">return</span> <span class="p">{</span><span class="n">name</span><span class="p">:</span> <span class="n">rng</span> <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">rng</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">periods</span><span class="o">.</span><span class="n">items</span><span class="p">())</span> <span class="k">if</span> <span class="n">name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">categorical</span><span class="p">}</span>
 </pre></div>
 </div>
 <p><strong>2. Feature Map</strong>
@@ -1772,7 +1822,7 @@ Constructs the block-diagonal encapsulation of the anisotropic sparsity-adaptive
       
     </aside>
   </div>
-</div><script src="../../_static/documentation_options.js?v=9172181d"></script>
+</div><script src="../../_static/documentation_options.js?v=350a9c04"></script>
     <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/scripts/furo.js?v=46bd48cc"></script>

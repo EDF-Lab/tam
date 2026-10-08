@@ -7,7 +7,7 @@
         <link rel="prefetch" href="../../_static/logo.png" as="image">
 
     <!-- Generated with Sphinx 9.1.0 and Furo 2025.12.19 -->
-        <title>Distributional (Location-Scale): Thin Delegation - TAM 1.4.0 documentation</title>
+        <title>Distributional (Location-Scale): Thin Delegation - TAM 1.4.1 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=d111a655" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo-extensions.css?v=8dab3a3b" />
@@ -162,7 +162,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="../../index.html"><div class="brand">TAM 1.4.0 documentation</div></a>
+      <a href="../../index.html"><div class="brand">TAM 1.4.1 documentation</div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -186,7 +186,7 @@
     <img class="sidebar-logo" src="../../_static/logo.png" alt="Logo"/>
   </div>
   
-  <span class="sidebar-brand-text">TAM 1.4.0 documentation</span>
+  <span class="sidebar-brand-text">TAM 1.4.1 documentation</span>
   
 </a><form class="sidebar-search-container" method="get" action="../../search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
@@ -344,6 +344,8 @@
 <span class="sd">    smoothing stays fixed (Gaussian GCV is invalid for the Gamma GLM).</span>
 <span class="sd">    """</span>
     <span class="n">working</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+    <span class="n">require_positive_target</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">working</span><span class="p">[</span><span class="n">model</span><span class="o">.</span><span class="n">target_col_</span><span class="p">]</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">())</span>
+    <span class="n">fit_target_transform</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">working</span><span class="p">[</span><span class="n">model</span><span class="o">.</span><span class="n">target_col_</span><span class="p">]</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">())</span>
     <span class="n">working</span><span class="p">[</span><span class="s2">"__mu__"</span><span class="p">]</span> <span class="o">=</span> <span class="n">_to_model_scale</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">working</span><span class="p">[</span><span class="n">model</span><span class="o">.</span><span class="n">target_col_</span><span class="p">]</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">())</span>
 
     <span class="n">location_alpha</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">_location_alpha_p_</span> <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">_location_alpha_p_</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">model</span><span class="o">.</span><span class="n">default_alpha_p_</span>
@@ -436,10 +438,142 @@ never numpy’s silent overflow warning:</p>
     <span class="k">return</span> <span class="n">response</span>
 </pre></div>
 </div>
+<p>The log target is the default (<code class="docutils literal notranslate"><span class="pre">dist_kwargs={&quot;log_target&quot;:</span> <span class="pre">True}</span></code>). <code class="docutils literal notranslate"><span class="pre">fit</span></code> first checks the training target: a value <code class="docutils literal notranslate"><span class="pre">&lt;=</span> <span class="pre">0</span></code> has no
+logarithm, and clipping it to a tiny constant would turn it into a huge negative outlier, so the fit raises a <code class="docutils literal notranslate"><span class="pre">ValueError</span></code> naming the
+count and the option <code class="docutils literal notranslate"><span class="pre">log_target=False</span></code> instead. The mixture mode (<code class="docutils literal notranslate"><span class="pre">_mixture.py</span></code>) runs the same check. Only the training target is
+checked: the CDF of a new observation <code class="docutils literal notranslate"><span class="pre">&lt;=</span> <span class="pre">0</span></code> under a log-scale law is ~0, a valid answer.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">def</span><span class="w"> </span><span class="nf">require_positive_target</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">y</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Reject a training target with values &lt;= 0 when the model works on log(y).</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        model: A distributional or mixture StaticTAM.</span>
+<span class="sd">        y: The training target.</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">        ValueError: If ``log_target`` is on and some finite values are &lt;= 0 (they would be clipped to a tiny constant</span>
+<span class="sd">            before the log, i.e. turned into huge negative outliers).</span>
+<span class="sd">    """</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">model</span><span class="o">.</span><span class="n">_log_target_</span><span class="p">:</span>
+        <span class="k">return</span>
+    <span class="n">values</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+    <span class="n">finite</span> <span class="o">=</span> <span class="n">values</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">values</span><span class="p">)]</span>
+    <span class="n">n_bad</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">count_nonzero</span><span class="p">(</span><span class="n">finite</span> <span class="o">&lt;=</span> <span class="mi">0</span><span class="p">))</span>
+    <span class="k">if</span> <span class="n">n_bad</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">n_bad</span><span class="si">}</span><span class="s2"> of </span><span class="si">{</span><span class="n">finite</span><span class="o">.</span><span class="n">size</span><span class="si">}</span><span class="s2"> training target values are &lt;= 0, but the model works on log(y) "</span>
+            <span class="s2">"(the default for a distributional or mixture StaticTAM). Pass dist_kwargs={'log_target': False} "</span>
+            <span class="s2">"to model the target on its own scale, or shift it to positive values."</span>
+        <span class="p">)</span>
+</pre></div>
+</div>
+<p><strong>Target transform.</strong> <code class="docutils literal notranslate"><span class="pre">dist_kwargs={&quot;target_transform&quot;:</span> <span class="pre">...}</span></code> takes <code class="docutils literal notranslate"><span class="pre">&quot;none&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;log&quot;</span></code> (the default, same as <code class="docutils literal notranslate"><span class="pre">log_target=True</span></code>), <code class="docutils literal notranslate"><span class="pre">&quot;asinh&quot;</span></code> or <code class="docutils literal notranslate"><span class="pre">&quot;logit&quot;</span></code>; giving it together with a contradicting <code class="docutils literal notranslate"><span class="pre">log_target</span></code> raises a <code class="docutils literal notranslate"><span class="pre">ValueError</span></code>, and a mixture accepts <code class="docutils literal notranslate"><span class="pre">&quot;none&quot;</span></code> and <code class="docutils literal notranslate"><span class="pre">&quot;log&quot;</span></code> only. <code class="docutils literal notranslate"><span class="pre">resolve_target_transform</span></code> reads the options once, in the constructor:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">def</span><span class="w"> </span><span class="nf">resolve_target_transform</span><span class="p">(</span><span class="n">dist_kwargs</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span> <span class="n">mixture</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">bool</span><span class="p">,</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">]]]:</span>
+<span class="w">    </span><span class="sd">"""Read ``target_transform``, ``log_target`` and ``bounds`` of ``dist_kwargs``.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        dist_kwargs: The ``dist_kwargs`` of the model.</span>
+<span class="sd">        mixture: Whether the model is a mixture (only ``"none"`` and ``"log"`` are available there).</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        ``(transform, log_target, bounds)``: the transform name, ``transform == "log"``, and the given bounds or None.</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">        ValueError: On an unknown transform, a contradiction with ``log_target``, invalid ``bounds``, or a mixture with</span>
+<span class="sd">            ``"asinh"`` or ``"logit"``.</span>
+<span class="sd">    """</span>
+    <span class="n">transform</span> <span class="o">=</span> <span class="n">dist_kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"target_transform"</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">transform</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">transform</span> <span class="o">=</span> <span class="s2">"log"</span> <span class="k">if</span> <span class="nb">bool</span><span class="p">(</span><span class="n">dist_kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"log_target"</span><span class="p">,</span> <span class="kc">True</span><span class="p">))</span> <span class="k">else</span> <span class="s2">"none"</span>
+    <span class="k">elif</span> <span class="n">transform</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">_TRANSFORMS</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"target_transform must be one of </span><span class="si">{</span><span class="n">_TRANSFORMS</span><span class="si">}</span><span class="s2">; got </span><span class="si">{</span><span class="n">transform</span><span class="si">!r}</span><span class="s2">"</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="s2">"log_target"</span> <span class="ow">in</span> <span class="n">dist_kwargs</span> <span class="ow">and</span> <span class="nb">bool</span><span class="p">(</span><span class="n">dist_kwargs</span><span class="p">[</span><span class="s2">"log_target"</span><span class="p">])</span> <span class="o">!=</span> <span class="p">(</span><span class="n">transform</span> <span class="o">==</span> <span class="s2">"log"</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">"dist_kwargs target_transform=</span><span class="si">{</span><span class="n">transform</span><span class="si">!r}</span><span class="s2"> contradicts log_target=</span><span class="si">{</span><span class="n">dist_kwargs</span><span class="p">[</span><span class="s1">'log_target'</span><span class="p">]</span><span class="si">!r}</span><span class="s2">; give one of them."</span>
+        <span class="p">)</span>
+    <span class="k">if</span> <span class="n">mixture</span> <span class="ow">and</span> <span class="n">transform</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">"asinh"</span><span class="p">,</span> <span class="s2">"logit"</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"target_transform=</span><span class="si">{</span><span class="n">transform</span><span class="si">!r}</span><span class="s2"> is not available for a mixture; use 'log' or 'none'."</span><span class="p">)</span>
+    <span class="n">bounds</span> <span class="o">=</span> <span class="n">dist_kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"bounds"</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">bounds</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">transform</span> <span class="o">!=</span> <span class="s2">"logit"</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"bounds applies to target_transform='logit' only."</span><span class="p">)</span>
+        <span class="n">low</span><span class="p">,</span> <span class="n">high</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">bounds</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span> <span class="nb">float</span><span class="p">(</span><span class="n">bounds</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">low</span> <span class="o">&lt;</span> <span class="n">high</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"bounds must be (low, high) with low &lt; high; got </span><span class="si">{</span><span class="n">bounds</span><span class="si">!r}</span><span class="s2">"</span><span class="p">)</span>
+        <span class="n">bounds</span> <span class="o">=</span> <span class="p">(</span><span class="n">low</span><span class="p">,</span> <span class="n">high</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">transform</span><span class="p">,</span> <span class="n">transform</span> <span class="o">==</span> <span class="s2">"log"</span><span class="p">,</span> <span class="n">bounds</span>
+</pre></div>
+</div>
+<p><code class="docutils literal notranslate"><span class="pre">fit</span></code> estimates the parameters of the transform on the training target and stores them in <code class="docutils literal notranslate"><span class="pre">_transform_params_</span></code>: for <code class="docutils literal notranslate"><span class="pre">&quot;asinh&quot;</span></code> the median and a robust scale (normalised MAD, else the standard deviation); for <code class="docutils literal notranslate"><span class="pre">&quot;logit&quot;</span></code> the bounds, from <code class="docutils literal notranslate"><span class="pre">dist_kwargs={&quot;bounds&quot;:</span> <span class="pre">(low,</span> <span class="pre">high)}</span></code> or the observed range widened by 5% on each side, and a training value outside given bounds raises a <code class="docutils literal notranslate"><span class="pre">ValueError</span></code>.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">def</span><span class="w"> </span><span class="nf">fit_target_transform</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">y</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Estimate and store the parameters of the target transform on the training target.</span>
+
+<span class="sd">    ``"asinh"`` stores the median and a robust scale (normalised MAD, else the standard deviation, else 1); ``"logit"`` stores</span>
+<span class="sd">    the bounds (given, or the observed range widened by a margin).</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        model: A distributional StaticTAM.</span>
+<span class="sd">        y: The training target.</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">        ValueError: If a ``"logit"`` target has values outside the given bounds.</span>
+<span class="sd">    """</span>
+    <span class="n">values</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+    <span class="n">finite</span> <span class="o">=</span> <span class="n">values</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">values</span><span class="p">)]</span>
+    <span class="n">params</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">_target_transform_</span> <span class="o">==</span> <span class="s2">"asinh"</span><span class="p">:</span>
+        <span class="n">centre</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">median</span><span class="p">(</span><span class="n">finite</span><span class="p">))</span>
+        <span class="n">scale</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="mf">1.4826</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">median</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">finite</span> <span class="o">-</span> <span class="n">centre</span><span class="p">)))</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">scale</span> <span class="o">&gt;</span> <span class="mf">0.0</span><span class="p">:</span>
+            <span class="n">scale</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">std</span><span class="p">(</span><span class="n">finite</span><span class="p">))</span>
+        <span class="n">params</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"centre"</span><span class="p">:</span> <span class="n">centre</span><span class="p">,</span> <span class="s2">"scale"</span><span class="p">:</span> <span class="n">scale</span> <span class="k">if</span> <span class="n">scale</span> <span class="o">&gt;</span> <span class="mf">0.0</span> <span class="k">else</span> <span class="mf">1.0</span><span class="p">}</span>
+    <span class="k">elif</span> <span class="n">model</span><span class="o">.</span><span class="n">_target_transform_</span> <span class="o">==</span> <span class="s2">"logit"</span><span class="p">:</span>
+        <span class="n">bounds</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">_transform_bounds_</span>
+        <span class="k">if</span> <span class="n">bounds</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">low</span><span class="p">,</span> <span class="n">high</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">finite</span><span class="o">.</span><span class="n">min</span><span class="p">()),</span> <span class="nb">float</span><span class="p">(</span><span class="n">finite</span><span class="o">.</span><span class="n">max</span><span class="p">())</span>
+            <span class="n">margin</span> <span class="o">=</span> <span class="n">_LOGIT_MARGIN</span> <span class="o">*</span> <span class="p">(</span><span class="n">high</span> <span class="o">-</span> <span class="n">low</span> <span class="k">if</span> <span class="n">high</span> <span class="o">&gt;</span> <span class="n">low</span> <span class="k">else</span> <span class="mf">1.0</span><span class="p">)</span>
+            <span class="n">bounds</span> <span class="o">=</span> <span class="p">(</span><span class="n">low</span> <span class="o">-</span> <span class="n">margin</span><span class="p">,</span> <span class="n">high</span> <span class="o">+</span> <span class="n">margin</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">finite</span><span class="o">.</span><span class="n">min</span><span class="p">()</span> <span class="o">&lt;</span> <span class="n">bounds</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="ow">or</span> <span class="n">finite</span><span class="o">.</span><span class="n">max</span><span class="p">()</span> <span class="o">&gt;</span> <span class="n">bounds</span><span class="p">[</span><span class="mi">1</span><span class="p">]:</span>
+            <span class="n">n_out</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">count_nonzero</span><span class="p">((</span><span class="n">finite</span> <span class="o">&lt;</span> <span class="n">bounds</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">|</span> <span class="p">(</span><span class="n">finite</span> <span class="o">&gt;</span> <span class="n">bounds</span><span class="p">[</span><span class="mi">1</span><span class="p">])))</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">n_out</span><span class="si">}</span><span class="s2"> training target values lie outside the bounds </span><span class="si">{</span><span class="n">bounds</span><span class="si">}</span><span class="s2"> of the logit transform."</span><span class="p">)</span>
+        <span class="n">params</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"bounds"</span><span class="p">:</span> <span class="n">bounds</span><span class="p">}</span>
+    <span class="n">model</span><span class="o">.</span><span class="n">_transform_params_</span> <span class="o">=</span> <span class="n">params</span>
+</pre></div>
+</div>
+<p>The forward map is applied to the target everywhere it is read (fit, CDF, CRPS, anomaly score), and <code class="docutils literal notranslate"><span class="pre">from_model_scale</span></code> is the single back-transform used by <code class="docutils literal notranslate"><span class="pre">predict_median</span></code>, <code class="docutils literal notranslate"><span class="pre">predict_quantile</span></code> and <code class="docutils literal notranslate"><span class="pre">anomaly_score</span></code>, and by the studentized conformal intervals through the model method <code class="docutils literal notranslate"><span class="pre">_from_model_scale</span></code>:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">def</span><span class="w"> </span><span class="nf">from_model_scale</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">z</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">quantity</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"the back-transformed values"</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Back-transform model-scale values to the response scale (exact for a monotone transform, quantiles included).</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        model: A distributional StaticTAM.</span>
+<span class="sd">        z: Values on the model scale.</span>
+<span class="sd">        quantity: Name used in the overflow warning of the log transform.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        The values on the response scale.</span>
+<span class="sd">    """</span>
+    <span class="n">values</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">z</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+    <span class="n">transform</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">_target_transform_</span>
+    <span class="k">if</span> <span class="n">transform</span> <span class="o">==</span> <span class="s2">"log"</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">_to_response_scale</span><span class="p">(</span><span class="n">values</span><span class="p">,</span> <span class="n">quantity</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">transform</span> <span class="o">==</span> <span class="s2">"asinh"</span><span class="p">:</span>
+        <span class="k">with</span> <span class="n">np</span><span class="o">.</span><span class="n">errstate</span><span class="p">(</span><span class="n">over</span><span class="o">=</span><span class="s2">"ignore"</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">model</span><span class="o">.</span><span class="n">_transform_params_</span><span class="p">[</span><span class="s2">"centre"</span><span class="p">]</span> <span class="o">+</span> <span class="n">model</span><span class="o">.</span><span class="n">_transform_params_</span><span class="p">[</span><span class="s2">"scale"</span><span class="p">]</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">sinh</span><span class="p">(</span><span class="n">values</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">transform</span> <span class="o">==</span> <span class="s2">"logit"</span><span class="p">:</span>
+        <span class="n">low</span><span class="p">,</span> <span class="n">high</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">_transform_params_</span><span class="p">[</span><span class="s2">"bounds"</span><span class="p">]</span>
+        <span class="k">return</span> <span class="n">low</span> <span class="o">+</span> <span class="p">(</span><span class="n">high</span> <span class="o">-</span> <span class="n">low</span><span class="p">)</span> <span class="o">*</span> <span class="n">expit</span><span class="p">(</span><span class="n">values</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">values</span>
+</pre></div>
+</div>
 </section>
 <section id="the-additive-py-bridge-one-line-delegates">
 <h2>The <code class="docutils literal notranslate"><span class="pre">additive.py</span></code> bridge (one-line delegates)<a class="headerlink" href="#the-additive-py-bridge-one-line-delegates" title="Link to this heading">¶</a></h2>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span>    <span class="k">def</span><span class="w"> </span><span class="nf">predict_quantiles</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span> <span class="n">taus</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="mf">0.05</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">,</span> <span class="mf">0.95</span><span class="p">))</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Quantiles on the response scale: of the location-scale law (distributional mode), or of the fitted law of a</span>
+<span class="sd">        ``poisson``, ``negative_binomial`` or ``tweedie`` loss (discrete quantiles for the counts, the compound Poisson-gamma</span>
+<span class="sd">        law for Tweedie; non-negative by construction)."""</span>
+        <span class="n">strategy</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">"_reweighting_strategy_"</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">"_mode_"</span><span class="p">,</span> <span class="s2">"plain"</span><span class="p">)</span> <span class="o">!=</span> <span class="s2">"distributional"</span> <span class="ow">and</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">strategy</span><span class="p">,</span> <span class="s2">"quantiles"</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">predict_count_quantiles</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">taus</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">_distributional</span><span class="o">.</span><span class="n">predict_quantiles</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">taus</span><span class="p">)</span>
 </pre></div>
 </div>
@@ -516,7 +650,7 @@ never numpy’s silent overflow warning:</p>
       
     </aside>
   </div>
-</div><script src="../../_static/documentation_options.js?v=9172181d"></script>
+</div><script src="../../_static/documentation_options.js?v=350a9c04"></script>
     <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/scripts/furo.js?v=46bd48cc"></script>

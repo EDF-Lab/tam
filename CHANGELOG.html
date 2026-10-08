@@ -7,7 +7,7 @@
         <link rel="prefetch" href="_static/logo.png" as="image">
 
     <!-- Generated with Sphinx 9.1.0 and Furo 2025.12.19 -->
-        <title>Changelog - TAM 1.4.0 documentation</title>
+        <title>Changelog - TAM 1.4.1 documentation</title>
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=d111a655" />
     <link rel="stylesheet" type="text/css" href="_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="_static/styles/furo-extensions.css?v=8dab3a3b" />
@@ -162,7 +162,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="index.html"><div class="brand">TAM 1.4.0 documentation</div></a>
+      <a href="index.html"><div class="brand">TAM 1.4.1 documentation</div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -186,7 +186,7 @@
     <img class="sidebar-logo" src="_static/logo.png" alt="Logo"/>
   </div>
   
-  <span class="sidebar-brand-text">TAM 1.4.0 documentation</span>
+  <span class="sidebar-brand-text">TAM 1.4.1 documentation</span>
   
 </a><form class="sidebar-search-container" method="get" action="search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
@@ -340,15 +340,36 @@ and this project adheres to <a class="reference external" href="https://semver.o
 <div><p><strong><a class="reference external" href="https://pypi.org/project/weakl/0.0.6/">0.0.6</a></strong> corresponds to the legacy <code class="docutils literal notranslate"><span class="pre">weakl</span></code> package available on PyPI.</p>
 </div></blockquote>
 <hr class="docutils" />
-<section id="unreleased">
-<h2><a class="reference external" href="https://github.com/EDF-Lab/tam/compare/v1.4.0...HEAD">Unreleased</a><a class="headerlink" href="#unreleased" title="Link to this heading">¶</a></h2>
+<section id="id1">
+<h2><a class="reference external" href="https://github.com/EDF-Lab/tam/releases/tag/v1.4.1">1.4.1</a> - 2026-10-08<a class="headerlink" href="#id1" title="Link to this heading">¶</a></h2>
+<p>Patch release for probabilistic forecasting: new methods and options only, plus one fix. Existing calls give the same forecasts; the only change of behaviour is that a distributional or mixture <code class="docutils literal notranslate"><span class="pre">StaticTAM</span></code> with the default log target now raises on a training target with values <code class="docutils literal notranslate"><span class="pre">&lt;=</span> <span class="pre">0</span></code> instead of returning a meaningless model (see “Fixed”).</p>
 <ul class="simple">
 <li><p>The <code class="docutils literal notranslate"><span class="pre">DCO</span></code> sign-off is required on every commit of a pull request (<code class="docutils literal notranslate"><span class="pre">DCO</span></code>, <code class="docutils literal notranslate"><span class="pre">CONTRIBUTING.md</span></code>, <code class="docutils literal notranslate"><span class="pre">docs/contributing/dco_howto.md</span></code>); a <code class="docutils literal notranslate"><span class="pre">REUSE</span></code> workflow runs <code class="docutils literal notranslate"><span class="pre">reuse</span> <span class="pre">lint</span></code> on each push and pull request.</p></li>
 <li><p>The <code class="docutils literal notranslate"><span class="pre">pid()</span></code> page of <code class="docutils literal notranslate"><span class="pre">architecture/core/06_the_spectrum_api.md</span></code> says when <code class="docutils literal notranslate"><span class="pre">d_pen</span></code> acts and that the derivative is computed along the frame given to <code class="docutils literal notranslate"><span class="pre">predict()</span></code>; three tests pin <code class="docutils literal notranslate"><span class="pre">pid</span></code> behaviour.</p></li>
 </ul>
+<section id="added">
+<h3>Added<a class="headerlink" href="#added" title="Link to this heading">¶</a></h3>
+<ul class="simple">
+<li><p><strong>Limiting the CPU threads is documented and tested</strong> (<code class="docutils literal notranslate"><span class="pre">architecture/core/04_hardware_memory.md</span></code>, README): set <code class="docutils literal notranslate"><span class="pre">OMP_NUM_THREADS</span></code> and <code class="docutils literal notranslate"><span class="pre">MKL_NUM_THREADS</span></code> before starting Python. The page also describes a hang of <code class="docutils literal notranslate"><span class="pre">torch.set_num_threads(n)</span></code> seen on one PyTorch / oneMKL build, which reproduces without <code class="docutils literal notranslate"><span class="pre">tam</span></code>; the results of <code class="docutils literal notranslate"><span class="pre">tam</span></code> are unchanged.</p></li>
+<li><p><strong><code class="docutils literal notranslate"><span class="pre">loss=&quot;negative_binomial&quot;</span></code> and <code class="docutils literal notranslate"><span class="pre">loss=&quot;tweedie&quot;</span></code></strong> on <code class="docutils literal notranslate"><span class="pre">StaticTAM</span></code> (log link): overdispersed counts, and positive targets with exact zeros (sparse retail, rain, night-time solar). The negative binomial dispersion is estimated by maximum likelihood after the IRLS fit (or fixed with <code class="docutils literal notranslate"><span class="pre">loss_kwargs={&quot;dispersion&quot;:</span> <span class="pre">alpha}</span></code>); the Tweedie power is <code class="docutils literal notranslate"><span class="pre">loss_kwargs={&quot;power&quot;:</span> <span class="pre">p}</span></code> with <code class="docutils literal notranslate"><span class="pre">1</span> <span class="pre">&lt;</span> <span class="pre">p</span> <span class="pre">&lt;</span> <span class="pre">2</span></code> (1.5 by default) and its dispersion is the Pearson estimate. The estimate is <code class="docutils literal notranslate"><span class="pre">model.dispersion_</span></code>. A negative target raises a <code class="docutils literal notranslate"><span class="pre">ValueError</span></code>.</p></li>
+<li><p><strong><code class="docutils literal notranslate"><span class="pre">StaticTAM.predict_quantiles(data,</span> <span class="pre">taus)</span></code> for <code class="docutils literal notranslate"><span class="pre">poisson</span></code>, <code class="docutils literal notranslate"><span class="pre">negative_binomial</span></code> and <code class="docutils literal notranslate"><span class="pre">tweedie</span></code></strong>: discrete quantiles for the counts and the quantiles of the compound Poisson-gamma law for Tweedie, which are <code class="docutils literal notranslate"><span class="pre">0</span></code> where the probability of zero exceeds the level; non-negative and non-decreasing in the level by construction. The Poisson loss is otherwise unchanged.</p></li>
+<li><p><strong><code class="docutils literal notranslate"><span class="pre">KalmanTAM.predict_quantiles(data,</span> <span class="pre">taus)</span></code></strong>: Gaussian quantiles of the online forecast from the predictive variance of the filter, <code class="docutils literal notranslate"><span class="pre">x'</span> <span class="pre">P</span> <span class="pre">x</span> <span class="pre">+</span> <span class="pre">R</span></code> in the target scale (for <code class="docutils literal notranslate"><span class="pre">horizon_steps</span> <span class="pre">&gt;</span> <span class="pre">1</span></code>, the covariance of the delayed state grown by the process noise of the delay). Returns a DataFrame with <code class="docutils literal notranslate"><span class="pre">q&lt;tau&gt;</span></code> columns, like the distributional <code class="docutils literal notranslate"><span class="pre">StaticTAM</span></code>; like <code class="docutils literal notranslate"><span class="pre">predict_online</span></code>, <code class="docutils literal notranslate"><span class="pre">data</span></code> holds the target. The constructor, <code class="docutils literal notranslate"><span class="pre">predict_online</span></code>, <code class="docutils literal notranslate"><span class="pre">predict</span></code> and <code class="docutils literal notranslate"><span class="pre">fit</span></code> are unchanged. The intervals are as calibrated as <code class="docutils literal notranslate"><span class="pre">observation_noise_var</span></code> and <code class="docutils literal notranslate"><span class="pre">process_noise_var</span></code> are.</p></li>
+<li><p><strong><code class="docutils literal notranslate"><span class="pre">AdaptiveTAM.predict_quantiles(data,</span> <span class="pre">taus)</span></code></strong>: online quantile forecasts when the <code class="docutils literal notranslate"><span class="pre">base_model</span></code> is a distributional <code class="docutils literal notranslate"><span class="pre">StaticTAM</span></code> (a dict formula). The adaptive correction moves the location; the scale of the base is rescaled at each update by the root mean square of the standardized residuals of the last <code class="docutils literal notranslate"><span class="pre">training_window_periods</span></code> rows that are at least <code class="docutils literal notranslate"><span class="pre">horizon_steps</span></code> old (past residuals only), and the quantiles go back through the target transform of the base. Returns a DataFrame with <code class="docutils literal notranslate"><span class="pre">q&lt;tau&gt;</span></code> columns, like the distributional <code class="docutils literal notranslate"><span class="pre">StaticTAM</span></code>; like <code class="docutils literal notranslate"><span class="pre">predict_online</span></code>, <code class="docutils literal notranslate"><span class="pre">data</span></code> holds the target. A plain base raises a <code class="docutils literal notranslate"><span class="pre">ValueError</span></code>. <code class="docutils literal notranslate"><span class="pre">predict_online</span></code>, <code class="docutils literal notranslate"><span class="pre">predict</span></code> and <code class="docutils literal notranslate"><span class="pre">fit</span></code> give the same results as before for a plain base, and now also accept a distributional one.</p></li>
+<li><p><strong><code class="docutils literal notranslate"><span class="pre">dist_kwargs={&quot;target_transform&quot;:</span> <span class="pre">&quot;asinh&quot;</span> <span class="pre">|</span> <span class="pre">&quot;logit&quot;}</span></code></strong> on a distributional <code class="docutils literal notranslate"><span class="pre">StaticTAM</span></code>: the location-scale law sits on <code class="docutils literal notranslate"><span class="pre">arsinh((y</span> <span class="pre">-</span> <span class="pre">c)</span> <span class="pre">/</span> <span class="pre">s)</span></code> (centre and robust scale estimated on the training target; a skewed, heavy-tailed target with negative values, such as electricity prices) or on the logit of <code class="docutils literal notranslate"><span class="pre">(y</span> <span class="pre">-</span> <span class="pre">a)</span> <span class="pre">/</span> <span class="pre">(b</span> <span class="pre">-</span> <span class="pre">a)</span></code> (a target bounded in <code class="docutils literal notranslate"><span class="pre">bounds=(a,</span> <span class="pre">b)</span></code>, estimated from the training range when not given). <code class="docutils literal notranslate"><span class="pre">predict_median</span></code>, <code class="docutils literal notranslate"><span class="pre">predict_quantile(s)</span></code>, <code class="docutils literal notranslate"><span class="pre">cdf</span></code>, <code class="docutils literal notranslate"><span class="pre">crps</span></code>, <code class="docutils literal notranslate"><span class="pre">anomaly_score</span></code> and the conformal intervals work through the transform, and quantiles stay inside the bounds for the logit. <code class="docutils literal notranslate"><span class="pre">target_transform=&quot;log&quot;</span></code> is the default and the same as <code class="docutils literal notranslate"><span class="pre">log_target=True</span></code>; <code class="docutils literal notranslate"><span class="pre">&quot;none&quot;</span></code> the same as <code class="docutils literal notranslate"><span class="pre">log_target=False</span></code>. A mixture accepts <code class="docutils literal notranslate"><span class="pre">&quot;none&quot;</span></code> and <code class="docutils literal notranslate"><span class="pre">&quot;log&quot;</span></code> only.</p></li>
+<li><p><strong><code class="docutils literal notranslate"><span class="pre">f(x,</span> <span class="pre">...,</span> <span class="pre">period=...)</span></code></strong>: the range of one cycle of a Fourier input, on which the feature is normalised in <code class="docutils literal notranslate"><span class="pre">StaticTAM</span></code> and in each rolling window of <code class="docutils literal notranslate"><span class="pre">AdaptiveTAM</span></code>. <code class="docutils literal notranslate"><span class="pre">period=None</span></code> (default): the minimum and maximum of the training rows, as before. <code class="docutils literal notranslate"><span class="pre">period='auto'</span></code>: first value to last value plus one step, the step read from the training rows (hours 0 to 23 give (0, 24), months 1 to 12 give (1, 13)). <code class="docutils literal notranslate"><span class="pre">period=(low,</span> <span class="pre">high)</span></code>: given, for a history covering only part of the cycle (<code class="docutils literal notranslate"><span class="pre">(0,</span> <span class="pre">1)</span></code> for a time of year trained on half a year). Without it the training range is still taken as one period, which glues the last value of an integer-coded position onto the first (<code class="docutils literal notranslate"><span class="pre">f(hour,</span> <span class="pre">cyclic=True)</span></code> with hours 0 to 23 forces 23:00 = 0:00; Sunday = Monday for 0 to 6; December = January for 1 to 12) and reads a history covering half a year (or a 60-day adaptive window) as a whole year: use <code class="docutils literal notranslate"><span class="pre">'auto'</span></code> for the first case and a given range for the second. Results without <code class="docutils literal notranslate"><span class="pre">period</span></code> are unchanged.</p></li>
+<li><p><strong><code class="docutils literal notranslate"><span class="pre">OperaTAM(...,</span> <span class="pre">loss_type='pinball',</span> <span class="pre">tau=0.9)</span></code></strong>: online aggregation of quantile forecasts with the pinball loss of level <code class="docutils literal notranslate"><span class="pre">tau</span></code> (MLpol and EWA). <code class="docutils literal notranslate"><span class="pre">tam.model.opera.aggregate_quantiles(df,</span> <span class="pre">target_col,</span> <span class="pre">expert_cols_by_level)</span></code> aggregates every level and sorts them on each row. The square and absolute losses are unchanged.</p></li>
+<li><p><strong><code class="docutils literal notranslate"><span class="pre">SafetyTAM.predict_quantiles(y_pred,</span> <span class="pre">levels,</span> <span class="pre">scale=None,</span> <span class="pre">signed=False)</span></code></strong>: conformal quantiles at several levels in one call (<code class="docutils literal notranslate"><span class="pre">q&lt;level&gt;</span></code> columns, sorted on each row). By default the symmetric bands of <code class="docutils literal notranslate"><span class="pre">predict_intervals</span></code>; <code class="docutils literal notranslate"><span class="pre">signed=True</span></code> calibrates each tail on the signed residuals kept by <code class="docutils literal notranslate"><span class="pre">calibrate()</span></code> (one-sided split conformal), for skewed errors. <code class="docutils literal notranslate"><span class="pre">calibrate(...,</span> <span class="pre">verbose=False)</span></code> silences the sample-count line, printed by default as before.</p></li>
+</ul>
 </section>
-<section id="id1">
-<h2><a class="reference external" href="https://github.com/EDF-Lab/tam/releases/tag/v1.4.0">1.4.0</a> - 2026-10-06<a class="headerlink" href="#id1" title="Link to this heading">¶</a></h2>
+<section id="fixed">
+<h3>Fixed<a class="headerlink" href="#fixed" title="Link to this heading">¶</a></h3>
+<ul class="simple">
+<li><p><strong>A distributional or mixture <code class="docutils literal notranslate"><span class="pre">StaticTAM</span></code> with the default log target rejects a training target with values <code class="docutils literal notranslate"><span class="pre">&lt;=</span> <span class="pre">0</span></code></strong> (<code class="docutils literal notranslate"><span class="pre">ValueError</span></code> naming the count and <code class="docutils literal notranslate"><span class="pre">dist_kwargs={&quot;log_target&quot;:</span> <span class="pre">False}</span></code>). They were clipped to a tiny constant before the log, i.e. silently turned into huge negative outliers, and the fitted location, scale and quantiles were meaningless. Positive targets are unchanged.</p></li>
+</ul>
+</section>
+</section>
+<section id="id2">
+<h2><a class="reference external" href="https://github.com/EDF-Lab/tam/releases/tag/v1.4.0">1.4.0</a> - 2026-10-06<a class="headerlink" href="#id2" title="Link to this heading">¶</a></h2>
 <p>First release on PyPI and Zenodo since 1.3.1; it also carries everything of 1.3.2 to 1.3.4, which were tags only. <strong><code class="docutils literal notranslate"><span class="pre">AdaptiveTAM</span></code>, <code class="docutils literal notranslate"><span class="pre">KalmanTAM</span></code> and <code class="docutils literal notranslate"><span class="pre">NeuralTAM</span></code> [EXP] forecasts change</strong> (see 1.3.3, 1.3.4 and the sections below); <code class="docutils literal notranslate"><span class="pre">StaticTAM</span></code> changes only for <code class="docutils literal notranslate"><span class="pre">te()</span></code> with GCV (-2%), a mixture mean (-0.6%) and a prediction without the group column. To get the 1.3.1 behaviour: <code class="docutils literal notranslate"><span class="pre">pip</span> <span class="pre">install</span> <span class="pre">tam-ml==1.3.1</span></code>.</p>
 <section id="changed">
 <h3>Changed<a class="headerlink" href="#changed" title="Link to this heading">¶</a></h3>
@@ -360,8 +381,8 @@ and this project adheres to <a class="reference external" href="https://semver.o
 <li><p><strong><code class="docutils literal notranslate"><span class="pre">NeuralTAM(guard=True)</span></code></strong> keeps a network only where it beats, on the validation rows, the closed-form effect it replaces; <code class="docutils literal notranslate"><span class="pre">network_used_</span></code> says where, a <code class="docutils literal notranslate"><span class="pre">UserWarning</span></code> is raised when no network is kept (the model then equals its <code class="docutils literal notranslate"><span class="pre">StaticTAM</span></code>), and <code class="docutils literal notranslate"><span class="pre">guard=False</span></code> keeps every network as before.</p></li>
 </ul>
 </section>
-<section id="added">
-<h3>Added<a class="headerlink" href="#added" title="Link to this heading">¶</a></h3>
+<section id="id3">
+<h3>Added<a class="headerlink" href="#id3" title="Link to this heading">¶</a></h3>
 <ul class="simple">
 <li><p><strong>API contract tests</strong> (<code class="docutils literal notranslate"><span class="pre">tests/test_api_contracts.py</span></code>): the signatures of the main models and of the formula parser, the <code class="docutils literal notranslate"><span class="pre">decompose_prediction</span></code> column names and the <code class="docutils literal notranslate"><span class="pre">summary()</span></code> keys are pinned; adding a keyword argument with a default passes, changing an existing parameter fails.</p></li>
 <li><p><strong><code class="docutils literal notranslate"><span class="pre">KalmanTAM(process_noise_var={term:</span> <span class="pre">q,</span> <span class="pre">&quot;offset&quot;:</span> <span class="pre">q,</span> <span class="pre">&quot;default&quot;:</span> <span class="pre">q})</span></code></strong>: one process noise per formula term (a diagonal <code class="docutils literal notranslate"><span class="pre">Q</span></code>); every design column of a term gets the term’s <code class="docutils literal notranslate"><span class="pre">q</span></code>, the terms not named use <code class="docutils literal notranslate"><span class="pre">&quot;default&quot;</span></code> (1e-4). A float works as before, bit for bit. <code class="docutils literal notranslate"><span class="pre">KalmanTAM.term_columns()</span></code> lists the terms and their columns; <code class="docutils literal notranslate"><span class="pre">tune_hyperparameters</span></code> accepts one candidate dict per grid entry.</p></li>
@@ -373,8 +394,8 @@ and this project adheres to <a class="reference external" href="https://semver.o
 <li><p><strong><code class="docutils literal notranslate"><span class="pre">compact()</span></code></strong> on <code class="docutils literal notranslate"><span class="pre">StaticTAM</span></code>, <code class="docutils literal notranslate"><span class="pre">AdaptiveTAM</span></code>, <code class="docutils literal notranslate"><span class="pre">KalmanTAM</span></code> and <code class="docutils literal notranslate"><span class="pre">OperaTAM</span></code>: drops what grows with the data (<code class="docutils literal notranslate"><span class="pre">predictions_</span></code>, the state and weight histories except their last row) and returns the model; <code class="docutils literal notranslate"><span class="pre">predict()</span></code> is unchanged to the last bit. See “Model size and persistence” in the architecture notes.</p></li>
 </ul>
 </section>
-<section id="fixed">
-<h3>Fixed<a class="headerlink" href="#fixed" title="Link to this heading">¶</a></h3>
+<section id="id4">
+<h3>Fixed<a class="headerlink" href="#id4" title="Link to this heading">¶</a></h3>
 <ul class="simple">
 <li><p><strong><code class="docutils literal notranslate"><span class="pre">AdaptiveTAM</span></code> frees its simulation cache</strong> when <code class="docutils literal notranslate"><span class="pre">predict_online()</span></code>, <code class="docutils literal notranslate"><span class="pre">fit()</span></code> or <code class="docutils literal notranslate"><span class="pre">grid_search_fit()</span></code> ends. Previously, every overlapping window was kept stacked in memory, accounting for the vast majority of the model’s pickled size. The model footprint is now drastically reduced, and <code class="docutils literal notranslate"><span class="pre">compact()</span></code> makes the size of a fitted <code class="docutils literal notranslate"><span class="pre">AdaptiveTAM</span></code>, <code class="docutils literal notranslate"><span class="pre">KalmanTAM</span></code> or <code class="docutils literal notranslate"><span class="pre">OperaTAM</span></code> independent of the data. <code class="docutils literal notranslate"><span class="pre">prepare_simulation()</span></code> alone still fills <code class="docutils literal notranslate"><span class="pre">simulation_data_</span></code>.</p></li>
 <li><p><strong><code class="docutils literal notranslate"><span class="pre">OperaTAM</span></code> and <code class="docutils literal notranslate"><span class="pre">NeuralTAM</span></code> accept a frame whose columns are stored in another order than the formula lists them</strong>: with pandas 3, selecting the expert (or network input) columns in the reverse of their storage order gave a view with negative strides that torch refuses (<code class="docutils literal notranslate"><span class="pre">ValueError:</span> <span class="pre">At</span> <span class="pre">least</span> <span class="pre">one</span> <span class="pre">stride</span> <span class="pre">in</span> <span class="pre">the</span> <span class="pre">given</span> <span class="pre">numpy</span> <span class="pre">array</span> <span class="pre">is</span> <span class="pre">negative</span></code>); the tensors are now built from a contiguous copy, and the forecasts do not depend on the column order.</p></li>
@@ -386,25 +407,25 @@ and this project adheres to <a class="reference external" href="https://semver.o
 </section>
 </section>
 <hr class="docutils" />
-<section id="id2">
-<h2><a class="reference external" href="https://github.com/EDF-Lab/tam/releases/tag/v1.3.4">1.3.4</a> - 2026-10-02<a class="headerlink" href="#id2" title="Link to this heading">¶</a></h2>
+<section id="id5">
+<h2><a class="reference external" href="https://github.com/EDF-Lab/tam/releases/tag/v1.3.4">1.3.4</a> - 2026-10-02<a class="headerlink" href="#id5" title="Link to this heading">¶</a></h2>
 <p>Patch release (tag on <code class="docutils literal notranslate"><span class="pre">main</span></code>; the latest release on PyPI and Zenodo stays 1.3.1): <code class="docutils literal notranslate"><span class="pre">AdaptiveTAM</span></code> now gives what an operational refit would, and <code class="docutils literal notranslate"><span class="pre">StaticTAM</span></code> says when a forecast leaves the trained range. <strong><code class="docutils literal notranslate"><span class="pre">AdaptiveTAM</span></code> forecasts change</strong>; <code class="docutils literal notranslate"><span class="pre">StaticTAM</span></code> changes only for a categorical level absent from training. To get the 1.3.3 behaviour, use the tag <code class="docutils literal notranslate"><span class="pre">v1.3.3</span></code>.</p>
-<section id="id3">
-<h3>Changed<a class="headerlink" href="#id3" title="Link to this heading">¶</a></h3>
+<section id="id6">
+<h3>Changed<a class="headerlink" href="#id6" title="Link to this heading">¶</a></h3>
 <ul class="simple">
 <li><p><strong><code class="docutils literal notranslate"><span class="pre">AdaptiveTAM</span></code> equals a rolling <code class="docutils literal notranslate"><span class="pre">StaticTAM</span></code></strong> (<code class="docutils literal notranslate"><span class="pre">fit</span></code> on the training rows of a window, <code class="docutils literal notranslate"><span class="pre">predict</span></code> on the next rows, to numerical precision): each window is normalised with its own training rows (it used the whole period), forecasts are no longer clipped to the whole-period range (<code class="docutils literal notranslate"><span class="pre">clip_to_train_range=True</span></code> clips each window to its own), windows are anchored on the start of the data, features and targets are <code class="docutils literal notranslate"><span class="pre">float64</span></code>, and the rows added to balance groups are never trained on. Rows before the first window are <code class="docutils literal notranslate"><span class="pre">NaN</span></code> in <code class="docutils literal notranslate"><span class="pre">Estimated...</span></code> (they were 0); <code class="docutils literal notranslate"><span class="pre">AdaptedEstimated...</span></code> keeps the base model forecast there when there is a base model.</p></li>
 <li><p><strong><code class="docutils literal notranslate"><span class="pre">AdaptiveTAM.fit()</span></code> then <code class="docutils literal notranslate"><span class="pre">predict()</span></code></strong> uses the window a refit holds after the last row, with its own normalisation: <code class="docutils literal notranslate"><span class="pre">fit(history</span> <span class="pre">up</span> <span class="pre">to</span> <span class="pre">day</span> <span class="pre">t).predict(day</span> <span class="pre">t+1)</span></code> equals the simulation’s forecast for day t+1.</p></li>
 <li><p><strong>Categorical codes</strong> (<code class="docutils literal notranslate"><span class="pre">c()</span></code> with an <code class="docutils literal notranslate"><span class="pre">n_cat</span></code> given in the formula) are normalised on the full level range <code class="docutils literal notranslate"><span class="pre">0</span> <span class="pre">..</span> <span class="pre">n_cat</span> <span class="pre">-</span> <span class="pre">1</span></code>, so a level absent from training keeps its own column instead of landing on an edge level. Codes <code class="docutils literal notranslate"><span class="pre">1</span> <span class="pre">..</span> <span class="pre">n_cat</span></code>, non-integer codes and an inferred <code class="docutils literal notranslate"><span class="pre">n_cat</span></code> keep the min/max rule.</p></li>
 </ul>
 </section>
-<section id="id4">
-<h3>Fixed<a class="headerlink" href="#id4" title="Link to this heading">¶</a></h3>
+<section id="id7">
+<h3>Fixed<a class="headerlink" href="#id7" title="Link to this heading">¶</a></h3>
 <ul class="simple">
 <li><p><strong>Spline knots</strong> (<code class="docutils literal notranslate"><span class="pre">s()</span></code>): set from the full training tensor, no longer from the solver’s memory probe, which could cache degenerate knots when the first row of every group sat on the upper edge of its range.</p></li>
 </ul>
 </section>
-<section id="id5">
-<h3>Added<a class="headerlink" href="#id5" title="Link to this heading">¶</a></h3>
+<section id="id8">
+<h3>Added<a class="headerlink" href="#id8" title="Link to this heading">¶</a></h3>
 <ul class="simple">
 <li><p><strong><code class="docutils literal notranslate"><span class="pre">ta.TAMExtrapolationWarning</span></code></strong>: once per model and feature, when a feature read by a non-linear effect (<code class="docutils literal notranslate"><span class="pre">s</span></code>, <code class="docutils literal notranslate"><span class="pre">f</span></code>, <code class="docutils literal notranslate"><span class="pre">p</span></code>, <code class="docutils literal notranslate"><span class="pre">w</span></code>, <code class="docutils literal notranslate"><span class="pre">rbf</span></code>, <code class="docutils literal notranslate"><span class="pre">n</span></code>, <code class="docutils literal notranslate"><span class="pre">t</span></code>, <code class="docutils literal notranslate"><span class="pre">phys</span></code>, <code class="docutils literal notranslate"><span class="pre">te</span></code> margin) leaves its trained range by more than 1% of its half-range, or a categorical level was not seen in training (<code class="docutils literal notranslate"><span class="pre">AdaptiveTAM</span></code>: one warning for all windows; <code class="docutils literal notranslate"><span class="pre">AutoTAM</span></code> lists them in <code class="docutils literal notranslate"><span class="pre">summary()</span></code>). <code class="docutils literal notranslate"><span class="pre">l()</span></code> never warns; the default extrapolation does not change.</p></li>
 <li><p><strong><code class="docutils literal notranslate"><span class="pre">TAM</span> <span class="pre">[Info]</span></code> at training</strong>: a <code class="docutils literal notranslate"><span class="pre">c()</span></code> term with a given <code class="docutils literal notranslate"><span class="pre">n_cat</span></code> says which levels the training rows lack.</p></li>
@@ -413,26 +434,26 @@ and this project adheres to <a class="reference external" href="https://semver.o
 </ul>
 </section>
 </section>
-<section id="id6">
-<h2><a class="reference external" href="https://github.com/EDF-Lab/tam/releases/tag/v1.3.3">1.3.3</a> - 2026-10-01<a class="headerlink" href="#id6" title="Link to this heading">¶</a></h2>
+<section id="id9">
+<h2><a class="reference external" href="https://github.com/EDF-Lab/tam/releases/tag/v1.3.3">1.3.3</a> - 2026-10-01<a class="headerlink" href="#id9" title="Link to this heading">¶</a></h2>
 <p>Patch release (tag on <code class="docutils literal notranslate"><span class="pre">main</span></code>; the latest release on PyPI and Zenodo stays 1.3.1): <code class="docutils literal notranslate"><span class="pre">KalmanTAM</span></code> no longer looks ahead and updates its state at every step.</p>
 <p><strong><code class="docutils literal notranslate"><span class="pre">KalmanTAM</span></code> forecasts change</strong>; the only other change is the fix of <code class="docutils literal notranslate"><span class="pre">s()</span></code> on one-row frames and on a single out-of-range value below. Everything else is identical to 1.3.2. To get the 1.3.2 behaviour, use the tag <code class="docutils literal notranslate"><span class="pre">v1.3.2</span></code> (or <code class="docutils literal notranslate"><span class="pre">block_size=128</span></code> for the update rule alone).</p>
-<section id="id7">
-<h3>Changed<a class="headerlink" href="#id7" title="Link to this heading">¶</a></h3>
+<section id="id10">
+<h3>Changed<a class="headerlink" href="#id10" title="Link to this heading">¶</a></h3>
 <ul class="simple">
 <li><p><strong>Causal scaling</strong> (<code class="docutils literal notranslate"><span class="pre">KalmanTAM</span></code>): the feature normalisation and the target scale (<code class="docutils literal notranslate"><span class="pre">y_max</span> <span class="pre">-</span> <span class="pre">y_min</span></code>) were computed on the whole online period, so every forecast depended on observations after it, and the scale set the effective observation and process noise. They now come from a reference period: the first <code class="docutils literal notranslate"><span class="pre">calibration_steps</span></code> rows of each group, or a separate <code class="docutils literal notranslate"><span class="pre">calibration_data</span></code>. A forecast at or before row r no longer changes when later rows change. With data whose range never changes after the reference rows, the forecasts are identical to 1.3.2 (checked to the last bit, with and without a base model).</p></li>
 <li><p><strong>Update at every step</strong> (<code class="docutils literal notranslate"><span class="pre">KalmanTAM</span></code>): with <code class="docutils literal notranslate"><span class="pre">horizon_steps=1</span></code> the default <code class="docutils literal notranslate"><span class="pre">block_size</span></code> was 128, so the state moved only every 128 steps (every 128 days with <code class="docutils literal notranslate"><span class="pre">group_col=&quot;tod&quot;</span></code>) while the docstring promised standard online filtering. The default is now the exact sequential filter (<code class="docutils literal notranslate"><span class="pre">block_size=None</span></code>, i.e. 1), which tracks the load more closely on the FORCE national load.</p></li>
 <li><p><strong><code class="docutils literal notranslate"><span class="pre">fit()</span></code> then <code class="docutils literal notranslate"><span class="pre">predict()</span></code></strong> (<code class="docutils literal notranslate"><span class="pre">KalmanTAM</span></code>): the frozen state was the one the last row was forecast with, i.e. before that row’s update, so forecasting the next day from <code class="docutils literal notranslate"><span class="pre">fit(history)</span></code> ignored the last observation. <code class="docutils literal notranslate"><span class="pre">fit()</span></code> now stores the state after the last update: with <code class="docutils literal notranslate"><span class="pre">block_size=1</span></code>, <code class="docutils literal notranslate"><span class="pre">fit(history</span> <span class="pre">up</span> <span class="pre">to</span> <span class="pre">day</span> <span class="pre">t).predict(day</span> <span class="pre">t+1)</span></code> equals the online simulation’s forecast for day t+1 (checked on the FORCE national load, to numerical precision).</p></li>
 </ul>
 </section>
-<section id="id8">
-<h3>Fixed<a class="headerlink" href="#id8" title="Link to this heading">¶</a></h3>
+<section id="id11">
+<h3>Fixed<a class="headerlink" href="#id11" title="Link to this heading">¶</a></h3>
 <ul class="simple">
 <li><p><strong><code class="docutils literal notranslate"><span class="pre">s()</span></code> predicted wrongly in two situations</strong> (<code class="docutils literal notranslate"><span class="pre">StaticTAM</span></code>, <code class="docutils literal notranslate"><span class="pre">AdaptiveTAM</span></code>, <code class="docutils literal notranslate"><span class="pre">KalmanTAM</span></code> base features): a spline treated any one-element input as the solver’s one-row memory probe and rebuilt its knots from that single point instead of using the trained ones. It happened (1) on a frame with one row per group (tomorrow’s forecast for every half-hour with <code class="docutils literal notranslate"><span class="pre">group_col=&quot;tod&quot;</span></code>), and (2) with the default linear extrapolation when <strong>exactly one value</strong> of a frame was outside the training range, because the slope of the out-of-range values is computed on a tensor holding only those values (one element for one value). On the FORCE national load test year, a single half-hour just above its group’s training maximum was predicted orders of magnitude off. Splines now always use their trained knots. Frames with no out-of-range value, or with several, and frames with several rows per group are unchanged; the other effects (<code class="docutils literal notranslate"><span class="pre">l()</span></code>, <code class="docutils literal notranslate"><span class="pre">c()</span></code>, <code class="docutils literal notranslate"><span class="pre">f()</span></code>, <code class="docutils literal notranslate"><span class="pre">w()</span></code>, <code class="docutils literal notranslate"><span class="pre">rbf()</span></code>, <code class="docutils literal notranslate"><span class="pre">t()</span></code>) were already row-wise.</p></li>
 </ul>
 </section>
-<section id="id9">
-<h3>Added<a class="headerlink" href="#id9" title="Link to this heading">¶</a></h3>
+<section id="id12">
+<h3>Added<a class="headerlink" href="#id12" title="Link to this heading">¶</a></h3>
 <ul class="simple">
 <li><p><strong><code class="docutils literal notranslate"><span class="pre">KalmanTAM(calibration_steps=None,</span> <span class="pre">calibration_data=None)</span></code></strong>: <code class="docutils literal notranslate"><span class="pre">calibration_steps</span></code> is the number of rows per group, at the start of the data, that set the scaling (default <code class="docutils literal notranslate"><span class="pre">min(365,</span> <span class="pre">half</span> <span class="pre">the</span> <span class="pre">rows)</span></code>). A message says those rows are not causal and should not be scored. <code class="docutils literal notranslate"><span class="pre">calibration_data</span></code> takes the scaling from a separate historical DataFrame (for example the training set), so every online row can be scored. A <code class="docutils literal notranslate"><span class="pre">calibration_steps</span></code> that leaves no row to track raises a <code class="docutils literal notranslate"><span class="pre">ValueError</span></code>. The scaling is stored at <code class="docutils literal notranslate"><span class="pre">fit</span></code> and reused by <code class="docutils literal notranslate"><span class="pre">predict()</span></code>.</p></li>
 <li><p><strong><code class="docutils literal notranslate"><span class="pre">KalmanTAM.tune_hyperparameters(...,</span> <span class="pre">calibration_steps=None,</span> <span class="pre">calibration_mask=None)</span></code></strong>: the RMSE is computed on the time steps you choose (a slice, a list of positions or a boolean mask), not on the end of the data.</p></li>
@@ -447,11 +468,11 @@ and this project adheres to <a class="reference external" href="https://semver.o
 </section>
 </section>
 <hr class="docutils" />
-<section id="id10">
-<h2><a class="reference external" href="https://github.com/EDF-Lab/tam/releases/tag/v1.3.2">1.3.2</a> - 2026-10-01<a class="headerlink" href="#id10" title="Link to this heading">¶</a></h2>
+<section id="id13">
+<h2><a class="reference external" href="https://github.com/EDF-Lab/tam/releases/tag/v1.3.2">1.3.2</a> - 2026-10-01<a class="headerlink" href="#id13" title="Link to this heading">¶</a></h2>
 <p>Patch release (tag on <code class="docutils literal notranslate"><span class="pre">main</span></code>; the latest release on PyPI and Zenodo stays 1.3.1): two crashes fixed. <strong>No prediction changes</strong>: every model that worked in 1.3.1 gives the same numbers.</p>
-<section id="id11">
-<h3>Fixed<a class="headerlink" href="#id11" title="Link to this heading">¶</a></h3>
+<section id="id14">
+<h3>Fixed<a class="headerlink" href="#id14" title="Link to this heading">¶</a></h3>
 <ul class="simple">
 <li><p><strong>Grouped models predict a frame holding only some of their groups</strong> (<code class="docutils literal notranslate"><span class="pre">StaticTAM</span></code> with <code class="docutils literal notranslate"><span class="pre">group_col</span></code>): <code class="docutils literal notranslate"><span class="pre">predict</span></code> raised <code class="docutils literal notranslate"><span class="pre">ValueError:</span> <span class="pre">Length</span> <span class="pre">of</span> <span class="pre">values</span> <span class="pre">(n)</span> <span class="pre">does</span> <span class="pre">not</span> <span class="pre">match</span> <span class="pre">length</span> <span class="pre">of</span> <span class="pre">index</span> <span class="pre">(0)</span></code> and <code class="docutils literal notranslate"><span class="pre">decompose_prediction</span></code> returned NaN. The groups stacked from the frame were paired with the fitted group list by position, and the per-group coefficients were sliced by position in the stacked tensor, so a one-group frame would have used the first group’s coefficients. Prediction and decomposition now use the groups actually present: rows keep the input order and index, and a group never seen in training raises a <code class="docutils literal notranslate"><span class="pre">ValueError</span></code> naming it. <code class="docutils literal notranslate"><span class="pre">plot_component</span></code> no longer replicates its grid over every group.</p></li>
 <li><p><strong>Silent overflow in log-target quantiles</strong> (<code class="docutils literal notranslate"><span class="pre">predict_quantile</span></code>, <code class="docutils literal notranslate"><span class="pre">predict_quantiles</span></code>, <code class="docutils literal notranslate"><span class="pre">predict_median</span></code>, <code class="docutils literal notranslate"><span class="pre">anomaly_score</span></code>, mixture <code class="docutils literal notranslate"><span class="pre">component_means</span></code> and <code class="docutils literal notranslate"><span class="pre">predict_mean</span></code>): a scale prediction far outside the training range gave <code class="docutils literal notranslate"><span class="pre">exp(...)</span> <span class="pre">=</span> <span class="pre">inf</span></code> and a silent numpy <code class="docutils literal notranslate"><span class="pre">RuntimeWarning:</span> <span class="pre">overflow</span> <span class="pre">encountered</span> <span class="pre">in</span> <span class="pre">exp</span></code>. The value is still <code class="docutils literal notranslate"><span class="pre">inf</span></code> (it is beyond float64, and the columns stay ordered) but it comes with an explicit <code class="docutils literal notranslate"><span class="pre">UserWarning</span></code> naming the quantity and the first rows.</p></li>
@@ -459,12 +480,12 @@ and this project adheres to <a class="reference external" href="https://semver.o
 </section>
 </section>
 <hr class="docutils" />
-<section id="id12">
-<h2><a class="reference external" href="https://github.com/EDF-Lab/tam/releases/tag/v1.3.1">1.3.1</a> - 2026-09-30<a class="headerlink" href="#id12" title="Link to this heading">¶</a></h2>
+<section id="id15">
+<h2><a class="reference external" href="https://github.com/EDF-Lab/tam/releases/tag/v1.3.1">1.3.1</a> - 2026-09-30<a class="headerlink" href="#id15" title="Link to this heading">¶</a></h2>
 <p>Patch release: fixes that made some models wrong (formulas with <code class="docutils literal notranslate"><span class="pre">te()</span></code> or several features in one term) or not reproducible (<code class="docutils literal notranslate"><span class="pre">rbf()</span></code>, trees).</p>
 <p><strong>Predictions change</strong> for the models below; everything else is identical to 1.3.0. To get the 1.3.0 behaviour: <code class="docutils literal notranslate"><span class="pre">pip</span> <span class="pre">install</span> <span class="pre">tam-ml==1.3.0</span></code>.</p>
-<section id="id13">
-<h3>Changed<a class="headerlink" href="#id13" title="Link to this heading">¶</a></h3>
+<section id="id16">
+<h3>Changed<a class="headerlink" href="#id16" title="Link to this heading">¶</a></h3>
 <ul class="simple">
 <li><p><strong>Formulas with <code class="docutils literal notranslate"><span class="pre">te()</span></code> or several features in one term</strong>: they were fitted with mislabelled terms and now fit the formula as written; their errors drop sharply, and the ensembles built on them follow. The THEORY benchmark and its figures are regenerated with 1.3.1.</p></li>
 <li><p><strong><code class="docutils literal notranslate"><span class="pre">auto_fit</span></code> (GCV)</strong>: now fits exactly the model GCV selected. GCV minimises an in-sample criterion, not the holdout error, so holdout results move in both directions.</p></li>
@@ -474,16 +495,16 @@ and this project adheres to <a class="reference external" href="https://semver.o
 <li><p>Fixed-penalty models without these terms are identical to 1.3.0.</p></li>
 </ul>
 </section>
-<section id="id14">
-<h3>Added<a class="headerlink" href="#id14" title="Link to this heading">¶</a></h3>
+<section id="id17">
+<h3>Added<a class="headerlink" href="#id17" title="Link to this heading">¶</a></h3>
 <ul class="simple">
 <li><p><strong><code class="docutils literal notranslate"><span class="pre">tam.plot_component(model,</span> <span class="pre">data,</span> <span class="pre">component,</span> <span class="pre">kind=&quot;auto&quot;)</span></code></strong>: plots one additive component with a view chosen from its dimension: a curve for one feature, one curve per level for <code class="docutils literal notranslate"><span class="pre">te(x,</span> <span class="pre">c)</span></code>, a 3D surface (or <code class="docutils literal notranslate"><span class="pre">kind=&quot;heatmap&quot;</span></code> with the observed points overlaid) for <code class="docutils literal notranslate"><span class="pre">te(x1,</span> <span class="pre">x2)</span></code>, evaluated on a regular grid for one group (<code class="docutils literal notranslate"><span class="pre">group=</span></code>, default the most frequent), a 3D scatter coloured by the contribution for <code class="docutils literal notranslate"><span class="pre">te(x1,</span> <span class="pre">x2,</span> <span class="pre">x3)</span></code>. Rows with a non-finite contribution are skipped.</p></li>
 <li><p><strong><code class="docutils literal notranslate"><span class="pre">tam.common.plotting.resolve_component(model,</span> <span class="pre">feature,</span> <span class="pre">component=None,</span> <span class="pre">color_by=None)</span></code></strong>: the component a feature maps to under the new decomposition names.</p></li>
 <li><p><strong><code class="docutils literal notranslate"><span class="pre">rbf(x,</span> <span class="pre">...,</span> <span class="pre">seed=42)</span></code></strong>: seed of the centre sampling (default 42, like <code class="docutils literal notranslate"><span class="pre">n()</span></code> and <code class="docutils literal notranslate"><span class="pre">t()</span></code>).</p></li>
 </ul>
 </section>
-<section id="id15">
-<h3>Fixed<a class="headerlink" href="#id15" title="Link to this heading">¶</a></h3>
+<section id="id18">
+<h3>Fixed<a class="headerlink" href="#id18" title="Link to this heading">¶</a></h3>
 <ul class="simple">
 <li><p><strong>Terms renamed by position</strong> (<code class="docutils literal notranslate"><span class="pre">StaticTAM._prepare_data</span></code>): each effect’s <code class="docutils literal notranslate"><span class="pre">feature_name</span></code> was overwritten from the deduplicated feature list by position, so with a <code class="docutils literal notranslate"><span class="pre">te()</span></code> or several features in one term, the effects after it were relabelled (e.g. <code class="docutils literal notranslate"><span class="pre">c(day_type_week)</span></code> became <code class="docutils literal notranslate"><span class="pre">toy</span></code>) and <strong>the fitted model changed</strong>, not only the labels (e.g. a national-load model with <code class="docutils literal notranslate"><span class="pre">te(temperature,</span> <span class="pre">toy)</span></code>: test RMSE 3254 → 2432). The renaming is removed. <code class="docutils literal notranslate"><span class="pre">decompose_prediction</span></code> names components with the new <code class="docutils literal notranslate"><span class="pre">decomposition_names()</span></code>: unique feature names are kept, collisions get a basis prefix (<code class="docutils literal notranslate"><span class="pre">s_x</span></code>, <code class="docutils literal notranslate"><span class="pre">l_x</span></code>), and a collision that remains (two <code class="docutils literal notranslate"><span class="pre">te()</span></code> over the same features) gets an occurrence suffix, so no contribution overwrites another.</p></li>
 <li><p><strong>Plotting helpers after the renaming fix</strong>: <code class="docutils literal notranslate"><span class="pre">plot_effect_with_model_and_data</span></code> and <code class="docutils literal notranslate"><span class="pre">plot_effect_with_data_decomposed</span></code> raised <code class="docutils literal notranslate"><span class="pre">KeyError:</span> <span class="pre">'effect_x1'</span></code> for a feature inside a <code class="docutils literal notranslate"><span class="pre">te()</span></code> or used by several effects. They now resolve the feature to its component: the only one using it, the tensor product whose other margin is <code class="docutils literal notranslate"><span class="pre">color_by</span></code>, or the new <code class="docutils literal notranslate"><span class="pre">component=</span></code> argument; a still-ambiguous feature raises a <code class="docutils literal notranslate"><span class="pre">ValueError</span></code> listing the candidates. Single-component features plot exactly as before.</p></li>
@@ -500,10 +521,10 @@ and this project adheres to <a class="reference external" href="https://semver.o
 </section>
 </section>
 <hr class="docutils" />
-<section id="id16">
-<h2><a class="reference external" href="https://github.com/EDF-Lab/tam/releases/tag/v1.3.0">1.3.0</a> - 2026-09-06<a class="headerlink" href="#id16" title="Link to this heading">¶</a></h2>
-<section id="id17">
-<h3>Added<a class="headerlink" href="#id17" title="Link to this heading">¶</a></h3>
+<section id="id19">
+<h2><a class="reference external" href="https://github.com/EDF-Lab/tam/releases/tag/v1.3.0">1.3.0</a> - 2026-09-06<a class="headerlink" href="#id19" title="Link to this heading">¶</a></h2>
+<section id="id20">
+<h3>Added<a class="headerlink" href="#id20" title="Link to this heading">¶</a></h3>
 <ul class="simple">
 <li><p><strong>Statistics layer</strong> (<code class="docutils literal notranslate"><span class="pre">tam.model.statistics</span></code>) : a modular “how” beside the structural spectrum “what”, built on the single P-WLS atom (<code class="docutils literal notranslate"><span class="pre">BaseTAM._solve_pwls_step</span></code>), so the default <code class="docutils literal notranslate"><span class="pre">loss=&quot;l2&quot;</span></code> path stays bit-identical to ordinary least squares.</p>
 <ul>
@@ -518,47 +539,47 @@ and this project adheres to <a class="reference external" href="https://semver.o
 </ul>
 </section>
 </section>
-<section id="id18">
-<h2><a class="reference external" href="https://github.com/EDF-Lab/tam/releases/tag/v1.2.6">1.2.6</a> - 2026-07-17<a class="headerlink" href="#id18" title="Link to this heading">¶</a></h2>
-<section id="id19">
-<h3>Added<a class="headerlink" href="#id19" title="Link to this heading">¶</a></h3>
+<section id="id21">
+<h2><a class="reference external" href="https://github.com/EDF-Lab/tam/releases/tag/v1.2.6">1.2.6</a> - 2026-07-17<a class="headerlink" href="#id21" title="Link to this heading">¶</a></h2>
+<section id="id22">
+<h3>Added<a class="headerlink" href="#id22" title="Link to this heading">¶</a></h3>
 <ul class="simple">
 <li><p>Added SPDX license identifiers (<code class="docutils literal notranslate"><span class="pre">LGPL-3.0-or-later</span></code>) and standardized file headers with proper authorship and copyright attribution across the entire codebase (2026-07-01).</p></li>
 </ul>
 </section>
-<section id="id20">
-<h3>Changed<a class="headerlink" href="#id20" title="Link to this heading">¶</a></h3>
+<section id="id23">
+<h3>Changed<a class="headerlink" href="#id23" title="Link to this heading">¶</a></h3>
 <ul class="simple">
 <li><p><strong>Major Data Upgrade:</strong> Replaced the legacy <code class="docutils literal notranslate"><span class="pre">dataset_national.csv</span></code> with the new <strong>FORCE</strong> (French Open Research Catalogue of Energy) dataset. The library now defaults to this high-performance, harmonized dataset for baseline benchmarking and examples.</p></li>
 </ul>
 </section>
-<section id="id21">
-<h3>Fixed<a class="headerlink" href="#id21" title="Link to this heading">¶</a></h3>
+<section id="id24">
+<h3>Fixed<a class="headerlink" href="#id24" title="Link to this heading">¶</a></h3>
 <ul class="simple">
 <li><p><strong>Critical Tensor Alignment Bug (<code class="docutils literal notranslate"><span class="pre">group_col</span></code>):</strong> Fixed an order-sensitivity vulnerability in the tensor stacking and DataFrame reassembly layers. The framework now enforces strict chronological sorting (via <code class="docutils literal notranslate"><span class="pre">date_col</span></code>) before building 3D tensors, preventing penalty matrix corruption on non-sequential data. Additionally, it now safely maps chronological PyTorch predictions back to shuffled Pandas indices, guaranteeing row-to-row integrity.</p></li>
 </ul>
 </section>
 </section>
-<section id="id22">
-<h2><a class="reference external" href="https://github.com/EDF-Lab/tam/releases/tag/v1.2.5">1.2.5</a> - 2026-06-24<a class="headerlink" href="#id22" title="Link to this heading">¶</a></h2>
-<section id="id23">
-<h3>Added<a class="headerlink" href="#id23" title="Link to this heading">¶</a></h3>
+<section id="id25">
+<h2><a class="reference external" href="https://github.com/EDF-Lab/tam/releases/tag/v1.2.5">1.2.5</a> - 2026-06-24<a class="headerlink" href="#id25" title="Link to this heading">¶</a></h2>
+<section id="id26">
+<h3>Added<a class="headerlink" href="#id26" title="Link to this heading">¶</a></h3>
 <ul class="simple">
 <li><p><strong>Topological Split Strategies (<code class="docutils literal notranslate"><span class="pre">TreeEffect</span></code>):</strong> Formalized the <code class="docutils literal notranslate"><span class="pre">split_strategy</span></code> parameter. Users can now explicitly toggle between <code class="docutils literal notranslate"><span class="pre">'uniform'</span></code> (creating mathematically orthogonal, shift-invariant Cartesian grids) and <code class="docutils literal notranslate"><span class="pre">'quantile'</span></code> (applying the empirical Probability Integral Transform to create density-adaptive partitions that perfectly balance sample distributions across all leaves).</p></li>
 </ul>
 </section>
-<section id="id24">
-<h3>Changed<a class="headerlink" href="#id24" title="Link to this heading">¶</a></h3>
+<section id="id27">
+<h3>Changed<a class="headerlink" href="#id27" title="Link to this heading">¶</a></h3>
 <ul class="simple">
 <li><p><strong>Empirical Sparsity-Adaptive Penalty (Anisotropic Ridge):</strong> Upgraded the structural penalty of the Random Forest (<code class="docutils literal notranslate"><span class="pre">t(...)</span></code>) and Linear Tree (<code class="docutils literal notranslate"><span class="pre">lt(...)</span></code>) modules. By setting <code class="docutils literal notranslate"><span class="pre">sp_alpha</span> <span class="pre">&gt;</span> <span class="pre">0</span></code>, the initialization pass now accurately records the empirical data density of each terminal leaf (<span class="math notranslate nohighlight">\(C_i\)</span>).</p></li>
 <li><p><strong>Drift &amp; Singularity Prevention:</strong> Starved or empty edge-boundary leaves now receive geometrically massive penalties. This guarantees global matrix rank, eliminates the catastrophic test drift associated with hard Cartesian grids, and theoretically resolves the OLS singularities traditionally found in Model-Based Recursive Partitioning (MOB).</p></li>
 </ul>
 </section>
 </section>
-<section id="id25">
-<h2><a class="reference external" href="https://github.com/EDF-Lab/tam/releases/tag/v1.2.4">1.2.4</a> - 2026-06-22<a class="headerlink" href="#id25" title="Link to this heading">¶</a></h2>
-<section id="id26">
-<h3>Added<a class="headerlink" href="#id26" title="Link to this heading">¶</a></h3>
+<section id="id28">
+<h2><a class="reference external" href="https://github.com/EDF-Lab/tam/releases/tag/v1.2.4">1.2.4</a> - 2026-06-22<a class="headerlink" href="#id28" title="Link to this heading">¶</a></h2>
+<section id="id29">
+<h3>Added<a class="headerlink" href="#id29" title="Link to this heading">¶</a></h3>
 <ul class="simple">
 <li><p><strong>API Standardization:</strong> Introduced explicit <code class="docutils literal notranslate"><span class="pre">fit()</span></code> and <code class="docutils literal notranslate"><span class="pre">predict()</span></code> methods across all meta-models (<code class="docutils literal notranslate"><span class="pre">AdaptiveTAM</span></code>, <code class="docutils literal notranslate"><span class="pre">OperaTAM</span></code>, <code class="docutils literal notranslate"><span class="pre">KalmanTAM</span></code>). This establishes a unified, scikit-learn-like operational workflow (train on historical data, freeze state, predict out-of-sample) regardless of the underlying algorithm.</p></li>
 <li><p><strong>AdaptiveTAM:</strong> Added <code class="docutils literal notranslate"><span class="pre">fit()</span></code> and <code class="docutils literal notranslate"><span class="pre">predict()</span></code> methods for production deployment. The <code class="docutils literal notranslate"><span class="pre">fit()</span></code> method efficiently extracts and solves the linear system strictly for the final available training window. The <code class="docutils literal notranslate"><span class="pre">predict()</span></code> method then applies this frozen state (<code class="docutils literal notranslate"><span class="pre">last_state_dict_</span></code>) to new data in <span class="math notranslate nohighlight">\(O(1)\)</span> time with strict safety clipping, ensuring instant, deterministic inference without target leakage.</p></li>
@@ -566,21 +587,21 @@ and this project adheres to <a class="reference external" href="https://semver.o
 <li><p><strong>OperaTAM:</strong> Added <code class="docutils literal notranslate"><span class="pre">fit()</span></code> and <code class="docutils literal notranslate"><span class="pre">predict()</span></code> methods to transition from continuous dynamic simulation to frozen-weight inference. <code class="docutils literal notranslate"><span class="pre">fit()</span></code> runs the historical simulation, while <code class="docutils literal notranslate"><span class="pre">predict()</span></code> cleanly extracts and applies the final expert aggregation weights to new out-of-sample data.</p></li>
 </ul>
 </section>
-<section id="id27">
-<h3>Fixed<a class="headerlink" href="#id27" title="Link to this heading">¶</a></h3>
+<section id="id30">
+<h3>Fixed<a class="headerlink" href="#id30" title="Link to this heading">¶</a></h3>
 <ul class="simple">
 <li><p><strong>StaticTAM:</strong> Removed the <code class="docutils literal notranslate"><span class="pre">target_col</span></code> requirement from the required features check in <code class="docutils literal notranslate"><span class="pre">decompose_prediction</span></code>. This resolves a critical blocker for operational inference pipelines where the target variable is naturally unavailable.</p></li>
 <li><p><strong>KalmanTAM:</strong> Patched <code class="docutils literal notranslate"><span class="pre">_prepare_kalman_features</span></code> to securely bypass target column extraction during out-of-sample inference, preventing crashes when the target variable is absent.</p></li>
 </ul>
 </section>
 </section>
-<section id="id28">
-<h2><a class="reference external" href="https://github.com/EDF-Lab/tam/releases/tag/v1.2.3">1.2.3</a> - 2026-06-08<a class="headerlink" href="#id28" title="Link to this heading">¶</a></h2>
+<section id="id31">
+<h2><a class="reference external" href="https://github.com/EDF-Lab/tam/releases/tag/v1.2.3">1.2.3</a> - 2026-06-08<a class="headerlink" href="#id31" title="Link to this heading">¶</a></h2>
 <blockquote>
 <div><p>The DOI was generated via Zenodo on release : https://doi.org/10.5281/zenodo.20543272.</p>
 </div></blockquote>
-<section id="id29">
-<h3>Added<a class="headerlink" href="#id29" title="Link to this heading">¶</a></h3>
+<section id="id32">
+<h3>Added<a class="headerlink" href="#id32" title="Link to this heading">¶</a></h3>
 <ul class="simple">
 <li><p><strong>Universal Extrapolation Wrapper</strong>: Introduced native Out-Of-Distribution (OOD) extrapolation for all base effects via the <code class="docutils literal notranslate"><span class="pre">extrapolate</span></code> parameter. It safely bounds the feature map to the <span class="math notranslate nohighlight">\([-1, 1]^F\)</span> hypercube and utilizes multidimensional directional derivatives (stepping strictly backward into the safe zone) for OOD inputs. Supported modes include <code class="docutils literal notranslate"><span class="pre">continue</span></code> (native topology), <code class="docutils literal notranslate"><span class="pre">constant</span></code> (plateau/clamping), <code class="docutils literal notranslate"><span class="pre">linear</span></code> (first-order Taylor expansion), and <code class="docutils literal notranslate"><span class="pre">saturation</span></code> (smooth asymptotic clamping).</p></li>
 <li><p><strong>Linear Tree (<code class="docutils literal notranslate"><span class="pre">lt(...)</span></code>)</strong>: Added a native effect that generates piecewise linear models. It utilizes a dedicated <code class="docutils literal notranslate"><span class="pre">LinearTreeEffect</span></code> class to encapsulate a standard <code class="docutils literal notranslate"><span class="pre">TreeEffect</span></code> (acting as the local intercept/level) crossed with a <code class="docutils literal notranslate"><span class="pre">TensorProductEffect</span></code> (acting as the local linear slope). This provides a single, cohesive model for varying-coefficient trees, seamlessly handling multi-dimensional spatial data without requiring formula macro workarounds.</p></li>
@@ -618,8 +639,8 @@ and this project adheres to <a class="reference external" href="https://semver.o
 </li>
 </ul>
 </section>
-<section id="id30">
-<h3>Changed<a class="headerlink" href="#id30" title="Link to this heading">¶</a></h3>
+<section id="id33">
+<h3>Changed<a class="headerlink" href="#id33" title="Link to this heading">¶</a></h3>
 <ul class="simple">
 <li><p><strong>OPERA Dual API Support (<code class="docutils literal notranslate"><span class="pre">OperaTAM</span></code>)</strong>: Added a standard array-based initialization (<code class="docutils literal notranslate"><span class="pre">target_col=&quot;y&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">expert_cols=[&quot;E1&quot;,</span> <span class="pre">&quot;E2&quot;]</span></code>) alongside the existing R-like formula API (<code class="docutils literal notranslate"><span class="pre">formula=&quot;y</span> <span class="pre">~</span> <span class="pre">l(E1)</span> <span class="pre">+</span> <span class="pre">l(E2)&quot;</span></code>), allowing for simpler dynamic aggregation.</p></li>
 <li><p><strong>Architectural Shape Normalization</strong>: Overhauled <code class="docutils literal notranslate"><span class="pre">build_feature_map</span></code> across <code class="docutils literal notranslate"><span class="pre">TreeEffect</span></code>, <code class="docutils literal notranslate"><span class="pre">NeuralEffect</span></code>, and <code class="docutils literal notranslate"><span class="pre">RBFEffect</span></code>. Added a dynamic dimensional router to natively resolve tensor broadcasting ambiguities across 1D (OOD wrappers), 2D (Kronecker <code class="docutils literal notranslate"><span class="pre">te(...)</span></code> interactions), and 3D+ (Primal Solver Factory) inputs.</p></li>
@@ -639,8 +660,8 @@ and this project adheres to <a class="reference external" href="https://semver.o
 <hr class="docutils" />
 <section id="internal-1-2-2-2026-03-26-not-publicly-released">
 <h2>[Internal] 1.2.2 - 2026-03-26 (Not publicly released)<a class="headerlink" href="#internal-1-2-2-2026-03-26-not-publicly-released" title="Link to this heading">¶</a></h2>
-<section id="id31">
-<h3>Added<a class="headerlink" href="#id31" title="Link to this heading">¶</a></h3>
+<section id="id34">
+<h3>Added<a class="headerlink" href="#id34" title="Link to this heading">¶</a></h3>
 <ul class="simple">
 <li><p><strong>Evolutionary Orchestrator (<code class="docutils literal notranslate"><span class="pre">AutoTAM</span></code>)</strong>: A multi-fidelity AutoML engine for automated GAM discovery. It utilizes a Hub-and-Spoke evolutionary architecture, strict topological sanitization, and bi-level optimization (GPU MSP-GCV) to solve the combinatorial explosion of adaptive models, ultimately deploying orthogonal experts into a Dual OPERA arena.</p></li>
 <li><p><strong>OPERA (<code class="docutils literal notranslate"><span class="pre">OperaTAM</span></code>)</strong>: A new expert aggregation meta-learner featuring a fast GPU implementation natively optimized via <code class="docutils literal notranslate"><span class="pre">&#64;torch.jit.script</span></code>.</p></li>
@@ -652,8 +673,8 @@ and this project adheres to <a class="reference external" href="https://semver.o
 <li><p><strong><code class="docutils literal notranslate"><span class="pre">_memory.py</span></code> (Hardware Memory Management and Estimation)</strong>: Completely isolated low-level hardware interactions into a dedicated module. It estimates the byte footprint of massive matrices and calculates safe algorithmic chunk sizes.</p></li>
 </ul>
 </section>
-<section id="id32">
-<h3>Changed<a class="headerlink" href="#id32" title="Link to this heading">¶</a></h3>
+<section id="id35">
+<h3>Changed<a class="headerlink" href="#id35" title="Link to this heading">¶</a></h3>
 <ul class="simple">
 <li><p><strong>Neural Effect Improvements (<code class="docutils literal notranslate"><span class="pre">NeuralEffect</span></code>)</strong>: Added support for multiple hidden layers to project variables into higher dimensions.</p></li>
 <li><p><strong>Native GPU Acceleration</strong>: Complete migration of intensive CPU to GPU calculation for Splines (<code class="docutils literal notranslate"><span class="pre">s(...)</span></code>), Wavelets (<code class="docutils literal notranslate"><span class="pre">w(...)</span></code>), and RBF (<code class="docutils literal notranslate"><span class="pre">rbf(...)</span></code>) effects, improving performance of design matrix construction.</p></li>
@@ -671,8 +692,8 @@ and this project adheres to <a class="reference external" href="https://semver.o
 <section id="internal-1-2-1-2025-12-18-not-publicly-released">
 <h2>[Internal] 1.2.1 - 2025-12-18 (Not publicly released)<a class="headerlink" href="#internal-1-2-1-2025-12-18-not-publicly-released" title="Link to this heading">¶</a></h2>
 <p>This version represents a complete architectural overhaul, introducing advanced functional bases (Spectrum), Conformal Prediction, and a full benchmark suite.</p>
-<section id="id33">
-<h3>Added<a class="headerlink" href="#id33" title="Link to this heading">¶</a></h3>
+<section id="id36">
+<h3>Added<a class="headerlink" href="#id36" title="Link to this heading">¶</a></h3>
 <ul class="simple">
 <li><p><strong>Auto-ML (GCV):</strong> Added <code class="docutils literal notranslate"><span class="pre">StaticTAM.auto_fit()</span></code> using <strong>Generalized Cross Validation (GCV)</strong> for automatic global regularization parameter selection, eliminating the need for a validation set.</p></li>
 <li><p><strong>Safety Module (Conformal Prediction):</strong> Added <code class="docutils literal notranslate"><span class="pre">SafetyTAM</span></code> implementing <strong>Split Conformal</strong> (static) and <strong>Adaptive Conformal Inference (ACI)</strong> (dynamic) to guarantee valid confidence intervals under distribution shift.</p></li>
@@ -690,8 +711,8 @@ and this project adheres to <a class="reference external" href="https://semver.o
 </li>
 </ul>
 </section>
-<section id="id34">
-<h3>Changed<a class="headerlink" href="#id34" title="Link to this heading">¶</a></h3>
+<section id="id37">
+<h3>Changed<a class="headerlink" href="#id37" title="Link to this heading">¶</a></h3>
 <ul class="simple">
 <li><p><strong>Math Engine (Primal Solver):</strong> Formally validated the exact <strong>Primal Ridge Solver</strong> utilizing block-diagonal covariance accumulation. Corrected performance tracking to accurately reflect the framework’s time complexity of <span class="math notranslate nohighlight">\(\mathcal{O}(G \times T \times D^2 + G \times D^3)\)</span>, ensuring isolated mathematical resolution per group <span class="math notranslate nohighlight">\(G\)</span>.</p></li>
 <li><p><strong>Effect Architecture:</strong> Refactored the core around <code class="docutils literal notranslate"><span class="pre">BaseEffect</span></code>, establishing the <code class="docutils literal notranslate"><span class="pre">List[BaseEffect]</span></code> as the standard configuration.</p></li>
@@ -700,8 +721,8 @@ and this project adheres to <a class="reference external" href="https://semver.o
 <li><p><strong>Decomposition Robustness:</strong> Implemented <strong>collision detection</strong> in <code class="docutils literal notranslate"><span class="pre">_math.py</span></code> to automatically prefix feature effects (e.g., <code class="docutils literal notranslate"><span class="pre">l_time</span></code>, <code class="docutils literal notranslate"><span class="pre">s_time</span></code>) when multiple bases share the same input variable.</p></li>
 </ul>
 </section>
-<section id="id35">
-<h3>Fixed<a class="headerlink" href="#id35" title="Link to this heading">¶</a></h3>
+<section id="id38">
+<h3>Fixed<a class="headerlink" href="#id38" title="Link to this heading">¶</a></h3>
 <ul class="simple">
 <li><p><strong>Recursive Parsing:</strong> Implemented an architectural fix in <code class="docutils literal notranslate"><span class="pre">parse_formula_to_terms</span></code> to correctly <strong>identify and preserve string tokens</strong> (like <code class="docutils literal notranslate"><span class="pre">ga_te</span></code> or <code class="docutils literal notranslate"><span class="pre">grid_k</span></code>) during the recursive parsing of <code class="docutils literal notranslate"><span class="pre">te(...)</span></code> terms.</p></li>
 <li><p><strong>Syntax Stability:</strong> Converted all docstrings containing LaTeX math commands to <strong>raw strings</strong> (<code class="docutils literal notranslate"><span class="pre">r&quot;&quot;&quot;...&quot;&quot;&quot;</span></code>) to eliminate Python <code class="docutils literal notranslate"><span class="pre">SyntaxWarning</span></code>s.</p></li>
@@ -719,8 +740,8 @@ and this project adheres to <a class="reference external" href="https://semver.o
 <li><p>Introduced formula-based API as the primary interface</p></li>
 </ul>
 </section>
-<section id="id36">
-<h3>Added<a class="headerlink" href="#id36" title="Link to this heading">¶</a></h3>
+<section id="id39">
+<h3>Added<a class="headerlink" href="#id39" title="Link to this heading">¶</a></h3>
 <ul class="simple">
 <li><p><strong>Formula-based API (<code class="docutils literal notranslate"><span class="pre">model/additive.py</span></code>):</strong> Implemented a new, intuitive R-like formula API (e.g., <code class="docutils literal notranslate"><span class="pre">Load</span> <span class="pre">~</span> <span class="pre">s(temp,</span> <span class="pre">k=10)</span> <span class="pre">+</span> <span class="pre">l(day_type)</span></code>) as the new standard for model initialization.</p></li>
 <li><p><strong>Spline Effects (<code class="docutils literal notranslate"><span class="pre">model/_effects.py</span></code>):</strong> Added <code class="docutils literal notranslate"><span class="pre">SplineEffect</span></code> (P-splines) as a new core effect type, available via <code class="docutils literal notranslate"><span class="pre">s(...)</span></code>.</p></li>
@@ -730,8 +751,8 @@ and this project adheres to <a class="reference external" href="https://semver.o
 <li><p><strong><code class="docutils literal notranslate"><span class="pre">diagnostics</span></code> Module:</strong> Added a module for model analysis, including t-tests and feature importance visualization.</p></li>
 </ul>
 </section>
-<section id="id37">
-<h3>Changed<a class="headerlink" href="#id37" title="Link to this heading">¶</a></h3>
+<section id="id40">
+<h3>Changed<a class="headerlink" href="#id40" title="Link to this heading">¶</a></h3>
 <ul class="simple">
 <li><p><strong>Legacy API Removed:</strong> Removed the old <code class="docutils literal notranslate"><span class="pre">m_orders</span></code>, <code class="docutils literal notranslate"><span class="pre">s_orders</span></code>, <code class="docutils literal notranslate"><span class="pre">alpha_list</span></code> dictionary-based configuration from <code class="docutils literal notranslate"><span class="pre">v0.0.6</span></code>.</p></li>
 <li><p><strong>Package Structure:</strong> The codebase was refactored into a modular package structure (<code class="docutils literal notranslate"><span class="pre">common</span></code>, <code class="docutils literal notranslate"><span class="pre">model</span></code>).</p></li>
@@ -741,10 +762,10 @@ and this project adheres to <a class="reference external" href="https://semver.o
 </section>
 </section>
 <hr class="docutils" />
-<section id="id38">
-<h2><a class="reference external" href="https://pypi.org/project/weakl/0.0.6/">0.0.6</a> - 2025-05-27<a class="headerlink" href="#id38" title="Link to this heading">¶</a></h2>
-<section id="id39">
-<h3>Added<a class="headerlink" href="#id39" title="Link to this heading">¶</a></h3>
+<section id="id41">
+<h2><a class="reference external" href="https://pypi.org/project/weakl/0.0.6/">0.0.6</a> - 2025-05-27<a class="headerlink" href="#id41" title="Link to this heading">¶</a></h2>
+<section id="id42">
+<h3>Added<a class="headerlink" href="#id42" title="Link to this heading">¶</a></h3>
 <ul class="simple">
 <li><p>Initial project setup based on the original <code class="docutils literal notranslate"><span class="pre">weakl</span></code> v0.0.6 package.</p></li>
 </ul>
@@ -808,80 +829,84 @@ and this project adheres to <a class="reference external" href="https://semver.o
           <div class="toc-tree">
             <ul>
 <li><a class="reference internal" href="#">Changelog</a><ul>
-<li><a class="reference internal" href="#unreleased">Unreleased</a></li>
-<li><a class="reference internal" href="#id1">1.4.0 - 2026-10-06</a><ul>
-<li><a class="reference internal" href="#changed">Changed</a></li>
+<li><a class="reference internal" href="#id1">1.4.1 - 2026-10-08</a><ul>
 <li><a class="reference internal" href="#added">Added</a></li>
 <li><a class="reference internal" href="#fixed">Fixed</a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#id2">1.3.4 - 2026-10-02</a><ul>
-<li><a class="reference internal" href="#id3">Changed</a></li>
+<li><a class="reference internal" href="#id2">1.4.0 - 2026-10-06</a><ul>
+<li><a class="reference internal" href="#changed">Changed</a></li>
+<li><a class="reference internal" href="#id3">Added</a></li>
 <li><a class="reference internal" href="#id4">Fixed</a></li>
-<li><a class="reference internal" href="#id5">Added</a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#id6">1.3.3 - 2026-10-01</a><ul>
-<li><a class="reference internal" href="#id7">Changed</a></li>
-<li><a class="reference internal" href="#id8">Fixed</a></li>
-<li><a class="reference internal" href="#id9">Added</a></li>
+<li><a class="reference internal" href="#id5">1.3.4 - 2026-10-02</a><ul>
+<li><a class="reference internal" href="#id6">Changed</a></li>
+<li><a class="reference internal" href="#id7">Fixed</a></li>
+<li><a class="reference internal" href="#id8">Added</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#id9">1.3.3 - 2026-10-01</a><ul>
+<li><a class="reference internal" href="#id10">Changed</a></li>
+<li><a class="reference internal" href="#id11">Fixed</a></li>
+<li><a class="reference internal" href="#id12">Added</a></li>
 <li><a class="reference internal" href="#deprecated">Deprecated</a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#id10">1.3.2 - 2026-10-01</a><ul>
-<li><a class="reference internal" href="#id11">Fixed</a></li>
+<li><a class="reference internal" href="#id13">1.3.2 - 2026-10-01</a><ul>
+<li><a class="reference internal" href="#id14">Fixed</a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#id12">1.3.1 - 2026-09-30</a><ul>
-<li><a class="reference internal" href="#id13">Changed</a></li>
-<li><a class="reference internal" href="#id14">Added</a></li>
-<li><a class="reference internal" href="#id15">Fixed</a></li>
-</ul>
-</li>
-<li><a class="reference internal" href="#id16">1.3.0 - 2026-09-06</a><ul>
+<li><a class="reference internal" href="#id15">1.3.1 - 2026-09-30</a><ul>
+<li><a class="reference internal" href="#id16">Changed</a></li>
 <li><a class="reference internal" href="#id17">Added</a></li>
+<li><a class="reference internal" href="#id18">Fixed</a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#id18">1.2.6 - 2026-07-17</a><ul>
-<li><a class="reference internal" href="#id19">Added</a></li>
-<li><a class="reference internal" href="#id20">Changed</a></li>
-<li><a class="reference internal" href="#id21">Fixed</a></li>
+<li><a class="reference internal" href="#id19">1.3.0 - 2026-09-06</a><ul>
+<li><a class="reference internal" href="#id20">Added</a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#id22">1.2.5 - 2026-06-24</a><ul>
-<li><a class="reference internal" href="#id23">Added</a></li>
-<li><a class="reference internal" href="#id24">Changed</a></li>
+<li><a class="reference internal" href="#id21">1.2.6 - 2026-07-17</a><ul>
+<li><a class="reference internal" href="#id22">Added</a></li>
+<li><a class="reference internal" href="#id23">Changed</a></li>
+<li><a class="reference internal" href="#id24">Fixed</a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#id25">1.2.4 - 2026-06-22</a><ul>
+<li><a class="reference internal" href="#id25">1.2.5 - 2026-06-24</a><ul>
 <li><a class="reference internal" href="#id26">Added</a></li>
-<li><a class="reference internal" href="#id27">Fixed</a></li>
+<li><a class="reference internal" href="#id27">Changed</a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#id28">1.2.3 - 2026-06-08</a><ul>
+<li><a class="reference internal" href="#id28">1.2.4 - 2026-06-22</a><ul>
 <li><a class="reference internal" href="#id29">Added</a></li>
-<li><a class="reference internal" href="#id30">Changed</a></li>
+<li><a class="reference internal" href="#id30">Fixed</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#id31">1.2.3 - 2026-06-08</a><ul>
+<li><a class="reference internal" href="#id32">Added</a></li>
+<li><a class="reference internal" href="#id33">Changed</a></li>
 </ul>
 </li>
 <li><a class="reference internal" href="#internal-1-2-2-2026-03-26-not-publicly-released">[Internal] 1.2.2 - 2026-03-26 (Not publicly released)</a><ul>
-<li><a class="reference internal" href="#id31">Added</a></li>
-<li><a class="reference internal" href="#id32">Changed</a></li>
+<li><a class="reference internal" href="#id34">Added</a></li>
+<li><a class="reference internal" href="#id35">Changed</a></li>
 </ul>
 </li>
 <li><a class="reference internal" href="#internal-1-2-1-2025-12-18-not-publicly-released">[Internal] 1.2.1 - 2025-12-18 (Not publicly released)</a><ul>
-<li><a class="reference internal" href="#id33">Added</a></li>
-<li><a class="reference internal" href="#id34">Changed</a></li>
-<li><a class="reference internal" href="#id35">Fixed</a></li>
+<li><a class="reference internal" href="#id36">Added</a></li>
+<li><a class="reference internal" href="#id37">Changed</a></li>
+<li><a class="reference internal" href="#id38">Fixed</a></li>
 </ul>
 </li>
 <li><a class="reference internal" href="#internal-1-1-1-2025-11-21-not-publicly-released">[Internal] 1.1.1 - 2025-11-21 (Not publicly released)</a><ul>
 <li><a class="reference internal" href="#breaking-changes">Breaking Changes</a></li>
-<li><a class="reference internal" href="#id36">Added</a></li>
-<li><a class="reference internal" href="#id37">Changed</a></li>
+<li><a class="reference internal" href="#id39">Added</a></li>
+<li><a class="reference internal" href="#id40">Changed</a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#id38">0.0.6 - 2025-05-27</a><ul>
-<li><a class="reference internal" href="#id39">Added</a></li>
+<li><a class="reference internal" href="#id41">0.0.6 - 2025-05-27</a><ul>
+<li><a class="reference internal" href="#id42">Added</a></li>
 </ul>
 </li>
 </ul>
@@ -895,7 +920,7 @@ and this project adheres to <a class="reference external" href="https://semver.o
       
     </aside>
   </div>
-</div><script src="_static/documentation_options.js?v=9172181d"></script>
+</div><script src="_static/documentation_options.js?v=350a9c04"></script>
     <script src="_static/doctools.js?v=fd6eb6e6"></script>
     <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="_static/scripts/furo.js?v=46bd48cc"></script>

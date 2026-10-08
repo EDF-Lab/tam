@@ -7,7 +7,7 @@
         <link rel="prefetch" href="../../_static/logo.png" as="image">
 
     <!-- Generated with Sphinx 9.1.0 and Furo 2025.12.19 -->
-        <title>Distributional (Location-Scale) Models - TAM 1.4.0 documentation</title>
+        <title>Distributional (Location-Scale) Models - TAM 1.4.1 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=d111a655" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo-extensions.css?v=8dab3a3b" />
@@ -162,7 +162,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="../../index.html"><div class="brand">TAM 1.4.0 documentation</div></a>
+      <a href="../../index.html"><div class="brand">TAM 1.4.1 documentation</div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -186,7 +186,7 @@
     <img class="sidebar-logo" src="../../_static/logo.png" alt="Logo"/>
   </div>
   
-  <span class="sidebar-brand-text">TAM 1.4.0 documentation</span>
+  <span class="sidebar-brand-text">TAM 1.4.1 documentation</span>
   
 </a><form class="sidebar-search-container" method="get" action="../../search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
@@ -334,7 +334,8 @@
 <section id="the-two-stage-schedule">
 <h2>The two-stage schedule<a class="headerlink" href="#the-two-stage-schedule" title="Link to this heading">¶</a></h2>
 <ol class="arabic simple">
-<li><p><strong>Location.</strong> Fit <span class="math notranslate nohighlight">\(\mu(x)\)</span> with an L2 atom on the (log-)target <span class="math notranslate nohighlight">\(t=\log y\)</span>.</p></li>
+<li><p><strong>Location.</strong> Fit <span class="math notranslate nohighlight">\(\mu(x)\)</span> with an L2 atom on the (log-)target <span class="math notranslate nohighlight">\(t=\log y\)</span>. The log scale requires <span class="math notranslate nohighlight">\(y&gt;0\)</span>: <span class="math notranslate nohighlight">\(\log y\)</span> is undefined at and
+below zero, so a target taking such values is modelled on its own scale, <span class="math notranslate nohighlight">\(t=y\)</span>.</p></li>
 <li><p><strong>Scale.</strong> Read the squared residuals <span class="math notranslate nohighlight">\(r^2=(t-\hat\mu)^2\)</span> and fit <span class="math notranslate nohighlight">\(\sigma(x)\)</span> as a <strong>Gamma-GLM</strong> atom on <span class="math notranslate nohighlight">\(r^2\)</span> (or an L2 atom on <span class="math notranslate nohighlight">\(\log r^2\)</span> with a <span class="math notranslate nohighlight">\(\log\chi^2_1\)</span> bias correction).</p></li>
 </ol>
 </section>
@@ -345,6 +346,19 @@
 <div class="math notranslate nohighlight">
 \[ Q_\tau(x) = \exp\!\Big(\hat\mu(x) + \hat\sigma(x)\,F^{-1}(\tau)\Big). \]</div>
 </div>
+</section>
+<section id="monotone-target-transforms">
+<h2>Monotone target transforms<a class="headerlink" href="#monotone-target-transforms" title="Link to this heading">¶</a></h2>
+<p>The location-scale law can sit on a transformed target <span class="math notranslate nohighlight">\(t=g(y)\)</span> instead of the logarithm, for any strictly increasing <span class="math notranslate nohighlight">\(g\)</span>. Quantiles of <span class="math notranslate nohighlight">\(y\)</span> follow exactly, since a monotone map preserves order:</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[ Q_\tau^{(y)}(x) = g^{-1}\Big(\hat\mu(x) + \hat\sigma(x)\,F^{-1}(\tau)\Big). \]</div>
+</div>
+<p>Two maps cover the targets that the logarithm cannot take.</p>
+<ul class="simple">
+<li><p><strong>Real-valued, skewed, heavy-tailed targets with negative values</strong> (electricity prices, spikes and returns): the area hyperbolic sine <span class="math notranslate nohighlight">\(g(y)=\operatorname{arsinh}\big((y-c)/s\big)\)</span>, with the centre <span class="math notranslate nohighlight">\(c\)</span> the median and the scale <span class="math notranslate nohighlight">\(s\)</span> a robust spread of the training target. It behaves like the identity near <span class="math notranslate nohighlight">\(c\)</span> and like a logarithm in both tails, and it is the standard variance-stabilizing choice for electricity prices <span class="bibtex-citation" id="id2">[<a class="reference internal" href="../../bibliography.html#id124" title="Bartosz Uniejewski, Rafał Weron, and Florian Ziel. Variance stabilizing transformations for electricity spot price forecasting. IEEE Transactions on Power Systems, 33(2):2219–2229, 2018.">Uniejewski <em>et al.</em>, 2018</a>]</span>. With a Normal law on <span class="math notranslate nohighlight">\(t\)</span>, <span class="math notranslate nohighlight">\(y\)</span> follows the Johnson <span class="math notranslate nohighlight">\(S_U\)</span> family <span class="bibtex-citation" id="id3">[<a class="reference internal" href="../../bibliography.html#id125" title="Norman L. Johnson. Systems of frequency curves generated by methods of translation. Biometrika, 36(1/2):149–176, 1949.">Johnson, 1949</a>]</span>: skewed, with heavier tails than a Normal.</p></li>
+<li><p><strong>Targets bounded in an interval <span class="math notranslate nohighlight">\((a,b)\)</span></strong> (shares, humidity, capacity-capped power): the logit <span class="math notranslate nohighlight">\(g(y)=\log\big(u/(1-u)\big)\)</span> with <span class="math notranslate nohighlight">\(u=(y-a)/(b-a)\)</span>. Every quantile lies strictly inside <span class="math notranslate nohighlight">\((a,b)\)</span>, which a Normal law on the response scale cannot guarantee. A value exactly on a bound has an infinite logit and is moved inside by a tiny fraction of the interval.</p></li>
+</ul>
 <p>An optional convex <code class="docutils literal notranslate"><span class="pre">scale_shrinkage</span></code> <span class="math notranslate nohighlight">\(\lambda\in[0,1]\)</span> blends the conditional variance toward the global one. The probability integral transform <span class="math notranslate nohighlight">\(F\big((t-\hat\mu)/\hat\sigma\big)\)</span> gives the CDF, a two-sided anomaly score, and the CRPS (closed form for the Normal, else a Gauss-Legendre quantile integral).</p>
 </section>
 </section>
@@ -407,6 +421,7 @@
 <li><a class="reference internal" href="#">Distributional (Location-Scale) Models</a><ul>
 <li><a class="reference internal" href="#the-two-stage-schedule">The two-stage schedule</a></li>
 <li><a class="reference internal" href="#the-tail-law-and-quantiles">The tail law and quantiles</a></li>
+<li><a class="reference internal" href="#monotone-target-transforms">Monotone target transforms</a></li>
 </ul>
 </li>
 </ul>
@@ -418,7 +433,7 @@
       
     </aside>
   </div>
-</div><script src="../../_static/documentation_options.js?v=9172181d"></script>
+</div><script src="../../_static/documentation_options.js?v=350a9c04"></script>
     <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/scripts/furo.js?v=46bd48cc"></script>

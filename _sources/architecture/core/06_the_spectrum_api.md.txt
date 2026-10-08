@@ -65,6 +65,19 @@ The linear effect applies direct spatial scaling, and its penalty is a standard 
 :end-before: "#: </parse_fourier>"
 ```
 
+**Declared period.** `f(x, ..., period=...)` makes the feature normalised on the range of one cycle instead of the minimum and
+maximum of the training rows: `None` (default) keeps the training range, `'auto'` uses (first value, last value + one step), the
+step being the smallest gap between the distinct training values (resolved once on all training rows by `_resolve_fixed_ranges`,
+so every group and adaptive window shares it), and `(low, high)` is used as given (a history covering part of the cycle). This applies in `StaticTAM` and in every rolling window
+of `AdaptiveTAM` (`KalmanTAM` fits through a `StaticTAM`). Without it the training range is the period, as before: an integer-coded position
+has its last value glued onto its first (hours 0 to 23 give 23:00 = 0:00; use `period='auto'` or `(0, 24)`), and a history covering half a cycle is read as a whole cycle. `fixed_ranges` collects the declared periods (tensor products included) and
+`_fit_normalization_params` / `_transform_data_adaptive` apply them; two different periods for one feature raise. The default
+`extrapolate='continue'` lets an input beyond the period wrap around the cycle (`'constant'` would clamp it).
+```{literalinclude} ../../../../src/tam/model/spectrum/_factory.py
+:language: python
+:pyobject: fixed_ranges
+```
+
 **2. Feature Map**
 Evaluates batched trigonometric functions, dynamically scaling angular frequencies based on the `cyclic` boundary flag to prevent endpoint distortions.
 ```{literalinclude} ../../../../src/tam/model/spectrum/_fourier.py

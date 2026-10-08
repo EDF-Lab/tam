@@ -7,7 +7,7 @@
         <link rel="prefetch" href="../../_static/logo.png" as="image">
 
     <!-- Generated with Sphinx 9.1.0 and Furo 2025.12.19 -->
-        <title>Dynamic Tracking via Extended Kalman Filtering [BETA] - TAM 1.4.0 documentation</title>
+        <title>Dynamic Tracking via Extended Kalman Filtering [BETA] - TAM 1.4.1 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=d111a655" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo-extensions.css?v=8dab3a3b" />
@@ -162,7 +162,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="../../index.html"><div class="brand">TAM 1.4.0 documentation</div></a>
+      <a href="../../index.html"><div class="brand">TAM 1.4.1 documentation</div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -186,7 +186,7 @@
     <img class="sidebar-logo" src="../../_static/logo.png" alt="Logo"/>
   </div>
   
-  <span class="sidebar-brand-text">TAM 1.4.0 documentation</span>
+  <span class="sidebar-brand-text">TAM 1.4.1 documentation</span>
   
 </a><form class="sidebar-search-container" method="get" action="../../search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
@@ -357,6 +357,20 @@ The state after the last update forecasts the next, unseen steps exactly as the 
 </div>
 <p>All the <span class="math notranslate nohighlight">\(d_k\)</span> design columns of term <span class="math notranslate nohighlight">\(k\)</span> share its variance <span class="math notranslate nohighlight">\(q_k\)</span>. Variational Bayesian variance tracking <span class="bibtex-citation" id="id3">[<a class="reference internal" href="../../bibliography.html#id23" title="Joseph de Vilmarest and Olivier Wintenberger. Viking: variational bayesian variance tracking. Statistical Inference for Stochastic Processes, 27(3):839–860, 2024.">de Vilmarest and Wintenberger, 2024</a>]</span> estimates such variances dynamically, online; the variances of <code class="docutils literal notranslate"><span class="pre">KalmanTAM</span></code> stay static: set by the user or tuned offline on a calibration period. A variance of <span class="math notranslate nohighlight">\(0\)</span> lets the covariance of the term shrink with every observation, so the term follows a changing coefficient less and less. The variances are best chosen on a calibration period that ends before the period that is reported.</p>
 </section>
+<section id="predictive-variance-and-quantiles">
+<h2>Predictive variance and quantiles<a class="headerlink" href="#predictive-variance-and-quantiles" title="Link to this heading">¶</a></h2>
+<p>The covariance recursion of the filter does not depend on the observations: it is a function of the design rows <span class="math notranslate nohighlight">\(x_t\)</span>, the observation noise <span class="math notranslate nohighlight">\(R\)</span> and the process noise <span class="math notranslate nohighlight">\(Q\)</span>. Before the update at step <span class="math notranslate nohighlight">\(t\)</span>, the state has mean <span class="math notranslate nohighlight">\(\hat\theta_t\)</span> and covariance <span class="math notranslate nohighlight">\(P_t\)</span>, so the one-step forecast of the standardised target is Gaussian,</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[ y_t \mid y_{&lt;t} \sim \mathcal{N}\big(b_t + x_t^\top\hat\theta_t,\;\; x_t^\top P_t\,x_t + R\big), \]</div>
+</div>
+<p>with <span class="math notranslate nohighlight">\(b_t\)</span> the forecast of the base model. The quantile of level <span class="math notranslate nohighlight">\(\tau\)</span> follows from the standard Normal quantile <span class="math notranslate nohighlight">\(z_\tau\)</span> and is mapped back to the target scale by the reference scale <span class="math notranslate nohighlight">\(s\)</span> and centre <span class="math notranslate nohighlight">\(c\)</span>,</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[ Q_\tau(t) = c + s\Big(b_t + x_t^\top\hat\theta_t + z_\tau\sqrt{x_t^\top P_t\,x_t + R}\Big). \]</div>
+</div>
+<p>For a forecast made <span class="math notranslate nohighlight">\(h\)</span> steps ahead the state is the one from <span class="math notranslate nohighlight">\(h-1\)</span> steps earlier, which has not seen the last <span class="math notranslate nohighlight">\(h-1\)</span> observations; the random walk of the coefficients adds <span class="math notranslate nohighlight">\((h-1)Q\)</span> to its covariance, so the variance becomes <span class="math notranslate nohighlight">\(x_t^\top\big(P_{t-h+1} + (h-1)Q\big)x_t + R\)</span> and the intervals widen with the horizon. The intervals are calibrated exactly when the noise levels <span class="math notranslate nohighlight">\(R\)</span> and <span class="math notranslate nohighlight">\(Q\)</span> are the true ones and the model is linear and Gaussian; otherwise they inherit the misspecification of those two parameters.</p>
+</section>
 </section>
 
         </article>
@@ -417,6 +431,7 @@ The state after the last update forecasts the next, unseen steps exactly as the 
 <li><a class="reference internal" href="#">Dynamic Tracking via Extended Kalman Filtering [BETA]</a><ul>
 <li><a class="reference internal" href="#causal-scaling-and-update-step">Causal scaling and update step</a></li>
 <li><a class="reference internal" href="#process-noise-per-formula-term">Process noise per formula term</a></li>
+<li><a class="reference internal" href="#predictive-variance-and-quantiles">Predictive variance and quantiles</a></li>
 </ul>
 </li>
 </ul>
@@ -428,7 +443,7 @@ The state after the last update forecasts the next, unseen steps exactly as the 
       
     </aside>
   </div>
-</div><script src="../../_static/documentation_options.js?v=9172181d"></script>
+</div><script src="../../_static/documentation_options.js?v=350a9c04"></script>
     <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/scripts/furo.js?v=46bd48cc"></script>
