@@ -21,8 +21,8 @@ identifiers:
 
 
 repository-code: "https://github.com/EDF-Lab/tam"
-version: 1.4.0
-date-released: 2026-10-06
+version: 1.4.1
+date-released: 2026-10-08
 
 keywords:
   - "Python"

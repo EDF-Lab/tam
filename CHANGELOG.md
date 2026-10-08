@@ -15,7 +15,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > **[0.0.6]** corresponds to the legacy `weakl` package available on PyPI.
 
 ---
-## [Unreleased]
+## [1.4.1] - 2026-10-08
+
+Patch release for probabilistic forecasting: new methods and options only, plus one fix. Existing calls give the same forecasts; the only change of behaviour is that a distributional or mixture `StaticTAM` with the default log target now raises on a training target with values `<= 0` instead of returning a meaningless model (see "Fixed").
 
 - The `DCO` sign-off is required on every commit of a pull request (`DCO`, `CONTRIBUTING.md`, `docs/contributing/dco_howto.md`); a `REUSE` workflow runs `reuse lint` on each push and pull request.
 - The `pid()` page of `architecture/core/06_the_spectrum_api.md` says when `d_pen` acts and that the derivative is computed along the frame given to `predict()`; three tests pin `pid` behaviour.
@@ -322,7 +324,8 @@ This version introduced the Formula API and the first object-oriented refactorin
 ### Added
 * Initial project setup based on the original `weakl` v0.0.6 package.
 
-[Unreleased]: https://github.com/EDF-Lab/tam/compare/v1.4.0...HEAD
+[Unreleased]: https://github.com/EDF-Lab/tam/compare/v1.4.1...HEAD
+[1.4.1]: https://github.com/EDF-Lab/tam/releases/tag/v1.4.1
 [1.4.0]: https://github.com/EDF-Lab/tam/releases/tag/v1.4.0
 [1.3.4]: https://github.com/EDF-Lab/tam/releases/tag/v1.3.4
 [1.3.3]: https://github.com/EDF-Lab/tam/releases/tag/v1.3.3
