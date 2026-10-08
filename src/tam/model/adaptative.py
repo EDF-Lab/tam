@@ -35,6 +35,7 @@ from tam.common.hardware import hw
 from ._memory import get_safe_window_batch_size
 
 from ._data import (
+    _resolve_fixed_ranges,
     _transform_data_adaptive,
     _transform_data_stacked,
     _window_starts,
@@ -52,6 +53,7 @@ from .spectrum import (
     BaseEffect,
     create_effects_from_parsed_terms,
     categorical_ranges,
+    fixed_ranges,
     categorical_features,
     extrapolating_features,
     initialize_effects,
@@ -293,7 +295,8 @@ class AdaptiveTAM:
             steps_per_period=self.steps_per_period_,
             horizon_steps=self.horizon_steps_,
             date_col=self.date_col_,
-            categorical_levels=categorical_ranges(self.adaptive_model_.effects_list_)
+            categorical_levels=categorical_ranges(self.adaptive_model_.effects_list_),
+            fixed_ranges=_resolve_fixed_ranges(real_data, fixed_ranges(self.adaptive_model_.effects_list_))
         )
         # Data-dependent state (spline knots) comes from the training windows, never from a memory probe.
         initialize_effects(

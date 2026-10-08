@@ -28,6 +28,7 @@ from tam.common.exceptions import warn_extrapolation, EXTRAPOLATION_TOLERANCE
 from ._base import BaseTAM
 from .safety import SafetyTAM
 from ._data import (
+    _resolve_fixed_ranges,
     _fit_normalization_params,
     _transform_data_stacked,
     _groups_in_data,
@@ -48,6 +49,7 @@ from .spectrum import (
     create_effects_from_parsed_terms,
     initialize_effects,
     categorical_ranges,
+    fixed_ranges,
     categorical_features,
     extrapolating_features,
     build_phi_from_effects,
@@ -489,7 +491,8 @@ class StaticTAM(BaseTAM):
                 data=data, 
                 features=self.features_config_["features"], 
                 group_col=self.group_col_,
-                categorical_levels=categorical_ranges(self.effects_list_)
+                categorical_levels=categorical_ranges(self.effects_list_),
+                fixed_ranges=_resolve_fixed_ranges(data, fixed_ranges(self.effects_list_))
             )
             
         if target_col is not None:
@@ -959,8 +962,8 @@ class StaticTAM(BaseTAM):
             {
                 "Token": "f(x)", 
                 "Effect": "Fourier", 
-                "Syntax Example": "f(doy, m=6, s=1, cyclic=True)",
-                "Specific Params": "m (harmonics), s (smoothness), cyclic (bool)"
+                "Syntax Example": "f(hour, m=6, s=1, cyclic=True, period='auto')",
+                "Specific Params": "m (harmonics), s (smoothness), cyclic (bool), period (None: training range; 'auto': first to last value + one step; (low, high): given)"
             },
             {
                 "Token": "c(x)", 

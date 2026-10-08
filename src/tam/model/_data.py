@@ -28,7 +28,8 @@ def _fit_normalization_params(
     data: pd.DataFrame, 
     features: List[str], 
     group_col: str,
-    categorical_levels: Optional[Dict[str, int]] = None
+    categorical_levels: Optional[Dict[str, int]] = None,
+    fixed_ranges: Optional[Dict[str, Tuple[float, float]]] = None
 ) -> Tuple[Dict, List]:
     r"""
     Calculates the min/max normalization parameters for features, computed per group.
@@ -39,6 +40,8 @@ def _fit_normalization_params(
         group_col: The column name used to group the data.
         categorical_levels: ``{feature: n_cat}`` of the categorical features: their range is the full level range
             (``categorical_range``), whatever levels the training rows hold.
+        fixed_ranges: ``{feature: (low, high)}`` of the features read on a fixed domain (a cyclic Fourier term reads [-1, 1]):
+            that range is used whatever values the training rows hold.
 
     Returns:
         A tuple (norm_params, unique_groups):
@@ -63,8 +66,40 @@ def _fit_normalization_params(
                 column = grouped.get_group(group_name)[feature]
                 params['min'][feature], params['max'][feature] = categorical_range(
                     n_cat, params['min'][feature], params['max'][feature], bool((column.dropna() == np.round(column.dropna())).all()))
-        
+        for feature, (low, high) in (fixed_ranges or {}).items():
+            if feature in params['min'].index:
+                params['min'][feature], params['max'][feature] = float(low), float(high)
+
     return norm_params, unique_groups
+
+def _resolve_fixed_ranges(data: pd.DataFrame, ranges: Optional[Dict]) -> Dict[str, Tuple[float, float]]:
+    r"""
+    Turns the ``"auto"`` periods of ``fixed_ranges`` into ``(low, high)`` read from the training rows; given ranges pass through.
+
+    ``"auto"`` is (first value, last value + one step), the step being the smallest gap between the distinct values (rounded
+    to 10 decimals): hours 0..23 give (0, 24), months 1..12 give (1, 13), a time of year sampled once a day gives (0, 1).
+    It is computed once on all the rows given (all groups, the whole series), so every group and every window shares it.
+    A feature with a single distinct value keeps the min/max rule.
+
+    Args:
+        data: The training rows (or the whole series of an adaptive simulation).
+        ranges: ``{feature: (low, high) or "auto"}``.
+
+    Returns:
+        ``{feature: (low, high)}``.
+    """
+    resolved: Dict[str, Tuple[float, float]] = {}
+    for feature, value in (ranges or {}).items():
+        if value != "auto":
+            resolved[feature] = (float(value[0]), float(value[1]))
+            continue
+        if feature not in data.columns:
+            continue
+        distinct = np.unique(np.round(data[feature].dropna().to_numpy(dtype=float), 10))
+        if distinct.size < 2:
+            continue
+        resolved[feature] = (float(distinct[0]), float(distinct[-1] + np.min(np.diff(distinct))))
+    return resolved
 
 #: <normalize>
 def normalize(df_to_normalize: pd.DataFrame, params: dict) -> pd.DataFrame:
@@ -374,7 +409,8 @@ def _transform_data_adaptive(
     steps_per_period: int,
     horizon_steps: int = 1,
     date_col: Optional[str] = None,
-    categorical_levels: Optional[Dict[str, int]] = None
+    categorical_levels: Optional[Dict[str, int]] = None,
+    fixed_ranges: Optional[Dict[str, Tuple[float, float]]] = None
 ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, _AdaptiveWindows]:
     r"""
     Cuts the data into the windows of a rolling refit, and normalises each window on its own training rows.
@@ -395,6 +431,7 @@ def _transform_data_adaptive(
         steps_per_period: Rows of one group in a period.
         horizon_steps: Horizon of forecasting.
         categorical_levels: ``{feature: n_cat}`` of the categorical features: normalised on their full level range.
+        fixed_ranges: ``{feature: (low, high)}`` of the features read on a fixed domain: every window uses that range.
 
     Returns:
         (x_stacked, y_stacked, x_to_predict, windows): (n_groups, n_windows, L, F), (n_groups, n_windows, L, 1),
@@ -407,6 +444,7 @@ def _transform_data_adaptive(
     dtype = torch.get_default_dtype()
     n_features = len(features)
     categorical = categorical_levels or {}
+    fixed = fixed_ranges or {}
 
     x_all = data[features].to_numpy(dtype=np.float64)
     y_all = data[target_col].to_numpy(dtype=np.float64)
@@ -444,6 +482,8 @@ def _transform_data_adaptive(
                 start = torch.where(high[..., j] <= n_cat - 1, torch.zeros_like(low[..., j]), low[..., j])
                 low[..., j] = torch.where(integer, start, low[..., j])
                 high[..., j] = torch.where(integer, start + (n_cat - 1), high[..., j])
+            elif name in fixed:
+                low[..., j], high[..., j] = fixed[name]
         amplitude = high - low
         amplitude = torch.where(amplitude == 0, torch.ones_like(amplitude), amplitude)
         center = (high + low) / 2
