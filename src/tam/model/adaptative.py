@@ -19,7 +19,8 @@ This approach allows the system to adapt to short-term drifts and anomalies
 by mapping the base model's decomposed effects to its current error.
 """
 
-from typing import Dict, List, Any, Union, Tuple, Optional
+import re
+from typing import Dict, List, Any, Sequence, Union, Tuple, Optional
 import torch
 import pandas as pd
 import numpy as np
@@ -35,6 +36,7 @@ from tam.common.hardware import hw
 from ._memory import get_safe_window_batch_size
 
 from ._data import (
+    _resolve_fixed_ranges,
     _transform_data_adaptive,
     _transform_data_stacked,
     _window_starts,
@@ -52,6 +54,7 @@ from .spectrum import (
     BaseEffect,
     create_effects_from_parsed_terms,
     categorical_ranges,
+    fixed_ranges,
     categorical_features,
     extrapolating_features,
     initialize_effects,
@@ -116,6 +119,56 @@ def rolling_windows(
 
 
 #: <init_adaptive>
+_MODEL_TARGET = "__mu__"
+# A scale needs a few residuals: below this count the base scale stands (s = 1).
+_MIN_RESIDUALS_FOR_SCALE = 5
+
+
+#: <online_scale>
+def _online_scale(standardized: np.ndarray, group: np.ndarray, order: np.ndarray, window: int, interval: int, horizon: int) -> np.ndarray:
+    r"""
+    Rolling root mean square of the standardized residuals, one value per row, using past residuals only.
+
+    Rows of a group are taken in the order of ``order``. The first window forecasts the row ``window + horizon - 1`` (zero-based);
+    from there the scale is renewed every ``interval`` rows, at an origin ``o``, from the finite residuals of the rows
+    ``o - window ... o - horizon``. A row before the first origin, or whose origin has fewer than ``_MIN_RESIDUALS_FOR_SCALE``
+    finite residuals, gets 1.
+
+    Args:
+        standardized: ``(y - location) / sigma_base`` per row (NaN where unknown).
+        group: Group label per row.
+        order: Sort key within a group (the dates).
+        window: ``training_window_periods``.
+        interval: ``update_interval_periods``.
+        horizon: ``horizon_steps``.
+
+    Returns:
+        The scale per row, in the row order of the input.
+    """
+    scale = np.ones(len(standardized))
+    first = window + horizon - 1
+    frame = pd.DataFrame({"g": group, "o": order, "pos": np.arange(len(standardized))}).sort_values(["g", "o", "pos"], kind="stable")
+    for _, rows in frame.groupby("g", sort=False):
+        positions = rows["pos"].to_numpy()
+        residual = standardized[positions]
+        finite = np.isfinite(residual)
+        squares = np.where(finite, residual ** 2, 0.0)
+        cum_squares = np.concatenate([[0.0], np.cumsum(squares)])
+        cum_count = np.concatenate([[0], np.cumsum(finite)])
+        rank = np.arange(len(positions))
+        eligible = rank >= first
+        origin = first + ((rank - first) // interval) * interval
+        low = np.maximum(origin - window, 0)
+        high = origin - horizon + 1  # exclusive end of the rows known at the origin
+        usable = eligible & (high > low)
+        count = np.where(usable, cum_count[np.clip(high, 0, None)] - cum_count[low], 0)
+        total = np.where(usable, cum_squares[np.clip(high, 0, None)] - cum_squares[low], 0.0)
+        enough = usable & (count >= _MIN_RESIDUALS_FOR_SCALE)
+        scale[positions] = np.where(enough, np.sqrt(total / np.maximum(count, 1)), 1.0)
+    return scale
+#: </online_scale>
+
+
 class AdaptiveTAM:
     r"""
     Initializes the AdaptiveTAM model.
@@ -139,7 +192,8 @@ class AdaptiveTAM:
         Initializes the AdaptiveTAM model.
 
         Args:
-            base_model: A fitted StaticTAM model instance.
+            base_model: A fitted StaticTAM model instance. A fitted distributional StaticTAM (dict formula) is accepted: the correction is
+                fitted on its location on the model scale, and ``predict_quantiles`` rescales its scale online.
             adaptive_formula: Formula for the adaptive correction model.
                               Features must be columns produced by base_model.decompose_prediction()
                               (e.g., 'effect_temp').
@@ -161,6 +215,16 @@ class AdaptiveTAM:
         Raises:
             ValueError: If the base_model has not been fitted.
         """
+        self.distributional_base_ = None
+        if base_model is not None and getattr(base_model, '_mode_', 'plain') == 'distributional':
+            # The correction is fitted on the model scale of the location sub-model (target ``__mu__``); the scale of the
+            # distributional base is kept for ``predict_quantiles``.
+            if getattr(base_model, '_location_submodel_', None) is None:
+                raise ValueError("The base_model must be fitted before initializing AdaptiveTAM.")
+            self.distributional_base_ = base_model
+            adaptive_formula = re.sub(rf"\bResidual{re.escape(base_model.target_col_)}\b", f"Residual{_MODEL_TARGET}", adaptive_formula)
+            base_model = base_model._location_submodel_
+
         if base_model is not None and getattr(base_model, 'coefficients_', None) is None:
             raise ValueError("The base_model must be fitted before initializing AdaptiveTAM.")
         
@@ -217,6 +281,15 @@ class AdaptiveTAM:
 #: </init_adaptive>
 
 #: <prepare_sim>
+    def _with_model_target(self, data: pd.DataFrame) -> pd.DataFrame:
+        r"""Adds the model-scale target column of a distributional base (``__mu__``) when ``data`` holds the target."""
+        base = self.distributional_base_
+        if base is None or base.target_col_ not in data.columns:
+            return data
+        data = data.copy()
+        data[_MODEL_TARGET] = base._to_model_scale(data[base.target_col_].to_numpy())
+        return data
+
     def prepare_simulation(self, data: pd.DataFrame) -> 'AdaptiveTAM':
         r"""
         Prepares tensors for the adaptive sliding-window simulation.
@@ -233,6 +306,7 @@ class AdaptiveTAM:
             self: The instance with populated ``simulation_data_``.
         """
         
+        data = self._with_model_target(data)
         if self.base_model_ is not None:
             data_bm = self.base_model_.decompose_prediction(data) 
             data_pred = self.base_model_.predict(data)
@@ -293,7 +367,8 @@ class AdaptiveTAM:
             steps_per_period=self.steps_per_period_,
             horizon_steps=self.horizon_steps_,
             date_col=self.date_col_,
-            categorical_levels=categorical_ranges(self.adaptive_model_.effects_list_)
+            categorical_levels=categorical_ranges(self.adaptive_model_.effects_list_),
+            fixed_ranges=_resolve_fixed_ranges(real_data, fixed_ranges(self.adaptive_model_.effects_list_))
         )
         # Data-dependent state (spline knots) comes from the training windows, never from a memory probe.
         initialize_effects(
@@ -549,6 +624,58 @@ class AdaptiveTAM:
         self._free_simulation()
         return self.predictions_
 
+#: <adaptive_quantiles>
+    def predict_quantiles(self, data: pd.DataFrame, taus: Sequence[float] = (0.05, 0.5, 0.95)) -> pd.DataFrame:
+        r"""
+        Online quantile forecasts of a distributional base, the probabilistic counterpart of ``predict_online``.
+
+        The adaptive correction moves the location; the scale of the base is kept and rescaled online. At each update of a
+        group, ``s_t`` is the root mean square of the standardized residuals ``(y - adapted location) / sigma_base`` of the
+        last ``training_window_periods`` rows that are at least ``horizon_steps`` old, and the quantile of level ``tau`` is
+        ``g^-1(adapted location + s_t * sigma_base * z_tau)`` with ``z_tau`` from the tail family of the base and ``g`` its
+        target transform. A row before the first window, or without a usable residual, keeps the base scale (``s_t = 1``).
+        Only past residuals enter ``s_t``: changing a later ``y`` leaves earlier quantiles unchanged.
+
+        Like ``predict_online``, ``data`` must hold the target (a backtest over history); the state of the model is
+        refitted on it.
+
+        Args:
+            data: The rows to forecast, with the target.
+            taus: Quantile levels in (0, 1).
+
+        Returns:
+            A DataFrame with one ``q<tau>`` column per level, on the rows of ``predict_online(data)``.
+
+        Raises:
+            ValueError: If the base model is not a distributional StaticTAM, or a level is outside (0, 1).
+        """
+        base = self.distributional_base_
+        if base is None:
+            raise ValueError("predict_quantiles needs a distributional StaticTAM as base_model (a dict formula, such as "
+                             "{'mu': 'y ~ s(x)', 'sigma': '~ s(x)'}); a plain base has no scale to rescale.")
+        levels = [float(tau) for tau in taus]
+        if any(not 0.0 < tau < 1.0 for tau in levels):
+            raise ValueError(f"taus must lie in (0, 1); got {list(taus)!r}")
+
+        from .statistics.estimation import _distributional
+
+        frame = self.predict_online(data)
+        location = frame[f"AdaptedEstimated{_MODEL_TARGET}"].to_numpy(dtype=float)
+        observed = frame[_MODEL_TARGET].to_numpy(dtype=float)
+        mu_base, sigma_base = base._mu_sigma(frame)
+        standardized = (observed - location) / sigma_base
+        group = frame[self.group_col_].to_numpy() if self.group_col_ in frame.columns else np.zeros(len(frame))
+        order_key = frame[self.date_col_] if self.date_col_ in frame.columns else pd.Series(np.arange(len(frame)), index=frame.index)
+        scale = _online_scale(standardized, group, order_key.to_numpy(), self.training_window_periods_,
+                              self.update_interval_periods_, self.horizon_steps_)
+        columns = {
+            f"q{tau}": base._from_model_scale(location + scale * sigma_base * _distributional._standardized_ppf(base, tau),
+                                              f"the quantile at level {tau} (predict_quantiles)")
+            for tau in levels
+        }
+        return pd.DataFrame(columns, index=frame.index)
+#: </adaptive_quantiles>
+
     def fit(self, data: pd.DataFrame) -> 'AdaptiveTAM':
         r"""
         Fits the adaptive model by solving the regularized linear system
@@ -588,6 +715,7 @@ class AdaptiveTAM:
             raise RuntimeError("Call fit() first to train the final adaptive state.")
 
         # --- 1. Base Model Extraction ---
+        df = self._with_model_target(df)
         if self.base_model_ is not None:
             data_bm = self.base_model_.decompose_prediction(df)
             data_pred = self.base_model_.predict(df)

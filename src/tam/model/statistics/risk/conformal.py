@@ -11,7 +11,7 @@ conformalized quantile-regression (CQR) intervals, a conformal p-value anomaly s
 calibration, and Adaptive Conformal Inference for streaming coverage under drift.
 
 It duck-types the model, needing only predict_quantile / anomaly_score / _mu_sigma / _to_model_scale /
-target_col_ / _log_target_ - the surface any distributional StaticTAM exposes. The conformal mechanics (the
+target_col_ / _from_model_scale - the surface any distributional StaticTAM exposes. The conformal mechanics (the
 finite-sample quantile, the p-value, the ACI level update) are delegated to the static SafetyTAM and the
 streaming aci module; this class only computes the model-specific nonconformity scores (a studentized
 residual and the CQR score) and assembles the outputs. One source of truth for conformal.
@@ -117,8 +117,8 @@ class ConformalDistributionalTAM:
             lower = mu_hat[position] - sigma_hat[position] * radius
             upper = mu_hat[position] + sigma_hat[position] * radius
             inside = lower <= observed[position] <= upper
-            lowers.append(np.exp(lower) if self.model._log_target_ else lower)
-            uppers.append(np.exp(upper) if self.model._log_target_ else upper)
+            lowers.append(float(self.model._from_model_scale(np.array([lower]), "the lower bound")[0]))
+            uppers.append(float(self.model._from_model_scale(np.array([upper]), "the upper bound")[0]))
             levels.append(alpha_t)
             alpha_t = update_risk_level(alpha_t, 0.0 if inside else 1.0, self.alpha, gamma)
         return pd.DataFrame({"lower": lowers, "upper": uppers, "alpha_t": levels}, index=ordered_data.index)

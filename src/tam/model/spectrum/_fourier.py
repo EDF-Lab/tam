@@ -9,6 +9,8 @@ r"""Implements the Fourier effect with Sobolev regularization.
 Projects data onto a truncated Fourier basis.
 """
 
+from typing import Optional, Tuple, Union
+
 import torch
 import numpy as np
 from tam.common.utils import TORCH_DEVICE
@@ -23,15 +25,29 @@ class FourierEffect(BaseEffect):
     If cyclic=True, it enforces a strict periodic boundary.
     """
 
-    def __init__(self, feature_name: str, m: int, s: int, lambda_p: float, cyclic: bool, extrapolate: str):
+    def __init__(self, feature_name: str, m: int, s: int, lambda_p: float, cyclic: bool, extrapolate: str,
+                 period: Optional[Union[str, Tuple[float, float]]] = None):
+        """
+        Args:
+            period: The range of the input that makes one period. ``None`` (default): the training range (minimum, maximum),
+                as before. ``"auto"``: (first value, last value + one step), the step being the smallest gap between the
+                distinct training values, so hours 0..23 give (0, 24) and months 1..12 give (1, 13). ``(low, high)``: given,
+                for a history that covers only part of the cycle (``(0, 1)`` for a time of year).
+        """
         if m <= 0 or s < 0:
             raise ValueError(f"Invalid params for FourierEffect: m={m}, s={s}")
-            
+        if isinstance(period, str):
+            if period != "auto":
+                raise ValueError(f"FourierEffect period must be None, 'auto' or (low, high); got {period!r}")
+        elif period is not None and not float(period[0]) < float(period[1]):
+            raise ValueError(f"FourierEffect period must be (low, high) with low < high; got {period}")
+
         super().__init__(feature_name, "fourier", lambda_p, extrapolate)
-        
+
         self.m = int(m)
         self.s = int(s)
         self.cyclic = cyclic
+        self.period = period if period is None or isinstance(period, str) else (float(period[0]), float(period[1]))
 
     def get_n_coeffs(self) -> int:
         return 2 * self.m

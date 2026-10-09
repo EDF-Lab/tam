@@ -24,6 +24,18 @@ Crucially, it manages disaster recovery via the `handle_oom` method. When an ope
 
 ---
 
+## Limiting the CPU threads
+
+To share a machine between several fits (a benchmark, an AutoTAM search run in parallel), limit the threads **through the environment, before Python starts**:
+
+```bash
+OMP_NUM_THREADS=2 MKL_NUM_THREADS=2 python my_script.py
+```
+
+On Windows PowerShell: `$env:OMP_NUM_THREADS=2; $env:MKL_NUM_THREADS=2; python my_script.py`. `torch.get_num_threads()` then returns 2 (`tests/test_thread_limits.py` runs a grouped fit this way in a fresh process).
+
+**Known issue on one build.** With the PyTorch 2.14.0 CPU wheel on Windows (Intel oneMKL 2026.1), calling `torch.set_num_threads(n)` with `n >= 2` made every later batched LU factorisation of matrices of a few hundred rows (`torch.linalg.solve`, `lu_factor`, `inv`, which the grouped solves use) print `Intel oneMKL ERROR: Parameter 6 was incorrect on entry to DLASWP` and hang. It reproduces with PyTorch alone, without `tam`, so it is not specific to this library (Cholesky factorisations, unbatched solves and `n = 1` were not affected). Other platforms and builds were not tested. If a fit prints that message on your setup, remove the `torch.set_num_threads` call and use the environment variables above.
+
 ## The Memory Oracle and Safe Chunking
 
 To proactively avoid invoking the OOM handler, the framework utilizes `_memory.py` as an advanced predictive oracle. 

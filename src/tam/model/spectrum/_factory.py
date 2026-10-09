@@ -103,7 +103,8 @@ def create_effects_from_parsed_terms(
             cyclic_raw = params_resolved.get('cyclic', 'False')
             is_cyclic = str(cyclic_raw).strip().lower() in ['true', '1', 't', 'y', 'yes']
             extrap_val = params_resolved.get('extrapolate', 'continue')
-            effects_list.append(FourierEffect(feature_name, m, s, lambda_p, is_cyclic, extrap_val))
+            period = _parse_period(params_resolved.get('period'), feature_name)
+            effects_list.append(FourierEffect(feature_name, m, s, lambda_p, is_cyclic, extrap_val, period=period))
         #: </parse_fourier>
             
         #: <parse_spline>
@@ -353,6 +354,64 @@ def categorical_ranges(effects_list: List[BaseEffect]) -> Dict[str, int]:
     for effect in effects_list:
         visit(effect)
     return {name: int(next(iter(n))) for name, n in levels.items() if name not in other and len(n) == 1}
+
+
+def _parse_period(raw, feature_name: str):
+    """The ``period`` argument of ``f()``: None when absent, ``"auto"``, or ``(low, high)`` (a tuple or the formula text ``"(0, 1)"``)."""
+    if raw is None:
+        return None
+    if isinstance(raw, str) and raw.strip().strip("'\"").lower() == "auto":
+        return "auto"
+    if isinstance(raw, (tuple, list)):
+        values = list(raw)
+    else:
+        values = [v for v in str(raw).strip().strip("()[]").split(",") if v.strip()]
+    try:
+        low, high = (float(v) for v in values)
+    except (TypeError, ValueError):
+        raise ValueError(f"Invalid 'period' for f({feature_name}): {raw!r}; expected 'auto' or two numbers, e.g. period=(0, 1).")
+    return low, high
+
+
+def fixed_ranges(effects_list: List[BaseEffect]) -> Dict[str, tuple]:
+    """
+    ``{feature: (low, high) or "auto"}`` for the features read by a Fourier effect with a ``period`` (``f(x, cyclic=True, period=(0, 1))``).
+
+    Every feature is normalised to [-1, 1] with the minimum and maximum of its training rows, and a cyclic term takes [-1, 1] as
+    one period: a history covering half a cycle (January to June of a time of year in [0, 1]) would be read as a whole cycle and
+    the forecast of July would start the cycle again. A declared period is the range the feature is normalised on instead, so the
+    history is read as the part of the cycle it covers. ``"auto"`` is resolved on the training rows by ``_resolve_fixed_ranges``
+    (first value, last value + one step). Without ``period`` nothing changes. The declared range also applies to
+    the other non-categorical effects reading the feature (an affine rescaling for them); a feature also read by a categorical
+    effect keeps the categorical rule.
+
+    Args:
+        effects_list: The effects of a model, tensor products included.
+
+    Returns:
+        The features to normalise on a declared range, with that range.
+
+    Raises:
+        ValueError: If two Fourier effects declare different periods for the same feature.
+    """
+    periods: Dict[str, tuple] = {}
+    categorical: set = set()
+
+    def visit(effect) -> None:
+        if isinstance(effect, TensorProductEffect):
+            for sub in effect.effects:
+                visit(sub)
+            return
+        if isinstance(effect, CategoricalEffect):
+            categorical.add(effect.feature_name)
+        elif isinstance(effect, FourierEffect) and getattr(effect, 'period', None) is not None:
+            known = periods.setdefault(effect.feature_name, effect.period)
+            if known != effect.period:
+                raise ValueError(f"Two periods declared for '{effect.feature_name}': {known} and {effect.period}.")
+
+    for effect in effects_list:
+        visit(effect)
+    return {name: rng for name, rng in sorted(periods.items()) if name not in categorical}
 
 
 def categorical_range(n_cat: int, low: float, high: float, integer_codes: bool = True) -> tuple:

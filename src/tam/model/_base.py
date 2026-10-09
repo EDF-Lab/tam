@@ -24,6 +24,9 @@ from ._math import _predict_from_coeffs
 from ._data import _reassemble_predictions, _check_known_groups, _coefficients_of_groups
 from ._dispatcher import smart_solve
 
+# Outer refits of the means when a family estimates a dispersion (negative binomial): it converges in a few.
+_DISPERSION_REFITS = 10
+
 #: <class_def>
 class BaseTAM(ABC):
     r"""
@@ -247,12 +250,23 @@ class BaseTAM(ABC):
         if reweighting_strategy is None:
             self.coefficients_ = self._solve_pwls_step(x_train, y_train, weights=None)
         else:
-            from .statistics.estimation._reweighting import reweighted_penalized_fit
-            self.coefficients_ = reweighted_penalized_fit(
-                self, x_train, y_train, reweighting_strategy,
-                max_iter=getattr(self, "_irls_max_iter_", 25),
-                tol=getattr(self, "_irls_tol_", 1e-6),
-            )
+            from .statistics.estimation._reweighting import reweighted_penalized_fit, _linear_predictor
+            validate = getattr(reweighting_strategy, "validate_target", None)
+            if validate is not None:
+                validate(y_train)
+            irls = dict(max_iter=getattr(self, "_irls_max_iter_", 25), tol=getattr(self, "_irls_tol_", 1e-6))
+            self.coefficients_ = reweighted_penalized_fit(self, x_train, y_train, reweighting_strategy, **irls)
+            # A family with a dispersion (negative binomial, Tweedie) estimates it from the fitted means and refits the means
+            # with the new variance until it stops moving.
+            estimate = getattr(reweighting_strategy, "estimate_dispersion", None)
+            if estimate is not None:
+                y_fit = y_train.to(torch.get_default_dtype())
+                for _ in range(_DISPERSION_REFITS):
+                    mean = reweighting_strategy.inverse_link(_linear_predictor(self, x_train, self.coefficients_))
+                    if not estimate(y_fit, mean):
+                        break
+                    self.coefficients_ = reweighted_penalized_fit(self, x_train, y_train, reweighting_strategy, **irls)
+        self.dispersion_ = getattr(reweighting_strategy, "dispersion", None)
 
         return self
 #: </fit_method>

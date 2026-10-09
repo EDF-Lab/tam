@@ -1819,7 +1819,7 @@
 15_losses.student_t_nu10.q75 = 56478.5
 15_losses.student_t_nu10.rmse = 1206.01
 15_losses.student_t_nu10.std = 10248.6
-15_losses.unknown_loss.message = Unknown loss 'no_such_loss'. Supported: l2/gaussian, gamma, poisson, b
+15_losses.unknown_loss.message = Unknown loss 'no_such_loss'. Supported: l2/gaussian, gamma, poisson, n
 16_distributional.anomaly.anomaly_score.bias = 1.11479
 16_distributional.anomaly.anomaly_score.max = 20.5691
 16_distributional.anomaly.anomaly_score.mean = 1.11479
@@ -2725,7 +2725,7 @@
 29_errors.model.predict_before_fit = RuntimeError: Model must be fitted before prediction.
 29_errors.model.quantiles_on_a_point_model = RuntimeError: predict_quantiles() is only available on a distributional StaticTAM (a dict formula such a
 29_errors.model.unknown_group_at_predict = ValueError: TAM [Data Error]: group(s) [np.int64(99)] of column 'hour' were not seen in training; the
-29_errors.model.unknown_loss = ValueError: Unknown loss 'no_such_loss'. Supported: l2/gaussian, gamma, poisson, binomial, expectile,
+29_errors.model.unknown_loss = ValueError: Unknown loss 'no_such_loss'. Supported: l2/gaussian, gamma, poisson, negative_binomial, tw
 29_errors.opera.no_expert = ValueError: No valid experts found. Ensure syntax uses 'l(expert_name)'.
 29_errors.opera.unknown_algorithm = ValueError: Algorithm must be 'EWA' or 'MLPOL'.
 30_warnings.adaptive_in_range.classes = TAMExtrapolationWarning
