@@ -22,6 +22,29 @@ from .context import PipelineContext
 from tam.model.opera import OperaTAM
 #: </ensemble_selector_imports>
 
+#: <ensemble_selector_sparse_weights>
+def sparse_league_weights(final_weights: Dict[str, float], threshold: float) -> Dict[str, float]:
+    """Members of a league kept for frozen inference: those whose final weight reaches the sparsity threshold.
+
+    The weights of a league sum to one, so a league of several hundred members (the Apex league aggregates the
+    whole dynamic pool) has no weight above an absolute threshold such as 0.01, and the league would keep nothing.
+    When no member reaches the threshold, the members at or above their uniform share ``1 / n`` are kept instead:
+    at least one member always qualifies.
+
+    Args:
+        final_weights: Final weight of each member, by expert name.
+        threshold: Minimum weight that keeps a member (``ensemble_sparsity_threshold``).
+
+    Returns:
+        The kept members and their weights (empty only when ``final_weights`` is empty).
+    """
+    kept = {name: w for name, w in final_weights.items() if w >= threshold}
+    if kept or not final_weights:
+        return kept
+    uniform = (1.0 - 1e-12) / len(final_weights)
+    return {name: w for name, w in final_weights.items() if w >= uniform}
+#: </ensemble_selector_sparse_weights>
+
 #: <ensemble_selector_class>
 class EnsembleSelector:
     """Selects best Island representations and aggregates them via OPERA Minimax."""
@@ -227,8 +250,8 @@ class EnsembleSelector:
                                          "Expert names are written into a formula: keep letters, digits and underscores only.")
                     w_series = res[f"weight_{e}"]
                     ensemble_pred += df_p[e].values * w_series.values
-                    if w_series.iloc[-1] >= self.ensemble_sparsity_threshold: 
-                        weights[e] = w_series.iloc[-1]
+                    weights[e] = w_series.iloc[-1]
+                weights = sparse_league_weights(weights, self.ensemble_sparsity_threshold)
                 
                 df_p[league_name] = ensemble_pred
                 y_t = df_p[ctx.target].values
@@ -306,8 +329,8 @@ class EnsembleSelector:
             self.apex_members_ = top_apex_names
             if len(top_apex_names) > 1:
                 print(f"Apex: predict_online() aggregates all {len(top_apex_names)} pool members; frozen predict() "
-                      f"averages the {len(weights_top10)} weighted >= {self.ensemble_sparsity_threshold:g} "
-                      f"at the end of validation.")
+                      f"averages the {len(weights_top10)} kept by the sparsity rule (final weight >= "
+                      f"{self.ensemble_sparsity_threshold:g}, or >= 1/n when none reaches it).")
         else:
             trained_experts = [best_expert_global] if best_expert_global else []
 

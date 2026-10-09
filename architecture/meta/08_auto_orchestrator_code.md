@@ -197,6 +197,15 @@ The ensemble stage writes every expert name into a formula and reads its weight 
 
 The final layer deploys the `OperaTAM` MLpol algorithm via the `EnsembleSelector`. Instead of selecting a single model, it constructs specialized sub-leagues (Static, Kalman, Adaptive, Island Federation, and the global Apex Ensemble), weighting predictions sequentially via cumulative regret bounds.
 
+Frozen inference keeps the members of a league whose final weight reaches `ensemble_sparsity_threshold`. The weights of a league sum to one, so the Apex league, which aggregates the whole dynamic pool (several hundred members), can have no weight above the absolute threshold; the members at or above their uniform share `1/n` are then kept, so a league never ends empty:
+
+```{literalinclude} ../../../../src/tam/model/autotam/pipeline/ensemble_selector.py
+:language: python
+:start-after: "#: <ensemble_selector_sparse_weights>"
+:end-before: "#: </ensemble_selector_sparse_weights>"
+:caption: src/tam/model/autotam/pipeline/ensemble_selector.py (Sparse League Weights)
+```
+
 ```{literalinclude} ../../../../src/tam/model/autotam/pipeline/ensemble_selector.py
 :language: python
 :start-after: "#: <evaluate_and_refit>"

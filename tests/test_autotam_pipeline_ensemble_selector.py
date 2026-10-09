@@ -13,7 +13,7 @@ calculator and the Apex quality filter.
 
 import numpy as np
 import pytest
-from tam.model.autotam.pipeline.ensemble_selector import EnsembleSelector
+from tam.model.autotam.pipeline.ensemble_selector import EnsembleSelector, sparse_league_weights
 
 
 def _sel() -> EnsembleSelector:
@@ -144,4 +144,36 @@ def test_get_expert_predictions_overlapping_index_alignment():
 
     # The model fits y = 2*x perfectly, so error on df_val should be near 0.
     assert np.isclose(rmse, 0.0, atol=1e-3)
+
+
+# --------------------------------------------------------------------------- #
+# Sparsity of a league: a league of hundreds of members must keep some members
+# --------------------------------------------------------------------------- #
+
+def test_sparse_league_weights_keeps_the_weights_above_the_threshold_as_before():
+    weights = {"a": 0.6, "b": 0.3, "c": 0.095, "d": 0.005}
+    assert sparse_league_weights(weights, 0.01) == {"a": 0.6, "b": 0.3, "c": 0.095}
+
+
+def test_sparse_league_weights_of_a_very_large_league_is_not_empty():
+    """478 members share a mass of 1: no weight reaches 0.01, and the final model used to be lost."""
+    rng = np.random.default_rng(0)
+    raw = rng.uniform(0.5, 1.5, 478)
+    weights = {f"e{i}": float(w) for i, w in enumerate(raw / raw.sum())}
+    assert max(weights.values()) < 0.01
+
+    kept = sparse_league_weights(weights, 0.01)
+
+    assert kept
+    assert all(w >= 1.0 / 478 for w in kept.values())
+    assert set(kept) == {name for name, w in weights.items() if w >= 1.0 / 478}
+
+
+def test_sparse_league_weights_is_never_empty_even_when_all_weights_are_equal():
+    weights = {f"e{i}": 1.0 / 300 for i in range(300)}
+    assert len(sparse_league_weights(weights, 0.01)) == 300
+
+
+def test_sparse_league_weights_of_no_expert_is_empty():
+    assert sparse_league_weights({}, 0.01) == {}
 
