@@ -12,13 +12,14 @@ a complete AutoTAM search run (per the NEWTODO.md guardrail).
 """
 
 import logging
+import re
 
 import numpy as np
 import pandas as pd
 import pytest
 
 from tam.model.autotam.auto_tam import AutoTAM
-from tam.model.autotam.pipeline.expert_expander import ExpertExpander, kalman_formula_from_effects
+from tam.model.autotam.pipeline.expert_expander import ExpertExpander, kalman_expert_name, kalman_formula_from_effects
 from tam.model.additive import StaticTAM
 from tam.model.kalman import KalmanTAM
 from tam.model.autotam.pipeline.context import PipelineContext
@@ -260,3 +261,45 @@ def test_the_search_builds_kalman_experts(tmp_path, monkeypatch):
 
     kalman_candidates = [e for e in search.chronological_test_log if e.get("Model_Type") == "KalmanTAM"]
     assert kalman_candidates, "no KalmanTAM candidate was built by the search"
+
+
+# --------------------------------------------------------------------------- #
+# Kalman experts: names that survive a formula
+# --------------------------------------------------------------------------- #
+
+@pytest.mark.parametrize("rate", [0, 1e-9, 8.860187530517578e-05, 4.76393610239029e-06, 0.001, 2.5, 120.0, 1e16])
+def test_kalman_expert_name_is_a_plain_identifier(rate):
+    assert re.fullmatch(r"[A-Za-z0-9_]+", kalman_expert_name(rate, "ChebyshevIsland_R1"))
+
+
+def test_kalman_expert_name_keeps_the_names_that_were_already_safe():
+    assert kalman_expert_name(0.001, "Island_R1") == "Kalman_0_001_Island_R1"
+    assert kalman_expert_name(0, "Island_R1") == "Kalman_0_Island_R1"
+
+
+def test_kalman_expert_names_of_different_rates_differ():
+    rates = [0, 1e-9, 1e-7, 1e-5, 1e-3, 0.1, 10.0]
+    assert len({kalman_expert_name(r, "I") for r in rates}) == len(rates)
+
+
+@pytest.mark.filterwarnings("ignore::DeprecationWarning")
+def test_the_search_keeps_kalman_experts_with_a_tiny_noise_in_the_final_models(tmp_path, monkeypatch):
+    """A rate written as 8.9e-05 used to put a minus sign in the expert name: the Opera formula read it as a subtraction,
+    the weight of the expert was never returned, and the final model was lost."""
+    monkeypatch.chdir(tmp_path)
+    rng = np.random.default_rng(42)
+    n = 100
+    frame = pd.DataFrame({
+        "ds": pd.date_range("2023-01-01", periods=n, freq="D"),
+        "load": rng.normal(1.0, 0.1, n),
+        "temp": rng.normal(20, 5, n),
+        "humidity": rng.uniform(30, 90, n),
+    })
+    search = AutoTAM("load ~ AutoPipe(temp, humidity)", n_experts=1, pop_size=4, use_opera=True)
+    search.fit(frame, date_col="ds",
+               expansions={"prior": True, "autofit": False, "kalman": True, "adaptive": False, "grid": False})
+
+    names = [e["Model_Name"] for e in search.chronological_test_log if e.get("Model_Type") == "KalmanTAM"]
+    assert names and all(re.fullmatch(r"[A-Za-z0-9_]+", name) for name in names)
+    assert any(re.search(r"e_\d\d", name) for name in names), "no tiny noise rate was tried: the test does not cover the case"
+    assert "AutoTAM_Apex_Ensemble" in search.predict(frame).columns

@@ -222,6 +222,9 @@ class EnsembleSelector:
                 
                 ensemble_pred, weights = np.zeros(len(df_p)), {}
                 for e in valid_models:
+                    if f"weight_{e}" not in res.columns:
+                        raise ValueError(f"The aggregation {league_name} returned no weight for the expert '{e}' (formula: {form}). "
+                                         "Expert names are written into a formula: keep letters, digits and underscores only.")
                     w_series = res[f"weight_{e}"]
                     ensemble_pred += df_p[e].values * w_series.values
                     if w_series.iloc[-1] >= self.ensemble_sparsity_threshold: 

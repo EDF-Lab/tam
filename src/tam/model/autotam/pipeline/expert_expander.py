@@ -47,6 +47,24 @@ def kalman_formula_from_effects(target: str, effect_columns: List[str]) -> str:
     return f"{target} ~ " + " + ".join(f"l({column})" for column in effect_columns)
 #: </expert_expander_kalman_formula>
 
+#: <expert_expander_kalman_name>
+def kalman_expert_name(process_noise_var: float, prefix: str) -> str:
+    """Name of the Kalman expert of one process-noise rate, safe inside a formula.
+
+    The ensemble stage writes every expert into a formula (``y ~ l(<name>) + ...``) and reads its weight back by that name.
+    A ``-`` (the exponent of ``8.9e-05``) or a ``+`` would be read as an operator and the weight of the expert would be lost,
+    so every character that is not a letter or a digit becomes an underscore. A name that was already safe is unchanged.
+
+    Args:
+        process_noise_var: The process-noise variance of the expert.
+        prefix: The island and rank the base formula comes from.
+
+    Returns:
+        The name, for example ``Kalman_0_001_Island_R1`` or ``Kalman_8_86e_05_Island_R1``.
+    """
+    return f"Kalman_{re.sub(r'[^0-9A-Za-z]', '_', str(process_noise_var))}_{prefix}"
+#: </expert_expander_kalman_name>
+
 #: <expert_expander_class>
 class ExpertExpander:
     """Expands every island's top formulas into full static and dynamic state-spaces."""
@@ -250,7 +268,7 @@ class ExpertExpander:
                                         "observation_noise_var": obs_noise, 
                                         "P_init_diag": p_init
                                     }
-                                    name_kalman = f"Kalman_{str(rate).replace('.', '_')}_{prefix}"
+                                    name_kalman = kalman_expert_name(rate, prefix)
                                     candidate_pool[name_kalman] = {"type": "kalman", "model": kalman, "params": params, "island": island_name, "dynamic_formula": dynamic_formula, "cv_rmse": best_static_cv}
                                     self._log_test(test_log, name_kalman, "KalmanTAM", dynamic_formula, str(params), best_static_cv, pen_score, comp)
                                 except Exception: 

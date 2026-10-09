@@ -175,6 +175,15 @@ The state of a Kalman expert holds one coefficient per effect of its base model,
 :caption: src/tam/model/autotam/pipeline/expert_expander.py (Kalman State Formula)
 ```
 
+The ensemble stage writes every expert name into a formula and reads its weight back by that name, so a name holds letters, digits and underscores only. The process-noise rate that distinguishes the Kalman experts is written into the name (`8.9e-05` becomes `8_9e_05`); a `-` or a `+` would be read as an operator and the weight of the expert would be lost:
+
+```{literalinclude} ../../../../src/tam/model/autotam/pipeline/expert_expander.py
+:language: python
+:start-after: "#: <expert_expander_kalman_name>"
+:end-before: "#: </expert_expander_kalman_name>"
+:caption: src/tam/model/autotam/pipeline/expert_expander.py (Kalman Expert Name)
+```
+
 ```{literalinclude} ../../../../src/tam/model/autotam/pipeline/expert_expander.py
 :language: python
 :start-after: "#: <expert_expander_generate>"
