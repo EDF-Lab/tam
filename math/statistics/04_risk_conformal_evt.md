@@ -20,7 +20,9 @@ The framework implements the **Split Conformal** method {cite:p}`lei2018distribu
 1. **Data Splitting:** The historical data is divided into a disjoint Training set and a Calibration set of size $n$.
 2. **Non-Conformity Scores:** We define a non-conformity measure. For standard regression, this is the absolute residual $s_i = \left| Y_i - \Phi_i \hat{\theta} \right|$. `ConformalDistributionalTAM` uses a Conformalized Quantile Regression (CQR) score {cite:p}`romano2019conformalized` defined as $s_i = \max(\hat{Q}_{\alpha/2}-Y_i,\ Y_i-\hat{Q}_{1-\alpha/2})$ and supports **Mondrian** (per-stratum) calibration.
 3. **Finite-Sample Quantile:** To guarantee exact marginal coverage of $1 - \alpha$, we compute the empirical quantile $\hat{q}$ of the calibration scores at a corrected level:
+
    $$ \hat q = \mathrm{Quantile}\!\left(\{s_i\},\ (1-\alpha)\big(1+\tfrac1n\big)\right) $$
+
 4. **Prediction Interval:** For any new observation at time $t$, the prediction interval is symmetrically defined around the baseline by $\hat{q}$.
 
 **Several quantile levels and skewed errors.** A quantile at level $\tau<\tfrac12$ is the lower end of the symmetric interval with $\alpha=2\tau$,
