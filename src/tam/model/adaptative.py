@@ -215,6 +215,8 @@ class AdaptiveTAM:
         Raises:
             ValueError: If the base_model has not been fitted.
         """
+        if re.search(r"\boffset\s*\(", adaptive_formula):
+            raise ValueError("offset(...) is read by StaticTAM only; put it in the formula of the base_model, whose predictions the correction starts from.")
         self.distributional_base_ = None
         if base_model is not None and getattr(base_model, '_mode_', 'plain') == 'distributional':
             # The correction is fitted on the model scale of the location sub-model (target ``__mu__``); the scale of the

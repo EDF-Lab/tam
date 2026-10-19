@@ -144,6 +144,9 @@ class BaseTAM(ABC):
                 
                 beta_chunk = beta[g_start:g_end] 
                 y_hat_chunk = _predict_from_coeffs(phi_chunk, beta_chunk)
+                offset_chunk = self._offset_of(x_chunk)
+                if offset_chunk is not None:
+                    y_hat_chunk = y_hat_chunk + offset_chunk.to(device=y_hat_chunk.device, dtype=y_hat_chunk.dtype)
                 predictions.append(y_hat_chunk.cpu())
                 
                 del x_chunk, phi_chunk, y_hat_chunk, beta_chunk
@@ -167,6 +170,10 @@ class BaseTAM(ABC):
         return torch.cat(predictions, dim=0)
 #: </predictive_chunking>
 
+    def _offset_of(self, x_data: torch.Tensor) -> Optional[torch.Tensor]:
+        r"""The fixed part of the linear predictor, shape (n_groups, n_samples, 1), or None when the model has none (the default)."""
+        return None
+
 #: <pwls_atom>
     def _solve_pwls_step(
         self,
@@ -188,6 +195,9 @@ class BaseTAM(ABC):
         """
         penalty_M_star_M = self._build_penalty_matrix()
         loss_L_star_L = self._build_loss_matrix()
+        offset = self._offset_of(x_data)
+        if offset is not None:
+            z_target = z_target - offset.to(device=z_target.device, dtype=z_target.dtype)  # the offset has coefficient 1: solve for the rest
         return smart_solve(
             x_data=x_data,
             y_data=z_target,

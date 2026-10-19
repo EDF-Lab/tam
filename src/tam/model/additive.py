@@ -137,6 +137,12 @@ class StaticTAM(BaseTAM):
             if isinstance(formula, dict) or mixture_components is not None:
                 raise ValueError("target_transform applies to a plain StaticTAM; a distributional or mixture model takes dist_kwargs={'target_transform': ...}.")
             _tt.check_kwargs(target_transform, dict(transform_kwargs or {}))
+        self._offset_features_ = []
+        if isinstance(formula, str) and "~" in formula:
+            _, all_terms = parse_formula_to_terms(formula)
+            self._offset_features_ = [term['feature'] for term in all_terms if term['type'] == 'offset']
+            if self._offset_features_ and mixture_components is not None:
+                raise ValueError("offset(...) is not available in a mixture model.")
         self._plain_transform_ = "none" if target_transform is None else target_transform
         self._plain_kwargs_ = dict(transform_kwargs or {})
         self._plain_params_ = {}
@@ -212,6 +218,15 @@ class StaticTAM(BaseTAM):
         elif formula:
             self.target_col_, self.parsed_terms_ = parse_formula_to_terms(formula)
             real_features = self._extract_recursive_features(self.parsed_terms_)
+            if self._offset_features_:
+                # An offset is read from the raw column: no effect, no coefficient, and no other term may read the same column.
+                self.parsed_terms_ = [term for term in self.parsed_terms_ if term['type'] != 'offset']
+                # The solvers route the feature columns to the effects by position: the offsets go last, after every column an effect reads.
+                real_features = [name for name in real_features if name not in self._offset_features_] + list(self._offset_features_)
+                shared = sorted(set(self._offset_features_) & set(self._extract_recursive_features(self.parsed_terms_)))
+                if shared:
+                    raise ValueError(f"offset({shared[0]}) reads the raw column; another term of the formula also reads '{shared[0]}'. "
+                                     "Give the offset its own column.")
             self.features_config_ = { "features": real_features }
             
             self.is_grid_search_template_ = False
@@ -480,6 +495,15 @@ class StaticTAM(BaseTAM):
             info['__levels__'] = levels
         return info
 
+    def _offset_of(self, x_data: torch.Tensor) -> Optional[torch.Tensor]:
+        """The sum of the ``offset(col)`` columns of the formula, read from the (identity-normalised) feature tensor."""
+        names = getattr(self, "_offset_features_", None)
+        if not names:
+            return None
+        features = self.features_config_['features']
+        columns = [features.index(name) for name in names]
+        return x_data[..., columns].sum(dim=-1, keepdim=True)
+
     def _apply_vocabulary(self, data: pd.DataFrame) -> pd.DataFrame:
         """Replaces the codes of the vocabulary features by their level index; a code not in the training vocabulary gets the index
         past the last level, where the categorical effect is zero. NaN stays NaN."""
@@ -585,6 +609,15 @@ class StaticTAM(BaseTAM):
                 "Structure / Params": details,
                 "Reg (log10)": lambda_p_log
             })
+
+        for column in getattr(self, "_offset_features_", []):
+            summary_data.append({
+                "Feature": column,
+                "Type": "ExposureOffset",
+                "Complexity (D)": 0,
+                "Structure / Params": "Fixed (coeff=1)",
+                "Reg (log10)": "-"
+            })
             
         return pd.DataFrame(summary_data)
 
@@ -621,7 +654,8 @@ class StaticTAM(BaseTAM):
                 features=self.features_config_["features"], 
                 group_col=self.group_col_,
                 categorical_levels=categorical_ranges(self.effects_list_),
-                fixed_ranges=_resolve_fixed_ranges(data, fixed_ranges(self.effects_list_))
+                fixed_ranges={**_resolve_fixed_ranges(data, fixed_ranges(self.effects_list_)),
+                              **{name: (-1.0, 1.0) for name in getattr(self, "_offset_features_", [])}}
             )
             
         if target_col is not None:
@@ -745,7 +779,10 @@ class StaticTAM(BaseTAM):
             balanced_data, final_decomposed_effects, self.group_col_, groups_stacked, date_col=self.date_col_
         )
 
-        return _cleanup_dummies(decomposed_df[mask], self.group_col_, self.date_col_)
+        decomposed_df = _cleanup_dummies(decomposed_df[mask], self.group_col_, self.date_col_)
+        for name in getattr(self, "_offset_features_", []):
+            decomposed_df[f"effect_offset_{name}"] = decomposed_df[name].to_numpy(dtype=float)
+        return decomposed_df
 #: </decompose_pred>
     
     # --- Grid Search (Coordinate Descent) Methods ---
@@ -837,16 +874,18 @@ class StaticTAM(BaseTAM):
                 mean = self._reweighting_strategy_.inverse_link(_linear_predictor(self, x_val, adaptive_coeffs_batch).cpu())
                 rmse = torch.sqrt(torch.mean((mean - y_val.cpu().to(mean.dtype)) ** 2))
             else:
+                offset_train, offset_val = self._offset_of(x_train), self._offset_of(x_val)
                 adaptive_coeffs_batch = smart_solve(
                     x_data=x_train,
-                    y_data=y_train,
+                    y_data=y_train if offset_train is None else y_train - offset_train.to(y_train.dtype),
                     effects_list=effects_list,
                     penalty_matrix=penalty_M_star_M,
                     loss_matrix=loss_L_star_L,
                     num_samples=num_samples_train
                 )
 
-                rmse = smart_evaluate_rmse(x_val, y_val, adaptive_coeffs_batch, effects_list)
+                rmse = smart_evaluate_rmse(x_val, y_val if offset_val is None else y_val - offset_val.to(y_val.dtype),
+                                           adaptive_coeffs_batch, effects_list)
 
             return rmse, adaptive_coeffs_batch
 
@@ -1009,6 +1048,7 @@ class StaticTAM(BaseTAM):
             model.norm_params_ = temp_model.norm_params_
             model._vocabulary_ = getattr(temp_model, "_vocabulary_", {})
             model.unique_groups_ = unique_groups
+            model._offset_features_ = list(getattr(self, "_offset_features_", []))
             if self._transform_active():
                 model._plain_params_ = self._plain_params_
                 model._finish_transform_fit(transformed_train)
@@ -1031,6 +1071,9 @@ class StaticTAM(BaseTAM):
             eta = _linear_predictor(self, x_train, self.coefficients_)
             working_response, weights = strategy.working_response_and_weights(y_train.to(torch.get_default_dtype()), eta)
             weights = weights / weights.mean().clamp_min(_TINY)
+            offset = self._offset_of(x_train)
+            if offset is not None:
+                working_response = working_response - offset.to(working_response.dtype)
             _, best_lambda_ps, gcv_score = smart_solve_gcv(
                 x_data=x_train,
                 y_data=working_response,
@@ -1103,9 +1146,10 @@ class StaticTAM(BaseTAM):
                 x_train, y_train, loss_L, alpha_p_bounds, number_of_steps, alpha_p_list, gamma, verbose
             )
         else:
+            offset = self._offset_of(x_train)
             self.coefficients_, best_lambda_ps, gcv_score = smart_solve_gcv(
                 x_data=x_train,
-                y_data=y_train,
+                y_data=y_train if offset is None else y_train - offset.to(y_train.dtype),
                 effects_list=self.effects_list_,
                 loss_matrix=loss_L,
                 alpha_p_bounds=alpha_p_bounds,
@@ -1158,6 +1202,13 @@ class StaticTAM(BaseTAM):
                 "Effect": "Fourier", 
                 "Syntax Example": "f(hour, m=6, s=1, cyclic=True, period='auto')",
                 "Specific Params": "m (harmonics), s (smoothness), cyclic (bool), period (None: training range; 'auto': first to last value + one step; (low, high): given)"
+            },
+            {
+                "Token": "offset(x)",
+                "Effect": "Exposure offset (fixed coefficient 1)",
+                "Syntax Example": "offset(log_exposure)",
+                "Specific Params": "none (raw column, no parameter)",
+                "Usage": "Rates: counts over a variable effort, with loss='poisson' or 'negative_binomial'"
             },
             {
                 "Token": "c(x)", 

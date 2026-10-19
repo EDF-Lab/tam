@@ -53,13 +53,18 @@ def _linear_predictor(model, x_data: torch.Tensor, theta: torch.Tensor, design_m
     """eta = Phi(x) @ theta on the model's design matrix (the cached one when given)."""
     if design_matrix is None:
         design_matrix = model._build_design_matrix(x_data)
-    return design_matrix @ theta.to(device=design_matrix.device, dtype=design_matrix.dtype)
+    eta = design_matrix @ theta.to(device=design_matrix.device, dtype=design_matrix.dtype)
+    offset = model._offset_of(x_data)
+    return eta if offset is None else eta + offset.to(device=eta.device, dtype=eta.dtype)
 
 
 def _solve_step(model, x_data, working_response, weights, design_matrix, penalty_matrix, loss_matrix):
     """One penalized weighted least-squares solve; on the cached design matrix when there is one."""
     if design_matrix is None:
         return model._solve_pwls_step(x_data, working_response, weights=weights)
+    offset = model._offset_of(x_data)
+    if offset is not None:
+        working_response = working_response - offset.to(device=working_response.device, dtype=working_response.dtype)
     cov_x, cov_xy = _compute_weighted_covariances(design_matrix, working_response, loss_matrix, weights)
     return solve_linear_system(cov_x, cov_xy, penalty_matrix, x_data.shape[1]).cpu()
 

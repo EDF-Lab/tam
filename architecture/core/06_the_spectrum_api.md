@@ -153,6 +153,12 @@ Applies a diagonal smoothness penalty mirroring the Fourier Sobolev norm.
 
 ---
 
+## Exposure offset
+
+`offset(col)` is a term of the formula that is **not an effect**: `StaticTAM` takes it out of `parsed_terms_`, keeps the column in `features_config_['features']` after every column an effect reads (the solvers route the columns to the effects by position), and normalises it on the range (-1, 1), which leaves the raw value in the feature tensor. `_offset_of(x_data)` sums the offset columns; it is subtracted from the working response in `_solve_pwls_step` and in the cached solve of the reweighted loop, and added to the linear predictor in `_linear_predictor`, in the chunked predictions of `BaseTAM`, in the diagnostics, in the `auto_fit` and `grid_search_fit` scoring, and as the column `effect_offset_<col>` of `decompose_prediction` (the intercept stays `effect_offset`). The design matrix has no extra column. Another term of the formula may not read the same column; `AdaptiveTAM`, `KalmanTAM` (their own formula) and the mixture mode refuse an offset; a base model with an offset can feed them, but `add_base_effects=True` lists the effects of the base (`effects_list_`) and the offset is not one of them.
+
+---
+
 ## Categorical
 
 **1. Factory Parsing**

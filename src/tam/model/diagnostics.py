@@ -178,6 +178,9 @@ def run_diagnostics(model: StaticTAM, data_train: pd.DataFrame) -> torch.Tensor:
     penalty_M_star_M = model._build_penalty_matrix()
 
     predictions = _predict_from_coeffs(phi, model.coefficients_)
+    offset = model._offset_of(x_data)
+    if offset is not None:
+        predictions = predictions + offset.to(device=predictions.device, dtype=predictions.dtype)
 
     n_samples = x_data.shape[1]
     
@@ -332,6 +335,9 @@ def compute_bootstrap_significance(
     x_data, _, _ = model._prepare_data(data, target_col=model.target_col_)
     phi = model._build_design_matrix(x_data)
     device = phi.device 
+    offset = model._offset_of(x_data)  # known part of the linear predictor: it is not projected on the columns of Phi
+    if offset is not None:
+        offset = offset.to(device=device, dtype=phi.dtype)
 
     # Ensure penalty matrix is on the correct device
     penalty = model._build_penalty_matrix().to(device)
@@ -369,6 +375,8 @@ def compute_bootstrap_significance(
         
         # Explicitly place the bootstrapped target on the correct device
         y_boot_tensor = torch.tensor(y_boot, device=device, dtype=phi.dtype).view(1, -1, 1)
+        if offset is not None:
+            y_boot_tensor = y_boot_tensor - offset
         cov_XY_boot = phi.mT @ y_boot_tensor
         
         beta_b = H_inv @ cov_XY_boot
