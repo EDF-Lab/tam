@@ -46,7 +46,7 @@ checked: the CDF of a new observation `<= 0` under a log-scale law is ~0, a vali
 :pyobject: require_positive_target
 ```
 
-**Target transform.** `dist_kwargs={"target_transform": ...}` takes `"none"`, `"log"` (the default, same as `log_target=True`), `"asinh"` or `"logit"`; giving it together with a contradicting `log_target` raises a `ValueError`, and a mixture accepts `"none"` and `"log"` only. `resolve_target_transform` reads the options once, in the constructor:
+**Target transform.** `dist_kwargs={"target_transform": ...}` takes `"none"`, `"log"` (the default, same as `log_target=True`), `"log1p"`, `"asinh"`, `"logit"` or `"boxcox"`; giving it together with a contradicting `log_target` raises a `ValueError`, and a mixture accepts `"none"` and `"log"` only. The maps themselves (`estimate_params`, `forward`, `inverse`, `inverse_mean`) live in `statistics/estimation/_target_transform.py`, one code path for the distributional and the plain model. `resolve_target_transform` reads the options once, in the constructor:
 
 ```{literalinclude} ../../../../src/tam/model/statistics/estimation/_distributional.py
 :language: python
@@ -73,3 +73,7 @@ The forward map is applied to the target everywhere it is read (fit, CDF, CRPS, 
 :language: python
 :pyobject: StaticTAM.predict_quantiles
 ```
+
+## Target transform of a plain model
+
+`StaticTAM(formula, target_transform="log", transform_kwargs={...})` applies the same maps without a scale law. `fit`, `auto_fit` and `grid_search_fit` fit the model on a copy of the frame whose target is $g(y)$ (`_transformed_frame`; the parameters of $g$ are estimated on the training frame only), then store the model-scale residual variance and a 20 001-point quantile function of the residuals (`_finish_transform_fit`). `predict` returns $g^{-1}(\hat t)$ (or the second-order mean with `transform_kwargs={"mean_correction": True}`), and `predict_quantiles` returns $g^{-1}(\hat t+\hat F_e^{-1}(\tau))$ as columns `q<tau>`. A GLM loss refuses a transform (its link is one already), as do a dict formula and a mixture, which take `dist_kwargs`. Lag columns that hold past values of the target are built by the caller and are not transformed. `decompose_prediction` stays on the model scale, `calibrate_conformal` works on the response scale.

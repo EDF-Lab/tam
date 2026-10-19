@@ -19,7 +19,7 @@ from typing import Optional, Sequence, Tuple
 import numpy as np
 import pandas as pd
 from scipy import stats
-from scipy.special import expit
+from . import _target_transform as _tt
 
 _TINY: float = 1e-12
 # Mean of log(chi^2_1); de-biases an L2 fit on log(r^2) back to log(sigma^2).
@@ -133,11 +133,7 @@ def require_positive_target(model, y: np.ndarray) -> None:
         )
 
 
-_TRANSFORMS = ("none", "log", "asinh", "logit")
-# Offset from the bounds of a logit target, as a fraction of the interval: a value on a bound is nudged inside.
-_LOGIT_EPS: float = 1e-6
-# Margin added on each side of the observed range when the bounds of a logit target are estimated.
-_LOGIT_MARGIN: float = 0.05
+_TRANSFORMS = tuple(name for name in _tt.TRANSFORMS)
 
 
 def resolve_target_transform(dist_kwargs: dict, mixture: bool = False) -> Tuple[str, bool, Optional[Tuple[float, float]]]:
@@ -163,7 +159,7 @@ def resolve_target_transform(dist_kwargs: dict, mixture: bool = False) -> Tuple[
         raise ValueError(
             f"dist_kwargs target_transform={transform!r} contradicts log_target={dist_kwargs['log_target']!r}; give one of them."
         )
-    if mixture and transform in ("asinh", "logit"):
+    if mixture and transform not in ("none", "log"):
         raise ValueError(f"target_transform={transform!r} is not available for a mixture; use 'log' or 'none'.")
     bounds = dist_kwargs.get("bounds")
     if bounds is not None:
@@ -180,49 +176,27 @@ def fit_target_transform(model, y: np.ndarray) -> None:
     """Estimate and store the parameters of the target transform on the training target.
 
     ``"asinh"`` stores the median and a robust scale (normalised MAD, else the standard deviation, else 1); ``"logit"`` stores
-    the bounds (given, or the observed range widened by a margin).
+    the bounds (given, or the observed range widened by a margin); ``"log1p"`` and ``"boxcox"`` check their domain (the Box-Cox
+    exponent is estimated by maximum likelihood).
 
     Args:
         model: A distributional StaticTAM.
         y: The training target.
 
     Raises:
-        ValueError: If a ``"logit"`` target has values outside the given bounds.
+        ValueError: If a ``"logit"`` target has values outside the given bounds, or a ``"log1p"`` / ``"boxcox"`` target is outside its domain.
     """
-    values = np.asarray(y, dtype=float)
-    finite = values[np.isfinite(values)]
-    params: dict = {}
-    if model._target_transform_ == "asinh":
-        centre = float(np.median(finite))
-        scale = float(1.4826 * np.median(np.abs(finite - centre)))
-        if not scale > 0.0:
-            scale = float(np.std(finite))
-        params = {"centre": centre, "scale": scale if scale > 0.0 else 1.0}
-    elif model._target_transform_ == "logit":
-        bounds = model._transform_bounds_
-        if bounds is None:
-            low, high = float(finite.min()), float(finite.max())
-            margin = _LOGIT_MARGIN * (high - low if high > low else 1.0)
-            bounds = (low - margin, high + margin)
-        elif finite.min() < bounds[0] or finite.max() > bounds[1]:
-            n_out = int(np.count_nonzero((finite < bounds[0]) | (finite > bounds[1])))
-            raise ValueError(f"{n_out} training target values lie outside the bounds {bounds} of the logit transform.")
-        params = {"bounds": bounds}
-    model._transform_params_ = params
+    transform = model._target_transform_
+    if transform == "logit":
+        kwargs = {"bounds": model._transform_bounds_} if model._transform_bounds_ is not None else {}
+    else:
+        kwargs = {}
+    # the log keeps its own check (require_positive_target) and its parameter-free form
+    model._transform_params_ = {} if transform in ("none", "log") else _tt.estimate_params(transform, y, kwargs)
 
 
 def _to_model_scale(model, y: np.ndarray) -> np.ndarray:
-    values = np.asarray(y, dtype=float)
-    transform = model._target_transform_
-    if transform == "log":
-        return np.log(np.clip(values, _TINY, None))
-    if transform == "asinh":
-        return np.arcsinh((values - model._transform_params_["centre"]) / model._transform_params_["scale"])
-    if transform == "logit":
-        low, high = model._transform_params_["bounds"]
-        unit = np.clip((values - low) / (high - low), _LOGIT_EPS, 1.0 - _LOGIT_EPS)
-        return np.log(unit / (1.0 - unit))
-    return values
+    return _tt.forward(model._target_transform_, model._transform_params_, y)
 
 
 def from_model_scale(model, z: np.ndarray, quantity: str = "the back-transformed values") -> np.ndarray:
@@ -240,13 +214,7 @@ def from_model_scale(model, z: np.ndarray, quantity: str = "the back-transformed
     transform = model._target_transform_
     if transform == "log":
         return _to_response_scale(values, quantity)
-    if transform == "asinh":
-        with np.errstate(over="ignore"):
-            return model._transform_params_["centre"] + model._transform_params_["scale"] * np.sinh(values)
-    if transform == "logit":
-        low, high = model._transform_params_["bounds"]
-        return low + (high - low) * expit(values)
-    return values
+    return _tt.inverse(transform, model._transform_params_, values)
 
 
 def _estimated(predicted: pd.DataFrame, internal_target: str) -> np.ndarray:

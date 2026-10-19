@@ -57,6 +57,7 @@ from .spectrum import (
 )
 from .statistics.estimation import build_strategy, _distributional, _mixture
 from .statistics.estimation._reweighting import _linear_predictor
+from .statistics.estimation import _target_transform as _tt
 from .statistics.estimation._count_families import predict_count_quantiles
 
 _TINY: float = 1e-12
@@ -95,7 +96,9 @@ class StaticTAM(BaseTAM):
         mixture_components: Optional[int] = None,
         mixture_kwargs: Optional[dict] = None,
         _internal_effects_list: Optional[List[BaseEffect]] = None,
-        _internal_features_config: Optional[dict] = None
+        _internal_features_config: Optional[dict] = None,
+        target_transform: Optional[str] = None,
+        transform_kwargs: Optional[dict] = None
     ):
         """
         Initializes the StaticTAM model.
@@ -115,10 +118,30 @@ class StaticTAM(BaseTAM):
                 ``scale_shrinkage``, ``location_alpha_p``, ``scale_alpha_p``, and the target scale: ``target_transform``
                 (``"log"`` by default, ``"none"``, ``"asinh"`` for a skewed target with negative values, ``"logit"`` for a
                 bounded one, with ``bounds=(low, high)`` or estimated) or the older ``log_target`` (True = ``"log"``).
+            target_transform: Fit on ``g(y)`` and return the response scale: ``"log"``, ``"log1p"``, ``"asinh"`` (a skewed target with
+                negative values), ``"logit"`` (a bounded one) or ``"boxcox"``. ``predict`` inverts the fitted value, ``predict_quantiles``
+                inverts the quantiles of the model-scale residuals (exact for a monotone ``g``). Not available with a GLM loss (its link
+                already is a transform), a dict formula or a mixture: those take ``dist_kwargs``.
+            transform_kwargs: Parameters of the transform: ``shift`` (``log``, ``boxcox``), ``lam`` (``boxcox``, else maximum likelihood),
+                ``centre`` and ``scale`` (``asinh``), ``bounds`` (``logit``), and ``mean_correction=True`` for a mean forecast
+                (second-order correction ``E[y] = g^-1(z) + (g^-1)''(z) var / 2``) instead of the median-type back-transform.
             _internal_effects_list: (Internal) Used for restoring state during grid search.
             _internal_features_config: (Internal) Used for restoring state during grid search.
         """
         super().__init__()
+
+        if target_transform is not None:
+            if target_transform not in _tt.TRANSFORMS:
+                raise ValueError(f"target_transform must be one of {_tt.TRANSFORMS}; got {target_transform!r}")
+            if isinstance(formula, dict) or mixture_components is not None:
+                raise ValueError("target_transform applies to a plain StaticTAM; a distributional or mixture model takes dist_kwargs={'target_transform': ...}.")
+            _tt.check_kwargs(target_transform, dict(transform_kwargs or {}))
+        self._plain_transform_ = "none" if target_transform is None else target_transform
+        self._plain_kwargs_ = dict(transform_kwargs or {})
+        self._plain_params_ = {}
+        self._plain_variance_ = 0.0
+        self._plain_residual_levels_ = None
+        self._plain_residual_values_ = None
         
         self.effects_list_ = []
         self.formula_ = formula 
@@ -170,6 +193,8 @@ class StaticTAM(BaseTAM):
         self.loss_ = loss
         self._loss_kwargs_ = dict(loss_kwargs or {})
         self.dispersion_ = None
+        if self._plain_transform_ != "none" and str(loss).lower() not in ("l2", "gaussian", "normal", "expectile", "huber", "student_t"):
+            raise ValueError(f"target_transform={self._plain_transform_!r} cannot be combined with loss={loss!r}: the link of that family is already a transform.")
         if self._mixture_components_ is not None:
             self._reweighting_strategy_ = None
         else:
@@ -223,7 +248,41 @@ class StaticTAM(BaseTAM):
             return _distributional.fit(self, data_train, **schedule_kwargs)
         if getattr(self, "_mixture_components_", None) is not None:
             return _mixture.fit(self, data_train)
+        if self._transform_active():
+            working = self._transformed_frame(data_train, estimate=True)
+            super().fit(working)
+            self._finish_transform_fit(working)
+            return self
         return super().fit(data_train)
+
+    # --- Target transform of the plain mode (statistics.estimation._target_transform) ---
+    def _transform_active(self) -> bool:
+        return getattr(self, "_plain_transform_", "none") != "none"
+
+    def _transformed_frame(self, data: pd.DataFrame, estimate: bool = False) -> pd.DataFrame:
+        """A copy of ``data`` whose target is ``g(y)``; ``estimate`` fits the parameters of ``g`` on it first."""
+        if not self._transform_active():
+            return data
+        values = data[self.target_col_].to_numpy(dtype=float)
+        if estimate:
+            self._plain_params_ = _tt.estimate_params(self._plain_transform_, values, self._plain_kwargs_)
+        working = data.copy()
+        working[self.target_col_] = _tt.forward(self._plain_transform_, self._plain_params_, values)
+        return working
+
+    def _finish_transform_fit(self, working: pd.DataFrame) -> None:
+        """Store the law of the model-scale residuals (variance and quantile function) that ``predict_quantiles`` and the mean correction use."""
+        fitted = BaseTAM.predict(self, working)[f"Estimated{self.target_col_}"].to_numpy(dtype=float)
+        residual = working[self.target_col_].to_numpy(dtype=float) - fitted
+        residual = residual[np.isfinite(residual)]
+        if residual.size == 0:
+            residual = np.zeros(1)
+        self._plain_variance_ = float(np.var(residual))
+        self._plain_residual_levels_ = np.linspace(0.0, 1.0, int(min(max(residual.size, 2), 20001)))
+        self._plain_residual_values_ = np.quantile(residual, self._plain_residual_levels_)
+
+    def _model_scale_prediction(self, data: pd.DataFrame) -> np.ndarray:
+        return BaseTAM.predict(self, data)[f"Estimated{self.target_col_}"].to_numpy(dtype=float, copy=True)
 
     def predict(self, data: pd.DataFrame) -> pd.DataFrame:
         """Predict, mapping GLM losses back to the mean scale via the inverse link.
@@ -251,6 +310,14 @@ class StaticTAM(BaseTAM):
                     predicted[estimated_column].to_numpy(copy=True), dtype=torch.get_default_dtype()
                 )
                 predicted[estimated_column] = strategy.inverse_link(linear_predictor).cpu().numpy()
+        if self._transform_active():
+            estimated_column = f"Estimated{self.target_col_}"
+            if estimated_column in predicted.columns:
+                z_hat = predicted[estimated_column].to_numpy(dtype=float, copy=True)
+                if self._plain_kwargs_.get("mean_correction", False):
+                    predicted[estimated_column] = _tt.inverse_mean(self._plain_transform_, self._plain_params_, z_hat, self._plain_variance_)
+                else:
+                    predicted[estimated_column] = _tt.inverse(self._plain_transform_, self._plain_params_, z_hat)
         return predicted
 
     # --- Distributional API: thin delegates to statistics.estimation._distributional ---
@@ -276,6 +343,13 @@ class StaticTAM(BaseTAM):
         strategy = getattr(self, "_reweighting_strategy_", None)
         if getattr(self, "_mode_", "plain") != "distributional" and hasattr(strategy, "quantiles"):
             return predict_count_quantiles(self, data, taus)
+        if self._transform_active():
+            levels = list(taus)
+            offsets = np.interp(levels, self._plain_residual_levels_, self._plain_residual_values_)
+            z_hat = self._model_scale_prediction(data)
+            quantiles = {f"q{level}": _tt.inverse(self._plain_transform_, self._plain_params_, z_hat + offset)
+                         for level, offset in zip(levels, offsets)}
+            return pd.DataFrame(quantiles, index=data.index)
         return _distributional.predict_quantiles(self, data, taus)
 
     def cdf(self, data: pd.DataFrame) -> np.ndarray:
@@ -766,6 +840,9 @@ class StaticTAM(BaseTAM):
             """
             print("--- Starting Grid Search (Multi-Start Coordinate Descent) ---")
             
+            data_train = self._transformed_frame(data_train, estimate=True)
+            data_val = self._transformed_frame(data_val)
+            transformed_train = data_train
             data_train = _ensure_dummies(data_train, self.group_col_, self.date_col_)
             data_val = _ensure_dummies(data_val, self.group_col_, self.date_col_)
             
@@ -886,6 +963,8 @@ class StaticTAM(BaseTAM):
                 date_col=self.date_col_,
                 loss=self.loss_,
                 loss_kwargs=self._loss_kwargs_,
+                target_transform=self._plain_transform_ if self._transform_active() else None,
+                transform_kwargs=self._plain_kwargs_,
                 _internal_effects_list=optimal_params_combo['effects_list'],
                 _internal_features_config=self.features_config_ 
             )
@@ -896,6 +975,9 @@ class StaticTAM(BaseTAM):
             model.target_col_ = self.target_col_ 
             model.norm_params_ = temp_model.norm_params_
             model.unique_groups_ = unique_groups
+            if self._transform_active():
+                model._plain_params_ = self._plain_params_
+                model._finish_transform_fit(transformed_train)
 
             return model
 #: </grid_search_logic>
@@ -969,6 +1051,8 @@ class StaticTAM(BaseTAM):
         """
         print("--- Auto-Fitting with MSP-GCV (Multiple Smoothing Parameters) ---")
 
+        data_train = self._transformed_frame(data_train, estimate=True)
+        transformed_train = data_train
         data_train = _ensure_dummies(data_train, self.group_col_, self.date_col_)
         
         _, balanced_data = _balance_groups(
@@ -1010,7 +1094,9 @@ class StaticTAM(BaseTAM):
                     print(f" - te({', '.join(m.feature_name for m in effect.effects)})[{margin.feature_name}]: {value:.2e} (log10 = {np.log10(value):.2f})")
             else:
                 print(f" - {effect.feature_name}: {values[0]:.2e} (log10 = {np.log10(values[0]):.2f})")
-        
+
+        if self._transform_active():
+            self._finish_transform_fit(transformed_train)
         return self
 #: </auto_fit>
     

@@ -25,9 +25,21 @@ The location-scale law can sit on a transformed target $t=g(y)$ instead of the l
 
 $$ Q_\tau^{(y)}(x) = g^{-1}\Big(\hat\mu(x) + \hat\sigma(x)\,F^{-1}(\tau)\Big). $$
 
-Two maps cover the targets that the logarithm cannot take.
+Two maps cover the targets that the logarithm cannot take. The shifted logarithm $\log(y+c)$, $\log(1+y)$ and the Box-Cox map $g(y)=\big((y+c)^{\lambda}-1\big)/\lambda$ ($\log(y+c)$ at $\lambda=0$, $\lambda$ by maximum likelihood unless given) {cite:p}`box1964analysis` are available for positive targets whose spread grows less than proportionally to the level.
 
 - **Real-valued, skewed, heavy-tailed targets with negative values** (electricity prices, spikes and returns): the area hyperbolic sine $g(y)=\operatorname{arsinh}\big((y-c)/s\big)$, with the centre $c$ the median and the scale $s$ a robust spread of the training target. It behaves like the identity near $c$ and like a logarithm in both tails, and it is the standard variance-stabilizing choice for electricity prices {cite:p}`uniejewski2018variance`. With a Normal law on $t$, $y$ follows the Johnson $S_U$ family {cite:p}`johnson1949systems`: skewed, with heavier tails than a Normal.
 - **Targets bounded in an interval $(a,b)$** (shares, humidity, capacity-capped power): the logit $g(y)=\log\big(u/(1-u)\big)$ with $u=(y-a)/(b-a)$. Every quantile lies strictly inside $(a,b)$, which a Normal law on the response scale cannot guarantee. A value exactly on a bound has an infinite logit and is moved inside by a tiny fraction of the interval.
+
+### The same maps on a plain model
+
+A model without a scale law can sit on $t=g(y)$ too. The fit is the ordinary penalized fit of $t$, and the quantiles are those of the empirical law of its residuals $e_i=t_i-\hat t_i$, shifted to the fitted value and mapped back:
+
+$$ \hat Q_\tau^{(y)}(x) = g^{-1}\big(\hat t(x) + \hat F_e^{-1}(\tau)\big), $$
+
+which is exact for the quantiles of $y$ whatever the monotone $g$, with a residual spread that does not depend on $x$ (a location-scale model with a scale law relaxes this). The point forecast $g^{-1}(\hat t)$ is a median-type value. A mean forecast needs the second-order correction of Jensen's inequality, with $v$ the variance of the residuals:
+
+$$ \mathbb E[y\mid x]\approx g^{-1}(\hat t)+\tfrac12\,(g^{-1})''(\hat t)\,v, $$
+
+which is $\exp(\hat t+v/2)$ for the logarithm, where it is the mean of the log-normal law.
 
 An optional convex `scale_shrinkage` $\lambda\in[0,1]$ blends the conditional variance toward the global one. The probability integral transform $F\big((t-\hat\mu)/\hat\sigma\big)$ gives the CDF, a two-sided anomaly score, and the CRPS (closed form for the Normal, else a Gauss-Legendre quantile integral).

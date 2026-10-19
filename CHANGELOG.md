@@ -18,6 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **`target_transform` on a plain `StaticTAM`** (`"log"`, `"log1p"`, `"asinh"`, `"logit"`, `"boxcox"`, with `transform_kwargs` for the shift, the Box-Cox exponent, the centre and scale, the bounds, and `mean_correction=True`): the model is fitted on $g(y)$, `predict` returns the response scale and `predict_quantiles` inverts the quantiles of the model-scale residuals, so the quantiles are exact and a `"logit"` target stays inside its bounds. `log1p` and `boxcox` are also available in `dist_kwargs={"target_transform": ...}` of the distributional mode. A GLM loss, a dict formula and a mixture refuse the argument.
 - **Proper scores for the non-Gaussian families**: `tam.evaluation.unit_deviance`, `deviance_explained` (the proportion of deviance explained $D^2$, equal to $R^2$ for the Gaussian family) and `deviance_metric`; `calculate_regression_metrics(..., family=...)` adds `Deviance` and `D2` (its keys are unchanged without a family). `DragTAM`, `ExpertExpander` and `EnsembleSelector` accept the metric names `poisson_deviance`, `gamma_deviance`, `binomial_deviance` / `logloss`, `negative_binomial_deviance` and `tweedie_deviance`.
 
 ### Changed
