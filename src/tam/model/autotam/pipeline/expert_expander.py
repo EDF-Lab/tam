@@ -13,6 +13,7 @@ Adaptive Error Correction Models (ECMs).
 #: <expert_expander_imports>
 import pandas as pd
 import numpy as np
+from tam.evaluation.metrics import deviance_metric
 import datetime
 import re
 from typing import Dict, Any, Tuple, List
@@ -51,6 +52,8 @@ class ExpertExpander:
             denom = np.abs(y_t)
             denom[denom == 0] = 1e-9
             return np.mean(np.abs((y_t - y_p) / denom)) * 100.0
+        elif deviance_metric(metric, y_t, y_p) is not None:
+            return deviance_metric(metric, y_t, y_p)
         else:
             return np.sqrt(np.mean((y_t - y_p)**2))
 #: </expert_expander_metric_calculator>

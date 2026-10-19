@@ -17,6 +17,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ---
 ## [Unreleased]
 
+### Added
+- **Proper scores for the non-Gaussian families**: `tam.evaluation.unit_deviance`, `deviance_explained` (the proportion of deviance explained $D^2$, equal to $R^2$ for the Gaussian family) and `deviance_metric`; `calculate_regression_metrics(..., family=...)` adds `Deviance` and `D2` (its keys are unchanged without a family). `DragTAM`, `ExpertExpander` and `EnsembleSelector` accept the metric names `poisson_deviance`, `gamma_deviance`, `binomial_deviance` / `logloss`, `negative_binomial_deviance` and `tweedie_deviance`.
+
 ### Changed
 - **Faster fits for the non-Gaussian losses** (`poisson`, `gamma`, `binomial`, `negative_binomial`, `tweedie`): the iteratively reweighted loop builds the design matrix once per fit instead of once per pass and per step-halving, and the dispersion refits of the negative binomial and Tweedie losses share it. Same coefficients to $10^{-10}$; about seven times faster on 30 000 rows. When the matrix does not fit in memory the loop builds it by blocks as before.
 
