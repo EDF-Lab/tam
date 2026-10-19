@@ -56,9 +56,13 @@ from .spectrum import (
     build_penalty_from_effects
 )
 from .statistics.estimation import build_strategy, _distributional, _mixture
+from .statistics.estimation._reweighting import _linear_predictor
 from .statistics.estimation._count_families import predict_count_quantiles
 
 _TINY: float = 1e-12
+#: Reweighting passes of the working-weight GCV of a GLM loss, and the move (in log10 of lambda) under which they stop.
+_GCV_REWEIGHTING_PASSES: int = 4
+_GCV_REWEIGHTING_TOL: float = 0.25
 
 class StaticTAM(BaseTAM):
     """
@@ -164,6 +168,7 @@ class StaticTAM(BaseTAM):
         # scalar-loss reweighting strategy. None (l2/gaussian/normal, or mixture mode) keeps the default
         # single unweighted solve; any other loss builds an IRLS strategy from loss_kwargs.
         self.loss_ = loss
+        self._loss_kwargs_ = dict(loss_kwargs or {})
         self.dispersion_ = None
         if self._mixture_components_ is not None:
             self._reweighting_strategy_ = None
@@ -716,17 +721,26 @@ class StaticTAM(BaseTAM):
             penalty_M_star_M = build_penalty_from_effects(effects_list)
             self.effects_list_ = effects_list 
             
-            adaptive_coeffs_batch = smart_solve(
-                x_data=x_train,
-                y_data=y_train,
-                effects_list=effects_list,
-                penalty_matrix=penalty_M_star_M,
-                loss_matrix=loss_L_star_L,
-                num_samples=num_samples_train
-            )
-            
-            rmse = smart_evaluate_rmse(x_val, y_val, adaptive_coeffs_batch, effects_list)
-            
+            strategy = getattr(self, "_reweighting_strategy_", None)
+            if strategy is not None:
+                # A GLM loss: reweighted fit of the candidate, scored on the response scale (inverse link applied).
+                self._reweighting_strategy_ = build_strategy(self.loss_, **self._loss_kwargs_)
+                self._solve_prepared(x_train, y_train)
+                adaptive_coeffs_batch = self.coefficients_
+                mean = self._reweighting_strategy_.inverse_link(_linear_predictor(self, x_val, adaptive_coeffs_batch).cpu())
+                rmse = torch.sqrt(torch.mean((mean - y_val.cpu().to(mean.dtype)) ** 2))
+            else:
+                adaptive_coeffs_batch = smart_solve(
+                    x_data=x_train,
+                    y_data=y_train,
+                    effects_list=effects_list,
+                    penalty_matrix=penalty_M_star_M,
+                    loss_matrix=loss_L_star_L,
+                    num_samples=num_samples_train
+                )
+
+                rmse = smart_evaluate_rmse(x_val, y_val, adaptive_coeffs_batch, effects_list)
+
             return rmse, adaptive_coeffs_batch
 
         except Exception:
@@ -755,7 +769,7 @@ class StaticTAM(BaseTAM):
             data_train = _ensure_dummies(data_train, self.group_col_, self.date_col_)
             data_val = _ensure_dummies(data_val, self.group_col_, self.date_col_)
             
-            temp_model = StaticTAM(self.formula_, self.group_col_, self.date_col_)
+            temp_model = StaticTAM(self.formula_, self.group_col_, self.date_col_, loss=self.loss_, loss_kwargs=self._loss_kwargs_)
             temp_model.features_config_ = self.features_config_
             temp_model.target_col_ = self.target_col_
             
@@ -870,11 +884,15 @@ class StaticTAM(BaseTAM):
                 formula=self.formula_, 
                 group_col=self.group_col_,
                 date_col=self.date_col_,
+                loss=self.loss_,
+                loss_kwargs=self._loss_kwargs_,
                 _internal_effects_list=optimal_params_combo['effects_list'],
                 _internal_features_config=self.features_config_ 
             )
             
             model.coefficients_ = optimal_coeffs
+            model.validation_rmse_ = float(min_global_rmse)
+            model.dispersion_ = getattr(self._reweighting_strategy_, "dispersion", None)
             model.target_col_ = self.target_col_ 
             model.norm_params_ = temp_model.norm_params_
             model.unique_groups_ = unique_groups
@@ -882,6 +900,40 @@ class StaticTAM(BaseTAM):
             return model
 #: </grid_search_logic>
     
+    def _auto_fit_reweighted(self, x_train, y_train, loss_L, alpha_p_bounds, number_of_steps, alpha_p_list, gamma, verbose):
+        """Working-weight GCV of a GLM loss: fit, score the working system, repeat until the smoothing parameters settle.
+
+        One pass fits the reweighted model at the current smoothing parameters, takes its working response z and Fisher
+        weights w, and lets the GCV search choose the parameters of the weighted system (sqrt(w) Phi, sqrt(w) z). The final
+        fit is the reweighted fit at the selected parameters, so ``coefficients_`` and ``dispersion_`` are those of ``fit()``.
+        """
+        strategy = self._reweighting_strategy_
+        previous = np.array([c for e in self.effects_list_ for c in e.penalty_coordinates()], dtype=np.float64)
+        best_lambda_ps, gcv_score = previous, float("nan")
+        for _ in range(_GCV_REWEIGHTING_PASSES):
+            self._solve_prepared(x_train, y_train)
+            eta = _linear_predictor(self, x_train, self.coefficients_)
+            working_response, weights = strategy.working_response_and_weights(y_train.to(torch.get_default_dtype()), eta)
+            weights = weights / weights.mean().clamp_min(_TINY)
+            _, best_lambda_ps, gcv_score = smart_solve_gcv(
+                x_data=x_train,
+                y_data=working_response,
+                effects_list=self.effects_list_,
+                loss_matrix=loss_L,
+                alpha_p_bounds=alpha_p_bounds,
+                number_of_steps=number_of_steps,
+                alpha_p_list=alpha_p_list,
+                gamma=gamma,
+                verbose=verbose,
+                sample_weights=weights,
+            )
+            moved = float(np.max(np.abs(np.log10(best_lambda_ps) - np.log10(previous))))
+            previous = np.asarray(best_lambda_ps, dtype=np.float64)
+            if moved < _GCV_REWEIGHTING_TOL:
+                break
+        self._solve_prepared(x_train, y_train)
+        return best_lambda_ps, gcv_score
+
 #: <auto_fit>
     def auto_fit(
         self, 
@@ -928,17 +980,22 @@ class StaticTAM(BaseTAM):
         
         loss_L = self._build_loss_matrix()
         
-        self.coefficients_, best_lambda_ps, gcv_score = smart_solve_gcv(
-            x_data=x_train,
-            y_data=y_train,
-            effects_list=self.effects_list_,
-            loss_matrix=loss_L,
-            alpha_p_bounds=alpha_p_bounds,
-            number_of_steps=number_of_steps,
-            alpha_p_list=alpha_p_list,
-            gamma=gamma,
-            verbose=verbose
-        )
+        if getattr(self, "_reweighting_strategy_", None) is not None:
+            best_lambda_ps, gcv_score = self._auto_fit_reweighted(
+                x_train, y_train, loss_L, alpha_p_bounds, number_of_steps, alpha_p_list, gamma, verbose
+            )
+        else:
+            self.coefficients_, best_lambda_ps, gcv_score = smart_solve_gcv(
+                x_data=x_train,
+                y_data=y_train,
+                effects_list=self.effects_list_,
+                loss_matrix=loss_L,
+                alpha_p_bounds=alpha_p_bounds,
+                number_of_steps=number_of_steps,
+                alpha_p_list=alpha_p_list,
+                gamma=gamma,
+                verbose=verbose
+            )
         
         print(f"\nFinal GCV Score: {gcv_score:.4f}")
         print("Optimal lambda_ps found per effect (per margin for a tensor product):")

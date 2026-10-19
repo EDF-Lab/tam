@@ -15,6 +15,14 @@ $$ z = \eta + (y-\mu)\,g'(\mu), \qquad w = \frac{1}{g'(\mu)^2\,V(\mu)}. $$
 
 Supported families: Gaussian (identity), Poisson, Gamma, negative binomial and Tweedie (log link), Binomial (logit). Step-halving on the **penalized** deviance guarantees monotone descent {cite:p}`wood2017generalized`.
 
+## Choosing the smoothing parameters of a GLM
+
+Generalized cross-validation for a Gaussian model scores $\lVert y-\hat y\rVert^2$ and the trace of the hat matrix. For a GLM the same score is taken on the **working system** of the last reweighting pass: with the working response $z$ and the Fisher weights $W$ at the fitted $\eta$, the penalized fit is a weighted least-squares problem in $(\sqrt W\,\Phi,\ \sqrt W\,z)$, whose hat matrix is $A_\lambda=\sqrt W\,\Phi\,(\Phi^\top W\Phi+nS_\lambda)^{-1}\Phi^\top\sqrt W$. The criterion is
+
+$$ \mathrm{GCV}(\lambda)=\frac{n\,\lVert\sqrt W(z-\Phi\hat\theta_\lambda)\rVert^2}{\bigl(n-\gamma\,\operatorname{tr}A_\lambda\bigr)^2}, $$
+
+which is the Pearson-type criterion of the performance iteration {cite:p}`wood2017generalized`. Because $z$ and $W$ depend on $\lambda$ through $\eta$, one pass chooses $\lambda$ for the current working system, the model is refitted at that $\lambda$, and the two steps are repeated until $\log_{10}\lambda$ moves by less than a fraction of a decade. Scoring the raw response with an identity link instead would ignore the variance function $V(\mu)$ and choose a $\lambda$ for a model that is not the one fitted.
+
 ## Overdispersed counts and zero-inflated positive targets
 
 A count with variance above its mean, and a positive target with a share of exact zeros, need a variance that grows faster than the Poisson one, and a law that tells the probability of zero.

@@ -199,6 +199,31 @@ class BaseTAM(ABC):
         )
 #: </pwls_atom>
 
+    def _solve_prepared(self, x_train: torch.Tensor, y_train: torch.Tensor) -> None:
+        r"""Solves the coefficients on prepared tensors: one exact solve for ``l2``, else the reweighted loop (and the dispersion refits)."""
+        reweighting_strategy = getattr(self, "_reweighting_strategy_", None)
+        if reweighting_strategy is None:
+            self.coefficients_ = self._solve_pwls_step(x_train, y_train, weights=None)
+        else:
+            from .statistics.estimation._reweighting import reweighted_penalized_fit, _linear_predictor, dense_design
+            validate = getattr(reweighting_strategy, "validate_target", None)
+            if validate is not None:
+                validate(y_train)
+            irls = dict(max_iter=getattr(self, "_irls_max_iter_", 25), tol=getattr(self, "_irls_tol_", 1e-6))
+            design_matrix = dense_design(self, x_train)  # built once, shared by every pass and every dispersion refit
+            self.coefficients_ = reweighted_penalized_fit(self, x_train, y_train, reweighting_strategy, design_matrix=design_matrix, **irls)
+            # A family with a dispersion (negative binomial, Tweedie) estimates it from the fitted means and refits the means
+            # with the new variance until it stops moving.
+            estimate = getattr(reweighting_strategy, "estimate_dispersion", None)
+            if estimate is not None:
+                y_fit = y_train.to(torch.get_default_dtype())
+                for _ in range(_DISPERSION_REFITS):
+                    mean = reweighting_strategy.inverse_link(_linear_predictor(self, x_train, self.coefficients_, design_matrix))
+                    if not estimate(y_fit, mean):
+                        break
+                    self.coefficients_ = reweighted_penalized_fit(self, x_train, y_train, reweighting_strategy, design_matrix=design_matrix, **irls)
+        self.dispersion_ = getattr(reweighting_strategy, "dispersion", None)
+
 #: <fit_method>
     def fit(self, data_train: pd.DataFrame) -> 'BaseTAM':
         r"""
@@ -246,28 +271,7 @@ class BaseTAM(ABC):
         if x_train.shape[0] == 0:
             raise ValueError("No valid training data found after balancing.")
             
-        reweighting_strategy = getattr(self, "_reweighting_strategy_", None)
-        if reweighting_strategy is None:
-            self.coefficients_ = self._solve_pwls_step(x_train, y_train, weights=None)
-        else:
-            from .statistics.estimation._reweighting import reweighted_penalized_fit, _linear_predictor, dense_design
-            validate = getattr(reweighting_strategy, "validate_target", None)
-            if validate is not None:
-                validate(y_train)
-            irls = dict(max_iter=getattr(self, "_irls_max_iter_", 25), tol=getattr(self, "_irls_tol_", 1e-6))
-            design_matrix = dense_design(self, x_train)  # built once, shared by every pass and every dispersion refit
-            self.coefficients_ = reweighted_penalized_fit(self, x_train, y_train, reweighting_strategy, design_matrix=design_matrix, **irls)
-            # A family with a dispersion (negative binomial, Tweedie) estimates it from the fitted means and refits the means
-            # with the new variance until it stops moving.
-            estimate = getattr(reweighting_strategy, "estimate_dispersion", None)
-            if estimate is not None:
-                y_fit = y_train.to(torch.get_default_dtype())
-                for _ in range(_DISPERSION_REFITS):
-                    mean = reweighting_strategy.inverse_link(_linear_predictor(self, x_train, self.coefficients_, design_matrix))
-                    if not estimate(y_fit, mean):
-                        break
-                    self.coefficients_ = reweighted_penalized_fit(self, x_train, y_train, reweighting_strategy, design_matrix=design_matrix, **irls)
-        self.dispersion_ = getattr(reweighting_strategy, "dispersion", None)
+        self._solve_prepared(x_train, y_train)
 
         return self
 #: </fit_method>
