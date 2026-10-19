@@ -17,6 +17,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ---
 ## [Unreleased]
 
+### Changed
+- **Faster fits for the non-Gaussian losses** (`poisson`, `gamma`, `binomial`, `negative_binomial`, `tweedie`): the iteratively reweighted loop builds the design matrix once per fit instead of once per pass and per step-halving, and the dispersion refits of the negative binomial and Tweedie losses share it. Same coefficients to $10^{-10}$; about seven times faster on 30 000 rows. When the matrix does not fit in memory the loop builds it by blocks as before.
+
 ### Fixed
 - **Two display equations of the theory pages were shown as raw text** (the section on counts and zero-inflated targets of `math/statistics/01_reweighted_estimation.md`, and the list of conformal steps of `math/statistics/04_risk_conformal_evt.md`): a display equation needs a blank line before and after it, also inside a list item. `tests/test_docs_math_blocks.py` checks it on every page of `math/` and `architecture/`.
 
