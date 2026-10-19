@@ -163,7 +163,7 @@ Applies a diagonal smoothness penalty mirroring the Fourier Sobolev norm.
 ```
 
 **2. Feature Map**
-Utilizes native one-hot embedding routing.
+Utilizes native one-hot embedding routing. A code outside `0 .. n_cat - 1` once normalised gives the zero row (the effect is 0 there; it never raises and never takes the effect of an edge level). When `n_cat` is omitted and the topology is `nominal` or `ordinal`, the levels are the distinct integer codes of the training rows: `StaticTAM._get_data_info(..., with_levels=True)` counts them, the factory sets `n_cat` to that count and flags the effect `vocabulary`, `resolve_vocabulary` keeps the flag only when no other effect reads the feature (otherwise the term goes back to the level range `0 .. max code`), and `StaticTAM._apply_vocabulary` replaces the codes by their level index before the normalisation (a code not in the training vocabulary gets the index past the last level, which is the zero row). `grid_search_fit` keeps the level range `0 .. max code` for an omitted `n_cat`. String levels are encoded as integers by the caller before the model.
 ```{literalinclude} ../../../../src/tam/model/spectrum/_categorical.py
 :language: python
 :start-after: "#: <feature_map>"

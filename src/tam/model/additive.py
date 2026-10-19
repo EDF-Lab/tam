@@ -49,6 +49,7 @@ from .spectrum import (
     create_effects_from_parsed_terms,
     initialize_effects,
     categorical_ranges,
+    resolve_vocabulary,
     fixed_ranges,
     categorical_features,
     extrapolating_features,
@@ -461,13 +462,40 @@ class StaticTAM(BaseTAM):
         
         return features_ordered
     
-    def _get_data_info(self, data: pd.DataFrame) -> Dict[str, Any]:
-        """Safely infers the number of categories (max + 1) for features."""
-        info = {}
+    def _get_data_info(self, data: pd.DataFrame, with_levels: bool = False) -> Dict[str, Any]:
+        """Safely infers the number of categories (max + 1) for features.
+
+        With ``with_levels`` the integer-coded features also get ``'__levels__'``: the number of distinct codes, which a ``c()`` term
+        without ``n_cat`` takes as its level count (see ``resolve_vocabulary``).
+        """
+        info: Dict[str, Any] = {}
+        levels: Dict[str, int] = {}
         for col in self.features_config_.get('features', []):
             if col in data.columns and pd.api.types.is_numeric_dtype(data[col]):
                 info[col] = int(data[col].max(skipna=True)) + 1
+                codes = data[col].dropna()
+                if with_levels and len(codes) and bool((codes == np.round(codes)).all()):
+                    levels[col] = int(codes.nunique())
+        if with_levels:
+            info['__levels__'] = levels
         return info
+
+    def _apply_vocabulary(self, data: pd.DataFrame) -> pd.DataFrame:
+        """Replaces the codes of the vocabulary features by their level index; a code not in the training vocabulary gets the index
+        past the last level, where the categorical effect is zero. NaN stays NaN."""
+        vocabulary = getattr(self, "_vocabulary_", None)
+        if not vocabulary:
+            return data
+        mapped = data.copy()
+        for name, codes in vocabulary.items():
+            if name not in mapped.columns:
+                continue
+            values = mapped[name].to_numpy(dtype=float)
+            position = np.clip(np.searchsorted(codes, values), 0, len(codes) - 1)
+            known = codes[position] == values
+            indices = np.where(known, position, len(codes)).astype(float)
+            mapped[name] = np.where(np.isnan(values), np.nan, indices)
+        return mapped
     
     def _warn_missing_levels(self, data: pd.DataFrame) -> None:
         r"""
@@ -574,17 +602,22 @@ class StaticTAM(BaseTAM):
         current_target_col = target_col if target_col is not None else self.target_col_
 
         if not self.effects_list_ and not self.is_grid_search_template_:
-            data_info = self._get_data_info(data)
+            data_info = self._get_data_info(data, with_levels=True)
             self.effects_list_ = create_effects_from_parsed_terms(
-                self.parsed_terms_, 
-                token_values={}, 
+                self.parsed_terms_,
+                token_values={},
                 default_alpha_p=self.default_alpha_p_,
                 data_info=data_info
             )
+            self._vocabulary_ = {
+                name: np.unique(data[name].dropna().to_numpy(dtype=float))
+                for name in resolve_vocabulary(self.effects_list_, data_info)
+            }
 
+        mapped_data = self._apply_vocabulary(data)
         if self.norm_params_ is None:
             self.norm_params_, self.unique_groups_ = _fit_normalization_params(
-                data=data, 
+                data=mapped_data,  
                 features=self.features_config_["features"], 
                 group_col=self.group_col_,
                 categorical_levels=categorical_ranges(self.effects_list_),
@@ -595,11 +628,11 @@ class StaticTAM(BaseTAM):
             self._warn_missing_levels(data)
 
         x_stacked, y_stacked = _transform_data_stacked(
-            data=data, 
-            features=self.features_config_["features"], 
+            data=mapped_data,
+            features=self.features_config_["features"],
             group_col=self.group_col_,
             norm_params=self.norm_params_,
-            target_col=current_target_col, 
+            target_col=current_target_col,  
             unique_groups=self.unique_groups_,
             date_col=self.date_col_
         )
@@ -663,7 +696,7 @@ class StaticTAM(BaseTAM):
                 warned.add(key)
                 warn_extrapolation(key,
                     f"'{name}': level(s) {unseen[:10]} not seen in training; the categorical effect has no estimate for them "
-                    f"(a level that falls outside 0..n_cat-1 takes the nearest edge level).", stacklevel=4)
+                    f"(a code that is none of the levels has no categorical effect: the prediction falls back on the other terms).", stacklevel=4)
 
     def _build_design_matrix(self, x_data: torch.Tensor) -> torch.Tensor:
         """Builds the global design matrix."""
@@ -974,6 +1007,7 @@ class StaticTAM(BaseTAM):
             model.dispersion_ = getattr(self._reweighting_strategy_, "dispersion", None)
             model.target_col_ = self.target_col_ 
             model.norm_params_ = temp_model.norm_params_
+            model._vocabulary_ = getattr(temp_model, "_vocabulary_", {})
             model.unique_groups_ = unique_groups
             if self._transform_active():
                 model._plain_params_ = self._plain_params_

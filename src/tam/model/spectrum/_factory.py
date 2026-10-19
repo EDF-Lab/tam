@@ -120,18 +120,25 @@ def create_effects_from_parsed_terms(
         elif ttype == 'c':
             n_cat = params_resolved.get('n_cat')
             n_cat_given = n_cat is not None
+            topo = params_resolved.get('topo', 'nominal')
+            vocabulary = False
             if n_cat is None:
                 if data_info is not None and feature_name in data_info:
                     n_cat = data_info[feature_name]
+                    # The levels are the codes of the training rows (any integers) when the model asks for it and the topology is
+                    # a set of levels: one column per code, whatever the largest code.
+                    levels = (data_info.get('__levels__') or {}).get(feature_name)
+                    if levels is not None and str(topo).lower() in ('nominal', 'ordinal'):
+                        n_cat, vocabulary = levels, True
                 else:
                     raise ValueError(f"Categorical term 'c({feature_name})' requires 'n_cat' or data context to infer it.")
             else:
                 n_cat = int(n_cat)
-            topo = params_resolved.get('topo', 'nominal')
             p_order = int(params_resolved.get('p_order', 1))
             extrap_val = params_resolved.get('extrapolate', 'continue')
             effects_list.append(CategoricalEffect(feature_name, n_cat, topo, lambda_p, p_order, extrap_val))
             effects_list[-1].n_cat_given = n_cat_given
+            effects_list[-1].vocabulary = vocabulary
         #: </parse_categorical>
             
         #: <parse_chebyshev>
@@ -344,7 +351,7 @@ def categorical_ranges(effects_list: List[BaseEffect]) -> Dict[str, int]:
         if isinstance(effect, OffsetEffect):
             return
         if isinstance(effect, CategoricalEffect):
-            if getattr(effect, 'n_cat_given', False):
+            if getattr(effect, 'n_cat_given', False) or getattr(effect, 'vocabulary', False):
                 levels.setdefault(effect.feature_name, set()).add(effect.n_categories)
             else:
                 other.add(effect.feature_name)     # n_cat inferred from the data: the level set is not known, min/max rule
@@ -354,6 +361,49 @@ def categorical_ranges(effects_list: List[BaseEffect]) -> Dict[str, int]:
     for effect in effects_list:
         visit(effect)
     return {name: int(next(iter(n))) for name, n in levels.items() if name not in other and len(n) == 1}
+
+
+def resolve_vocabulary(effects_list: List[BaseEffect], data_info: Dict[str, Any]) -> List[str]:
+    """
+    The features whose ``c()`` levels are the codes of the training rows, once every reader of the feature is known.
+
+    A feature qualifies when only vocabulary categorical effects read it, with one level count. A vocabulary effect on a feature that
+    another effect also reads (``l(g) + c(g)``) goes back to the level range ``0 .. max code``, which keeps the raw code meaningful
+    to the other effect.
+
+    Args:
+        effects_list: The effects built with ``data_info['__levels__']``.
+        data_info: The data information of ``StaticTAM._get_data_info`` (``data_info[feature]`` is the largest code plus one).
+
+    Returns:
+        The names of the features to map to level indices.
+    """
+    vocab_effects: Dict[str, list] = {}
+    other: set = set()
+
+    def visit(effect) -> None:
+        if isinstance(effect, TensorProductEffect):
+            for sub in effect.effects:
+                visit(sub)
+            return
+        if isinstance(effect, OffsetEffect):
+            return
+        if isinstance(effect, CategoricalEffect) and getattr(effect, 'vocabulary', False):
+            vocab_effects.setdefault(effect.feature_name, []).append(effect)
+            return
+        other.update(getattr(effect, 'input_features', None) or [effect.feature_name])
+
+    for effect in effects_list:
+        visit(effect)
+    exclusive = []
+    for name, group in vocab_effects.items():
+        if name not in other and len({e.n_categories for e in group}) == 1:
+            exclusive.append(name)
+            continue
+        for effect in group:
+            effect.vocabulary = False
+            effect.n_categories = int(data_info[name])
+    return exclusive
 
 
 def _parse_period(raw, feature_name: str):

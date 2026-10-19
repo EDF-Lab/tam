@@ -15,6 +15,11 @@ from ._base_effects import BaseEffect
 class CategoricalEffect(BaseEffect):
     r"""
     Categorical effect supporting Nominal (Ridge) and Ordinal (Difference) topologies.
+
+    A code that is none of the levels (outside ``0 .. n_categories - 1`` once normalised) gives the zero row: the effect is 0 there and
+    the prediction falls back on the intercept and the other terms. A term with a single level (a flag that is constant in the training
+    rows) keeps that level for every row: its column is then the constant of the intercept, and dropping it would remove part of the intercept. ``vocabulary`` is set when the levels are the codes of the training
+    rows (``n_cat`` omitted in the formula); the model then maps the codes to level indices before the effect sees them.
     """
 
     def __init__(
@@ -32,6 +37,7 @@ class CategoricalEffect(BaseEffect):
 
         super().__init__(feature_name, f"categorical_{clean_topo}", lambda_p, extrapolate)
         self.n_categories = int(n_categories)
+        self.vocabulary = False
         self.topology = clean_topo
         self.penalty_order = penalty_order
 
@@ -56,8 +62,13 @@ class CategoricalEffect(BaseEffect):
 
         if self.topology in ['nominal', 'ordinal']:
             x_indices = torch.round((x_col + 1.0) / 2.0 * (self.n_categories - 1)).long()
+            if self.n_categories == 1:
+                known = torch.ones_like(x_col, dtype=torch.bool)  # a single level (a feature constant in training) is every row, as before
+            else:
+                known = (x_indices >= 0) & (x_indices <= self.n_categories - 1)
             x_safe = torch.clamp(x_indices, 0, self.n_categories - 1)
             phi = torch.nn.functional.one_hot(x_safe, num_classes=self.n_categories)
+            phi = phi * known.unsqueeze(-1).to(phi.dtype)  # a code outside the levels is the zero row: no categorical effect
             return phi.to(device=TORCH_DEVICE, dtype=torch.get_default_dtype())
         
         elif self.topology == 'fourier':
