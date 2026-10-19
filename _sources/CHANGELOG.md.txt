@@ -15,6 +15,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > **[0.0.6]** corresponds to the legacy `weakl` package available on PyPI.
 
 ---
+## [Unreleased]
+
+### Fixed
+- **Two display equations of the theory pages were shown as raw text** (the section on counts and zero-inflated targets of `math/statistics/01_reweighted_estimation.md`, and the list of conformal steps of `math/statistics/04_risk_conformal_evt.md`): a display equation needs a blank line before and after it, also inside a list item. `tests/test_docs_math_blocks.py` checks it on every page of `math/` and `architecture/`.
+
 ## [1.4.1] - 2026-10-08
 
 Patch release for probabilistic forecasting: new methods and options only, plus one fix. Existing calls give the same forecasts; the only change of behaviour is that a distributional or mixture `StaticTAM` with the default log target now raises on a training target with values `<= 0` instead of returning a meaningless model (see "Fixed").
