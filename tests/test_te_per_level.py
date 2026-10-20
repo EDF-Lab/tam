@@ -74,20 +74,22 @@ def _two_groups(n=300, seed=0):
 
 def test_auto_fit_gives_each_level_its_own_smoothness():
     frame = _two_groups()
-    model = ta.StaticTAM("y ~ c(g, n_cat=2, ap=-6) + te(s(x, k=12, p=2), c(g, n_cat=2), mode='per_level')").auto_fit(frame)
+    model = ta.StaticTAM("y ~ c(g, n_cat=2, ap=-6) + te(s(x, k=12, p=2), c(g, n_cat=2), mode='per_level')").auto_fit(frame, criterion="reml")
     te = next(e for e in model.effects_list_ if isinstance(e, TensorProductEffect))
     lambdas = te.penalty_coordinates()
     assert lambdas[0] > 10.0 * lambdas[1]  # the noisy low-frequency group is smoothed much harder than the clean wiggly one
 
 
 def test_per_level_fit_beats_a_single_smoothing_parameter_when_the_groups_differ():
-    train, test = _two_groups(seed=1), _two_groups(seed=2)
-    truth = np.where(test["g"] == 0, test["x"], np.sin(14 * test["x"]))
-    errors = {}
-    for mode in ("shared", "per_level"):
-        model = ta.StaticTAM(f"y ~ c(g, n_cat=2, ap=-6) + te(s(x, k=12, p=2), c(g, n_cat=2), mode='{mode}')").auto_fit(train, number_of_steps=30)
-        errors[mode] = float(np.sqrt(np.mean((model.predict(test)["Estimatedy"].to_numpy() - truth) ** 2)))
-    assert errors["per_level"] < errors["shared"]
+    # one data set can go either way (the criterion is a noisy function of the sample): the comparison is on the mean error of several
+    errors = {"shared": [], "per_level": []}
+    for seed in range(1, 7):
+        train, test = _two_groups(seed=seed), _two_groups(seed=seed + 50)
+        truth = np.where(test["g"] == 0, test["x"], np.sin(14 * test["x"]))
+        for mode in errors:
+            model = ta.StaticTAM(f"y ~ c(g, n_cat=2, ap=-6) + te(s(x, k=12, p=2), c(g, n_cat=2), mode='{mode}')").auto_fit(train, criterion="reml")
+            errors[mode].append(float(np.sqrt(np.mean((model.predict(test)["Estimatedy"].to_numpy() - truth) ** 2))))
+    assert np.mean(errors["per_level"]) < 0.9 * np.mean(errors["shared"])
 
 
 # --- l(z, raw=True) ---------------------------------------------------------------------------------
