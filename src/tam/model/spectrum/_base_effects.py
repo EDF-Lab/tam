@@ -28,6 +28,11 @@ class BaseEffect(ABC):
                            Options: 'continue', 'constant', 'linear'.
     """
 
+    #: ``orthogonalize=True`` (set from the formula on ``n()`` and ``t()``): the block is projected on the orthogonal complement of the
+    #: rest of the design; ``_projection`` is the (rest columns x block columns) regression matrix estimated on the training rows.
+    orthogonalize: bool = False
+    _projection = None
+
     def __init__(self, feature_name: str, effect_type: str, lambda_p: float, extrapolate: str):
         """Initializes the base effect."""
         self.feature_name = feature_name

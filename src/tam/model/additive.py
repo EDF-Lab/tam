@@ -1294,7 +1294,7 @@ class StaticTAM(BaseTAM):
                 "Token": "n(x)", 
                 "Effect": "Neural Network", 
                 "Syntax Example": "n(Income, others='Age', n_neurons=500, seed=42)",
-                "Specific Params": "n_neurons, act ('relu'/'cos'/'tanh'), n_hidden_layers, seed, others"
+                "Specific Params": "n_neurons, act ('relu'/'cos'/'tanh'), n_hidden_layers, seed, others, orthogonalize (True: only what the other terms cannot explain)"
             },
             {
                 "Token": "te(a, b)", 
@@ -1324,7 +1324,7 @@ class StaticTAM(BaseTAM):
                 "Token": "t(x)", 
                 "Effect": "Tree / Random Forest", 
                 "Syntax Example": "t(x, n_trees=50, sp_alpha=0.5, split_strategy='quantile')",
-                "Specific Params": "n_trees, max_depth, max_leaves, sp_alpha, split_strategy, seed, others"
+                "Specific Params": "n_trees, max_depth, max_leaves, sp_alpha, split_strategy, seed, others, orthogonalize"
             },
             {
                 "Token": "lt(x)", 

@@ -176,6 +176,7 @@ def create_effects_from_parsed_terms(
                 additional_features = [s.strip() for s in others_str.split('|') if s.strip()]
             extrap_val = params_resolved.get('extrapolate', 'linear')
             effects_list.append(NeuralEffect(feature_name, n_neurons, act, lambda_p, additional_features, seed, n_hidden_layers, extrap_val))
+            effects_list[-1].orthogonalize = _as_bool(params_resolved.get('orthogonalize', False))
         #: </parse_neural>
             
         #: <parse_rbf>
@@ -213,6 +214,7 @@ def create_effects_from_parsed_terms(
                 additional_features = [s.strip() for s in others_str.split('|') if s.strip()]
             extrap_val = params_resolved.get('extrapolate', 'continue')
             effects_list.append(TreeEffect(feature_name, n_trees, max_depth, max_leaves, lambda_p, additional_features, seed, extrap_val, sp_alpha, split_strategy))
+            effects_list[-1].orthogonalize = _as_bool(params_resolved.get('orthogonalize', False))
         #: </parse_tree>
 
         #: <parse_tensor>
@@ -540,6 +542,53 @@ def extrapolating_features(effects_list: List[BaseEffect]) -> set:
     return names
 
 
+def _as_bool(value) -> bool:
+    return str(value).strip().lower() in ('true', '1', 't', 'y', 'yes')
+
+
+#: Rows used to estimate the projection of an orthogonalised block (a random subsample beyond this).
+_PROJECTION_ROWS: int = 200000
+
+
+def _project_blocks(effects_list: List[BaseEffect], phi_components: list) -> list:
+    """Remove from every orthogonalised block its regression on the other blocks: ``Phi_deep - Phi_rest @ B`` (B fixed at training)."""
+    flagged = [i for i, e in enumerate(effects_list) if getattr(e, '_projection', None) is not None]
+    if not flagged:
+        return phi_components
+    rest = [i for i, e in enumerate(effects_list) if not getattr(e, 'orthogonalize', False)]
+    base = torch.cat([phi_components[i] for i in rest], dim=-1)
+    out = list(phi_components)
+    for i in flagged:
+        out[i] = phi_components[i] - base @ effects_list[i]._projection.to(device=base.device, dtype=base.dtype)
+    return out
+
+
+def _estimate_projections(x_data: torch.Tensor, effects_list: List[BaseEffect], feature_columns: Optional[List[str]]) -> None:
+    """Estimate, on the training tensor, the matrix ``B`` of the least-squares regression of each orthogonalised block on the rest of the design."""
+    flagged = [e for e in effects_list if getattr(e, 'orthogonalize', False)]
+    if not flagged:
+        return
+    if len(flagged) == len(effects_list):
+        raise ValueError("orthogonalize=True needs at least one other term (the intercept is one) to be orthogonal to.")
+    for effect in flagged:
+        effect._projection = None
+    components = build_phi_from_effects(x_data, effects_list, feature_columns, return_components=True)
+    rest = [i for i, e in enumerate(effects_list) if not getattr(e, 'orthogonalize', False)]
+    base = torch.cat([components[i] for i in rest], dim=-1)
+    base = base.reshape(-1, base.shape[-1])
+    keep = None
+    if base.shape[0] > _PROJECTION_ROWS:
+        keep = torch.randperm(base.shape[0], generator=torch.Generator().manual_seed(0))[:_PROJECTION_ROWS]
+        base = base[keep]
+    base = base.to(torch.float64)
+    for i, effect in enumerate(effects_list):
+        if not getattr(effect, 'orthogonalize', False):
+            continue
+        deep = components[i].reshape(-1, components[i].shape[-1])
+        deep = (deep if keep is None else deep[keep]).to(torch.float64)
+        effect._projection = torch.linalg.lstsq(base.cpu(), deep.cpu(), driver='gelsd').solution.to(components[i].dtype)
+
+
 def _reads_several(effect) -> bool:
     """A categorical effect with a graph topology reads its level column and the coordinate columns of the levels."""
     return isinstance(effect, CategoricalEffect) and len(getattr(effect, 'input_features', [None])) > 1
@@ -580,12 +629,14 @@ def initialize_effects(
             effect.initialize(x_cols)
         elif not name_to_idx:
             col_idx += 1
+    _estimate_projections(x_data, effects_list, feature_columns)
 
 
 def build_phi_from_effects(
-    x_data: torch.Tensor, 
+    x_data: torch.Tensor,
     effects_list: List[BaseEffect],
-    feature_columns: Optional[List[str]] = None
+    feature_columns: Optional[List[str]] = None,
+    return_components: bool = False
 ) -> torch.Tensor:
     """
     Constructs the global Design Matrix by concatenating effect feature maps.
@@ -639,6 +690,9 @@ def build_phi_from_effects(
             
             phi_components.append(effect.transform(x_col))
             
+    if return_components:
+        return phi_components
+    phi_components = _project_blocks(effects_list, phi_components)
     return torch.cat(phi_components, dim=-1).to(x_data.device)
 #: </build_phi>
 

@@ -242,6 +242,8 @@ Enforces the sparsity prior via a scale-dependent diagonal "whitening" penalty t
 
 ## Neural
 
+`orthogonalize=True` on `n()` or `t()` (flag read by the factory, stored on the effect as `orthogonalize`): after every effect is initialised, `initialize_effects` builds the training design block by block (`build_phi_from_effects(..., return_components=True)`), regresses each flagged block on the concatenation of the unflagged blocks (`torch.linalg.lstsq`, SVD driver, on at most 200 000 rows) and stores the matrix `B` as the private attribute `_projection`; `build_phi_from_effects` then returns `block - rest @ B` for these blocks. Because `B` is fixed, the chunked solvers, the prediction in batches or row by row, and the adaptive windows all see the same projection. The penalty of the block is unchanged.
+
 **1. Factory Parsing**
 ```{literalinclude} ../../../../src/tam/model/spectrum/_factory.py
 :language: python
