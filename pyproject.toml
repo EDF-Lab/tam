@@ -73,6 +73,10 @@ dev = [
     "twine>=5.0",
 ]
 
+calendar = [
+    "holidays>=0.50",
+]
+
 docs = [
     "sphinx>=7.0",
     "furo>=2024.1",

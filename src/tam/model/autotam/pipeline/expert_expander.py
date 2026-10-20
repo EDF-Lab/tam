@@ -251,6 +251,20 @@ class ExpertExpander:
 
                     if not best_static_model: 
                         continue
+
+                    for loss in ctx.family_losses:
+                        try:
+                            m_family = StaticTAM(formula=base_form, group_col=ctx.group_col, date_col=ctx.date_col, loss=loss)
+                            m_family.fit(df_fit_clean)
+                            cv_score = self._evaluate_model_cv(m_family, ctx.cv_folds, ctx.target, metric=opt_metric)
+                            if not np.isfinite(cv_score):
+                                continue
+                            name = f"Static_{prefix}_Family_{loss}"
+                            candidate_pool[name] = {"type": "static", "model": m_family, "island": island_name, "cv_rmse": cv_score}
+                            self._log_test(test_log, name, f"StaticTAM_{loss}", base_form, f"loss={loss}", cv_score,
+                                           ctx.penalize_score(cv_score, base_form, n_samples), ctx.estimate_complexity(base_form))
+                        except Exception as exc:
+                            log_failure(logger, f"Family expert ({loss}) of {prefix}", exc, base_form)
                     
                     if best_static_cv < global_best_cv:
                         global_best_cv = best_static_cv

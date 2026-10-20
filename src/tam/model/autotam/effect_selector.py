@@ -163,6 +163,16 @@ class EffectSelector:
                 "max_active_effects": self.max_active_effects
             }
 
+            if col in config.get("calendar_columns", {}):
+                # A calendar position lives on a cycle: only a cyclic Fourier term (and a categorical day of week) is offered, never a linear one.
+                period = config["calendar_columns"][col]
+                feature_space["eligible_effects"] = ["f"] + (["c"] if col == "dow" else [])
+                feature_space["grids"]["f"] = {"m": [2, 3] if col == "dow" else [3, 6], "s": [2], "ap": _ap("f"), "cyclic": [True], "period": [period]}
+                if col == "dow":
+                    feature_space["grids"]["c"] = {"n_cat": [7], "topo": ["nominal"], "p_order": [1]}
+                search_space[col] = feature_space
+                continue
+
             if prof is not None and prof["linear"]:
                 # Hard lock: Prevent non-linear solvers from fitting noise on purely linear features.
                 if col == most_recent_lag:

@@ -26,6 +26,8 @@ from tam.model.autotam.feature_engineer import FeatureEngineer
 from tam.model.autotam.effect_selector import EffectSelector
 from tam.model.autotam.failures import log_failure
 from tam.model.autotam.anchor import add_anchor_lag, anchor_column, resolve_season
+from tam.model.autotam.calendar_features import add_calendar, calendar_names
+from tam.model.autotam.spectral_profile import steps_per_day
 from tam.model.autotam.target_profile import mask_sentinels, profile_target
 logger = logging.getLogger(__name__)
 #: </data_manager_imports>
@@ -143,6 +145,9 @@ class DataManager:
         train_fraction: float = 0.70,
         dev_fraction: float = 0.15,
         horizon: Optional[int] = None,
+        calendar_features: bool = False,
+        country: Optional[str] = None,
+        subdivision: Optional[str] = None,
     ):
         """
         Initializes the DataManager, parsing the user formula and populating mandatory terms.
@@ -159,6 +164,9 @@ class DataManager:
         if horizon is not None and (int(horizon) != horizon or horizon < 1):
             raise ValueError(f"horizon must be a positive whole number of steps, got {horizon!r}.")
         self.horizon = None if horizon is None else int(horizon)
+        self.calendar_features = bool(calendar_features)
+        self.country = country
+        self.subdivision = subdivision
         self.formula = formula
         self.user_lags = lags or []
         if isinstance(mandatory_variables, str):
@@ -392,6 +400,7 @@ class DataManager:
         df_all_clean = self.profiler.transform(df_all_raw, ctx.formula_config, date_col) if hasattr(self.profiler, 'transform') else df_all_raw
         df_all_aug = self.engineer.engineer_features(df_all_clean, ctx.formula_config, ctx.metadata, date_col)
         
+        df_all_aug = self._add_calendar_columns(df_all_aug, ctx)
         ctx.df_all_aug = df_all_aug
 
         if date_col and date_col in df_all_aug.columns and date_col in raw_fit.columns:
@@ -520,6 +529,27 @@ class DataManager:
         return folds
 #: </data_manager_cv>
 
+#: <data_manager_calendar>
+    def _add_calendar_columns(self, df_aug: pd.DataFrame, ctx: PipelineContext) -> pd.DataFrame:
+        """Adds the calendar and holiday columns (after the engineering, so they are never smoothed) and offers them to the search."""
+        if not (self.calendar_features or self.country):
+            return df_aug
+        if not ctx.date_col or ctx.date_col not in df_aug.columns:
+            raise ValueError("calendar_features and country need a date column: pass date_col=.")
+        spd = steps_per_day(df_aug[ctx.date_col])
+        ctx.calendar = {"names": calendar_names(spd) if self.calendar_features else [], "country": self.country, "subdivision": self.subdivision,
+                        "steps_per_day": spd}
+        df_aug = df_aug.copy()
+        added = add_calendar(df_aug, ctx.date_col, ctx.calendar, skip_equivalent=True)
+        for name in added:
+            if name not in ctx.formula_config["features"]:
+                ctx.formula_config["features"].append(name)
+        ctx.calendar["columns"] = added
+        periods = {"toy": (0, 1), "tod": (0, 1), "dow": "auto"}
+        ctx.formula_config["calendar_columns"] = {name: periods[name] for name in added if name in periods}
+        return df_aug
+#: </data_manager_calendar>
+
 #: <data_manager_transform>
     def transform_test_data(self, df_test: pd.DataFrame, ctx: PipelineContext) -> pd.DataFrame:
         """
@@ -552,6 +582,8 @@ class DataManager:
         df_clean = self.profiler.transform(df_combined, ctx.formula_config, ctx.date_col) if hasattr(self.profiler, 'transform') else df_combined
         df_aug = self.engineer.engineer_features(df_clean, ctx.formula_config, ctx.metadata, ctx.date_col)
         df_aug = keep_forecast_targets_missing(df_aug, df_combined, ctx)
+        if ctx.calendar:
+            add_calendar(df_aug, ctx.date_col, ctx.calendar)
 
         # Tz-safe left-merge to perfectly realign predictions with df_test's original row order.
         date_col, group_col = ctx.date_col, ctx.group_col

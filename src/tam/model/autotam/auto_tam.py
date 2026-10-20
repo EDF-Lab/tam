@@ -15,8 +15,9 @@ search, state-space expansions (Kalman/Adaptive), and Minimax aggregation (OPERA
 import logging
 import pandas as pd
 import numpy as np
+import pathlib
 import re
-from typing import Tuple, Optional, List, Dict, Union
+from typing import Any, Tuple, Optional, List, Dict, Sequence, Union
 
 from .pipeline.data_manager import DataManager
 from .pipeline.base_discoverer import BaseDiscoverer
@@ -32,6 +33,11 @@ from tam.model.autotam.failures import log_failure
 from tam.common.utils import parse_formula_to_terms
 from tam.model.autotam.anchor import ANCHOR_ISLAND, anchor_formula
 from tam.model.autotam.seeding import seeded_method
+from tam.model.autotam.diagnostics import residual_diagnostics, target_diagnostics
+from tam.model.autotam.anchor import natural_season
+from tam.model.autotam.families import candidate_losses, check_family_mode
+from tam.model.autotam.spectral_profile import spectral_profile
+from tam.model.autotam.calendar_features import calendar_seed_formulas
 from tam.model.autotam.search_preset import (
     FAST_GENERATIONS, FAST_ISLANDS, FAST_N_EXPERTS, FAST_POP_SIZE, FULL_GENERATIONS, check_search_mode)
 logger = logging.getLogger(__name__)
@@ -122,6 +128,12 @@ class AutoTAM:
         seed: Optional[int] = None,
         horizon: Optional[int] = None,
         search: str = "full",
+        calendar_features: bool = False,
+        country: Optional[str] = None,
+        subdivision: Optional[str] = None,
+        family: str = "gaussian",
+        search_groups: Optional[int] = None,
+        diagnostics: bool = False,
         **kwargs
     ):
         """
@@ -140,6 +152,27 @@ class AutoTAM:
                 16 over 8 generations instead of 64 over 20, 8 experts kept, three Kalman noise rates and two adaptive windows, and the seasonal
                 anchor on. ``pop_size``, ``n_experts`` and ``seasonal_anchor`` given by the caller win over the preset. It is a screening preset,
                 about twice as fast: it leaves out the islands that hourly prices need, so it is not meant for final forecasts.
+            calendar_features (bool): Opt-in. Derives calendar positions from the date column (``toy`` time of year and ``tod`` time of day as
+                fractions in [0, 1), ``dow`` day of week), offers them to the search as cyclic terms only (never linear), runs the spectral profile
+                of the training target and seeds the cycles it finds (``calendar_profile_``). Needs ``date_col``. A position the frame already
+                has under another name (an hour column, a day of week) is not added again. It is not a default: it was measured worse on
+                hourly electricity prices, where the caller already gives the calendar columns.
+            country (Optional[str]): Opt-in. Country code of the public holidays (``'FR'``): adds ``holiday``, ``days_to_holiday``,
+                ``days_since_holiday`` and ``bridge_day``. Needs the ``holidays`` package (``pip install tam-ml[calendar]``) and ``date_col``. A holiday flag
+                the frame already has is not added again. Not a default: it was measured worse on hourly prices that already carry holiday columns.
+            subdivision (Optional[str]): Region of the holiday calendar (``'IDF'``), with ``country``.
+            family (str): ``"gaussian"`` (default) keeps the identity link and the L2 loss. ``"auto"`` also fits each champion formula under the
+                losses the profile of the training target allows (Gamma for a positive skewed target, Tweedie for a non-negative target with zeros,
+                Poisson and negative binomial for counts, Huber for heavy tails), scored in the response scale, so the family competes with the
+                Gaussian expert in the leagues. A log link is never proposed for a target with zeros or negative values.
+            search_groups (Optional[int]): For data with thousands of groups: ``fit()`` searches on this many groups, taken evenly spaced by the
+                level of their target, then fits the architectures found on every group (the way ``architectures=`` does). ``None`` (default)
+                searches on all groups; it has no effect without a ``group_col`` or when there are not more groups than this number. The groups
+                searched are in ``search_sample_``.
+            diagnostics (bool): Opt-in. ``fit()`` also runs statistical diagnostics: of the training target (unit root and stationarity, seasonal
+                strength, spread, tails, outliers, demand class, break, autocorrelation) in ``target_diagnostics_``, and of the residuals of the
+                final model on the validation rows (structure left, volatility clustering, bias) in ``residual_profile_``. They are hints for
+                the user, they do not change the search.
             horizon (Optional[int]): Number of steps ahead the model is asked to forecast. By default it is the smallest lag (the target is
                 known up to that many steps before a forecast row). When given, every lag of the target must be at least the horizon (a
                 shorter lag is not known that far ahead): ``fit()`` raises a ``ValueError`` otherwise. Without explicit lags, the lags of the
@@ -173,7 +206,9 @@ class AutoTAM:
         """
         if "mandatory_terms" in kwargs:
             raise TypeError("AutoTAM.__init__() got an unexpected keyword argument 'mandatory_terms'")
+        self._constructor_args = {**{k: v for k, v in locals().items() if k not in ("self", "kwargs", "__class__")}, **kwargs}
         self.search = check_search_mode(search)
+        self.family = check_family_mode(family)
         fast = self.search == "fast"
         n_experts = n_experts if n_experts is not None else (FAST_N_EXPERTS if fast else 15)
         pop_size = pop_size if pop_size is not None else (FAST_POP_SIZE if fast else 64)
@@ -191,6 +226,9 @@ class AutoTAM:
             lags=lags,
             mandatory_variables=self.mandatory_variables,
             horizon=horizon,
+            calendar_features=calendar_features,
+            country=country,
+            subdivision=subdivision,
         )
         self.mandatory_terms = self.data_manager.mandatory_terms
         self.discoverer = BaseDiscoverer(
@@ -223,6 +261,12 @@ class AutoTAM:
         self.season = season
         self.clipped_rows_ = {}  # with the guards: rows clipped, by expert, set by predict()
         self.final_model_column_ = None  # set by fit(): the column of predict() that holds the final model
+        self.calendar_profile_ = {}  # set by fit() with calendar_features: the spectral profile of the training target
+        self.search_groups = search_groups
+        self.diagnostics = bool(diagnostics)
+        self.target_diagnostics_ = {}    # set by fit() with diagnostics=True
+        self.residual_profile_ = {}      # set by fit() with diagnostics=True
+        self.search_sample_ = []  # set by fit() with search_groups: the groups the search ran on
         self.architectures_ = {}  # set by fit(): the champion formulas by island, to pass as architectures= to a later fit
         self.history_ = None  # set by fit(): the training rows, put in front of a frame that starts after them
         self.extrapolating_features_ = []
@@ -278,6 +322,9 @@ class AutoTAM:
         Raises:
             ValueError: Invalid ``past_covariates``, an empty split, or no expert survives the search.
         """
+        if self.search_groups and architectures is None and group_col:
+            architectures = self._search_on_a_sample(df_train, df_fit, df_dev, df_val, date_col, group_col, expansions, validation_strategy,
+                                                     optimization_metric, refit_on_full_train, past_covariates, seed_formulas)
         logger.info("AutoTAM: Starting Pipeline...")
         self.chronological_test_log = []
         self.expander.expansions = expansions or {"prior": True, "autofit": True, "kalman": True, "adaptive": True, "grid": False}
@@ -296,10 +343,15 @@ class AutoTAM:
             replace_sentinels=self.replace_sentinels
         )
         self.target_profile_ = self.ctx.target_profile
+        if self.diagnostics:
+            self.target_diagnostics_ = self._target_diagnostics()
         self.history_ = self._training_rows(df_train, df_fit, df_dev, df_val)
         seed_champions = self._seed_champions(seed_formulas)
+        if self.data_manager.calendar_features:
+            seed_champions = list(seed_champions) + self._calendar_seeds()
         self.ctx.extrapolation_guards = self.extrapolation_guards
         self.ctx.fast_search = self.search == "fast"
+        self.ctx.family_losses = candidate_losses(self.ctx.target_profile) if self.family == "auto" else []
         self.ctx.optimization_metric = optimization_metric
         self.ctx.complexity_penalty = self.complexity_penalty
         
@@ -328,6 +380,8 @@ class AutoTAM:
             )
         self.apex_members_ = list(getattr(self.selector, "apex_members_", []))
         self.final_model_column_ = self.FINAL_MODEL_COLUMN if self.weights_top10 else None
+        if self.diagnostics:
+            self.residual_profile_ = self._residual_profile()
         self.extrapolating_features_ = sorted(extrapolating)
         
         if not self.trained_experts:
@@ -340,6 +394,62 @@ class AutoTAM:
         self.reporter.export_collinearity_purge_log(self.data_manager.engineer.purge_log)
         return self
 #: </auto_tam_fit>
+
+#: <auto_tam_diagnostics>
+    def _target_diagnostics(self) -> Dict[str, Any]:
+        """Diagnostics of the training target: of the series itself, or of up to ten groups (the verdict is then the most frequent one)."""
+        frames = [f for f in (self.ctx.df_fit, self.ctx.df_dev, self.ctx.df_val) if f is not None]
+        rows = pd.concat(frames)
+        rows = rows[rows[self.ctx.target].notna()]
+        period = natural_season(self.ctx.metadata.get("delta_t", "1D"))
+        group_col = self.ctx.group_col
+        if not (group_col and group_col in rows.columns):
+            return target_diagnostics(rows[self.ctx.target].to_numpy(), period)
+        keys = sorted(rows[group_col].unique(), key=str)
+        keys = [keys[int(i)] for i in np.linspace(0, len(keys) - 1, min(10, len(keys))).round()]
+        by_group = {str(k): target_diagnostics(rows.loc[rows[group_col] == k, self.ctx.target].to_numpy(), period) for k in keys}
+        verdicts = [d["stationarity"]["verdict"] for d in by_group.values() if "stationarity" in d]
+        return {"groups": by_group, "stationarity": max(set(verdicts), key=verdicts.count) if verdicts else None}
+
+    def _residual_profile(self) -> Dict[str, Any]:
+        """Diagnostics of the errors of the final model on the validation rows (empty without a final model)."""
+        column = self.final_model_column_
+        if column is None or column not in self.oof_predictions_:
+            return {}
+        val = self.ctx.df_val
+        in_val = np.asarray(self.oof_predictions_[column], dtype=float)[-len(val):]
+        errors = val[self.ctx.target].to_numpy(dtype=float) - in_val
+        return residual_diagnostics(errors, horizon=getattr(self.ctx, "inferred_horizon", 1))
+#: </auto_tam_diagnostics>
+
+#: <auto_tam_sample_search>
+    def _search_on_a_sample(self, df_train, df_fit, df_dev, df_val, date_col, group_col, expansions, validation_strategy, optimization_metric,
+                            refit_on_full_train, past_covariates, seed_formulas) -> Optional["AutoTAM"]:
+        """Searches on a sample of the groups and returns the fitted searcher (``None`` when there are not more groups than the sample).
+
+        The sample takes groups evenly spaced by the mean of their target, so small and large series are both in it; the choice is the same on
+        every machine. The searcher is a new ``AutoTAM`` with the same arguments (it exports to ``<export_dir>/sample_search``).
+        """
+        frames = [f for f in (df_train, df_fit, df_dev, df_val) if f is not None and group_col in f.columns]
+        everything = pd.concat(frames)
+        target = self.data_manager.parser.parse(self.formula)["targets"][0]
+        levels = everything.groupby(group_col)[target].mean().sort_values(kind="mergesort")
+        if len(levels) <= self.search_groups:
+            return None
+        positions = np.linspace(0, len(levels) - 1, self.search_groups).round().astype(int)
+        self.search_sample_ = [levels.index[i] for i in sorted(set(positions))]
+        logger.info("AutoTAM: searching on %d of %d groups, then fitting all of them.", len(self.search_sample_), len(levels))
+
+        def only(frame):
+            return None if frame is None else frame[frame[group_col].isin(self.search_sample_)]
+
+        args = {**self._constructor_args, "search_groups": None, "export_dir": str(pathlib.Path(self.export_directory) / "sample_search")}
+        searcher = type(self)(**args)
+        searcher.fit(only(df_train), only(df_fit), only(df_dev), only(df_val), date_col=date_col, group_col=group_col, expansions=expansions,
+                     validation_strategy=validation_strategy, optimization_metric=optimization_metric, refit_on_full_train=refit_on_full_train,
+                     past_covariates=past_covariates, seed_formulas=seed_formulas)
+        return searcher
+#: </auto_tam_sample_search>
 
 #: <auto_tam_architectures>
     def _kept_architectures(self, architectures) -> Optional[Dict[str, List[str]]]:
@@ -386,6 +496,18 @@ class AutoTAM:
         logger.info("AutoTAM: refitting %d formulas of an earlier search, no evolutionary search.", sum(len(v) for v in kept.values()))
         return kept
 #: </auto_tam_architectures>
+
+#: <auto_tam_calendar_seeds>
+    def _calendar_seeds(self) -> List[str]:
+        """Profiles the cycles of the training target and returns the seed formulas for the ones present (empty when none)."""
+        rows = pd.concat([self.ctx.df_fit, self.ctx.df_dev, self.ctx.df_val])   # every training row, never a forecast row
+        rows = rows[rows[self.ctx.target].notna()]
+        self.calendar_profile_ = spectral_profile(rows, self.ctx.target, self.ctx.date_col, self.ctx.group_col)
+        columns = list(self.ctx.calendar.get("columns", []))
+        seeds = calendar_seed_formulas(self.ctx.target, self.calendar_profile_, columns, holidays_on=bool(self.ctx.calendar.get("country")))
+        logger.info("Calendar profile: cycles %s, %d seed formula(s).", sorted(self.calendar_profile_.get("cycles", {})), len(seeds))
+        return seeds
+#: </auto_tam_calendar_seeds>
 
 #: <auto_tam_seed_formulas>
     def _seed_champions(self, seed_formulas: Optional[List[str]]) -> List[str]:
@@ -641,6 +763,53 @@ class AutoTAM:
                   "re-weight the experts chronologically across regime shifts.")
 
         return preds_df
+
+#: <auto_tam_quantiles>
+    def predict_quantiles(self, df_test: pd.DataFrame, taus: Sequence[float] = (0.1, 0.5, 0.9), date_col: Optional[str] = None) -> pd.DataFrame:
+        """Quantile forecasts of the final model: its point forecast plus the quantiles of its validation errors.
+
+        The error of the final model on the validation rows (``y - forecast``, rows the search did not fit) is the empirical law of the
+        error; the quantile of level ``tau`` is the point forecast plus the ``tau``-quantile of that error, taken in the group of the row
+        when the group has at least 30 validation errors, else over all groups. Levels are returned sorted, so the columns never cross. The
+        coverage is the one of the validation errors: it holds when the future errors look like them (the error of a longer horizon is
+        not wider here).
+
+        Args:
+            df_test: Frame to forecast, as for ``predict()``.
+            taus: Quantile levels in (0, 1).
+            date_col: Name of the date column, when the frame has one.
+
+        Returns:
+            One row per row of ``df_test`` and one ``q<tau>`` column per level, in increasing order of level.
+
+        Raises:
+            ValueError: A level is outside (0, 1), or the model has no final model (it needs the Apex ensemble: ``use_opera=True``).
+        """
+        levels = sorted(float(tau) for tau in taus)
+        if not levels or any(not 0.0 < tau < 1.0 for tau in levels):
+            raise ValueError(f"taus must lie in (0, 1); got {list(taus)!r}")
+        column = self.final_model_column_
+        if column is None or column not in self.oof_predictions_:
+            raise ValueError("predict_quantiles needs the final model of the Apex ensemble: fit with use_opera=True and enough rows for a validation part.")
+        point = self.predict(df_test, date_col)[column]
+        val = self.ctx.df_val
+        in_val = np.asarray(self.oof_predictions_[column], dtype=float)[-len(val):]   # the validation rows come last in the fit + dev + val frame
+        errors = (val[self.ctx.target] - pd.Series(in_val, index=val.index)).dropna()
+        if errors.empty:
+            raise ValueError("predict_quantiles: the validation part has no usable error.")
+        pooled = np.quantile(errors.to_numpy(dtype=float), levels)
+        out = {f"q{tau}": point.to_numpy(dtype=float) + pooled[i] for i, tau in enumerate(levels)}
+        group_col = self.ctx.group_col
+        if group_col and group_col in val.columns and group_col in df_test.columns:
+            labels = df_test[group_col].to_numpy()
+            for key, group_errors in errors.groupby(val.loc[errors.index, group_col]):
+                if len(group_errors) >= 30:
+                    own = np.quantile(group_errors.to_numpy(dtype=float), levels)
+                    rows = labels == key
+                    for i, tau in enumerate(levels):
+                        out[f"q{tau}"][rows] = point.to_numpy(dtype=float)[rows] + own[i]
+        return pd.DataFrame(out, index=point.index)
+#: </auto_tam_quantiles>
 
     def predict_online(self, df_test: pd.DataFrame, date_col: Optional[str] = None) -> pd.DataFrame:
         """Sequential inference: MLpol re-weights the experts chronologically.

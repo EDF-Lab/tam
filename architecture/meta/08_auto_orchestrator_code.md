@@ -306,6 +306,60 @@ The fast search (`AutoTAM(..., search="fast")`) is a documented bundle of values
 :caption: src/tam/model/autotam/search_preset.py
 ```
 
+Calendar features (`AutoTAM(..., calendar_features=True)`) and country holidays (`country='FR'`, optional `subdivision`) are derived from the date column after the feature engineering, so they are never smoothed, and are added to the features of the search. The positions are `toy` (time of year) and `tod` (time of day), fractions in [0, 1), and `dow` (day of week, 0 to 6); the search offers them only as cyclic Fourier terms (and a categorical `dow`), never as linear terms. The holiday columns are `holiday`, `days_to_holiday` and `days_since_holiday` (capped at 14) and `bridge_day`, from the optional `holidays` package (`pip install tam-ml[calendar]`). Without the arguments nothing changes:
+
+```{literalinclude} ../../../../src/tam/model/autotam/calendar_features.py
+:language: python
+:start-after: "#: <calendar_features>"
+:end-before: "#: </calendar_features>"
+:caption: src/tam/model/autotam/calendar_features.py
+```
+
+The spectral profile is computed once on the training rows of the target (never a forecast row), over a sample of at most 20 groups: a Hann-windowed periodogram of the detrended series, peaks at least 40 times the running median, each named as a harmonic of the day, the week or the year, the sidebands of the daily harmonics (a daily profile that changes with the weekday or the season) read as interactions, and the seasonal autocorrelation at one day, one week and one year. With `calendar_features=True` the cycles found seed the search as formulas of the island `Seed` (`calendar_profile_` keeps the profile). The profile is a prior, not a constraint:
+
+```{literalinclude} ../../../../src/tam/model/autotam/spectral_profile.py
+:language: python
+:start-after: "#: <spectral_profile>"
+:end-before: "#: </spectral_profile>"
+:caption: src/tam/model/autotam/spectral_profile.py
+```
+
+Distribution families (`AutoTAM(..., family="auto")`, default `"gaussian"`) add static experts under the GLM losses the profile of the training target allows, next to the Gaussian expert: Gamma (log link) for a positive skewed target, Tweedie for a non-negative target with many zeros, Poisson and negative binomial for counts, Huber for heavy tails. They are fitted on each champion formula, scored in the response scale on the same folds, and compete in the leagues; the Kalman and adaptive experts stay on the Gaussian static model. A log link is never proposed for a target with zeros or negative values:
+
+```{literalinclude} ../../../../src/tam/model/autotam/families.py
+:language: python
+:start-after: "#: <families>"
+:end-before: "#: </families>"
+:caption: src/tam/model/autotam/families.py
+```
+
+Quantile forecasts (`predict_quantiles(df_test, taus)`) are the point forecast of the final model plus the empirical quantiles of its errors on the validation rows, which the search did not fit: per group when a group has at least 30 validation errors, else pooled. The levels come back sorted, so the columns never cross. It needs the Apex ensemble (`use_opera=True`). The width does not grow with the horizon; selection on the weighted quantile loss (`optimization_metric='wql'`) and an Opera aggregation per level are not built yet:
+
+```{literalinclude} ../../../../src/tam/model/autotam/auto_tam.py
+:language: python
+:start-after: "#: <auto_tam_quantiles>"
+:end-before: "#: </auto_tam_quantiles>"
+:caption: src/tam/model/autotam/auto_tam.py (Quantiles)
+```
+
+Search on a sample of the groups (`AutoTAM(..., search_groups=50)`) is for data with thousands of groups. `fit()` takes that many groups evenly spaced by the mean of their target (small and large series both in it, the same on every machine), runs the search on them with a new `AutoTAM` of the same arguments (exports to `<export_dir>/sample_search`), then fits the architectures found on every group, the way `architectures=` does. The sample is kept in `search_sample_`. A pooled seasonal floor expert and chunked feature building are not built yet:
+
+```{literalinclude} ../../../../src/tam/model/autotam/auto_tam.py
+:language: python
+:start-after: "#: <auto_tam_sample_search>"
+:end-before: "#: </auto_tam_sample_search>"
+:caption: src/tam/model/autotam/auto_tam.py (Sample search)
+```
+
+Diagnostics (`AutoTAM(..., diagnostics=True)`) keep two profiles for the user and the report: `target_diagnostics_` (training rows only, up to ten groups: unit root and stationarity by augmented Dickey-Fuller and KPSS, seasonal and trend strength, skewness, kurtosis, Jarque-Bera, outlier share, Syntetos-Boylan demand class, CUSUM break, Ljung-Box) and `residual_profile_` (errors of the final model on the validation rows: Ljung-Box for structure left, ARCH for volatility clustering, Jarque-Bera, bias). The tests are written with numpy and scipy only, with the standard asymptotic critical values. They are hints: they do not change the search, and the report does not show them yet:
+
+```{literalinclude} ../../../../src/tam/model/autotam/diagnostics.py
+:language: python
+:start-after: "#: <diagnostics>"
+:end-before: "#: </diagnostics>"
+:caption: src/tam/model/autotam/diagnostics.py
+```
+
 The extrapolation guards (`AutoTAM(extrapolation_guards=True)`, off by default) keep the worst extrapolations out of the search. A champion is refused when it has more coefficients than half the fit rows, a neural or PID term on fewer than 1,000 rows, or a linear term on a counter (a monotone column such as a trend index); the reasons are counted in the context (`guard_rejections`). The forecast bounds keep the training range plus a 15 % margin and are floored at zero for a target that was never negative; the rows each expert had to be clipped on are counted against it in the selection and reported by `AutoTAM.clipped_rows_` after a prediction. The thresholds are constants of the module, to be tuned on the multi-seed measurement before the guards become the default:
 
 ```{literalinclude} ../../../../src/tam/model/autotam/guards.py
