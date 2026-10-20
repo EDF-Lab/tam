@@ -49,13 +49,14 @@ class FeatureProfiler:
 #: <feature_profiler_init>
     def __init__(self, n_bins: int = 50, linearity_tol: float = 0.02,
                  energy_target: float = 0.95, tv_threshold: float = 8.0,
-                 max_harmonics: int = 32, ridge_lambda: float = 1e-6):
+                 max_harmonics: int = 32, ridge_lambda: float = 1e-6, smooth_monotonic: bool = False):
         self.n_bins = int(n_bins)
         self.linearity_tol = float(linearity_tol)
         self.energy_target = float(energy_target)
         self.tv_threshold = float(tv_threshold)
         self.max_harmonics = int(max_harmonics)
         self.ridge_lambda = float(ridge_lambda)
+        self.smooth_monotonic = bool(smooth_monotonic)   # a sorted predictor is profiled like any other; a time counter may take a low-degree smooth
         self.profiles_: Dict[str, Dict[str, Any]] = {}
 #: </feature_profiler_init>
 
@@ -158,6 +159,13 @@ class FeatureProfiler:
         return min(orders)[2] if orders else None
 
     @staticmethod
+    def _has_uniform_steps(values: np.ndarray, tolerance: float = 0.05) -> bool:
+        """True when the steps between consecutive values are nearly constant: a counter, not a measured quantity."""
+        finite = values[np.isfinite(values)]
+        steps = np.abs(np.diff(finite))
+        return bool(steps.size and steps.mean() > 0 and steps.std() / steps.mean() < tolerance)
+
+    @staticmethod
     def _is_index_like(name: str, values: np.ndarray) -> bool:
         """True for autoregressive lags and monotone time counters.
 
@@ -177,7 +185,7 @@ class FeatureProfiler:
 
 #: <feature_profiler_profile>
     def profile(self, df: pd.DataFrame, target_col: Optional[str], features: List[str],
-                group_col: Optional[str] = None) -> Dict[str, Dict[str, Any]]:
+                group_col: Optional[str] = None, date_col: Optional[str] = None) -> Dict[str, Dict[str, Any]]:
         """
         Diagnoses every numeric candidate feature against its partial residual.
 
@@ -186,6 +194,7 @@ class FeatureProfiler:
             target_col (str, optional): Name of the response column.
             features (List[str]): Candidate feature names to diagnose.
             group_col (str, optional): Panel key removed by a within-group transform.
+            date_col (str, optional): Date column; with ``smooth_monotonic``, a monotone feature is a time counter only when the frame has one.
 
         Returns:
             Dict[str, Dict[str, Any]]: Per-feature verdict with keys 'linear', 'family',
@@ -236,7 +245,14 @@ class FeatureProfiler:
             partial = residual_full + contribution          # partial residual for this feature
             feature_values = x_raw[:, position]
 
-            if self._is_index_like(name, feature_values):
+            if self._is_index_like(name, feature_values) and self.smooth_monotonic and not self.is_autoregressive_lag(name):
+                if date_col and self._has_uniform_steps(feature_values):
+                    # A counter or a trend of a series: linear, or a low-degree smooth that can bend (a long-term trend is rarely a straight line).
+                    self.profiles_[name] = {"linear": True, "family": "l", "m": None, "k": None, "eta2": 0.0, "r2": 0.0, "gap": 0.0,
+                                            "tv_ratio": 0.0, "bounded_smooth": True, "reason": "time counter: linear or a low-degree smooth"}
+                    continue
+                # a predictor that happens to be sorted (a table ordered by x): its response is profiled like any other
+            elif self._is_index_like(name, feature_values):
                 self.profiles_[name] = {"linear": True, "family": "l", "m": None, "k": None,
                                         "eta2": 0.0, "r2": 0.0, "gap": 0.0, "tv_ratio": 0.0,
                                         "reason": "autoregressive lag or monotone index"}

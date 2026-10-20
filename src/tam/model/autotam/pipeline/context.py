@@ -203,6 +203,7 @@ class PipelineContext:
     family_losses: List[str] = field(default_factory=list)  # non-Gaussian losses offered with family='auto' (see families.py)
     dynamic_top: Optional[int] = None  # dynamic experts only for the champions ranked at most this in their island, None for all
     native_quantiles: bool = False  # distributional experts that forecast their own quantiles (see native_quantiles.py)
+    sentinel_cleaner: Any = None  # the learned rules that mask and impute missing-data codes (see sentinel_cleaning.py), None when off
     cycle_windows: bool = False  # the group is derived from the dates (group_search): the history of a window is the cycles of one group
     online_variants: bool = False  # more Kalman and adaptive configurations (forecast input, absolute noise grid, 350-period window)
     fast_search: bool = False  # the fast preset: fewer islands, rates and windows in the dynamic expansions (see search_preset.py)

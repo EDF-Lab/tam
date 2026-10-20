@@ -33,10 +33,12 @@ from tam.common.exceptions import collect_extrapolation
 from tam.model.autotam.failures import log_failure
 from tam.common.utils import parse_formula_to_terms
 from tam.model.autotam.anchor import ANCHOR_ISLAND, anchor_formula
-from tam.model.autotam.floor import FLOOR_ISLAND, floor_formula
+from tam.model.autotam.floor import FLOOR_COLUMN, FLOOR_ISLAND, floor_formula
 from tam.model.autotam.group_search import GROUP_COLUMN, add_group, covariates_in_cycles, derived_group, formula_in_cycles, sample_groups, to_cycles
 from tam.model.autotam.alignment import aligned_values
 from tam.model.autotam.expert_ids import experts_table, identifiers
+from tam.model.autotam.inactivity import InactivityGate, drop_leading_zeros
+from tam.model.autotam.covariate_ranking import rank_covariates
 from tam.model.autotam.tokens import first_arguments, identifier_tokens
 from tam.model.autotam.series_guard import GUARD_ISLANDS, apply_guard, guarded_series
 from tam.model.autotam.external_experts import look_up, normalise_external
@@ -165,6 +167,16 @@ class AutoTAM:
         apex_prune: Optional[float] = None,
         series_guard: bool = False,
         max_cv_folds: Optional[int] = None,
+        clean_sentinels: bool = False,
+        calendar_guards: bool = False,
+        smooth_monotonic: bool = False,
+        cross_sectional: bool = False,
+        tensor_margin_penalty: bool = False,
+        inactivity_gate: bool = False,
+        closed_when: Optional[Dict[str, float]] = None,
+        rank_covariates: bool = False,
+        max_covariates: Optional[int] = None,
+        physical_bounds: Optional[Dict[str, Tuple[float, float]]] = None,
         **kwargs
     ):
         """
@@ -251,6 +263,48 @@ class AutoTAM:
             max_cv_folds (Optional[int]): At most this many expanding-window folds in the usual validation of a daily or monthly series (the step
                 of the folds grows to fit). Without it a series of six years of days has a fold every 30 rows, 48 folds to score every candidate on.
                 ``None`` (default) keeps the folds as they were; ``search="fast"`` takes 5 unless you give it.
+            smooth_monotonic (bool): Opt-in. A feature whose values only go one way is no longer forced to a linear term. A time counter or a trend
+                of a series (uniform steps, with a date column) may also take a low-degree smooth (``p`` of degree 2 or 3, ``s`` with 4 knots); a
+                predictor that is merely sorted (a table ordered by x, a column with irregular steps, or no date column) is profiled like any
+                other and may take any smooth. The lags of the target stay linear. ``False`` (default) is the search space as it was.
+            cross_sectional (bool): Opt-in, for data with no time order (``date_col=None``). ``df_train`` is shuffled (seed 42) before it is split in
+                fit, development and validation (a split in row order validates on one end of the covariates), the Kalman and adaptive experts are
+                not built unless ``expansions`` says so, and a numeric column is a category only if its values are whole numbers and it has no
+                more distinct values than half the rows. ``False`` (default) is as it was.
+            tensor_margin_penalty (bool): Opt-in. A ``te(...)`` term without an ``ap=`` of its own carries the engine default 1e-9 as the weight of
+                the product, and the engine folds it into the penalty of every margin: the margins the search wrote with ``ap=-3`` are fitted at
+                1e-12. ``True`` writes ``ap=0.0`` on the tensor products the search fits and returns, so each margin keeps the penalty it was
+                given. ``False`` (default) is the search as it was.
+            calendar_guards (bool): Opt-in, with ``calendar_features`` and/or ``country``. The time of year (``toy``) is offered only with at least
+                two years of dates and a step finer than a year (a shorter history makes the model memorise the one-off events of its single year;
+                at a yearly step it is a constant); the holidays of ``country`` only at a step of a day or finer; and the holiday columns also
+                get ``day_before_holiday``, ``day_after_holiday`` (the surge before closing, the catch-up after) and ``year_end_week`` (24
+                December to 2 January). What is left out is logged. ``False`` (default) keeps the calendar columns as they were.
+            inactivity_gate (bool): Opt-in, for series that may not be running. The rows before the first non-zero target of each group are left out
+                of the fit (a shop opened last month is not estimated from years of zeros); a group whose training target is all zero (not opened),
+                the positions of the season that are zero in 95 % of the training values (the night of a solar plant, for sub-daily data), and the
+                rows declared closed by ``closed_when`` are forecast as zero, point and quantiles, in every column of ``predict()``,
+                ``predict_online()`` and ``predict_quantiles()``. ``inactive_groups_`` lists the groups whose last 12 training values are zero
+                (reported, not clamped). ``False`` (default) leaves the forecasts as they were.
+            closed_when (Optional[Dict[str, float]]): With ``inactivity_gate``, known-future columns that say the series is closed: ``{"Open": 0,
+                "shops_closed": 1}`` forecasts zero on the rows where ``Open`` is 0 or ``shops_closed`` is 1.
+            rank_covariates (bool): Opt-in. The covariates are ranked before the search by the absolute Spearman correlation with the target (the
+                target standardised inside each group; a past-only covariate is its lag column, so its correlation is the one at the lag of the
+                horizon), and the search draws the covariates of a candidate with a probability that grows with that score instead of uniformly.
+                ``covariate_ranking_`` is the table (score, and the higher ranked covariate it repeats above 0.95). The calendar, crisis and regime
+                columns, the lags of the target and the anchor are not ranked; the mandatory variables are never left out.
+            max_covariates (Optional[int]): With the ranking (it switches it on), keep only the ``max_covariates`` best covariates that do not
+                repeat a better one (the features of the search space, the engineered ones - ratios, rolling means - included); the others are not
+                offered to the search. ``None`` (default) keeps them all.
+            clean_sentinels (bool): Opt-in. Before the lags are built, the missing-data codes and impossible readings of the target and of the
+                numeric features are replaced by the median of the same position of the season (hour of the day, day of the week, month) of the
+                training rows, in the same group: round negative constants that repeat (-9999, -999, -200 ...), the rare negatives of a target that
+                is never negative (at most 0.5 %), readings outside the physical range of a temperature in degrees Celsius (-60 to 60) or of a wind
+                direction (0 to 360). The same rules are applied to the rows to forecast; only the cells they flag are filled, a missing target stays
+                missing. ``sentinel_report_`` lists them. Unlike ``replace_sentinels`` (the target only, missing values left as they are) it also
+                cleans the features and fills what it masks.
+            physical_bounds (Optional[Dict[str, Tuple[float, float]]]): With ``clean_sentinels``, the range of a column, ``{"Etmp": (-60, 60)}``,
+                beyond which a reading is not one (a column that is not named like a temperature or a direction has no range otherwise).
             series_guard (bool): Opt-in, for panels of series (a ``group_col``, or a derived group) and for a single series. After the fit, each
                 group whose validation RMSE is smaller for a guard expert than for the final model is forecast by that expert, in the final model's
                 column of ``predict()`` and ``predict_online()``. The guard experts are those of the pooled floor (``pooled_floor=True``) and of the
@@ -356,6 +410,11 @@ class AutoTAM:
             rolling_folds=rolling_folds,
             pooled_floor=pooled_floor,
             max_cv_folds=max_cv_folds if max_cv_folds is not None else (FAST_MAX_CV_FOLDS if fast else None),
+            clean_sentinels=clean_sentinels,
+            calendar_guards=calendar_guards,
+            smooth_monotonic=smooth_monotonic,
+            cross_sectional=cross_sectional,
+            physical_bounds=physical_bounds,
             calendar_features=calendar_features,
             country=country,
             subdivision=subdivision,
@@ -374,6 +433,7 @@ class AutoTAM:
             extended=bool(extended_search),
             crossover=bool(crossover),
             bounded_rewards=bool(bounded_rewards),
+            tensor_margin_penalty=bool(tensor_margin_penalty),
         )
         self.expander = ExpertExpander()
         self.selector = EnsembleSelector(use_opera=use_opera, apex_quality_ratio=apex_quality_ratio, weight_average=frozen_weights, seed_floor=seed_floor, pooled_floor=pooled_floor, apex_prune=apex_prune)
@@ -431,7 +491,18 @@ class AutoTAM:
         self.target_diagnostics_ = {}    # set by fit() with diagnostics=True
         self.residual_profile_ = {}      # set by fit() with diagnostics=True
         self.search_sample_ = []  # set by fit() with search_groups: the groups the search ran on
+        if max_covariates is not None and (isinstance(max_covariates, bool) or int(max_covariates) != max_covariates or max_covariates < 1):
+            raise ValueError(f"max_covariates must be None or a positive whole number, got {max_covariates!r}.")
+        self.rank_covariates = bool(rank_covariates) or max_covariates is not None
+        self.cross_sectional = bool(cross_sectional)
+        self.max_covariates = None if max_covariates is None else int(max_covariates)
+        self.covariate_ranking_ = pd.DataFrame()  # set by fit() with rank_covariates: feature, score, redundant_with
+        self.inactivity_gate = bool(inactivity_gate)
+        self.closed_when = dict(closed_when or {})
+        self.gate_ = None            # set by fit() with inactivity_gate: the learned InactivityGate
+        self.inactive_groups_ = []   # set by fit() with inactivity_gate: groups whose last training values are zero
         self.series_guard = bool(series_guard)
+        self.sentinel_report_ = {}  # set by fit() with clean_sentinels: per column, the codes, the range and the cells masked
         self.guarded_series_ = {}  # set by fit() with series_guard: {group: guard expert} for the groups the final model loses on
         self.apex_pruned_ = []  # set by fit() with apex_prune: the Apex members dropped for keeping no weight
         self.timings_ = {}     # set by fit(): seconds of the search, the expansion and the selection, and per series (group)
@@ -520,8 +591,14 @@ class AutoTAM:
             df_train, df_fit, df_dev, df_val = self._difference_training_frames(df_train, df_fit, df_dev, df_val, date_col, group_col, fit_arguments)
         logger.info("AutoTAM: Starting Pipeline...")
         self.chronological_test_log = []
+        if expansions is None and self.cross_sectional and not date_col:
+            expansions = {"prior": True, "autofit": True, "kalman": False, "adaptive": False, "grid": False}
         self.expander.expansions = expansions or {"prior": True, "autofit": True, "kalman": True, "adaptive": True, "grid": False}
         
+        if self.inactivity_gate:
+            target_name = self.data_manager.formula_config["targets"][0]
+            df_train, df_fit, df_dev, df_val = (None if f is None else drop_leading_zeros(f, target_name, group_col, date_col)
+                                                for f in (df_train, df_fit, df_dev, df_val))
         self.ctx = self.data_manager.prepare(
             df_train=df_train, 
             df_fit=df_fit, 
@@ -545,6 +622,8 @@ class AutoTAM:
         self.ctx.extrapolation_guards = self.extrapolation_guards
         self.ctx.fast_search = self.search == "fast"
         self.ctx.dynamic_top = self.dynamic_top
+        if self.rank_covariates:
+            self._rank_covariates()
         self.ctx.cycle_windows = group_col == GROUP_COLUMN   # a derived group steps by cycle: the adaptive windows are counted in cycles of one group
         self.ctx.online_variants = self.online_variants
         self.ctx.native_quantiles = self.native_quantiles
@@ -589,6 +668,12 @@ class AutoTAM:
         self.apex_pruned_ = list(self.selector.apex_pruned_)
         self.final_model_column_ = self.FINAL_MODEL_COLUMN if self.weights_top10 else None
         self.experts_ = experts_table(self.trained_experts, self.weights_top10)
+        if self.inactivity_gate:
+            training = pd.concat([f for f in (self.ctx.df_fit, self.ctx.df_dev, self.ctx.df_val) if f is not None])
+            self.gate_ = InactivityGate(self.ctx.target, self.ctx.date_col, self.ctx.group_col, self.closed_when).fit(training)
+            self.inactive_groups_ = list(self.gate_.inactive_at_cutoff)
+        cleaner = getattr(self.ctx, "sentinel_cleaner", None)
+        self.sentinel_report_ = cleaner.report(self.history_) if cleaner is not None and self.history_ is not None else {}
         self.guarded_series_ = self._guard_choice() if self.series_guard else {}
         if self.diagnostics:
             self.residual_profile_ = self._residual_profile()
@@ -652,6 +737,34 @@ class AutoTAM:
         for column in (self.FINAL_MODEL_COLUMN, self.FINAL_MODEL_COLUMN_ONLINE):
             preds_df = apply_guard(preds_df, column, self.guarded_series_, groups)
         return preds_df
+
+    def _rank_covariates(self) -> None:
+        """Scores the covariates of the search space, drops the extra ones when ``max_covariates`` is set, gives the rest an importance."""
+        ctx = self.ctx
+        frames = [f for f in (ctx.df_fit, ctx.df_dev, ctx.df_val) if f is not None]
+        rows = pd.concat(frames)
+        calendar = set(ctx.calendar.get("columns", [])) if ctx.calendar else set()
+        derived = (f"{ctx.target}_lag_", "anchor_lag_", "crisis_", FLOOR_COLUMN, "regime")
+        candidates = [f for f in ctx.search_space if f in rows.columns and f not in (ctx.target, ctx.date_col, ctx.group_col)
+                      and f not in calendar and not str(f).startswith(derived)]
+        table = rank_covariates(rows, ctx.target, candidates, ctx.group_col)
+        mandatory = set(ctx.mandatory_variables or [])
+        keep = [f for f, twin in zip(table["feature"], table["redundant_with"]) if twin is None or f in mandatory]
+        if self.max_covariates is not None:
+            chosen = [f for f in keep if f not in mandatory][: max(0, self.max_covariates - len(mandatory))] + [f for f in keep if f in mandatory]
+            for feature in [f for f in candidates if f not in chosen and f not in mandatory]:
+                ctx.search_space.pop(feature, None)
+            keep = chosen
+        for feature, score in zip(table["feature"], table["score"]):
+            if feature in ctx.search_space and feature in keep:
+                ctx.search_space[feature]["importance"] = float(score)
+        table["offered"] = table["feature"].isin([f for f in table["feature"] if f in ctx.search_space])
+        self.covariate_ranking_ = table
+        logger.info("AutoTAM covariate ranking: %s", ", ".join(f"{f} {s:.2f}" for f, s in zip(table["feature"], table["score"])))
+
+    def _gated(self, values: pd.DataFrame, frame: pd.DataFrame) -> pd.DataFrame:
+        """``values`` with the rows of the inactive series set to zero (one row of ``values`` per row of ``frame``)."""
+        return self.gate_.apply(values, frame) if self.gate_ is not None else values
 
     def _guided_hints(self) -> Dict[str, Any]:
         """What the diagnostics of the training rows say before the search: the verdict, the hints applied, the weak features."""
@@ -1290,6 +1403,7 @@ class AutoTAM:
                     logger.info("%s: %d expert values missing on some rows were left out and the weights renormalised", self.FINAL_MODEL_COLUMN, left_out)
 
         preds_df = self._guard_columns(preds_df, df_test_clean)
+        preds_df = self._gated(preds_df, df_test if len(df_test) == len(preds_df) else df_test_clean)   # the frame as given still has the closed columns
 
         target = self.ctx.target
         if target in df_test.columns and df_test[target].notna().all():
@@ -1368,7 +1482,7 @@ class AutoTAM:
         if aggregation == "opera":
             aggregated = self._opera_quantiles(predictions, df_test, levels, date_col)
             if aggregated is not None:
-                return pd.DataFrame(aggregated, index=point.index, columns=[f"q{tau}" for tau in levels])
+                return self._gated(pd.DataFrame(aggregated, index=point.index, columns=[f"q{tau}" for tau in levels]), df_test)
         pooled = np.quantile(errors.to_numpy(dtype=float), levels)
         out = {f"q{tau}": point.to_numpy(dtype=float) + pooled[i] for i, tau in enumerate(levels)}
         group_col = self.ctx.group_col
@@ -1380,7 +1494,7 @@ class AutoTAM:
                     rows = labels == key
                     for i, tau in enumerate(levels):
                         out[f"q{tau}"][rows] = point.to_numpy(dtype=float)[rows] + own[i]
-        return pd.DataFrame(out, index=point.index)
+        return self._gated(pd.DataFrame(out, index=point.index), df_test)
 
     def _opera_quantiles(self, predictions: pd.DataFrame, df_test: pd.DataFrame, levels: List[float],
                          date_col: Optional[str]) -> Optional[np.ndarray]:
@@ -1543,7 +1657,7 @@ class AutoTAM:
         if apex_members:
             _aggregate_online(apex_members, self.FINAL_MODEL_COLUMN_ONLINE)
 
-        return self._named(self._guard_columns(preds_df, df_test_clean), by_identifier)
+        return self._named(self._gated(self._guard_columns(preds_df, df_test_clean), df_test if len(df_test) == len(preds_df) else df_test_clean), by_identifier)
 
     def _align_prediction_to_test(self, raw_preds, source_df, df_test_clean):
         """Realign dynamic expert predictions (augmented history + test) back

@@ -20,6 +20,7 @@ from tam.model.autotam.population_nodes import get_island_objects
 from tam.model.autotam.guards import guard_violation, monotone_features
 from tam.model.autotam.seeding import rank_key
 from tam.model.autotam.expert_ids import normalise_formula
+from tam.model.autotam.tensor_penalty import with_tensor_outer_penalty
 from tam.model.autotam.search_preset import FULL_GENERATIONS
 import logging
 logger = logging.getLogger(__name__)
@@ -32,12 +33,13 @@ class BaseDiscoverer:
 #: <base_discoverer_init>
     def __init__(self, pop_size: int = 64, eta: float = 0.1, mandatory_terms: Optional[List[str]] = None, mandatory_variables: Optional[List[str]] = None,
                  islands: Optional[List[str]] = None, n_generations: int = FULL_GENERATIONS, extended: bool = False,
-                 crossover: bool = False, bounded_rewards: bool = False):
+                 crossover: bool = False, bounded_rewards: bool = False, tensor_margin_penalty: bool = False):
         self.islands = list(islands) if islands else None  # names of the islands searched, None for all
         self.n_generations = n_generations
         self.extended = bool(extended)
         self.crossover = bool(crossover)
         self.bounded_rewards = bool(bounded_rewards)
+        self.tensor_margin_penalty = bool(tensor_margin_penalty)
         self.pop_size = pop_size
         self.eta = eta
         self.mandatory_terms = mandatory_terms or []
@@ -95,7 +97,7 @@ class BaseDiscoverer:
                         group_col=ctx.group_col, date_col=ctx.date_col,
                         mandatory_terms=getattr(ctx, 'mandatory_terms', None) or self.mandatory_terms,
                         mandatory_variables=getattr(ctx, 'mandatory_variables', None) or self.mandatory_variables,
-                        bounded_rewards=self.bounded_rewards)
+                        bounded_rewards=self.bounded_rewards, tensor_margin_penalty=self.tensor_margin_penalty)
         islands = [i for i in get_island_objects() if self.islands is None or type(i).__name__ in self.islands]
         for island in islands:
             island.extended_mutations = self.extended
@@ -158,6 +160,8 @@ class BaseDiscoverer:
 
         if evaluated:
             island_champions = self.top_formulas(evaluated)
+            if self.tensor_margin_penalty:   # the champions are fitted as they were searched
+                island_champions = {i: [with_tensor_outer_penalty(f) for f in forms] for i, forms in island_champions.items()}
         else:
             logger.warning("No formulas survived the evolutionary evaluation. Check for hidden NaNs or Inf values.")
 

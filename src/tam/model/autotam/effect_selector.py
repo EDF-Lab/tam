@@ -36,7 +36,8 @@ class EffectSelector:
     """
     
 #: <effect_selector_init>
-    def __init__(self, categorical_threshold: int = 15, sparsity_threshold: float = 0.80, max_active_effects: int = 2, extended: bool = False):
+    def __init__(self, categorical_threshold: int = 15, sparsity_threshold: float = 0.80, max_active_effects: int = 2, extended: bool = False,
+                 smooth_monotonic: bool = False, integer_discrete: bool = False):
         """
         Initializes the EffectSelector with strict empirical and structural thresholds.
 
@@ -50,12 +51,17 @@ class EffectSelector:
                 can simultaneously hold in a generated formula. Prevents feature deduplication bloat.
             extended (bool): Opt-in extended grids (spline knots and RBF centres up to the size of the data, a wider PID window grid) and
                 constant features left out of the space. ``False`` is the search space as it was.
+            smooth_monotonic (bool): Opt-in. A time counter may take a low-degree smooth next to a linear term; a merely sorted predictor is profiled
+                like any other (see ``FeatureProfiler``).
+            integer_discrete (bool): Opt-in. A numeric column is discrete only if its values are whole numbers and it has no more distinct values than
+                half the rows.
         """
         self.cat_threshold = categorical_threshold
         self.extended = bool(extended)
         self.sparsity_threshold = sparsity_threshold
         self.max_active_effects = max_active_effects
-        self.profiler = FeatureProfiler()
+        self.profiler = FeatureProfiler(smooth_monotonic=smooth_monotonic)
+        self.integer_discrete = bool(integer_discrete)
 #: </effect_selector_init>
 
 #: <build_search_space>
@@ -118,7 +124,7 @@ class EffectSelector:
         n_grid = sorted(list(set([2, max(2, max_neurons // 4), max(5, max_neurons // 2), max_neurons])))
 
         # Profile once to lock feature capacity, preventing combinatorial explosion during structural search.
-        profiles = self.profiler.profile(df, target_col, features, group_col)
+        profiles = self.profiler.profile(df, target_col, features, group_col, date_col)
 
         # PID terms are offered on the most recent autoregressive lag only (the smallest lag order).
         most_recent_lag = FeatureProfiler.most_recent_lag(features)
@@ -196,6 +202,11 @@ class EffectSelector:
                 # Hard lock: Prevent non-linear solvers from fitting noise on purely linear features.
                 if col == most_recent_lag:
                     feature_space["eligible_effects"].append("pid")
+                if prof.get("bounded_smooth"):
+                    # A time counter may also take a low-degree smooth, never a flexible one.
+                    feature_space["eligible_effects"].extend(["p", "s"])
+                    feature_space["grids"]["p"] = {"deg": [2, 3], "s": [2], "ap": _ap("p")}
+                    feature_space["grids"]["s"] = {"k": [4], "deg": [3], "p": [2], "ap": _ap("s")}
                 search_space[col] = feature_space
                 continue
 
@@ -230,7 +241,10 @@ class EffectSelector:
         if "_rolling_" in str(series.name).lower() or "_ewma_" in str(series.name).lower():
             return "continuous"
         
-        if series.nunique() <= self.cat_threshold:
+        limit = self.cat_threshold
+        if self.integer_discrete:   # few distinct values is a category only for whole numbers, and not for most of a small sample
+            limit = min(limit, max(2, int(len(series) * 0.5))) if bool((series.dropna() % 1 == 0).all()) else 0
+        if series.nunique() <= limit:
             return "discrete"
             
         if (series == 0).mean() >= self.sparsity_threshold: 

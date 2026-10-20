@@ -33,6 +33,7 @@ MAX_INTERACTION_PARTNERS = 5
 # Share of deep-basis terms (n, rbf, t) drawn without partners, so plain terms stay reachable:
 # otherwise others= is attached whenever a categorical exists, and only a mutation can drop it.
 PLAIN_DEEP_TERM_PROBABILITY = 0.25
+IMPORTANCE_FLOOR = 0.15   # added to the importance of a covariate when the candidates are drawn by importance
 
 # Fallback hyperparameter grids for tuning free parameters of basis effects
 # when variables are absent from search_space (e.g. external mandatory variables).
@@ -700,6 +701,27 @@ def _one_tree_architecture(params: Dict[str, Any], keep_depth: bool) -> Dict[str
         params.pop("max_leaves" if keep_depth or random.random() < 0.5 else "max_depth")
     return params
 
+def _draw_features(available_features: List[str], search_space: Dict[str, Any], max_terms: int) -> List[str]:
+    """The features of a candidate: a uniform draw, or, when ``rank_covariates`` gave the features an importance, a draw without replacement
+    with probability proportional to ``IMPORTANCE_FLOOR + importance`` (the floor keeps the weak ones in play)."""
+    count = min(len(available_features), random.randint(1, max_terms))
+    weights = [search_space.get(f, {}).get("importance") for f in available_features]
+    if all(w is None for w in weights):
+        return random.sample(available_features, count)
+    pool = list(zip(available_features, [IMPORTANCE_FLOOR + (w or 0.0) for w in weights]))
+    chosen = []
+    for _ in range(count):
+        total = sum(w for _, w in pool)
+        pick, edge = random.random() * total, 0.0
+        for index, (feature, weight) in enumerate(pool):
+            edge += weight
+            if pick <= edge or index == len(pool) - 1:
+                chosen.append(feature)
+                pool.pop(index)
+                break
+    return chosen
+
+
 def _standard_generate(island: BaseIsland, kg: KnowledgeGraph, available_features: List[str], search_space: Dict[str, Any], complexity_cap: bool = False) -> str:
     """
     Standard generation loop for univariate and simple additive islands.
@@ -709,10 +731,7 @@ def _standard_generate(island: BaseIsland, kg: KnowledgeGraph, available_feature
     if not available_features:
         return "1"
 
-    selected_features = random.sample(
-        available_features,
-        min(len(available_features), random.randint(1, island.max_terms))
-    )
+    selected_features = _draw_features(available_features, search_space, island.max_terms)
     terms = []
     n_tensors = 0
 
@@ -739,10 +758,7 @@ def _interaction_generate(island: BaseIsland, kg: KnowledgeGraph, available_feat
     if not available_features:
         return "1"
 
-    selected_features = random.sample(
-        available_features,
-        min(len(available_features), random.randint(1, island.max_terms))
-    )
+    selected_features = _draw_features(available_features, search_space, island.max_terms)
     terms = []
     n_tensors = 0
 

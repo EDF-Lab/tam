@@ -22,6 +22,9 @@ logger = logging.getLogger(__name__)
 #: <calendar_features>
 HOLIDAY_COLUMNS = ("holiday", "days_to_holiday", "days_since_holiday", "bridge_day")
 HOLIDAY_DISTANCE_CAP = 14
+EXTRA_HOLIDAY_COLUMNS = ("day_before_holiday", "day_after_holiday", "year_end_week")
+MIN_ANNUAL_CYCLES = 2.0           # time of year is offered only after this many years of dates
+MIN_STEPS_PER_DAY_FOR_HOLIDAYS = 1.0
 
 
 def calendar_names(steps_per_day: Optional[float]) -> List[str]:
@@ -32,6 +35,25 @@ def calendar_names(steps_per_day: Optional[float]) -> List[str]:
     if steps_per_day is not None and steps_per_day >= 1.0:
         names.append("dow")
     return names
+
+
+def guarded_calendar_names(names: List[str], dates: pd.Series, steps_per_day: Optional[float]) -> tuple:
+    """The calendar columns a series can learn from, and why the others are left out.
+
+    ``toy`` (time of year) is kept only with at least two years of dates (a shorter history makes the model memorise the one-off events of its
+    single year) and when the step is finer than a year (at a yearly step it is a constant). Returns ``(kept names, {dropped name: reason})``.
+    """
+    stamps = pd.to_datetime(pd.Series(dates)).dropna()
+    years = float((stamps.max() - stamps.min()).total_seconds() / (365.25 * 86400.0)) if len(stamps) > 1 else 0.0
+    kept, dropped = [], {}
+    for name in names:
+        if name == "toy" and years < MIN_ANNUAL_CYCLES:
+            dropped[name] = f"only {years:.1f} year(s) of dates, at least {MIN_ANNUAL_CYCLES:g} are needed"
+        elif name == "toy" and steps_per_day is not None and steps_per_day < 1.0 / 300.0:
+            dropped[name] = "the step is a year: the time of year is a constant"
+        else:
+            kept.append(name)
+    return kept, dropped
 
 
 def calendar_columns(dates: pd.Series, names: List[str]) -> pd.DataFrame:
@@ -60,7 +82,17 @@ def _holiday_calendar(country: str, subdivision: Optional[str], years: List[int]
         raise ValueError(f"The holidays package has no calendar for country={country!r}, subdivision={subdivision!r}.") from exc
 
 
-def holiday_columns(dates: pd.Series, country: str, subdivision: Optional[str] = None) -> pd.DataFrame:
+def extra_holiday_flags(day: pd.Series, holiday_days: pd.DatetimeIndex) -> pd.DataFrame:
+    """The day before and the day after a holiday (the surge before the shops close, the catch-up after) and the week from the 24th of December
+    to the 2nd of January, from normalised dates and the dates of the holidays."""
+    month, number = day.dt.month.to_numpy(), day.dt.day.to_numpy()
+    return pd.DataFrame({
+        "day_before_holiday": (day + pd.Timedelta(days=1)).isin(holiday_days).to_numpy().astype(float),
+        "day_after_holiday": (day - pd.Timedelta(days=1)).isin(holiday_days).to_numpy().astype(float),
+        "year_end_week": (((month == 12) & (number >= 24)) | ((month == 1) & (number <= 2))).astype(float)}, index=day.index)
+
+
+def holiday_columns(dates: pd.Series, country: str, subdivision: Optional[str] = None, extra_flags: bool = False) -> pd.DataFrame:
     """Holiday flag, days to the next and since the last holiday (capped at 14) and bridge-day flag of a date column.
 
     A bridge day is a working Monday or Friday next to a holiday on Tuesday or Thursday (the day between the holiday and the weekend).
@@ -84,8 +116,11 @@ def holiday_columns(dates: pd.Series, country: str, subdivision: Optional[str] =
     next_day = (d + pd.Timedelta(days=1)).isin(days).to_numpy()
     previous_day = (d - pd.Timedelta(days=1)).isin(days).to_numpy()
     bridge = ~flag & (((dow == 0) & next_day) | ((dow == 4) & previous_day))
-    return pd.DataFrame({"holiday": flag.astype(float), "days_to_holiday": nxt, "days_since_holiday": prev, "bridge_day": bridge.astype(float)},
-                        index=dates.index)
+    out = pd.DataFrame({"holiday": flag.astype(float), "days_to_holiday": nxt, "days_since_holiday": prev, "bridge_day": bridge.astype(float)},
+                       index=dates.index)
+    if extra_flags:
+        out = pd.concat([out, extra_holiday_flags(d.set_axis(dates.index), days)], axis=1)
+    return out
 
 
 EQUIVALENT_CORRELATION = 0.999
@@ -124,7 +159,7 @@ def add_calendar(df: pd.DataFrame, date_col: str, spec: Dict[str, Any], skip_equ
     wanted = list(spec.get("names", []))
     new = calendar_columns(df[date_col], wanted) if wanted else pd.DataFrame(index=df.index)
     if spec.get("country"):
-        new = pd.concat([new, holiday_columns(df[date_col], spec["country"], spec.get("subdivision"))], axis=1)
+        new = pd.concat([new, holiday_columns(df[date_col], spec["country"], spec.get("subdivision"), bool(spec.get("extra_flags")))], axis=1)
     keep = spec.get("keep")
     for name in new.columns:
         if name in df.columns or (keep is not None and name not in keep):

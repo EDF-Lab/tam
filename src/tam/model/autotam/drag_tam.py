@@ -20,6 +20,7 @@ import random
 from typing import List, Dict, Any, Tuple, Callable, Optional, Set
 import re
 from tam.model.autotam.tokens import identifier_tokens
+from tam.model.autotam.tensor_penalty import with_tensor_outer_penalty
 
 from .knowledge_graph import KnowledgeGraph, term_members
 from .parser import canonicalize_term, terms_are_equivalent, term_subsumes
@@ -150,6 +151,7 @@ class DragTAM:
         mandatory_terms: Optional[List[str]] = None,
         mandatory_variables: Optional[List[str]] = None,
         bounded_rewards: bool = False,
+        tensor_margin_penalty: bool = False,
     ):
         """
         Initializes the Evolutionary Engine.
@@ -175,6 +177,7 @@ class DragTAM:
         # Island reward: 1 / scaled error is unbounded (it reaches 10 to 100 for a good model, against an exploration term below 1), so the best
         # Island is drawn until the budget is spent. The bounded reward 1 / (1 + scaled error) lies in (0, 1], on the scale of the exploration term.
         self.bounded_rewards = bool(bounded_rewards)
+        self.tensor_margin_penalty = bool(tensor_margin_penalty)   # fit te() terms with the margin penalties the search wrote (see tensor_penalty.py)
         self.ucb_E = 0.1 if self.bounded_rewards else 2.0   # Mutant-UCB exploration parameter E in mu_k + sqrt(E / N_k)
         # Enforce minimum pulls and epsilon-greedy exploration to prevent premature UCB convergence on a single island.
         self.ucb_min_pulls = 3
@@ -390,7 +393,7 @@ class DragTAM:
         
         for fold_train, fold_val in cv_folds:
             try:
-                model = StaticTAM(candidate_formula, group_col=self.group_col, date_col=self.date_col)
+                model = StaticTAM(self._fit_formula(candidate_formula), group_col=self.group_col, date_col=self.date_col)
 
                 req_cols = self._required_columns(candidate_formula, fold_train.columns)
 
@@ -441,7 +444,7 @@ class DragTAM:
                 train_clean.dropna(inplace=True)
 
                 if len(train_clean) >= min_train_rows:
-                    final_model = StaticTAM(candidate_formula, group_col=self.group_col, date_col=self.date_col)
+                    final_model = StaticTAM(self._fit_formula(candidate_formula), group_col=self.group_col, date_col=self.date_col)
                     final_model.fit(train_clean)
                     parsed_terms = getattr(final_model, 'parsed_terms_', [])
                     penalties = getattr(final_model, 'component_penalties_', {})
@@ -654,6 +657,11 @@ class DragTAM:
 #: </dragtam_optimize>
 
 #: <dragtam_reconstruct>
+    def _fit_formula(self, formula: str) -> str:
+        """The formula to fit: with ``tensor_margin_penalty`` every ``te()`` gets ``ap=0.0`` so its margins keep their own penalty."""
+        return with_tensor_outer_penalty(formula) if self.tensor_margin_penalty else formula
+
+
     def _term_to_str(self, t: Dict[str, Any]) -> str:
         eff = t['type']
         feat = t.get('feature')

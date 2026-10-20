@@ -26,13 +26,14 @@ from tam.model.autotam.feature_engineer import FeatureEngineer
 from tam.model.autotam.effect_selector import EffectSelector
 from tam.model.autotam.failures import log_failure
 from tam.model.autotam.anchor import add_anchor_lag, anchor_column, resolve_season
-from tam.model.autotam.calendar_features import add_calendar, calendar_names
+from tam.model.autotam.calendar_features import MIN_STEPS_PER_DAY_FOR_HOLIDAYS, add_calendar, calendar_names, guarded_calendar_names
 from tam.model.autotam.spectral_profile import steps_per_day
 from tam.model.autotam.regimes import add_regime_column, fit_regimes
 from tam.model.autotam.crisis_calendar import active_events, add_crisis, resolve_events
 from tam.model.autotam.floor import FLOOR_COLUMN, season_position
 from tam.model.autotam.anchor import natural_season
 from tam.model.autotam.target_profile import mask_sentinels, profile_target
+from tam.model.autotam.sentinel_cleaning import SentinelCleaner
 logger = logging.getLogger(__name__)
 #: </data_manager_imports>
 
@@ -189,6 +190,11 @@ class DataManager:
         rolling_folds: Optional[int] = None,
         pooled_floor: bool = False,
         max_cv_folds: Optional[int] = None,
+        clean_sentinels: bool = False,
+        calendar_guards: bool = False,
+        smooth_monotonic: bool = False,
+        cross_sectional: bool = False,
+        physical_bounds: Optional[Dict[str, Tuple[float, float]]] = None,
     ):
         """
         Initializes the DataManager, parsing the user formula and populating mandatory terms.
@@ -215,6 +221,10 @@ class DataManager:
         if max_cv_folds is not None and (isinstance(max_cv_folds, bool) or int(max_cv_folds) != max_cv_folds or max_cv_folds < 1):
             raise ValueError(f"max_cv_folds must be None or a positive whole number, got {max_cv_folds!r}.")
         self.max_cv_folds = None if max_cv_folds is None else int(max_cv_folds)
+        self.clean_sentinels = bool(clean_sentinels)
+        self.calendar_guards = bool(calendar_guards)
+        self.cross_sectional = bool(cross_sectional)
+        self.physical_bounds = dict(physical_bounds or {})
         self.country = country
         self.subdivision = subdivision
         self.formula = formula
@@ -230,7 +240,7 @@ class DataManager:
         self.mandatory_terms = self.formula_config["mandatory_terms"]
         self.profiler = DataProfiler()
         self.engineer = FeatureEngineer(collinearity_threshold=0.95)  # spec I: bar |rho| > 0.95
-        self.selector = EffectSelector(extended=extended_search)
+        self.selector = EffectSelector(extended=extended_search, smooth_monotonic=smooth_monotonic, integer_discrete=cross_sectional)
 #: </data_manager_init>
 
 #: <data_manager_prepare>
@@ -378,6 +388,8 @@ class DataManager:
 
         if df_train is not None:
             df_proc = df_train.sort_values(date_col) if date_col else df_train
+            if self.cross_sectional and not date_col:   # rows with no time order: a split in row order would validate on one end of the covariates
+                df_proc = df_proc.sample(frac=1.0, random_state=42)
             n = len(df_proc)
             fit_end = int(n * self.train_fraction)
             dev_end = int(n * (self.train_fraction + self.dev_fraction))
@@ -412,6 +424,17 @@ class DataManager:
         elif sentinels:
             logger.warning("The value(s) %s repeat at an extreme of the target and look like missing-value codes (sentinels): they are fitted as values. "
                            "Pass replace_sentinels=True to turn them into missing values.", sentinels)
+
+        if self.clean_sentinels:
+            pool = pd.concat([raw_fit, raw_dev, raw_val])
+            features = [c for c in ctx.formula_config["features"] if c in pool.columns and c not in (ctx.target, date_col, group_col)]
+            cleaner = SentinelCleaner([ctx.target] + features, date_col, group_col, self.physical_bounds, negative_columns=[ctx.target]).fit(pool)
+            ctx.sentinel_cleaner = cleaner
+            report = cleaner.report(pool)
+            raw_fit, raw_dev, raw_val, df_all_raw = (cleaner.apply(frame) for frame in (raw_fit, raw_dev, raw_val, df_all_raw))
+            for column, rule in report.items():
+                logger.warning("Sentinel cleaning: %d cell(s) of '%s' are missing-data codes or impossible readings (codes %s, range %s, negatives %s): "
+                               "replaced by the seasonal median of the training rows.", rule["masked"], column, rule["codes"], rule["bounds"], rule["negatives"])
 
         empty = [name for name, rows in (("df_fit", raw_fit), ("df_dev", raw_dev), ("df_val", raw_val)) if len(rows) == 0]
         if empty:
@@ -605,8 +628,17 @@ class DataManager:
         if not ctx.date_col or ctx.date_col not in df_aug.columns:
             raise ValueError("calendar_features and country need a date column: pass date_col=.")
         spd = steps_per_day(df_aug[ctx.date_col])
-        ctx.calendar = {"names": calendar_names(spd) if self.calendar_features else [], "country": self.country, "subdivision": self.subdivision,
-                        "steps_per_day": spd}
+        names = calendar_names(spd) if self.calendar_features else []
+        country = self.country
+        if self.calendar_guards:
+            names, dropped = guarded_calendar_names(names, df_aug[ctx.date_col], spd)
+            for name, reason in dropped.items():
+                logger.info("Calendar guard: '%s' is not offered: %s.", name, reason)
+            if country and (spd is None or spd < MIN_STEPS_PER_DAY_FOR_HOLIDAYS):
+                logger.info("Calendar guard: the holidays of '%s' are not offered at a step coarser than a day.", country)
+                country = None
+        ctx.calendar = {"names": names, "country": country, "subdivision": self.subdivision, "steps_per_day": spd,
+                        "extra_flags": self.calendar_guards}
         df_aug = df_aug.copy()
         features = list(ctx.formula_config["features"])
         among = [c for c in df_aug.columns if any(c == f or c.startswith(f"{f}_") for f in features)] if features else None
@@ -702,6 +734,8 @@ class DataManager:
                 )
 
         df_combined = df_test.copy()
+        if getattr(ctx, "sentinel_cleaner", None) is not None:
+            df_combined = ctx.sentinel_cleaner.apply(df_combined)
         
         if ctx.historical_tail is not None and ctx.date_col and ctx.date_col in df_test.columns:
             test_dates = df_test[ctx.date_col]
