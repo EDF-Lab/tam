@@ -11,12 +11,13 @@ demand class of Syntetos and Boylan, a CUSUM test for a break, and Ljung-Box. Re
 (volatility clustering), Jarque-Bera, and the bias. They are hints for the user and for the search, never constraints.
 
 The tests use the standard asymptotic critical values (MacKinnon for the Dickey-Fuller statistic, Kwiatkowski et al. for KPSS) and need
-only numpy and scipy.
+only numpy and scipy (the screen of the features reads a data frame).
 """
 
 from typing import Any, Dict, List, Optional
 
 import numpy as np
+import pandas as pd
 from scipy import stats
 
 #: <diagnostics>
@@ -194,4 +195,53 @@ def residual_diagnostics(residuals, horizon: int = 1) -> Dict[str, Any]:
         structure_left=bool(ljung_box(r, lags)["p_value"] < 0.05), volatility_clustering=bool(arch_p < 0.05),
     )
     return out
+
+
+WEAK_CORRELATION = 0.05
+
+
+def feature_diagnostics(rows: pd.DataFrame, target: str, features, horizon: int = 1, group_col: Optional[str] = None) -> Dict[str, Dict[str, Any]]:
+    """Spearman correlation of each numeric feature with the target at the same step and at lag ``horizon`` (what a direct model can use).
+
+    Args:
+        rows: Training rows in time order.
+        target: Target column.
+        features: Feature column names (non-numeric and missing columns are skipped).
+        horizon: Lag, in rows of the group, of the feature against the target.
+        group_col: Group column: the lag is taken inside each group.
+
+    Returns:
+        ``{feature: {"same_step": rho, "lagged": rho, "weak": bool}}``; ``weak`` when both are below ``WEAK_CORRELATION`` in absolute value.
+    """
+    out: Dict[str, Dict[str, Any]] = {}
+    y = pd.to_numeric(rows[target], errors="coerce")
+    for feature in features:
+        if feature == target or feature not in rows.columns or not pd.api.types.is_numeric_dtype(rows[feature]):
+            continue
+        x = pd.to_numeric(rows[feature], errors="coerce")
+        if group_col and group_col in rows.columns:
+            lagged = x.groupby(rows[group_col]).shift(horizon)
+        else:
+            lagged = x.shift(horizon)
+        same = pd.concat([x, y], axis=1).dropna()
+        late = pd.concat([lagged, y], axis=1).dropna()
+        if len(same) < MIN_ROWS or same.iloc[:, 0].nunique() < 2 or same.iloc[:, 1].nunique() < 2:
+            continue
+        rho_same = float(same.iloc[:, 0].corr(same.iloc[:, 1], method="spearman"))
+        rho_lag = float(late.iloc[:, 0].corr(late.iloc[:, 1], method="spearman")) if len(late) >= MIN_ROWS else float("nan")
+        weak = abs(rho_same) < WEAK_CORRELATION and (not np.isfinite(rho_lag) or abs(rho_lag) < WEAK_CORRELATION)
+        out[feature] = {"same_step": round(rho_same, 4), "lagged": round(rho_lag, 4) if np.isfinite(rho_lag) else None, "weak": bool(weak)}
+    return out
+
+
+def residual_advice(profile: Dict[str, Any]) -> list:
+    """What the residual diagnostics suggest, as sentences (hints for the user, nothing is changed)."""
+    advice = []
+    if profile.get("structure_left"):
+        advice.append("Structure is left in the residuals (Ljung-Box): try more lags of the target, an adaptive layer (expansions) or online_variants.")
+    if profile.get("volatility_clustering"):
+        advice.append("The residual variance clusters (ARCH): the quantile layer is better served by native_quantiles or a scale model.")
+    if abs(float(profile.get("bias_t", 0.0) or 0.0)) > 3.0:
+        advice.append("The final model is biased on the validation rows (|t| > 3): frozen_weights='mean_7' or an adaptive layer may follow the level.")
+    return advice
 #: </diagnostics>

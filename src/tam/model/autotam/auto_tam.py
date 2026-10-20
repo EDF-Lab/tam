@@ -33,10 +33,11 @@ from tam.model.autotam.failures import log_failure
 from tam.common.utils import parse_formula_to_terms
 from tam.model.autotam.anchor import ANCHOR_ISLAND, anchor_formula
 from tam.model.autotam.floor import FLOOR_ISLAND, floor_formula
+from tam.model.autotam.group_search import GROUP_COLUMN, add_group, derived_group, sample_groups
 from tam.model.autotam.seeding import seeded_method
 from tam.model.autotam.differencing import add_back, difference_test, difference_training
 from tam.model.autotam.target_profile import profile_target
-from tam.model.autotam.diagnostics import residual_diagnostics, stationarity_verdict, target_diagnostics
+from tam.model.autotam.diagnostics import feature_diagnostics, residual_advice, residual_diagnostics, stationarity_verdict, target_diagnostics
 from tam.model.autotam.anchor import natural_season
 from tam.model.autotam.families import candidate_losses, check_family_mode
 from tam.model.autotam.spectral_profile import spectral_profile
@@ -136,6 +137,7 @@ class AutoTAM:
         subdivision: Optional[str] = None,
         family: str = "gaussian",
         search_groups: Optional[int] = None,
+        search_sample: str = "level",
         diagnostics: bool = False,
         regimes: bool = False,
         apex_quality_ratio: Optional[float] = 1.5,
@@ -146,6 +148,13 @@ class AutoTAM:
         dynamic_top: Optional[int] = None,
         rolling_folds: Optional[int] = None,
         pooled_floor: bool = False,
+        group_search: bool = False,
+        online_variants: bool = False,
+        crossover: bool = False,
+        native_quantiles: bool = False,
+        crisis_calendar: Any = None,
+        guided_search: bool = False,
+        bounded_rewards: bool = False,
         **kwargs
     ):
         """
@@ -181,6 +190,9 @@ class AutoTAM:
                 level of their target, then fits the architectures found on every group (the way ``architectures=`` does). ``None`` (default)
                 searches on all groups; it has no effect without a ``group_col`` or when there are not more groups than this number. The groups
                 searched are in ``search_sample_``.
+            search_sample (str): How ``search_groups`` picks them: ``"level"`` (default) evenly spaced in the order of the level of the target;
+                ``"level_volatility"`` half of them in that order and half evenly spaced in the order of the coefficient of variation, so steady and
+                erratic series are both searched.
             diagnostics (bool): Opt-in. ``fit()`` also runs statistical diagnostics: of the training target (unit root and stationarity, seasonal
                 strength, spread, tails, outliers, demand class, break, autocorrelation) in ``target_diagnostics_``, and of the residuals of the
                 final model on the validation rows (structure left, volatility clustering, bias) in ``residual_profile_``. They are hints for
@@ -213,6 +225,44 @@ class AutoTAM:
                 step: the hour of the day, the day of the week, the week of the year, the month or the quarter), fitted for all the series at once.
                 It always joins the Apex pool and the frozen final model is never worse than it on the validation rows (logged when it is the
                 final model). The benchmark of seasonal series, as a guard. Needs ``date_col`` and a step with a natural season.
+            guided_search (bool): Opt-in. The diagnostics guide the search, as hints and never as constraints: it switches on ``diagnostics``,
+                ``difference="auto"`` (the increments are modelled when the target is cumulative, monotone or has a unit root) and ``family="auto"``
+                (the count and positive-target families are tried where the profile of the target asks for them) unless you set them, screens the
+                features (Spearman correlation with the target at the same step and at the lag of the horizon; the weak ones are listed), and
+                writes what the residual diagnostics suggest. All of it is in ``guided_hints_``. The search itself is the one of those options.
+            bounded_rewards (bool): Opt-in. The search draws the islands with a bandit whose reward is ``1 / scaled error``, which reaches 10 to
+                100 for a good model against an exploration term below 1, so the best island is drawn almost every time. ``True`` uses the bounded
+                reward ``1 / (1 + scaled error)`` in (0, 1] and a smaller exploration constant (0.1), so the islands keep being tried in proportion
+                to their results. ``False`` (default) is the search as it was.
+            crisis_calendar (Any): Opt-in dated events as features, known in advance like holidays: ``True`` or ``"all"`` (the presets
+                ``covid19``, ``recession_2008``, ``energy_2022``: worldwide windows, approximate), a preset name, or a list of preset names and of
+                your own events ``{"name": "strike", "start": "2023-03-07", "end": "2023-04-20"}``. Each event that overlaps the data adds
+                ``crisis_<name>`` (1 inside the event) and ``crisis_<name>_age`` (years since its start, capped at 2) to the features the search
+                may use; the dates are applied to the rows to forecast as they are. Needs ``date_col``. ``None`` (default) adds nothing.
+            native_quantiles (bool): Opt-in. The best champion of each island also gets a distributional expert: a ``StaticTAM`` with the champion
+                formula as the location and a scale linear in its numeric features, so its quantiles widen where the data are noisier. Its point
+                forecast (the median) joins the pool like any static expert, but not the Apex: the point forecast of the final model is not changed.
+                ``predict_quantiles(aggregation="opera")`` aggregates it as one more member, with its own quantiles, next to the members of the final
+                model (their point forecast plus validation-error offsets); the pinball loss of each level weights it (``quantile_members_``).
+                ``False`` (default) is the pool as it was.
+            crossover (bool): Opt-in search operators. A mutation may take one additive branch (a term, or a tensor product) from the champion of
+                another island and add it to the champion it mutates (replacing a term when the island is at its limit), and may insert a tensor
+                product of a used feature with another feature. Both respect the covariate lock and the eligible effects of the search space.
+                ``False`` (default) is the search as it was.
+            online_variants (bool): Opt-in. More configurations of the Kalman and adaptive experts of the best champions: two adaptive formulas
+                with the static forecast as an input (the lagged residuals plus ``l(Estimated<target>)``, with and without the base effects), Kalman
+                experts with an absolute process noise of 1e-6, 1e-5, 1e-4 and 1e-3 next to the rates relative to the observation noise, and an adaptive
+                window of 350 periods when it is at most half of the training rows. It adds experts, so it adds time; use it with ``dynamic_top`` on large tasks.
+                ``False`` (default) is the search as it was.
+            group_search (Union[bool, str]): Opt-in, for a series given without ``group_col``. ``"always"`` fits only the grouped version (the
+                period of the day as the group): on the hourly day-ahead load it was better on the hold-out on 3 of 3 seeds and cost about 0.6 of
+                the plain fit, while the comparison of ``True`` chose the ungrouped fit on 2 of 3 seeds, wrongly (validation error does not rank
+                the two). ``True`` is as follows. ``fit()`` also fits the model with a group column derived from the
+                dates (one group per period of the day on sub-daily data, one step being one day; nothing for daily or coarser data) and keeps
+                the version with the smaller error on the development and validation dates both have (``group_scores_``; the ungrouped one on a tie). It costs one
+                more search, and the lags and the horizon (given in rows) become that many cycles when they are whole numbers of them, else the series is not
+                searched; a fit given a ``group_col``, ``architectures`` or ``difference`` is not searched. ``predict()`` adds the group column to the
+                frame it is given. Dates that allow no grouping (irregular, daily or coarser steps, more than 96 periods, too few days) leave the fit as it was.
             rolling_folds (Optional[int]): Opt-in. The experts and the champions are scored on ``rolling_folds`` rolling origins instead of the usual
                 folds: the last ``rolling_folds`` horizons of the training rows (the horizon is ``horizon``, else the smallest lag, else 1 date),
                 each predicted by a model trained on everything before it. A selection on one horizon of data is noisy; the mean of several is
@@ -256,6 +306,8 @@ class AutoTAM:
         self._constructor_args = {**{k: v for k, v in locals().items() if k not in ("self", "kwargs", "__class__")}, **kwargs}
         self.search = check_search_mode(search)
         self.family = check_family_mode(family)
+        if guided_search and self.family == "gaussian":
+            self.family = "auto"
         fast = self.search == "fast"
         n_experts = n_experts if n_experts is not None else (FAST_N_EXPERTS if fast else 15)
         pop_size = pop_size if pop_size is not None else (FAST_POP_SIZE if fast else 64)
@@ -280,6 +332,7 @@ class AutoTAM:
             subdivision=subdivision,
             regimes=regimes,
             extended_search=extended_search,
+            crisis_calendar=crisis_calendar,
         )
         self.mandatory_terms = self.data_manager.mandatory_terms
         self.discoverer = BaseDiscoverer(
@@ -290,6 +343,8 @@ class AutoTAM:
             islands=FAST_ISLANDS if fast else None,
             n_generations=FAST_GENERATIONS if fast else FULL_GENERATIONS,
             extended=bool(extended_search),
+            crossover=bool(crossover),
+            bounded_rewards=bool(bounded_rewards),
         )
         self.expander = ExpertExpander()
         self.selector = EnsembleSelector(use_opera=use_opera, apex_quality_ratio=apex_quality_ratio, weight_average=frozen_weights, seed_floor=seed_floor, pooled_floor=pooled_floor)
@@ -315,7 +370,21 @@ class AutoTAM:
         self.final_model_column_ = None  # set by fit(): the column of predict() that holds the final model
         self.calendar_profile_ = {}  # set by fit() with calendar_features: the spectral profile of the training target
         self.search_groups = search_groups
-        self.difference = difference
+        if search_sample not in ("level", "level_volatility"):
+            raise ValueError(f"search_sample must be 'level' or 'level_volatility'; got {search_sample!r}")
+        self.search_sample = search_sample
+        if group_search not in (True, False, None, "always"):
+            raise ValueError(f"group_search must be False, True or 'always'; got {group_search!r}")
+        self.group_search = "always" if group_search == "always" else bool(group_search)
+        self.online_variants = bool(online_variants)
+        self.native_quantiles = bool(native_quantiles)
+        self._native_levels = None       # the levels predict_quantiles asks the native experts for, during its predict() call
+        self._native_quantiles_ = {}     # {expert: array rows x levels} of the last predict() with native levels
+        self.quantile_members_ = []      # the members aggregated by the last predict_quantiles(aggregation="opera")
+        self.derived_group_ = None       # set by fit() with group_search: {"column", "kind", "count"} of the grouping kept, else None
+        self.group_scores_ = {}          # set by fit() with group_search: the validation error of each version
+        self._choosing_group = False
+        self.difference = difference if not (guided_search and difference is None) else "auto"
         if dynamic_top is not None and (isinstance(dynamic_top, bool) or int(dynamic_top) != dynamic_top or dynamic_top < 1):
             raise ValueError(f"dynamic_top must be None or a positive whole number, got {dynamic_top!r}.")
         self.dynamic_top = None if dynamic_top is None else int(dynamic_top)
@@ -323,7 +392,9 @@ class AutoTAM:
         self.difference_scores_ = {}     # set by fit() with difference='select': the errors of the level and of the difference
         self._levels = None
         self._differenced_input = False
-        self.diagnostics = bool(diagnostics)
+        self.guided_search = bool(guided_search)
+        self.guided_hints_ = {}          # set by fit() with guided_search: the diagnostics that guided the fit and the advice after it
+        self.diagnostics = bool(diagnostics) or self.guided_search
         self.target_diagnostics_ = {}    # set by fit() with diagnostics=True
         self.residual_profile_ = {}      # set by fit() with diagnostics=True
         self.search_sample_ = []  # set by fit() with search_groups: the groups the search ran on
@@ -384,6 +455,9 @@ class AutoTAM:
         Raises:
             ValueError: Invalid ``past_covariates``, an empty split, or no expert survives the search.
         """
+        if self.group_search and not group_col and date_col and architectures is None and self.difference is None and not self._choosing_group:
+            return self._fit_choosing_group(df_train, df_fit, df_dev, df_val, date_col, expansions, validation_strategy, optimization_metric,
+                                            refit_on_full_train, past_covariates, seed_formulas)
         if self.search_groups and architectures is None and group_col:
             architectures = self._search_on_a_sample(df_train, df_fit, df_dev, df_val, date_col, group_col, expansions, validation_strategy,
                                                      optimization_metric, refit_on_full_train, past_covariates, seed_formulas)
@@ -418,7 +492,11 @@ class AutoTAM:
         self.ctx.extrapolation_guards = self.extrapolation_guards
         self.ctx.fast_search = self.search == "fast"
         self.ctx.dynamic_top = self.dynamic_top
+        self.ctx.online_variants = self.online_variants
+        self.ctx.native_quantiles = self.native_quantiles
         self.ctx.family_losses = candidate_losses(self.ctx.target_profile) if self.family == "auto" else []
+        if self.guided_search:
+            self.guided_hints_ = self._guided_hints()
         self.ctx.optimization_metric = optimization_metric
         self.ctx.complexity_penalty = self.complexity_penalty
         
@@ -451,6 +529,10 @@ class AutoTAM:
         self.final_model_column_ = self.FINAL_MODEL_COLUMN if self.weights_top10 else None
         if self.diagnostics:
             self.residual_profile_ = self._residual_profile()
+        if self.guided_search:
+            self.guided_hints_["advice"] = residual_advice(self.residual_profile_)
+            for sentence in self.guided_hints_["advice"]:
+                logger.info("AutoTAM guided search: %s", sentence)
         self.extrapolating_features_ = sorted(extrapolating)
         
         if not self.trained_experts:
@@ -466,6 +548,22 @@ class AutoTAM:
 #: </auto_tam_fit>
 
 #: <auto_tam_diagnostics>
+    def _guided_hints(self) -> Dict[str, Any]:
+        """What the diagnostics of the training rows say before the search: the verdict, the hints applied, the weak features."""
+        target = self.ctx.target
+        stationarity = self.target_diagnostics_.get("stationarity")
+        if isinstance(stationarity, dict):
+            stationarity = stationarity.get("verdict")
+        horizon = int(self.ctx.requested_horizon or min(self.data_manager.user_lags or [1]))
+        features = [f for f in self.ctx.formula_config.get("features", []) if f in self.ctx.df_fit.columns]
+        screened = feature_diagnostics(self.ctx.df_fit, target, features, horizon, self.ctx.group_col)
+        weak = sorted(name for name, row in screened.items() if row["weak"])
+        hints = {"stationarity": stationarity, "difference": self.difference, "family_losses": list(self.ctx.family_losses),
+                 "features": screened, "weak_features": weak, "advice": []}
+        logger.info("AutoTAM guided search: stationarity %s, difference %s, families %s, %d weak feature(s)%s.", stationarity, self.difference,
+                    hints["family_losses"] or "none", len(weak), f" ({', '.join(weak)})" if weak else "")
+        return hints
+
     def _target_diagnostics(self) -> Dict[str, Any]:
         """Diagnostics of the training target: of the series itself, or of up to ten groups (the verdict is then the most frequent one)."""
         frames = [f for f in (self.ctx.df_fit, self.ctx.df_dev, self.ctx.df_val) if f is not None]
@@ -526,7 +624,7 @@ class AutoTAM:
         early = training[stamps < edges[0]]
         scores: Dict[str, float] = {}
         for label, mode in (("level", None), ("difference", h)):
-            arguments = {**self._constructor_args, "difference": mode, "search_groups": None,
+            arguments = {**self._constructor_args, "difference": mode, "search_groups": None, "guided_search": False,
                          "export_dir": str(pathlib.Path(self.export_directory) / f"select_{label}")}
             child = type(self)(**arguments)
             child.fit(early, date_col=date_col, group_col=group_col, **fit_arguments)
@@ -580,6 +678,103 @@ class AutoTAM:
         return frames["train"], frames["fit"], frames["dev"], frames["val"]
 #: </auto_tam_difference>
 
+#: <auto_tam_group_search>
+    def _fit_choosing_group(self, df_train, df_fit, df_dev, df_val, date_col, expansions, validation_strategy, optimization_metric,
+                            refit_on_full_train, past_covariates, seed_formulas):
+        """Fits with the group derived from the dates and, unless ``group_search="always"``, without it, and keeps the better version."""
+        arguments = dict(date_col=date_col, expansions=expansions, validation_strategy=validation_strategy, optimization_metric=optimization_metric,
+                         refit_on_full_train=refit_on_full_train, past_covariates=past_covariates, seed_formulas=seed_formulas)
+        frames = [df_train, df_fit, df_dev, df_val]
+        always = self.group_search == "always"
+        self.derived_group_, self.group_scores_ = None, {}
+
+        def fit_ungrouped():
+            self._choosing_group = True
+            try:
+                self.fit(*frames, group_col=None, **arguments)
+            finally:
+                self._choosing_group = False
+            return self
+
+        known = [f for f in frames if f is not None and date_col in f.columns]
+        choice = derived_group(pd.concat(known)[date_col]) if known else None
+        if choice is None:
+            logger.info("AutoTAM group search: the dates allow no derived group (irregular, daily or coarser step, too many periods or too few days).")
+            return fit_ungrouped()
+        kind, count = choice
+        arguments_child = {**self._constructor_args, "group_search": False, "export_dir": str(pathlib.Path(self.export_directory) / "group_search")}
+        # One step of a group is one cycle (a day): a lag or a horizon given in rows becomes that many cycles, when it is a whole number of them.
+        lags, horizon = self._constructor_args.get("lags"), self._constructor_args.get("horizon")
+        if lags:
+            cycles = sorted({int(lag) // count for lag in lags if int(lag) % count == 0 and int(lag) >= count})
+            if not cycles:
+                logger.info("AutoTAM group search: no lag in %s is a whole number of cycles of %d rows; the ungrouped fit is kept.", list(lags), count)
+                return fit_ungrouped()
+            arguments_child["lags"] = cycles
+        if horizon:
+            if int(horizon) % count or int(horizon) < count:
+                logger.info("AutoTAM group search: the horizon of %d rows is not a whole number of cycles of %d rows; the ungrouped fit is kept.", horizon, count)
+                return fit_ungrouped()
+            arguments_child["horizon"] = int(horizon) // count
+        grouped = [None if f is None else add_group(f, date_col, kind, count) for f in frames]
+        child = type(self)(**arguments_child)
+        try:
+            child.fit(*grouped, group_col=GROUP_COLUMN, **arguments)
+        except Exception as exc:
+            log_failure(logger, f"the fit with the derived group ({kind}, {count} groups)", exc)
+            return fit_ungrouped()
+
+        def adopt():
+            kept = {k: getattr(self, k) for k in ("_constructor_args", "group_search", "export_directory", "reporter", "group_scores_", "_choosing_group")}
+            self.__dict__.update(child.__dict__)
+            self.__dict__.update(kept)
+            self.derived_group_ = {"column": GROUP_COLUMN, "kind": kind, "count": count}
+
+        if always:
+            logger.info("AutoTAM group search: the series is fitted as %d groups (%s), as asked (group_search='always').", count, kind)
+            adopt()
+            return self
+        fit_ungrouped()
+        ungrouped, derived = self._validation_errors_by_date(self), self._validation_errors_by_date(child)
+        common = ungrouped.index.intersection(derived.index)
+        if len(common) < 5:
+            logger.info("AutoTAM group search: too few common validation dates (%d) to compare; the ungrouped fit is kept.", len(common))
+            return self
+        scores = {"ungrouped": float(np.sqrt(np.mean(ungrouped.loc[common] ** 2))), kind: float(np.sqrt(np.mean(derived.loc[common] ** 2)))}
+        self.group_scores_ = scores
+        logger.info("AutoTAM group search (RMSE on %d common development and validation dates): ungrouped %.5g, %s (%d groups) %.5g.",
+                    len(common), scores["ungrouped"], kind, count, scores[kind])
+        if scores[kind] < scores["ungrouped"]:
+            adopt()
+        return self
+
+    @staticmethod
+    def _validation_errors_by_date(model: "AutoTAM") -> pd.Series:
+        """The errors of the final model on its development and validation rows, indexed by date (the first expert without a final model).
+
+        Both blocks are rows the static models were not fitted on; together they are twice the rows of the validation block alone, and a
+        three-month block was not a reliable ground for the choice (the grouped fit was dropped on a seed where it won the hold-out by 10 %).
+        """
+        column = model.final_model_column_
+        if column is None or column not in model.oof_predictions_:
+            column = next(iter(model.oof_predictions_), None)
+        blocks = [f for f in (model.ctx.df_dev, model.ctx.df_val) if f is not None and len(f)]
+        if column is None or not blocks:
+            return pd.Series(dtype=float)
+        rows = pd.concat(blocks)
+        predicted = np.asarray(model.oof_predictions_[column], dtype=float)[-len(rows):]
+        errors = pd.Series(rows[model.ctx.target].to_numpy(dtype=float) - predicted, index=pd.to_datetime(rows[model.ctx.date_col]).to_numpy())
+        return errors[np.isfinite(errors.to_numpy())].groupby(level=0).mean()
+
+    def _with_derived_group(self, frame: pd.DataFrame) -> pd.DataFrame:
+        """``frame`` with the derived group column when the model keeps one and the frame lacks it."""
+        choice = self.derived_group_
+        date_col = self.ctx.date_col if self.ctx is not None else None
+        if not choice or choice["column"] in frame.columns or not date_col or date_col not in frame.columns:
+            return frame
+        return add_group(frame, date_col, choice["kind"], choice["count"])
+#: </auto_tam_group_search>
+
 #: <auto_tam_sample_search>
     def _search_on_a_sample(self, df_train, df_fit, df_dev, df_val, date_col, group_col, expansions, validation_strategy, optimization_metric,
                             refit_on_full_train, past_covariates, seed_formulas) -> Optional["AutoTAM"]:
@@ -591,12 +786,11 @@ class AutoTAM:
         frames = [f for f in (df_train, df_fit, df_dev, df_val) if f is not None and group_col in f.columns]
         everything = pd.concat(frames)
         target = self.data_manager.parser.parse(self.formula)["targets"][0]
-        levels = everything.groupby(group_col)[target].mean().sort_values(kind="mergesort")
-        if len(levels) <= self.search_groups:
+        n_groups = everything[group_col].nunique()
+        if n_groups <= self.search_groups:
             return None
-        positions = np.linspace(0, len(levels) - 1, self.search_groups).round().astype(int)
-        self.search_sample_ = [levels.index[i] for i in sorted(set(positions))]
-        logger.info("AutoTAM: searching on %d of %d groups, then fitting all of them.", len(self.search_sample_), len(levels))
+        self.search_sample_ = sample_groups(everything, group_col, target, self.search_groups, self.search_sample)
+        logger.info("AutoTAM: searching on %d of %d groups, then fitting all of them.", len(self.search_sample_), n_groups)
 
         def only(frame):
             return None if frame is None else frame[frame[group_col].isin(self.search_sample_)]
@@ -772,6 +966,7 @@ class AutoTAM:
                 )
 
         n_rows = len(df_test)
+        self._native_quantiles_ = {}
         df_test, n_history = self._with_history(df_test, date_col)
         df_test_clean, df_aug = self.data_manager.transform_test_data(df_test, self.ctx)
         predictions = {}
@@ -787,6 +982,8 @@ class AutoTAM:
                 
                 if m_type == "static": 
                     predictions[name] = base_m.predict(df_test_clean)[f"Estimated{self.ctx.target}"].values
+                    if self._native_levels and hasattr(base_m, "predict_quantiles"):
+                        self._native_quantiles_[name] = base_m.predict_quantiles(df_test_clean, self._native_levels).to_numpy(dtype=float)
                 
                 elif m_type == "kalman":
                     k_priors = getattr(self.ctx, 'kalman_priors', {})
@@ -871,6 +1068,7 @@ class AutoTAM:
             # The training rows were only there for the experts: the output has exactly the rows that were asked for.
             preds_df = preds_df.iloc[-n_rows:].reset_index(drop=True)
             df_test_clean = df_test_clean.iloc[-n_rows:].reset_index(drop=True)
+            self._native_quantiles_ = {name: values[-n_rows:] for name, values in self._native_quantiles_.items()}
 
         return preds_df, df_test_clean
 
@@ -896,6 +1094,7 @@ class AutoTAM:
             ``final_model_column_`` (``AutoTAM_Apex_Ensemble``). The first column is an expert, not the final
             model: read the final model through ``final_model_column_``.
         """
+        df_test = self._with_derived_group(df_test)
         if self.difference_ and not self._differenced_input:
             return self._predict_levels(df_test, date_col)
         preds_df, df_test_clean = self._expert_predictions(df_test, date_col)
@@ -964,7 +1163,12 @@ class AutoTAM:
         column = self.final_model_column_
         if column is None or column not in self.oof_predictions_:
             raise ValueError("predict_quantiles needs the final model of the Apex ensemble: fit with use_opera=True and enough rows for a validation part.")
-        predictions = self.predict(df_test, date_col)
+        df_test = self._with_derived_group(df_test)
+        self._native_levels = levels if aggregation == "opera" and self.native_quantiles else None
+        try:
+            predictions = self.predict(df_test, date_col)
+        finally:
+            self._native_levels = None
         point = predictions[column]
         val = self.ctx.df_val
         in_val = np.asarray(self.oof_predictions_[column], dtype=float)[-len(val):]   # the validation rows come last in the fit + dev + val frame
@@ -990,28 +1194,50 @@ class AutoTAM:
 
     def _opera_quantiles(self, predictions: pd.DataFrame, df_test: pd.DataFrame, levels: List[float],
                          date_col: Optional[str]) -> Optional[np.ndarray]:
-        """Per-level Opera of the quantile forecasts of the members of the final model (``None`` when it has fewer than two members).
+        """Per-level Opera of the quantile forecasts of the members of the final model, and of the native quantile experts when there are some.
+
+        A member of the final model forecasts a level as its point forecast plus the quantile of its own validation errors; a native expert
+        (``native_quantiles``) with its own quantiles. The pinball loss of each level weights them, so a native expert that is worse than the
+        members gets a small weight; the point forecast of the final model is not changed by them. ``quantile_members_`` lists the members used.
 
         Returns:
-            An array of one row per row of ``df_test`` and one column per level, sorted on each row.
+            An array of one row per row of ``df_test`` and one column per level, sorted on each row; ``None`` with fewer than two members.
         """
         val, target = self.ctx.df_val, self.ctx.target
-        members = [m for m in self.weights_top10 if m in self.oof_predictions_ and m in predictions.columns]
-        if len(members) < 2:
+        by_name = {e["name"]: e["model"] for e in self.trained_experts}
+        points = [m for m in self.weights_top10 if m in self.oof_predictions_ and m in predictions.columns]
+        natives = [m for m in self._native_quantiles_ if m in by_name and m not in points and hasattr(by_name[m], "predict_quantiles")]
+        if len(points) + len(natives) < 2:
             return None
         d_col = date_col or self.ctx.date_col
         g_col = self.ctx.group_col
-        names = [f"member_{j}" for j in range(len(members))]
         truth = pd.to_numeric(val[target], errors="coerce").to_numpy(dtype=float)
-        offsets, scored = [], pd.DataFrame(index=range(len(val)))
-        for name, member in zip(names, members):
+        history_columns: Dict[str, np.ndarray] = {}      # {member: array rows x levels} on the validation rows
+        future_columns: Dict[str, np.ndarray] = {}       # the same on the rows to forecast
+        for member in points:
             in_val = np.asarray(self.oof_predictions_[member], dtype=float)[-len(val):]
             errors = truth - in_val
-            offsets.append(np.quantile(errors[np.isfinite(errors)], levels))
-            scored[name] = in_val
-        keep = np.isfinite(truth) & np.isfinite(scored.to_numpy()).all(axis=1)
+            offsets = np.quantile(errors[np.isfinite(errors)], levels)
+            history_columns[member] = in_val[:, None] + offsets[None, :]
+            future_columns[member] = predictions[member].to_numpy(dtype=float)[:, None] + offsets[None, :]
+        for member in natives:
+            try:   # the expert's own quantiles on the validation rows (NaN where a feature is missing)
+                required = [c for c in re.findall(r"[A-Za-z0-9_]+", getattr(by_name[member], "formula_", "")) if c in val.columns and c != target]
+                own = by_name[member].predict_quantiles(val.dropna(subset=required), levels).reindex(val.index)
+                history_columns[member] = own.to_numpy(dtype=float)
+                future_columns[member] = self._native_quantiles_[member]
+            except Exception as exc:
+                log_failure(logger, f"Native quantiles of {member} on the validation rows", exc)
+        members = list(history_columns)
+        if len(members) < 2:
+            return None
+        self.quantile_members_ = members
+        keep = np.isfinite(truth)
+        for values in history_columns.values():
+            keep &= np.isfinite(values).all(axis=1)
         if keep.sum() < 2:
             return None
+        names = {member: f"member_{j}" for j, member in enumerate(members)}
         carried = [c for c in (d_col, g_col) if c and c in val.columns and c in df_test.columns]
         columns = {c: val[c].to_numpy()[keep] for c in carried}
         test_columns = {c: df_test[c].to_numpy() for c in carried}
@@ -1019,10 +1245,10 @@ class AutoTAM:
         for i, tau in enumerate(levels):
             history = pd.DataFrame({**columns, target: truth[keep]})
             future = pd.DataFrame(test_columns, index=range(len(df_test)))
-            for j, name in enumerate(names):
-                history[name] = scored[name].to_numpy()[keep] + offsets[j][i]
-                future[name] = predictions[members[j]].to_numpy(dtype=float) + offsets[j][i]
-            opera = OperaTAM(target_col=target, expert_cols=names, algorithm="MLPOL", loss_type="pinball", tau=tau,
+            for member in members:
+                history[names[member]] = history_columns[member][keep, i]
+                future[names[member]] = future_columns[member][:, i]
+            opera = OperaTAM(target_col=target, expert_cols=list(names.values()), algorithm="MLPOL", loss_type="pinball", tau=tau,
                              date_col=d_col if d_col in carried else None, group_col=g_col if g_col in carried else None)
             opera.fit(history)
             table[:, i] = opera.predict(future)["prediction_opera"].to_numpy(dtype=float)
@@ -1066,6 +1292,7 @@ class AutoTAM:
         Raises:
             NotImplementedError: The model learns increments (``difference``): use ``predict()``.
         """
+        df_test = self._with_derived_group(df_test)
         if self.difference_:
             raise NotImplementedError("predict_online() is not available for a model fitted on increments (difference=...): use predict().")
         preds_df, df_test_clean = self._expert_predictions(df_test, date_col)

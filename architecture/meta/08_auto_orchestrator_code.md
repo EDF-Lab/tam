@@ -333,7 +333,7 @@ Distribution families (`AutoTAM(..., family="auto")`, default `"gaussian"`) add 
 :caption: src/tam/model/autotam/families.py
 ```
 
-Quantile forecasts (`predict_quantiles(df_test, taus)`) are the point forecast of the final model plus the empirical quantiles of its errors on the validation rows, which the search did not fit: per group when a group has at least 30 validation errors, else pooled. The levels come back sorted, so the columns never cross. It needs the Apex ensemble (`use_opera=True`). The width does not grow with the horizon. With `aggregation="opera"` the levels are aggregated instead: each member of the final model forecasts the `tau`-quantile as its own point forecast plus the `tau`-quantile of its own validation errors, and one `OperaTAM` with the pinball loss of that level, run over the validation rows, gives the weights, applied to the rows to forecast; the levels are sorted on each row. The quantiles of a member come from all its validation errors, not from its group, and a model with a single member gives the empirical forecast:
+Quantile forecasts (`predict_quantiles(df_test, taus)`) are the point forecast of the final model plus the empirical quantiles of its errors on the validation rows, which the search did not fit: per group when a group has at least 30 validation errors, else pooled. The levels come back sorted, so the columns never cross. It needs the Apex ensemble (`use_opera=True`). The width does not grow with the horizon. With `aggregation="opera"` the levels are aggregated instead: each member of the final model forecasts the `tau`-quantile as its own point forecast plus the `tau`-quantile of its own validation errors, and one `OperaTAM` with the pinball loss of that level, run over the validation rows, gives the weights, applied to the rows to forecast; the levels are sorted on each row. The quantiles of a member come from all its validation errors, not from its group, and a model with a single member gives the empirical forecast. With `native_quantiles=True` the best champion of each island also gets a distributional expert (`NativeQuantileExpert`: the champion formula as the location, a scale linear in its numeric features; its median is its point forecast, so it joins the pool as a static expert, not the Apex: the final point forecast is unchanged), and the aggregation takes it as one more member with its own quantiles, next to the members of the final model; the pinball loss of each level gives it a large weight where its quantiles are better and a small one where they are not:
 
 ```{literalinclude} ../../../../src/tam/model/autotam/auto_tam.py
 :language: python
@@ -342,7 +342,14 @@ Quantile forecasts (`predict_quantiles(df_test, taus)`) are the point forecast o
 :caption: src/tam/model/autotam/auto_tam.py (Quantiles)
 ```
 
-Search on a sample of the groups (`AutoTAM(..., search_groups=50)`) is for data with thousands of groups. `fit()` takes that many groups evenly spaced by the mean of their target (small and large series both in it, the same on every machine), runs the search on them with a new `AutoTAM` of the same arguments (exports to `<export_dir>/sample_search`), then fits the architectures found on every group, the way `architectures=` does. The sample is kept in `search_sample_`. Chunked feature building is not built yet:
+```{literalinclude} ../../../../src/tam/model/autotam/native_quantiles.py
+:language: python
+:start-after: "#: <native_quantiles>"
+:end-before: "#: </native_quantiles>"
+:caption: src/tam/model/autotam/native_quantiles.py
+```
+
+Search on a sample of the groups (`AutoTAM(..., search_groups=50)`) is for data with thousands of groups. `fit()` takes that many groups evenly spaced by the mean of their target (small and large series both in it, the same on every machine), runs the search on them with a new `AutoTAM` of the same arguments (exports to `<export_dir>/sample_search`), then fits the architectures found on every group, the way `architectures=` does. The sample is kept in `search_sample_`. With `search_sample="level_volatility"` half of the sample is taken in the order of the level and half in the order of the coefficient of variation of the target (`sample_groups`), so steady and erratic series are both searched; the default `"level"` is the sample as it was. Chunked feature building is not built yet:
 
 ```{literalinclude} ../../../../src/tam/model/autotam/auto_tam.py
 :language: python
@@ -351,7 +358,39 @@ Search on a sample of the groups (`AutoTAM(..., search_groups=50)`) is for data 
 :caption: src/tam/model/autotam/auto_tam.py (Sample search)
 ```
 
-Diagnostics (`AutoTAM(..., diagnostics=True)`) keep two profiles for the user and the report: `target_diagnostics_` (training rows only, up to ten groups: unit root and stationarity by augmented Dickey-Fuller and KPSS, seasonal and trend strength, skewness, kurtosis, Jarque-Bera, outlier share, Syntetos-Boylan demand class, CUSUM break, Ljung-Box) and `residual_profile_` (errors of the final model on the validation rows: Ljung-Box for structure left, ARCH for volatility clustering, Jarque-Bera, bias). The tests are written with numpy and scipy only, with the standard asymptotic critical values. They are hints: they do not change the search, and the report does not show them yet:
+A series given without a group column can be modelled as one sequence per period of the day (`AutoTAM(..., group_search=True)`): each group then sees one observation a day, so its lags and its adaptive and Kalman windows follow the daily rhythm. `fit()` fits the series as it is, derives the grouping from the dates (`derived_group`: the period of the day on a regular sub-daily step of 2 to 96 periods; nothing for daily, coarse, irregular or short series, because the data profiler puts every group on the weekly grid of the first one and a day-of-week grouping would lose the groups of the other weekdays), fits it again with that group, and keeps the version with the smaller RMSE of the final model on the development and validation dates both share. The comparison on validation error is not a reliable ranking of the two versions (on the hourly day-ahead load it chose the ungrouped fit on two seeds out of three, while the grouped fit won the hold-out on all three), so `group_search="always"` fits only the grouped version. The group column is added to every frame given to `predict()`:
+
+```{literalinclude} ../../../../src/tam/model/autotam/group_search.py
+:language: python
+:start-after: "#: <group_search_rules>"
+:end-before: "#: </group_search_rules>"
+:caption: src/tam/model/autotam/group_search.py
+```
+
+```{literalinclude} ../../../../src/tam/model/autotam/auto_tam.py
+:language: python
+:start-after: "#: <auto_tam_group_search>"
+:end-before: "#: </auto_tam_group_search>"
+:caption: src/tam/model/autotam/auto_tam.py (Group search)
+```
+
+A dated crisis calendar (`AutoTAM(..., crisis_calendar=...)`) offers events known in advance as features, like holidays: a lockdown or an energy crisis that the model would otherwise read as a level or seasonal change, or that the forecast window falls inside. The presets are worldwide windows and approximate (a country whose dates differ passes its own events); each event that overlaps the data adds an indicator and the time since its start, and the same columns are written on the rows to forecast from the dates alone:
+
+```{literalinclude} ../../../../src/tam/model/autotam/crisis_calendar.py
+:language: python
+:start-after: "#: <crisis_calendar>"
+:end-before: "#: </crisis_calendar>"
+:caption: src/tam/model/autotam/crisis_calendar.py
+```
+
+```{literalinclude} ../../../../src/tam/model/autotam/pipeline/data_manager.py
+:language: python
+:start-after: "#: <data_manager_crisis>"
+:end-before: "#: </data_manager_crisis>"
+:caption: src/tam/model/autotam/pipeline/data_manager.py (Crisis columns)
+```
+
+Diagnostics (`AutoTAM(..., diagnostics=True)`) keep two profiles for the user and the report: `target_diagnostics_` (training rows only, up to ten groups: unit root and stationarity by augmented Dickey-Fuller and KPSS, seasonal and trend strength, skewness, kurtosis, Jarque-Bera, outlier share, Syntetos-Boylan demand class, CUSUM break, Ljung-Box) and `residual_profile_` (errors of the final model on the validation rows: Ljung-Box for structure left, ARCH for volatility clustering, Jarque-Bera, bias). The tests are written with numpy and scipy only, with the standard asymptotic critical values. They are hints: by themselves they do not change the search (with `guided_search=True` they switch on the differencing and family hints, and the features are screened, see below), and the report does not show them yet:
 
 ```{literalinclude} ../../../../src/tam/model/autotam/diagnostics.py
 :language: python
@@ -359,6 +398,8 @@ Diagnostics (`AutoTAM(..., diagnostics=True)`) keep two profiles for the user an
 :end-before: "#: </diagnostics>"
 :caption: src/tam/model/autotam/diagnostics.py
 ```
+
+A guided search (`AutoTAM(..., guided_search=True)`) uses the diagnostics as hints, never as constraints: it switches on `diagnostics`, `difference="auto"` (the increments are modelled when the target is cumulative, monotone or has a unit root) and `family="auto"` unless they are set, screens the features by their Spearman correlation with the target at the same step and at the lag of the horizon (`feature_diagnostics`; the weak ones are listed), and turns the residual diagnostics into advice (`residual_advice`). Everything it found is in `guided_hints_`. Detected regimes are not switched on by it: they made the national-load forecast worse in a measurement, so they stay a choice of the user.
 
 Detected regimes (`AutoTAM(..., regimes=True)`) are level shifts in the training target (a lockdown, a crisis, a change of process), found by binary segmentation of its level with the seasonal profile removed and kept as break dates, per group when the data are grouped. Each row gets the number of the regime its date falls in, and a forecast row, dated after the last break, carries the regime in force at the cutoff, so no feature of a forecast row depends on data after the cutoff. The number is offered to the search as a category only, never as a quantity. When no break is found, nothing is added. A dated calendar of external events and variance bursts are not built:
 
@@ -398,7 +439,25 @@ Differenced targets (`AutoTAM(..., difference=h)` or `difference="auto"`) are fo
 
 Fewer dynamic experts (`AutoTAM(..., dynamic_top=k)`) cuts the cost of a fit. The Kalman noise rates and the adaptive windows and architectures, built on every champion formula, are most of the time; with `dynamic_top=1` they are built only for the best champion of each island, and every champion still gets its static experts. `None` (default) builds them for all of them, the search as it was. How much accuracy it costs is to be measured on the benchmark.
 
-The extended search space (`AutoTAM(..., extended_search=True)`) is an opt-in widening of what the search can try: spline knots and RBF centres take two more values each (twice and four times the profiled size, up to a twentieth of the rows and at most 50), the PID window grid gains 6 (the width the benchmark formulas use), and a constant feature is left out of the space; a mutation may also add a second basis on a feature the formula already uses, within the covariate lock. The default search is the one it always was. Generation of `lt(slope=)` and `te(c, c)` terms and the bounded bandit rewards are not built.
+More online configurations (`AutoTAM(..., online_variants=True)`) widen what the best champions get: the adaptive stage with the static forecast as an input next to the lagged residuals (`l(Estimated<target>)`, with and without the base effects), Kalman experts with an absolute process noise of 1e-6 to 1e-3 next to the rates relative to the observation noise, and an adaptive window of 350 periods when it is at most half of the training rows (the window of the grouped load protocol, one step being one day). The variants are the same dynamic experts with other inputs, so the selection and the Apex treat them as any other.
+
+With `online_variants=True` the effects of the base model are also summed by kind (`effect_kind`: autoregressive for a lag of the target or of a covariate, calendar for the calendar and holiday columns, exogenous for the rest; the offset stays with the base forecast). `GroupedEffectsTAM` is the fitted base model with one more column per kind in its decomposition, so `AdaptiveTAM` and `KalmanTAM` take the sums as ordinary inputs; the adaptive stage gets the sums (`G`) and the sums with the lagged residuals and the holiday flags (`G+`), the Kalman filter the sums and the offset over the absolute noise grid:
+
+```{literalinclude} ../../../../src/tam/model/autotam/effect_groups.py
+:language: python
+:start-after: "#: <effect_groups>"
+:end-before: "#: </effect_groups>"
+:caption: src/tam/model/autotam/effect_groups.py
+```
+
+```{literalinclude} ../../../../src/tam/model/autotam/pipeline/expert_expander.py
+:language: python
+:start-after: "#: <expert_expander_grouped_effects>"
+:end-before: "#: </expert_expander_grouped_effects>"
+:caption: src/tam/model/autotam/pipeline/expert_expander.py (Grouped effects)
+```
+
+The extended search space (`AutoTAM(..., extended_search=True)`) is an opt-in widening of what the search can try: spline knots and RBF centres take two more values each (twice and four times the profiled size, up to a twentieth of the rows and at most 50), the PID window grid gains 6 (the width the benchmark formulas use), and a constant feature is left out of the space; a mutation may also add a second basis on a feature the formula already uses, within the covariate lock. The default search is the one it always was. The island bandit rewards a candidate with `1 / scaled error`, which is unbounded; `bounded_rewards=True` uses `1 / (1 + scaled error)` in (0, 1] with an exploration constant of 0.1, so the islands keep being tried in proportion to their results. Two more mutation operators are the opt-in `crossover=True`: a mutation may take one additive branch (a term or a tensor product) from the champion of another island, replacing a term when the island is at its limit, and may insert a tensor product of a used non-linear feature with another feature; both stay inside the covariate lock and the eligible effects. The default search is unchanged.
 
 The extrapolation guards (`AutoTAM(extrapolation_guards=True)`, off by default) keep the worst extrapolations out of the search. A champion is refused when it has more coefficients than half the fit rows, a neural or PID term on fewer than 1,000 rows, or a linear term on a counter (a monotone column such as a trend index); the reasons are counted in the context (`guard_rejections`). The forecast bounds keep the training range plus a 15 % margin and are floored at zero for a target that was never negative; the rows each expert had to be clipped on are counted against it in the selection and reported by `AutoTAM.clipped_rows_` after a prediction. The thresholds are constants of the module, to be tuned on the multi-seed measurement before the guards become the default:
 

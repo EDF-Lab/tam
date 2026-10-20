@@ -147,7 +147,8 @@ class DragTAM:
         date_col: str = None,
         fresh_fraction: float = 0.25,
         mandatory_terms: Optional[List[str]] = None,
-        mandatory_variables: Optional[List[str]] = None
+        mandatory_variables: Optional[List[str]] = None,
+        bounded_rewards: bool = False,
     ):
         """
         Initializes the Evolutionary Engine.
@@ -170,7 +171,10 @@ class DragTAM:
         self.max_complexity_multiplier = max_complexity_multiplier
         # Share of every generation reserved for fresh Mutant-UCB spawns (see optimize).
         self.fresh_fraction = fresh_fraction
-        self.ucb_E = 2.0   # Mutant-UCB exploration parameter E in mu_k + sqrt(E / N_k)
+        # Island reward: 1 / scaled error is unbounded (it reaches 10 to 100 for a good model, against an exploration term below 1), so the best
+        # Island is drawn until the budget is spent. The bounded reward 1 / (1 + scaled error) lies in (0, 1], on the scale of the exploration term.
+        self.bounded_rewards = bool(bounded_rewards)
+        self.ucb_E = 0.1 if self.bounded_rewards else 2.0   # Mutant-UCB exploration parameter E in mu_k + sqrt(E / N_k)
         # Enforce minimum pulls and epsilon-greedy exploration to prevent premature UCB convergence on a single island.
         self.ucb_min_pulls = 3
         self.ucb_epsilon = 0.15
@@ -528,7 +532,10 @@ class DragTAM:
                 if is_new:
                     # Island-UCB reward (higher = better): inverse scale-normalized error.
                     # A failed fit is recorded as a zero-reward pull (see update_island_reward).
-                    reward = 1.0 / (rmse / target_std + 1e-6) if np.isfinite(rmse) else None
+                    if self.bounded_rewards:
+                        reward = 1.0 / (1.0 + rmse / target_std) if np.isfinite(rmse) else None
+                    else:
+                        reward = 1.0 / (rmse / target_std + 1e-6) if np.isfinite(rmse) else None
                     self.kg.update_island_reward(island_name, reward)
 
                     self.pruned_cache[formula] = self.kg.update_and_prune(
@@ -581,6 +588,8 @@ class DragTAM:
                 champ = self.kg.get_island_champion(isl.name)
                 if champ:
                     isl.set_champion(champ)
+            for isl in islands:   # the other islands' champions: the donors of a crossover
+                isl.donor_genomes = [o.champion_genome for o in islands if o is not isl and o.champion_genome]
 
             # Reserve a strict budget for fresh spawns to prevent cached elites and ablations from stalling the search.
             n_fresh = max(1, int(round(self.population_size * self.fresh_fraction)))

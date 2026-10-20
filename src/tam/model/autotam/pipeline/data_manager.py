@@ -29,6 +29,7 @@ from tam.model.autotam.anchor import add_anchor_lag, anchor_column, resolve_seas
 from tam.model.autotam.calendar_features import add_calendar, calendar_names
 from tam.model.autotam.spectral_profile import steps_per_day
 from tam.model.autotam.regimes import add_regime_column, fit_regimes
+from tam.model.autotam.crisis_calendar import active_events, add_crisis, resolve_events
 from tam.model.autotam.floor import FLOOR_COLUMN, season_position
 from tam.model.autotam.anchor import natural_season
 from tam.model.autotam.target_profile import mask_sentinels, profile_target
@@ -183,6 +184,7 @@ class DataManager:
         country: Optional[str] = None,
         subdivision: Optional[str] = None,
         regimes: bool = False,
+        crisis_calendar: Any = None,
         extended_search: bool = False,
         rolling_folds: Optional[int] = None,
         pooled_floor: bool = False,
@@ -204,6 +206,7 @@ class DataManager:
         self.horizon = None if horizon is None else int(horizon)
         self.calendar_features = bool(calendar_features)
         self.regimes = bool(regimes)
+        self.crisis_events = resolve_events(crisis_calendar)
         self.pooled_floor = bool(pooled_floor)
         if rolling_folds is not None and (isinstance(rolling_folds, bool) or int(rolling_folds) != rolling_folds or rolling_folds < 1):
             raise ValueError(f"rolling_folds must be None or a positive whole number, got {rolling_folds!r}.")
@@ -444,6 +447,7 @@ class DataManager:
         df_all_aug = self.engineer.engineer_features(df_all_clean, ctx.formula_config, ctx.metadata, date_col)
         
         df_all_aug = self._add_calendar_columns(df_all_aug, ctx)
+        df_all_aug = self._add_crisis_columns(df_all_aug, ctx)
         df_all_aug = self._add_regime_column(df_all_aug, ctx)
         df_all_aug = self._add_floor_column(df_all_aug, ctx)
         ctx.df_all_aug = df_all_aug
@@ -606,6 +610,27 @@ class DataManager:
         return df_aug
 #: </data_manager_calendar>
 
+#: <data_manager_crisis>
+    def _add_crisis_columns(self, df_aug: pd.DataFrame, ctx: PipelineContext) -> pd.DataFrame:
+        """Adds the indicator and the age of each dated event that overlaps the data, and offers them to the search."""
+        if not self.crisis_events:
+            return df_aug
+        if not ctx.date_col or ctx.date_col not in df_aug.columns:
+            raise ValueError("crisis_calendar needs a date column: pass date_col=.")
+        events = active_events(self.crisis_events, df_aug[ctx.date_col])
+        if not events:
+            logger.info("Crisis calendar: no event overlaps the dates of the data.")
+            return df_aug
+        df_aug = df_aug.copy()
+        added = add_crisis(df_aug, ctx.date_col, events)
+        for name in added:
+            if name not in ctx.formula_config["features"]:
+                ctx.formula_config["features"].append(name)
+        ctx.crisis = {"events": events, "columns": added}
+        logger.info("Crisis calendar: %d event(s) overlap the data: %s.", len(events), ", ".join(e["name"] for e in events))
+        return df_aug
+#: </data_manager_crisis>
+
 #: <data_manager_floor>
     def _add_floor_column(self, df_aug: pd.DataFrame, ctx: PipelineContext) -> pd.DataFrame:
         """Adds the position of each row inside its natural season, the column of the pooled seasonal floor (not offered to the search)."""
@@ -678,6 +703,8 @@ class DataManager:
         df_aug = keep_forecast_targets_missing(df_aug, df_combined, ctx)
         if ctx.calendar:
             add_calendar(df_aug, ctx.date_col, ctx.calendar)
+        if ctx.crisis:
+            add_crisis(df_aug, ctx.date_col, ctx.crisis["events"], ctx.crisis["columns"])
         if ctx.regime:
             add_regime_column(df_aug, ctx.date_col, ctx.group_col, ctx.regime)
         if ctx.floor:

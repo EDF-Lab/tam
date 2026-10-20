@@ -21,7 +21,7 @@ import random
 from typing import List, Dict, Any, Callable, Optional, Tuple, Union
 from .knowledge_graph import KnowledgeGraph
 from .parser import canonicalize_term, terms_are_equivalent, term_subsumes, _parse_term_structure
-from tam.common.utils import split_args_respecting_parentheses
+from tam.common.utils import split_args_respecting_parentheses, parse_formula_to_terms
 
 # Strict Covariate Lock (spec I): a single feature may carry at most this many
 # active bases (e.g. s(Temp) + f(Temp) is the maximum allowed for Temp).
@@ -73,6 +73,9 @@ class BaseIsland:
     tensor_family: Optional[str] = None
     # Opt-in (extended search): a mutation may add a second basis on a feature the genome already uses, within the covariate lock.
     extended_mutations: bool = False
+    # Opt-in (crossover): a mutation may take a branch from another island's champion, or insert a tensor product.
+    crossover: bool = False
+    donor_genomes: List[List[Dict[str, Any]]] = []
 
     def __init__(self, name: str, valid_effects: List[str], max_terms: int = 10):
         self.name = name
@@ -107,6 +110,31 @@ class BaseIsland:
             if options:
                 found.append((feature, options))
         return found
+
+    def _donor_branches(self, genome: List[Dict[str, Any]], available_features: List[str], search_space: Dict[str, Any]) -> List[Dict[str, Any]]:
+        """Branches of the other islands' champions that this genome could take: new, on features that are available, and of an eligible effect."""
+        have = {canonicalize_term(_genome_to_rhs([t])) for t in genome}
+        found = []
+        for donor in self.donor_genomes:
+            for term in donor:
+                if term.get('type') == 'te':
+                    features = [f for f in re.findall(r'\(\s*([A-Za-z_]\w*)', ' '.join(str(k) for k in term.get('params', {}) if '(' in str(k)))]
+                    if not features or any(f not in available_features for f in features):
+                        continue
+                else:
+                    feat = term.get('feature')
+                    if feat not in available_features or term.get('type') not in search_space.get(feat, {}).get('eligible_effects', []):
+                        continue
+                if canonicalize_term(_genome_to_rhs([term])) not in have:
+                    found.append(term)
+        return found
+
+    def _tensor_insertions(self, genome: List[Dict[str, Any]], available_features: List[str], search_space: Dict[str, Any]) -> List[tuple]:
+        """``(base, partner)`` pairs for a new tensor product: a used feature with another available feature (none past ``MAX_TENSOR_TERMS``)."""
+        if 'te' not in self.valid_effects or sum(1 for t in genome if t.get('type') == 'te') >= MAX_TENSOR_TERMS:
+            return []
+        used = sorted({t.get('feature') for t in genome if t.get('feature') and t.get('type') != 'te'})
+        return [(b, p) for b in used for p in available_features if p != b and b in _smooth_interaction_bases([b], search_space)]
 
     def mutate(self, kg: KnowledgeGraph, available_features: List[str], search_space: Dict[str, Any]) -> str:
         """
@@ -203,6 +231,12 @@ class BaseIsland:
         second_bases = self._second_bases(genome, search_space) if self.extended_mutations else []
         if second_bases:
             ops.append('second_basis')
+        branches = self._donor_branches(genome, available_features, search_space) if self.crossover else []
+        if branches:
+            ops.append('crossover')
+        pairs = self._tensor_insertions(genome, available_features, search_space) if self.crossover else []
+        if pairs:
+            ops.append('insert_te')
 
         if not ops:
             return _genome_to_rhs(genome, mandatory_terms=mandatory_terms)
@@ -220,6 +254,20 @@ class BaseIsland:
             eff = kg.suggest_effect_for_feature(feat, choices)
             params = _get_safe_params(kg, search_space, feat, eff, complexity_cap=False)
             genome.append({'type': eff, 'feature': feat, 'params': params})
+
+        elif op == 'crossover':
+            branch = random.choice(branches)
+            if len(genome) >= self.max_terms and deletable_indices:
+                genome.pop(random.choice(deletable_indices))
+            if len(genome) < self.max_terms:
+                genome.append({'type': branch['type'], 'feature': branch.get('feature'), 'params': dict(branch.get('params', {}))})
+
+        elif op == 'insert_te':
+            base, partner = random.choice(pairs)
+            tensor = _tensor_term(kg, search_space, base, partner, family=self.tensor_family)
+            if tensor:
+                _, parsed = parse_formula_to_terms(f"y ~ {tensor}")
+                genome.extend({'type': t['type'], 'feature': t.get('feature'), 'params': dict(t.get('params', {}))} for t in parsed[:1])
 
         elif op == 'second_basis':
             feat, options = random.choice(second_bases)

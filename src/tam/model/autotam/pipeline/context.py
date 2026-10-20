@@ -197,10 +197,13 @@ class PipelineContext:
     adaptive_lags: List[int] = field(default_factory=list)
     inferred_horizon: int = 1
     floor: Dict[str, Any] = field(default_factory=dict)  # season length and step of the pooled seasonal floor (see floor.py), {} when off
+    crisis: Dict[str, Any] = field(default_factory=dict)  # dated events and the columns written for them (see crisis_calendar.py), {} when off
     regime: Dict[str, Any] = field(default_factory=dict)  # break dates of the detected regimes (see regimes.py), {} when off or none found
     calendar: Dict[str, Any] = field(default_factory=dict)  # calendar columns and holiday country in use (see calendar_features.py), {} when off
     family_losses: List[str] = field(default_factory=list)  # non-Gaussian losses offered with family='auto' (see families.py)
     dynamic_top: Optional[int] = None  # dynamic experts only for the champions ranked at most this in their island, None for all
+    native_quantiles: bool = False  # distributional experts that forecast their own quantiles (see native_quantiles.py)
+    online_variants: bool = False  # more Kalman and adaptive configurations (forecast input, absolute noise grid, 350-period window)
     fast_search: bool = False  # the fast preset: fewer islands, rates and windows in the dynamic expansions (see search_preset.py)
     requested_horizon: Optional[int] = None  # the horizon argument, None when it is inferred from the lags
     candidate_windows: List[int] = field(default_factory=list)

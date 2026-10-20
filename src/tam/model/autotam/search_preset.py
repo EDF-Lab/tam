@@ -20,6 +20,8 @@ FAST_GENERATIONS = 8
 FULL_GENERATIONS = 20
 FAST_KALMAN_RATE_COUNT = 3
 FAST_ADAPTIVE_WINDOW_COUNT = 2
+VARIANT_KALMAN_RATES = (1e-6, 1e-5, 1e-4, 1e-3)   # absolute process noise of the Kalman experts of ``online_variants``
+VARIANT_WINDOW_PERIODS = 350                       # one more adaptive window, in periods, for ``online_variants``
 
 
 def check_search_mode(search: str) -> str:

@@ -25,8 +25,10 @@ from tam.model.additive import StaticTAM
 from tam.model.kalman import KalmanTAM
 from tam.model.adaptative import AdaptiveTAM
 from tam.model.autotam.failures import log_failure
+from tam.model.autotam.native_quantiles import NativeQuantileExpert
+from tam.model.autotam.effect_groups import HOLIDAY_FLAGS, group_columns, with_effect_groups
 from tam.model.autotam.quantile_loss import is_wql, parse_levels, wql
-from tam.model.autotam.search_preset import FAST_ADAPTIVE_WINDOW_COUNT, FAST_KALMAN_RATE_COUNT
+from tam.model.autotam.search_preset import FAST_ADAPTIVE_WINDOW_COUNT, FAST_KALMAN_RATE_COUNT, VARIANT_KALMAN_RATES, VARIANT_WINDOW_PERIODS
 
 logger = logging.getLogger(__name__)
 #: </expert_expander_imports>
@@ -293,6 +295,9 @@ class ExpertExpander:
                             dynamic_rates = [0, obs_noise * 1e-4, obs_noise * 1e-2, obs_noise, obs_noise * 10, obs_noise * 100]
                             if ctx.fast_search:
                                 dynamic_rates = [0, obs_noise * 1e-2, obs_noise][:FAST_KALMAN_RATE_COUNT]
+                            if ctx.online_variants:
+                                known = {float(r) for r in dynamic_rates}
+                                dynamic_rates = list(dynamic_rates) + [r for r in VARIANT_KALMAN_RATES if r not in known]
                             
                             for rate in dynamic_rates:
                                 try:
@@ -326,6 +331,11 @@ class ExpertExpander:
                                 formulas_to_test["Effects_Only"] = f"Residual{ctx.target} ~ " + " + ".join([f"l({c})" for c in effect_cols])
                             if lag_cols and effect_cols: 
                                 formulas_to_test["Full_ECM"] = f"Residual{ctx.target} ~ " + " + ".join([f"l({c})" for c in lag_cols]) + " + " + " + ".join([f"l({c})" for c in effect_cols])
+                            if ctx.online_variants and lag_cols:
+                                forecast_term = f"l(Estimated{ctx.target})"   # the static forecast, which the adaptive stage rescales
+                                formulas_to_test["AR_Forecast"] = f"Residual{ctx.target} ~ " + " + ".join([f"l({c})" for c in lag_cols]) + f" + {forecast_term}"
+                                if effect_cols:
+                                    formulas_to_test["ECM_Forecast"] = f"{formulas_to_test['Full_ECM']} + {forecast_term}"
 
                             for variant_name, dyn_form in formulas_to_test.items():
                                 combined_formula = f"{dyn_form} + {getattr(best_static_model, 'formula_', '')}"
@@ -345,10 +355,26 @@ class ExpertExpander:
                                         self._log_test(test_log, name_adapt, f"AdaptiveTAM_{variant_name}", dyn_form, str(params), best_static_cv, pen_score, comp)
                                     except Exception as exc:
                                         log_failure(logger, f"AdaptiveTAM expert {variant_name} ({periods} periods) of {prefix}", exc, dyn_form)
+
+                        if ctx.online_variants:
+                            self._grouped_effect_experts(candidate_pool, test_log, ctx, best_static_model, best_static_cv, df_fit_clean, d_meta,
+                                                         prefix, island_name, n_samples)
                                     
                     except Exception as exc:
                         log_failure(logger, f"Dynamic experts of {prefix}", exc, base_form)
                         continue
+
+                    if ctx.native_quantiles and rank == 1:
+                        try:
+                            native = NativeQuantileExpert(ctx.target, base_form, group_col=ctx.group_col, date_col=ctx.date_col).fit(df_fit_clean)
+                            cv_score = self._evaluate_model_cv(native, ctx.cv_folds, ctx.target, metric=opt_metric)
+                            if np.isfinite(cv_score):
+                                name = f"Native_{prefix}"
+                                candidate_pool[name] = {"type": "static", "model": native, "island": island_name, "cv_rmse": cv_score}
+                                self._log_test(test_log, name, "StaticTAM_distributional", base_form, f"scale: {native.scale_formula_}", cv_score,
+                                               ctx.penalize_score(cv_score, base_form, n_samples), ctx.estimate_complexity(base_form))
+                        except Exception as exc:
+                            log_failure(logger, f"Distributional expert of {prefix}", exc, base_form)
 
                 except Exception as exc:
                     log_failure(logger, f"Expansion of {prefix}", exc, base_form)
@@ -368,6 +394,68 @@ class ExpertExpander:
 
         return candidate_pool
 #: </expert_expander_generate>
+
+#: <expert_expander_grouped_effects>
+    def _grouped_effect_experts(self, candidate_pool, test_log, ctx, base_model, base_cv, df_fit, d_meta, prefix, island_name, n_samples):
+        """Adaptive and Kalman experts whose inputs are the effects of the base model summed by kind (exogenous, calendar, autoregressive).
+
+        The adaptive stage gets the sums (``G``) and the sums with the lagged residuals and the holiday flags (``G+``); the Kalman filter gets
+        the sums and the offset, over the absolute process-noise grid. Nothing is built when the effects fall in fewer than two kinds.
+        """
+        calendar = list(ctx.calendar.get("columns", [])) if ctx.calendar else []
+        grouped = with_effect_groups(base_model, calendar)
+        if grouped is None:
+            return
+        decomposition = grouped.decompose_prediction(df_fit)
+        sums = group_columns(decomposition)
+        if len(sums) < 2:
+            logger.info("Grouped effects of %s: the effects fall in a single kind; no grouped expert.", prefix)
+            return
+        target = ctx.target
+        lag_cols = [c for c in d_meta.columns if f"Residual{target}_lag_" in c]
+        flags = [c for c in HOLIDAY_FLAGS if c in df_fit.columns]
+        terms = " + ".join(f"l({c})" for c in sums)
+        formulas = {"G": f"Residual{target} ~ {terms}"}
+        if lag_cols or flags:
+            extras = [f"l({c})" for c in lag_cols] + [f"c({c}, n_cat=2, topo='nominal')" for c in flags]
+            formulas["G_plus"] = f"{formulas['G']} + " + " + ".join(extras)
+        formula_base = getattr(base_model, "formula_", "")
+        if self.expansions.get("adaptive"):
+            for variant, dyn_form in formulas.items():
+                pen_score = ctx.penalize_score(base_cv, f"{dyn_form} + {formula_base}", n_samples)
+                comp = ctx.estimate_complexity(f"{dyn_form} + {formula_base}")
+                for periods in ctx.candidate_windows:
+                    try:
+                        adapt = AdaptiveTAM(base_model=grouped, adaptive_formula=dyn_form, update_interval_periods=1, training_window_periods=periods,
+                                            steps_per_period=ctx.steps_per_period, horizon_steps=ctx.inferred_horizon)
+                        adapt._saved_base_model = grouped
+                        name = f"Adaptive_{variant}_{periods}p_{prefix}"
+                        params = {"training_window_periods": periods, "architecture": variant}
+                        candidate_pool[name] = {"type": "adaptive", "model": adapt, "params": params, "island": island_name,
+                                                "dynamic_formula": dyn_form, "cv_rmse": base_cv}
+                        self._log_test(test_log, name, f"AdaptiveTAM_{variant}", dyn_form, str(params), base_cv, pen_score, comp)
+                    except Exception as exc:
+                        log_failure(logger, f"AdaptiveTAM expert {variant} ({periods} periods) of {prefix}", exc, dyn_form)
+        if self.expansions.get("kalman"):
+            offset = [c for c in ("effect_offset",) if c in decomposition.columns]
+            kalman_formula = kalman_formula_from_effects(target, offset + sums)
+            priors = getattr(ctx, "kalman_priors", {})
+            obs_noise = priors.get("observation_noise_var", 0.1)
+            pen_score = ctx.penalize_score(base_cv, f"{kalman_formula} + {formula_base}", n_samples)
+            comp = ctx.estimate_complexity(f"{kalman_formula} + {formula_base}")
+            for rate in VARIANT_KALMAN_RATES:
+                try:
+                    kalman = KalmanTAM(base_model=grouped, kalman_formula=kalman_formula, date_col=ctx.date_col, horizon_steps=ctx.inferred_horizon,
+                                       offset_boost=priors.get("offset_boost", 100.0), process_noise_var=rate, observation_noise_var=obs_noise,
+                                       P_init_diag=priors.get("P_init_diag", 1.0))
+                    params = {"process_noise_var": rate, "observation_noise_var": obs_noise, "architecture": "G"}
+                    name = kalman_expert_name(rate, f"G_{prefix}")
+                    candidate_pool[name] = {"type": "kalman", "model": kalman, "params": params, "island": island_name,
+                                            "dynamic_formula": kalman_formula, "cv_rmse": base_cv}
+                    self._log_test(test_log, name, "KalmanTAM_G", kalman_formula, str(params), base_cv, pen_score, comp)
+                except Exception as exc:
+                    log_failure(logger, f"KalmanTAM expert on grouped effects (process noise {rate}) of {prefix}", exc, kalman_formula)
+#: </expert_expander_grouped_effects>
 
 #: <expert_expander_prepare_data>
     def _prepare_meta_learning_data(self, df: pd.DataFrame, base_model, ctx: PipelineContext):
@@ -428,6 +516,10 @@ class ExpertExpander:
         ctx.candidate_windows = [w for w in base_windows if w <= max_allowed] or [max_allowed]
         if ctx.fast_search:
             ctx.candidate_windows = ctx.candidate_windows[:FAST_ADAPTIVE_WINDOW_COUNT]
+        if ctx.online_variants:
+            long_window = VARIANT_WINDOW_PERIODS * ctx.steps_per_period
+            if long_window <= max_allowed and long_window not in ctx.candidate_windows:   # the bound of the other windows: half the training rows
+                ctx.candidate_windows = sorted(ctx.candidate_windows + [long_window])
         return d_meta
 #: </expert_expander_prepare_data>
 

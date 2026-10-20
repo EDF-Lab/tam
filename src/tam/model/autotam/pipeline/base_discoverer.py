@@ -30,10 +30,13 @@ class BaseDiscoverer:
     
 #: <base_discoverer_init>
     def __init__(self, pop_size: int = 64, eta: float = 0.1, mandatory_terms: Optional[List[str]] = None, mandatory_variables: Optional[List[str]] = None,
-                 islands: Optional[List[str]] = None, n_generations: int = FULL_GENERATIONS, extended: bool = False):
+                 islands: Optional[List[str]] = None, n_generations: int = FULL_GENERATIONS, extended: bool = False,
+                 crossover: bool = False, bounded_rewards: bool = False):
         self.islands = list(islands) if islands else None  # names of the islands searched, None for all
         self.n_generations = n_generations
         self.extended = bool(extended)
+        self.crossover = bool(crossover)
+        self.bounded_rewards = bool(bounded_rewards)
         self.pop_size = pop_size
         self.eta = eta
         self.mandatory_terms = mandatory_terms or []
@@ -90,10 +93,12 @@ class BaseDiscoverer:
         draga = DragTAM(target_col=ctx.target, population_size=self.pop_size, n_generations=self.n_generations,
                         group_col=ctx.group_col, date_col=ctx.date_col,
                         mandatory_terms=getattr(ctx, 'mandatory_terms', None) or self.mandatory_terms,
-                        mandatory_variables=getattr(ctx, 'mandatory_variables', None) or self.mandatory_variables)
+                        mandatory_variables=getattr(ctx, 'mandatory_variables', None) or self.mandatory_variables,
+                        bounded_rewards=self.bounded_rewards)
         islands = [i for i in get_island_objects() if self.islands is None or type(i).__name__ in self.islands]
         for island in islands:
             island.extended_mutations = self.extended
+            island.crossover = self.crossover
 
         draga.optimize(
             cv_folds=ctx.cv_folds,
