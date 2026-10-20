@@ -212,7 +212,9 @@ class DataProfiler:
         data = data[_keep]
 
         if group_col and group_col in data.columns:
-            resampled = data.groupby(group_col).resample(freq).asfreq()
+            # Select the value columns explicitly: resampling the grouping column itself is deprecated in pandas 2.2+.
+            value_cols = [c for c in data.columns if c != group_col]
+            resampled = data.groupby(group_col)[value_cols].resample(freq).asfreq()
             
             if group_col in resampled.index.names:
                 resampled = resampled.drop(columns=[group_col], errors='ignore')

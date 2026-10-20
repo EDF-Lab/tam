@@ -5,7 +5,7 @@
   * **Related code architecture:** [See the Code Architecture](../../architecture/meta/08_auto_orchestrator_code.md)
   * **Related AutoTAM topic:** [Data Topology & Routing](09_auto_data_topology.md)
 
-This chapter details the complete algorithmic pipeline governing the automated discovery and assembly of TAM models. By unifying discrete topological search with continuous convex optimization, the `AutoTAM` orchestrator resolves the combinatorial explosion inherent to adaptive model discovery.
+This chapter details the complete algorithmic pipeline governing the automated discovery and assembly of TAM models. By unifying discrete topological search with continuous convex optimization, the AutoTAM orchestrator resolves the combinatorial explosion inherent to adaptive model discovery.
 
 ## The Combinatorial Explosion in Online GAMs
 
@@ -17,7 +17,7 @@ $$\mu(X_t) = \mathbb{E}[Y_t|X_t] = \sum_{l=1}^L h_l(\mathbf{x}_{l,t})$$
 
 Where $h_l$ are non-parametric smoothing functions (or neural/physical operators) and $\mathbf{x}_{l,t}$ is the specific subset of covariates feeding into the $l$-th effect. 
 
-The optimization task is immense: the orchestrator must simultaneously discover the optimal discrete formula (the physical interactions) and the continuous adaptation parameters governing the state-space. `AutoTAM` achieves this via a mathematically unified 7-step pipeline.
+The optimization task is immense: the orchestrator must simultaneously discover the optimal discrete formula (the physical interactions) and the continuous adaptation parameters governing the state-space. AutoTAM achieves this via a mathematically unified 7-step pipeline.
 
 ---
 
@@ -29,10 +29,10 @@ Before any learning occurs, the algorithm must establish how it will evaluate th
 
 **The Hypothesis:** Time series data inherently violates the i.i.d. (independent and identically distributed) assumption. Using standard random K-Fold cross-validation would cause "data leakage" (training on the future to predict the past). 
 
-To rigorously simulate real-world online forecasting, `AutoTAM` implements an **Expanding Window Cross-Validation**.
+To rigorously simulate real-world online forecasting, AutoTAM implements an **Expanding Window Cross-Validation**.
 
 **How the blocks are made:**
-1. The dataset is chronologically split into a `Fit` (Train) set, a `Dev` (Development) set, and a `Val` (Validation) set.
+1. The dataset is chronologically split into a *Fit* (train) set, a *Dev* (development) set, and a *Val* (validation) set.
 2. The algorithm computes the median time-delta between rows to infer the physical step size (e.g., hourly, daily).
 3. It sets an initial training block equal to roughly 1/3 of the historical data.
 4. It defines a validation block based on the inferred step size (e.g., 30 days if daily data, 12 months if monthly).
@@ -46,7 +46,7 @@ The final **Cross-Validation (CV) Score** is the average predictive error (e.g.,
 
 Historically, automated GAM selection relied on Penalized Iteratively Reweighted Least Squares (P-IRLS) {cite:p}`das2025automl`. This imposed a severe computational bottleneck, requiring multiple iterative $\mathcal{O}(ND^2)$ inversions until convergence. 
 
-`AutoTAM` bypasses this by translating all topologies into the unified **Primal Spectral Space**. Every candidate architecture proposed by the evolutionary engine is solved directly and exactly via the regularized normal equations:
+AutoTAM bypasses this by translating all topologies into the unified **Primal Spectral Space**. Every candidate architecture proposed by the evolutionary engine is solved directly and exactly via the regularized normal equations:
 
 $$\hat{\theta} = \left( \Phi^\top \Lambda^\top \Lambda \Phi + n P \right)^{-1} \Phi^\top \Lambda^\top \Lambda Y$$
 
@@ -56,7 +56,7 @@ This single-pass, exact analytical evaluation allows the outer evolutionary engi
 
 ## Step 3: Information Criterion & Complexity Penalties
 
-A model that achieves a perfect CV score by memorizing noise is useless. However, `AutoTAM` must balance two different types of complexity: **Statistical Complexity** and **Structural Complexity**.
+A model that achieves a perfect CV score by memorizing noise is useless. However, AutoTAM must balance two different types of complexity: **Statistical Complexity** and **Structural Complexity**.
 
 * **The Inner Loop (Statistical Complexity):** Handled entirely by the analytical Generalized Cross-Validation (GCV) solver. It calculates the *Effective Degrees of Freedom* (the trace of the Hat matrix) to automatically tune the continuous $\lambda$ penalties and prevent mathematical overfitting.
 * **The Outer Loop (Structural Complexity):** Even if a massive 1,000-knot spline is heavily penalized by $\lambda$ to behave like a simple line, it still consumes massive GPU VRAM and slows down the $\mathcal{O}(ND^2)$ Primal solver. 
@@ -69,28 +69,28 @@ $$Score_{penalized} = Score_{raw} \times \left( 1 + \alpha_{dynamic} \frac{k}{N}
 
 * **$k$ (Structural Degrees of Freedom):** The exact column footprint in the Primal matrix.
 * **$N$ (Number of Training Samples):** Complexity is relative. A model with $k=100$ on $N=100$ samples is pure memorization.
-* **$\alpha_{dynamic}$ (Dynamic Complexity Factor):** Rather than a static scalar, `AutoTAM` implements **Simulated Annealing**. The penalty multiplier $\alpha$ starts at 1.0 in Generation 0 (allowing wild structural exploration) and linearly scales up to 5.0 in the final generations, applying crushing evolutionary pressure to force absolute parsimony.
+* **$\alpha_{dynamic}$ (Dynamic Complexity Factor):** Rather than a static scalar, AutoTAM implements **Simulated Annealing**. The penalty multiplier $\alpha$ starts at 1.0 in Generation 0 (allowing wild structural exploration) and linearly scales up to 5.0 in the final generations, applying crushing evolutionary pressure to force absolute parsimony.
 
 ### Exact Structural Complexity Estimation
-Before training, the `AutoTAM` context parser accurately estimates $k$ based on the strict geometric realities of the underlying PyTorch operators:
+Before training, AutoTAM accurately estimates $k$ from the geometry of each effect, that is, from the number of columns it adds to the design matrix:
 
 
 
-| Topology / Effect | Parser Signature | Exact Structural Complexity ($k$) |
-| :--- | :--- | :--- |
-| **Linear / Categorical** | `l()`, `c()` | $1$ (per continuous variable / $n\_cat - 1$) |
-| **Splines** | `s(k=N, deg=D)` | $N + D$ (Knots + Spline Degree) |
-| **Fourier** | `f(m=N)` | $2 \times N$ (pairs of sine and cosine harmonics; `k=N` is accepted as a legacy spelling) |
-| **Chebyshev / Poly** | `p(deg=N)` | $N$ (Degree of polynomial) |
-| **Wavelets** | `w(n_scales=S, n_locs=L)`| $S \times L$ (Scales $\times$ Locations) |
-| **RBF / Geospatial** | `rbf(n_centers=C)` | $C$ (Number of centroids) |
-| **Trees / Forests** | `t(n_trees=T, max_depth=D)` or `t(n_trees=T, max_leaves=M)` | $T \times 2^D$, or $T \times M$ for a histogram (total terminal leaves) |
-| **Linear Trees** | `lt(max_depth=D)` or `lt(max_leaves=M)` | $2 \times 2^D$ or $2M$ (one tree for the level, one for the slope) |
-| **PID** | `pid(w=W)` | $3$ (the lag, its rolling mean over $W$ steps, its first difference) |
-| **Neural** | `n(n_neurons=N, n_hidden=L)`| $N \times L \times 5$ (Heavy penalty for deep VRAM footprint) |
-| **Tensor Products** | `te(eff_1, eff_2)` | ranked at $\min(\prod k_i,\ \sum k_i + \sqrt{\prod k_i})$; true width $\prod k_i$ (see the note below) |
+| Topology / Effect | Exact Structural Complexity ($k$) |
+| :--- | :--- |
+| **Linear / Categorical** | $1$ (per continuous variable / $n\_cat - 1$) |
+| **Splines** | $N + D$ ($N$ knots + spline degree $D$) |
+| **Fourier** | $2 \times N$ ($N$ pairs of sine and cosine harmonics) |
+| **Chebyshev / Poly** | $N$ (degree of the polynomial) |
+| **Wavelets** | $S \times L$ ($S$ scales $\times$ $L$ locations) |
+| **RBF / Geospatial** | $C$ (number of centroids) |
+| **Trees / Forests** | $T \times 2^D$ for $T$ trees of depth $D$, or $T \times M$ for $M$ leaves per tree (histogram trees); total terminal leaves |
+| **Linear Trees** | $2 \times 2^D$ for depth $D$, or $2M$ for $M$ leaves (one tree for the level, one for the slope) |
+| **PID** | $3$ (the lag, its rolling mean over a window of $W$ steps, its first difference) |
+| **Neural** | $N \times L \times 5$ for $N$ neurons and $L$ hidden layers (heavy penalty for the memory footprint of deep networks) |
+| **Tensor Products** | ranked at $\min(\prod k_i,\ \sum k_i + \sqrt{\prod k_i})$; true width $\prod k_i$ (see the note below) |
 
-*Note on Tensor Products:* a tensor product multiplies the inner dimensions. Mixing a 10-knot spline with a 5-harmonic Fourier series (`te(s(k=10), f(m=5))`) builds an interaction surface of $d_1 \times d_2 = (10+3) \times (2 \times 5) = 130$ columns, and that true width is what the solver allocates (`TensorProductEffect.get_n_coeffs`). Charged in full to the selection score, it would price interactions out of the search before they are ever evaluated, so the score charges a discounted surrogate instead:
+*Note on Tensor Products:* a tensor product multiplies the inner dimensions. Mixing a 10-knot spline with a 5-harmonic Fourier series (a tensor product of the two) builds an interaction surface of $d_1 \times d_2 = (10+3) \times (2 \times 5) = 130$ columns, and that true width is what the solver allocates. Charged in full to the selection score, it would price interactions out of the search before they are ever evaluated, so the score charges a discounted surrogate instead:
 
 $$k_{te} = \min\Big(\prod_i d_i,\; \sum_i d_i + \sqrt{\textstyle\prod_i d_i}\Big)$$
 
@@ -100,16 +100,16 @@ For the example, $k_{te} = \min(130,\ 23 + \sqrt{130}) = 34$ after truncation. F
 
 ## Step 4: Darwinian Evolution via Knowledge Graphs (The Outer Loop)
 
-To navigate the infinite space of possible mathematical formulas, `AutoTAM` acts as an Estimation of Distribution Algorithm (EDA). In plain terms: where a classical genetic algorithm mutates formulas blindly, an EDA keeps a probabilistic record of which building blocks (feature and basis pairs, interactions, parameter values) appeared in good formulas, and samples new formulas from that record. In `AutoTAM` that record is a **Bipartite Bayesian Knowledge Graph**.
+To navigate the infinite space of possible mathematical formulas, AutoTAM acts as an Estimation of Distribution Algorithm (EDA). In plain terms: where a classical genetic algorithm mutates formulas blindly, an EDA keeps a probabilistic record of which building blocks (feature and basis pairs, interactions, parameter values) appeared in good formulas, and samples new formulas from that record. In AutoTAM that record is a **Bipartite Bayesian Knowledge Graph**.
 
 Think of this as **Natural Selection driven by Environmental Memory**. The framework divides the search space into specialized generative nodes called **Islands**:
 
-* `FourierIsland`: Only breeds cyclic, repeating waves.
-* `TreeIsland`: Only breeds algorithmic if-then splits.
-* `NeuralIsland`: Only breeds dense, hidden feature interactions.
+* The *Fourier island*: only breeds cyclic, repeating waves.
+* The *Tree island*: only breeds algorithmic if-then splits.
+* The *Neural island*: only breeds dense, hidden feature interactions.
 
 **The Continents (Hybridization):**
-Islands do not exchange DNA directly. Instead, `AutoTAM` introduces two meta-nodes:
+Islands do not exchange DNA directly. Instead, AutoTAM introduces two meta-nodes:
 
 1. **The Small Continent:** Allowed to sample from *all* islands simultaneously, but strictly forces the lowest possible hyperparameters (e.g., $k=1$, $deg=1$). This acts as the evolutionary "bacteria" anchor-guaranteeing the survival of highly diverse, ultra-fast, computationally cheap hybrid baselines.
 2. **The Meta-Continent:** The apex breeder. It freely samples and combines the top-performing traits from all specialized islands to create massive, heterogeneous mega-formulas.
@@ -132,7 +132,7 @@ Every Island may propose tensor products, at most two per formula. A product of 
 
 ## Step 5: Parsimonious Pruning (Variance Decomposition)
 
-Natural selection produces bloat; evolution is not inherently efficient. To explicitly force parsimony, `AutoTAM` acts as an active biological pruner.
+Natural selection produces bloat; evolution is not inherently efficient. To explicitly force parsimony, AutoTAM acts as an active biological pruner.
 
 After a formula is solved via the exact primal engine, the global prediction vector $\hat{Y}$ is mathematically decomposed into the isolated contributions of each basis $h_l(\mathbf{x})$.
 
@@ -154,12 +154,12 @@ Once the static formulas (the Champions) are finalized, they must be expanded to
 **The Paradigm Shift from Das et al. (2025):**
 In previous literature {cite:p}`das2025automl`, the evolutionary algorithm attempted to jointly discover the discrete GAM formula *and* the continuous state-space parameters (like the Kalman covariance matrix $Q$) simultaneously. While this coupled approach is highly specialized and extremely effective for capturing the precise dynamics of energy time series, it carries a massive computational cost that bottlenecks the search process.
 
-`AutoTAM` explicitly decouples them (Hub-and-Spoke) for scalability. It finds the globally optimal static GAM *first*, freezes the physical topology, and then systematically expands it into dynamic tracking spaces:
+AutoTAM explicitly decouples them (Hub-and-Spoke) for scalability. It finds the globally optimal static GAM *first*, freezes the physical topology, and then systematically expands it into dynamic tracking spaces:
 
 1.  **Adaptive Error Correction Models (ECM):** Fits a local sliding-window model to predict recent residual errors.
 2.  **Continuous Kalman Tracking:** Converts static coefficients into a hidden Markov state, drifting via Gaussian process noise.
 
-The user can toggle these expansions via a boolean configuration dictionary (e.g., `{"prior": True, "kalman": True, "adaptive": False}`). 
+Each expansion (prior, Kalman, adaptive) can be switched on or off independently. 
 
 ---
 
@@ -167,7 +167,7 @@ The user can toggle these expansions via a boolean configuration dictionary (e.g
 
 
 
-At the end of the pipeline, `AutoTAM` has generated dozens of static, adaptive, and Kalman models. Rather than selecting a single "best" model (which is mathematically fragile), it deploys a competitive, sequential game {cite:p}`cesa2006prediction`. 
+At the end of the pipeline, AutoTAM has generated dozens of static, adaptive, and Kalman models. Rather than selecting a single "best" model (which is mathematically fragile), it deploys a competitive, sequential game {cite:p}`cesa2006prediction`. 
 
 The final predictions are organized into specialized sub-ensembles ("Leagues"), updated in real-time via the parameter-free MLpol (Polynomial Minimax) algorithm {cite:p}`gaillard2016opera`:
 
@@ -175,6 +175,6 @@ The final predictions are organized into specialized sub-ensembles ("Leagues"), 
 * **Ensemble Kalman:** Aggregates the State-Space variants.
 * **Ensemble Adaptive:** Aggregates the ECM variants.
 * **Island Federation:** Takes the top champion from each independent island and aggregates their distinct mathematical topologies (e.g., mixing pure Wavelets with pure Trees).
-* **AutoTAM Apex Ensemble:** The master aggregator. When dynamic (adaptive or Kalman) experts exist, it aggregates them without a top-$N$ cut, after a quality floor: an expert whose validation error $L_k$ exceeds $\rho \min_j L_j$ (default $\rho = 1.5$) is left out, and the two best experts are always kept. An adaptive expert re-fits through a regime shift, so its validation error carries over to later periods; a ratio to the best keeps a large pool for MLpol, whose regret grows only logarithmically in the number of experts, while removing experts that validation already rules out. Online aggregation (`predict_online`) weights the whole pool; the frozen `predict()` averages only the experts whose MLpol weight on the last validation row exceeds the sparsity threshold, a one-step snapshot that would otherwise hide from the sequential aggregator the experts that win later. Without dynamic experts, the Apex combines the top $N$ models regardless of their underlying physics.
+* **AutoTAM Apex Ensemble:** The master aggregator. When dynamic (adaptive or Kalman) experts exist, it aggregates them without a top-$N$ cut, after a quality floor: an expert whose validation error $L_k$ exceeds $\rho \min_j L_j$ (default $\rho = 1.5$) is left out, and the two best experts are always kept. An adaptive expert re-fits through a regime shift, so its validation error carries over to later periods; a ratio to the best keeps a large pool for MLpol, whose regret grows only logarithmically in the number of experts, while removing experts that validation already rules out. Online aggregation weights the whole pool; frozen inference averages only the experts whose MLpol weight on the last validation row exceeds the sparsity threshold, a one-step snapshot that would otherwise hide from the sequential aggregator the experts that win later. Without dynamic experts, the Apex combines the top $N$ models regardless of their underlying physics.
 
 By dynamically shifting weights $w_{k,t}$ strictly proportional to the positive cumulative regret $[R_{k,t}]_+$ of each expert, the framework provides mathematically guaranteed robustness against structural grid breaks and sudden concept drift.

@@ -111,3 +111,35 @@ def test_time_series_continuity_sets_frequency():
     assert metadata["is_time_series"] is True
     assert "delta_t" in metadata
     assert not cleaned.empty
+
+
+def _grouped_frame_with_a_gap():
+    dates = pd.date_range("2022-01-01", periods=6, freq="D")
+    rows = []
+    for site, offset in (("a", 0.0), ("b", 100.0)):
+        for i, d in enumerate(dates):
+            if site == "b" and i == 3:
+                continue  # a missing day in one group
+            rows.append({"ds": d, "site": site, "load": offset + i, "temp": float(i)})
+    return pd.DataFrame(rows)
+
+
+def test_grouped_continuity_raises_no_future_warning():
+    """``groupby().resample()`` used to operate on the grouping column, which a future pandas excludes."""
+    import warnings
+    with warnings.catch_warnings():
+        warnings.simplefilter("error", FutureWarning)
+        DataProfiler().profile_and_clean(_grouped_frame_with_a_gap(), config={"targets": ["load"]}, date_col="ds", group_col="site")
+
+
+def test_grouped_continuity_fills_the_gap_of_each_group_and_keeps_the_columns():
+    cleaned, _ = DataProfiler().profile_and_clean(
+        _grouped_frame_with_a_gap(), config={"targets": ["load"]}, date_col="ds", group_col="site"
+    )
+    assert list(cleaned.columns) == ["ds", "load", "temp", "site"]  # the grouping column is restored last
+    assert len(cleaned) == 12  # 6 days for each of the two groups
+    b = cleaned[cleaned["site"] == "b"].reset_index(drop=True)
+    assert list(b["ds"]) == list(pd.date_range("2022-01-01", periods=6, freq="D"))
+    assert b.loc[3, "load"] == 102.0  # the missing day is the previous value of its own group, not of the other
+    assert (cleaned["site"].value_counts() == 6).all()
+

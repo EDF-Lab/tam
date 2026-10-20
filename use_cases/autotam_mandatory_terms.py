@@ -75,7 +75,6 @@ cols_to_keep = ["date", "y", "x1", "x2", "x3", "x4", "x5", "x6", "x7", "x8", "x1
 PIPE = "AutoPipe(x1, x2, x3, x4, x5, x6, x7, x8, x10, Lag_y)"
 MANDATORY_TERM = "s(x1, k=10)"
 MANDATORY_VAR = "x10"
-APEX = "AutoTAM_Apex_Ensemble"  # the final AutoTAM model: the MLpol aggregation of the experts kept by the search
 
 # ==============================================================================
 # 2. The three models
@@ -126,8 +125,9 @@ for name, kwargs in models.items():
             assert any(tm.get("feature") == MANDATORY_VAR for tm in terms), f"{name}: mandatory variable missing in {f}"
 
     df_preds = auto_model.predict(df[cols_to_keep], date_col='date')
-    assert APEX in df_preds.columns, f"{name}: predict() returned no {APEX}"
-    df[name] = df_preds[APEX].values
+    final_column = auto_model.final_model_column_  # the final AutoTAM model: the MLpol aggregation of the experts kept by the search
+    assert final_column in df_preds.columns, f"{name}: predict() returned no final model column ({final_column})"
+    df[name] = df_preds[final_column].values
     # predict() returns one column per expert in search order, then the ensembles: its first column is only the first expert.
     first_col = [c for c in df_preds.columns if c != 'date'][0]
     in_test = df.index.isin(d_dict['test'].index)

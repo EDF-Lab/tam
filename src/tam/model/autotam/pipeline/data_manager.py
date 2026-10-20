@@ -11,6 +11,7 @@ and feature engineering for the AutoTAM pipeline.
 """
 
 #: <data_manager_imports>
+import logging
 import re
 import pandas as pd
 import numpy as np
@@ -23,6 +24,8 @@ from tam.model.autotam.population_nodes import MAX_ACTIVE_EFFECTS_PER_FEATURE, M
 from tam.model.autotam.data_profiler import DataProfiler
 from tam.model.autotam.feature_engineer import FeatureEngineer
 from tam.model.autotam.effect_selector import EffectSelector
+from tam.model.autotam.failures import log_failure
+logger = logging.getLogger(__name__)
 #: </data_manager_imports>
 
 #: <data_manager_class>
@@ -219,6 +222,14 @@ class DataManager:
                 raw_val.index = pd.RangeIndex(n_fit + n_dev, n_fit + n_dev + n_val)
             df_all_raw = pd.concat([raw_fit, raw_dev, raw_val])
 
+        empty = [name for name, rows in (("df_fit", raw_fit), ("df_dev", raw_dev), ("df_val", raw_val)) if len(rows) == 0]
+        if empty:
+            raise ValueError(
+                f"AutoTAM needs rows in df_fit, df_dev and df_val, and {', '.join(empty)} is empty "
+                f"(rows: fit={len(raw_fit)}, dev={len(raw_dev)}, val={len(raw_val)}). Give a longer history, "
+                "or pass df_train= so that AutoTAM sizes the three splits from the data."
+            )
+
         _, ctx.metadata = self.profiler.profile_and_clean(raw_fit, ctx.formula_config, date_col, group_col)
 
         if date_col:
@@ -317,8 +328,8 @@ class DataManager:
                     else:
                         step_size = max(1, len(df_pool) // 10)
                     is_timeseries = True
-            except Exception:
-                pass
+            except Exception as exc:
+                log_failure(logger, "Date and frequency detection of the validation split (falls back to a non-time-series split)", exc)
 
         if validation_strategy == 'expanding_window' or is_timeseries:
             if step_size is None:
@@ -414,8 +425,8 @@ class DataManager:
 
                 if len(merged) == len(df_test) and ctx.target in merged.columns and merged[ctx.target].notna().all():
                     return merged, df_aug
-        except Exception:
-            pass
+        except Exception as exc:
+            log_failure(logger, "Alignment of the test frame on the augmented frame (falls back to the tail rows)", exc)
 
         return df_aug.iloc[-len(df_test):].copy(), df_aug
 #: </data_manager_transform>

@@ -6,7 +6,7 @@
 * **Related code architecture:** [See the Code Architecture](../../architecture/meta/12_autotam_feature_profiling_code.md)
 * **Related AutoTAM topic:** [Evolutionary Orchestrator](08_auto_orchestrator.md)
 
-> Mirror-Architecture math doc (pairs with `architecture/meta/12_autotam_feature_profiling_code.md`).
+> Mirror-Architecture math doc (pairs with the page of the same number in the architecture mirror).
 > Establishes why basis capacity, not generalisation, sets the accuracy ceiling of an AutoTAM champion, and derives the estimators used to measure that capacity before the evolutionary search.
 
 ---
@@ -69,7 +69,7 @@ $$k \;\approx\; 2m .$$
 
 ## 5. Indices and Lags are Excluded by Construction
 
-For a strictly monotone counter (a trend index) or an autoregressive lag, the map $b \mapsto \bar r_b$ is effectively a re-indexing of the residual *time series*. Its apparent roughness mathematically reflects serial correlation rather than true curvature in a response, meaning any structural capacity fitted there models pure noise. Such features are strictly held at a linear term with a near-zero penalty. The most recent autoregressive lag (the smallest lag order) may additionally take a PID term from any Island (`pid(w=W)`): this applies three linear coefficients on the lag, its rolling mean over $W$ steps, and its first difference, ensuring the term remains structurally linear in the lag and the lock is maintained.
+For a strictly monotone counter (a trend index) or an autoregressive lag, the map $b \mapsto \bar r_b$ is effectively a re-indexing of the residual *time series*. Its apparent roughness mathematically reflects serial correlation rather than true curvature in a response, meaning any structural capacity fitted there models pure noise. Such features are strictly held at a linear term with a near-zero penalty. The most recent autoregressive lag (the smallest lag order) may additionally take a PID term from any Island (a PID term over a window of $W$ steps): this applies three linear coefficients on the lag, its rolling mean over $W$ steps, and its first difference, ensuring the term remains structurally linear in the lag and the lock is maintained.
 
 Monotonicity must be tested **strictly**. A cyclic coordinate such as time-of-year is *almost* monotone (over $N$ samples spanning $Y$ years it contains only $Y-1$ decreasing steps, yielding a negligible fraction $O(Y/N)$). Consequently, adding any mathematical tolerance to the monotone test would incorrectly swallow precisely the seasonal features the diagnosis is designed to protect.
 

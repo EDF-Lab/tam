@@ -88,3 +88,7 @@ This abstraction ensures that data scientists can invoke a single reporting comm
 :end-before: "#: </plotting_dashboard>"
 :caption: src/tam/evaluation/eval_plotting.py (Dynamic Matplotlib Dashboard Layout)
 ```
+
+## Metric Constant and Entry Points
+
+The SMAPE constant $\varepsilon$ of the mirror `math/` page is the same in `calculate_regression_metrics` and in the fitness the search optimises. `detect_temporal_degradation` splits a contiguous out-of-sample array into two chronological halves; `analyze_residuals` computes the lag-1 autocorrelation and is the module the orchestrator reads to decide on deeper temporal spline expansions; a degradation of the structural fit triggers the `AdaptiveTAM` or `KalmanTAM` meta-learners. `DiagnosticsTAM` provides the glass-box statistics (T-statistics, EDoF) on the training data.

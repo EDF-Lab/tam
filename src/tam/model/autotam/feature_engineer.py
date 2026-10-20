@@ -19,9 +19,12 @@ inference, strictly preventing Target Leakage and Train-Test Skew.
 """
 
 #: <feature_engineer_imports>
+import logging
 import pandas as pd
 import numpy as np
 from typing import List, Dict, Any, Optional, Set
+from tam.model.autotam.failures import log_failure
+logger = logging.getLogger(__name__)
 #: </feature_engineer_imports>
 
 #: <feature_engineer_class>
@@ -156,8 +159,8 @@ class FeatureEngineer:
                             if corr > dynamic_corr_threshold:
                                 protected.add(col)
                                 break
-            except Exception:
-                pass
+            except Exception as exc:
+                log_failure(logger, "Correlation of a column with the target signal", exc, level=logging.DEBUG)
 
         for col in df.columns:
             if col in [date_col, target_col] or col in protected: 
@@ -181,8 +184,8 @@ class FeatureEngineer:
                     
                     if col_var == target_var and col_mean == target_mean:
                         protected.add(col)
-            except Exception:
-                pass
+            except Exception as exc:
+                log_failure(logger, "Detection of a column copied from the target", exc, level=logging.DEBUG)
 
         self.do_not_smooth_features.update(protected)
 

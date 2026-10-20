@@ -24,6 +24,7 @@ from tam.model.autotam.parser import canonicalize_term
 from tam.model.additive import StaticTAM
 from tam.model.kalman import KalmanTAM
 from tam.model.adaptative import AdaptiveTAM
+from tam.model.autotam.failures import log_failure
 
 logger = logging.getLogger(__name__)
 #: </expert_expander_imports>
@@ -64,6 +65,24 @@ def kalman_expert_name(process_noise_var: float, prefix: str) -> str:
     """
     return f"Kalman_{re.sub(r'[^0-9A-Za-z]', '_', str(process_noise_var))}_{prefix}"
 #: </expert_expander_kalman_name>
+
+#: <expert_expander_grid_fold>
+def grid_search_fold(cv_folds: List[Tuple[pd.DataFrame, pd.DataFrame]], df_fit: pd.DataFrame, df_dev: pd.DataFrame) -> Tuple[pd.DataFrame, pd.DataFrame]:
+    """Fold on which a grid-search expert chooses its hyperparameters.
+
+    The folds of a time series are expanding windows: the first one is the oldest and shortest period, the last one
+    the period closest to the test rows. The choice is made on the last fold; the chosen model is then scored on every fold.
+
+    Args:
+        cv_folds: Cross-validation folds, each a ``(train, validation)`` pair, oldest first.
+        df_fit: Fit rows, used when there are no folds.
+        df_dev: Development rows, used when there are no folds.
+
+    Returns:
+        The ``(train, validation)`` pair the grid search is fitted and scored on.
+    """
+    return cv_folds[-1] if cv_folds else (df_fit, df_dev)
+#: </expert_expander_grid_fold>
 
 #: <expert_expander_class>
 class ExpertExpander:
@@ -162,8 +181,8 @@ class ExpertExpander:
                             name = f"Static_{prefix}_Prior"
                             candidate_pool[name] = {"type": "static", "model": m_prior, "island": island_name, "cv_rmse": cv_score}
                             self._log_test(test_log, name, "StaticTAM_priors", base_form, "Unpenalized_Ridge", cv_score, pen_score, comp)
-                        except Exception: 
-                            pass
+                        except Exception as exc:
+                            log_failure(logger, f"Prior-based expert of {prefix}", exc, base_form)
 
                     if self.expansions.get("autofit"):
                         try:
@@ -175,8 +194,8 @@ class ExpertExpander:
                             name = f"Static_{prefix}_Auto"
                             candidate_pool[name] = {"type": "static", "model": m_auto, "island": island_name, "cv_rmse": cv_score}
                             self._log_test(test_log, name, "StaticTAM_gcv", base_form, "GCV_Auto_Penalized", cv_score, pen_score, comp)
-                        except Exception: 
-                            pass
+                        except Exception as exc:
+                            log_failure(logger, f"Auto-fit expert of {prefix}", exc, base_form)
 
                     if self.expansions.get("grid"):
                         try:
@@ -205,7 +224,7 @@ class ExpertExpander:
                                 tokenized_form = f"{ctx.target} ~ " + " + ".join(tokenized_terms)
                                 m_grid_template = StaticTAM(formula=tokenized_form, group_col=ctx.group_col, date_col=ctx.date_col)
                                 
-                                data_train, data_val = ctx.cv_folds[0] if ctx.cv_folds else (df_fit_clean, ctx.df_dev)
+                                data_train, data_val = grid_search_fold(ctx.cv_folds, df_fit_clean, ctx.df_dev)
                                 m_grid = m_grid_template.grid_search_fit(data_train, data_val, grid_search_config=local_grid_config)
                                 cv_score = self._evaluate_model_cv(m_grid, ctx.cv_folds, ctx.target, metric=opt_metric)
                                 comp = ctx.estimate_complexity(tokenized_form)
@@ -214,8 +233,8 @@ class ExpertExpander:
                                 name = f"Static_{prefix}_Grid"
                                 candidate_pool[name] = {"type": "static", "model": m_grid, "island": island_name, "cv_rmse": cv_score}
                                 self._log_test(test_log, name, "StaticTAM_grid", tokenized_form, str(local_grid_config), cv_score, pen_score, comp)
-                        except Exception: 
-                            pass
+                        except Exception as exc:
+                            log_failure(logger, f"Grid-search expert of {prefix}", exc, base_form)
 
                     best_static_model, best_static_cv, min_penalized_cv = None, float('inf'), float('inf')
                     
@@ -271,8 +290,8 @@ class ExpertExpander:
                                     name_kalman = kalman_expert_name(rate, prefix)
                                     candidate_pool[name_kalman] = {"type": "kalman", "model": kalman, "params": params, "island": island_name, "dynamic_formula": dynamic_formula, "cv_rmse": best_static_cv}
                                     self._log_test(test_log, name_kalman, "KalmanTAM", dynamic_formula, str(params), best_static_cv, pen_score, comp)
-                                except Exception: 
-                                    pass
+                                except Exception as exc:
+                                    log_failure(logger, f"KalmanTAM expert (process noise {rate}) of {prefix}", exc, dynamic_formula)
 
                         if self.expansions.get("adaptive"):
                             lag_cols = [c for c in d_meta.columns if f"Residual{ctx.target}_lag_" in c]
@@ -301,13 +320,15 @@ class ExpertExpander:
                                         name_adapt = f"Adaptive_{variant_name}_{periods}p_{prefix}"
                                         candidate_pool[name_adapt] = {"type": "adaptive", "model": adapt, "params": params, "island": island_name, "dynamic_formula": dyn_form, "cv_rmse": best_static_cv}
                                         self._log_test(test_log, name_adapt, f"AdaptiveTAM_{variant_name}", dyn_form, str(params), best_static_cv, pen_score, comp)
-                                    except Exception: 
-                                        pass
+                                    except Exception as exc:
+                                        log_failure(logger, f"AdaptiveTAM expert {variant_name} ({periods} periods) of {prefix}", exc, dyn_form)
                                     
-                    except Exception:
+                    except Exception as exc:
+                        log_failure(logger, f"Dynamic experts of {prefix}", exc, base_form)
                         continue
 
-                except Exception:
+                except Exception as exc:
+                    log_failure(logger, f"Expansion of {prefix}", exc, base_form)
                     continue
 
         if global_best_static and ctx.df_val is not None:
@@ -319,8 +340,8 @@ class ExpertExpander:
                 pdp_stats = [{"Feature_Effect": c.replace("effect_", ""), "Mean_Contribution": float(terms_df[c].mean()), "Max_Contribution": float(terms_df[c].max()), "Variance": float(terms_df[c].var()),
                               "Importance": float(terms_df[c].var()) / prediction_var if prediction_var > 0 else float("nan")} for c in e_cols]
                 reporter.export_pdp_variance(pd.DataFrame(pdp_stats).sort_values(by="Variance", ascending=False), "Global_Static_Champion")
-            except Exception: 
-                pass
+            except Exception as exc:
+                log_failure(logger, f"PDP export of the global static champion", exc)
 
         return candidate_pool
 #: </expert_expander_generate>

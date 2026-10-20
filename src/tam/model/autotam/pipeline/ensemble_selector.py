@@ -13,6 +13,7 @@ apex ensembles resilient to structural breaks in time-series data.
 """
 
 #: <ensemble_selector_imports>
+import logging
 import pandas as pd
 import numpy as np
 import re
@@ -20,6 +21,8 @@ import datetime
 from typing import Dict, Any, List, Optional, Tuple
 from .context import PipelineContext
 from tam.model.opera import OperaTAM
+from tam.model.autotam.failures import log_failure
+logger = logging.getLogger(__name__)
 #: </ensemble_selector_imports>
 
 #: <ensemble_selector_sparse_weights>
@@ -161,7 +164,8 @@ class EnsembleSelector:
             # 29k-88k, which a half-range margin (lower bound -540) let straight through.
             margin = 0.15 * (target_max - target_min)
             ctx.target_clip = (target_min - margin, target_max + margin)
-        except Exception:
+        except Exception as exc:
+            log_failure(logger, "Training bounds of the target for the clipping of the experts", exc)
             ctx.target_clip = None
 
         categories = {"kalman": [], "adaptive": [], "static": []}

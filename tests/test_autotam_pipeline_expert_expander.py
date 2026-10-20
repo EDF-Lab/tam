@@ -19,7 +19,8 @@ import pandas as pd
 import pytest
 
 from tam.model.autotam.auto_tam import AutoTAM
-from tam.model.autotam.pipeline.expert_expander import ExpertExpander, kalman_expert_name, kalman_formula_from_effects
+from tam.model.autotam.pipeline import expert_expander as expander_module_for_grid
+from tam.model.autotam.pipeline.expert_expander import ExpertExpander, grid_search_fold, kalman_expert_name, kalman_formula_from_effects
 from tam.model.additive import StaticTAM
 from tam.model.kalman import KalmanTAM
 from tam.model.autotam.pipeline.context import PipelineContext
@@ -303,3 +304,57 @@ def test_the_search_keeps_kalman_experts_with_a_tiny_noise_in_the_final_models(t
     assert names and all(re.fullmatch(r"[A-Za-z0-9_]+", name) for name in names)
     assert any(re.search(r"e_\d\d", name) for name in names), "no tiny noise rate was tried: the test does not cover the case"
     assert "AutoTAM_Apex_Ensemble" in search.predict(frame).columns
+
+
+# --------------------------------------------------------------------------- #
+# Grid-search experts choose their hyperparameters on the last fold
+# --------------------------------------------------------------------------- #
+
+def test_grid_search_fold_is_the_last_fold():
+    folds = [(pd.DataFrame({"load": [1.0]}), pd.DataFrame({"load": [2.0]})),
+             (pd.DataFrame({"load": [3.0]}), pd.DataFrame({"load": [4.0]}))]
+    train, val = grid_search_fold(folds, pd.DataFrame({"load": [9.0]}), pd.DataFrame({"load": [8.0]}))
+    assert train["load"].iloc[0] == 3.0 and val["load"].iloc[0] == 4.0
+
+
+def test_grid_search_fold_without_folds_is_the_fit_and_dev_rows():
+    fit, dev = pd.DataFrame({"load": [9.0]}), pd.DataFrame({"load": [8.0]})
+    train, val = grid_search_fold([], fit, dev)
+    assert train is fit and val is dev
+
+
+def test_grid_experts_are_chosen_on_the_last_fold(monkeypatch):
+    """The first fold of an expanding window is the oldest and shortest period: the choice must see the latest one."""
+    seen = {}
+
+    class _FakeStatic:
+        def __init__(self, formula, **kwargs):
+            self.formula_ = formula
+
+        def grid_search_fit(self, data_train, data_val, grid_search_config):
+            seen["train_rows"], seen["val_rows"] = len(data_train), len(data_val)
+            return self
+
+        def predict(self, df):
+            return pd.DataFrame({"Estimatedload": df["load"].values})
+
+    monkeypatch.setattr(expander_module_for_grid, "StaticTAM", _FakeStatic)
+    rng = np.random.default_rng(0)
+    n = 90
+    df = pd.DataFrame({"load": rng.normal(100, 10, n), "temp": rng.normal(20, 5, n)})
+    ctx = PipelineContext(
+        target="load", df_fit=df.iloc[:60], df_dev=df.iloc[60:],
+        cv_folds=[(df.iloc[:20], df.iloc[20:30]), (df.iloc[:45], df.iloc[45:60])],
+        formula_config={"features": ["temp"], "targets": ["load"]},
+        search_space={"temp": {"grids": {"s": {"k": [3, 5]}}}},
+    )
+
+    class _Reporter:
+        def export_pdp_variance(self, *args, **kwargs):
+            pass
+
+    expander = ExpertExpander(expansions={"prior": False, "autofit": False, "kalman": False, "adaptive": False, "grid": True})
+    expander.generate_experts({"Island_1": ["load ~ s(temp, k=3)"]}, ctx, [], _Reporter())
+
+    assert seen == {"train_rows": 45, "val_rows": 15}
+

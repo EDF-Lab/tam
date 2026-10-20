@@ -13,6 +13,7 @@ inform component sampling, and execute parsimonious pruning of bloated genomes.
 """
 
 #: <dragtam_imports>
+import logging
 import pandas as pd
 import numpy as np
 import random
@@ -24,6 +25,8 @@ from .parser import canonicalize_term, terms_are_equivalent, term_subsumes
 from .population_nodes import MAX_ACTIVE_EFFECTS_PER_FEATURE
 from tam.common.utils import parse_formula_to_terms, split_args_respecting_parentheses
 from tam.model.additive import StaticTAM
+from tam.model.autotam.failures import log_failure
+logger = logging.getLogger(__name__)
 #: </dragtam_imports>
 
 
@@ -410,7 +413,8 @@ class DragTAM:
                 error_val = self._calculate_error(y_true, y_pred, metric)
                 rmses.append(error_val)
                     
-            except Exception:
+            except Exception as exc:
+                log_failure(logger, "Cross-validation fold of a candidate formula", exc, candidate_formula, level=logging.DEBUG)
                 continue
 
         mean_rmse = np.mean(rmses) if rmses else float('inf')
@@ -433,7 +437,8 @@ class DragTAM:
                     final_model.fit(train_clean)
                     parsed_terms = getattr(final_model, 'parsed_terms_', [])
                     penalties = getattr(final_model, 'component_penalties_', {})
-            except Exception:
+            except Exception as exc:
+                log_failure(logger, "Final fit of a candidate formula", exc, candidate_formula, level=logging.DEBUG)
                 mean_rmse = float('inf')
 
         return mean_rmse, final_model, parsed_terms, penalties

@@ -87,3 +87,7 @@ To successfully implement the modifications, they are scheduled for the followin
 * `pipeline/ensemble_selector.py` (to manage per-$\tau$ OPERA aggregation and CQR)
 * `evaluation/autotam_report_generator.py` (to add reliability and fan visualization panes)
 * `auto_tam.py` (to expose the `predict_quantiles` and `predict_intervals` APIs)
+
+## 7. Mirror Architecture Requirement
+
+In accordance with `CONTRIBUTING` section 2, the `math/` document of this feature carries the theoretical discussion and this page the software engineering (IRLS schedule reuse through `BaseTAM._solve_pwls_step`, ablation computation in `KnowledgeGraph.update_and_prune`, and conformal calibration with `SafetyTAM`'s conformal-quantile primitive; the point-residual calibration stays for point champions, `objective="point"` and `needs_conformal=True`). No probabilistic code is committed before the pair is reviewed.

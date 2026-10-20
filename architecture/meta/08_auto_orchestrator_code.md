@@ -33,6 +33,27 @@ The structural degrees of freedom ($k$) are calculated directly from parsed term
 
 ```
 
+### Parser Signatures and Structural Complexity
+
+The context parser estimates the structural complexity $k$ of each term from its signature, before any model is trained (the equations are in the mirror `math/` page):
+
+| Topology / Effect | Parser Signature | Exact Structural Complexity ($k$) |
+| :--- | :--- | :--- |
+| **Linear / Categorical** | `l()`, `c()` | $1$ (per continuous variable / $n\_cat - 1$) |
+| **Splines** | `s(k=N, deg=D)` | $N + D$ (Knots + Spline Degree) |
+| **Fourier** | `f(m=N)` | $2 \times N$ (pairs of sine and cosine harmonics) |
+| **Chebyshev / Poly** | `p(deg=N)` | $N$ (Degree of polynomial) |
+| **Wavelets** | `w(n_scales=S, n_locs=L)`| $S \times L$ (Scales $\times$ Locations) |
+| **RBF / Geospatial** | `rbf(n_centers=C)` | $C$ (Number of centroids) |
+| **Trees / Forests** | `t(n_trees=T, max_depth=D)` or `t(n_trees=T, max_leaves=M)` | $T \times 2^D$, or $T \times M$ for a histogram (total terminal leaves) |
+| **Linear Trees** | `lt(max_depth=D)` or `lt(max_leaves=M)` | $2 \times 2^D$ or $2M$ (one tree for the level, one for the slope) |
+| **PID** | `pid(w=W)` | $3$ (the lag, its rolling mean over $W$ steps, its first difference) |
+| **Neural** | `n(n_neurons=N, n_hidden=L)`| $N \times L \times 5$ (Heavy penalty for deep VRAM footprint) |
+| **Tensor Products** | `te(eff_1, eff_2)` | ranked at $\min(\prod k_i,\ \sum k_i + \sqrt{\prod k_i})$; true width $\prod k_i$ (see the note below) |
+
+`k=N` is also accepted as a legacy spelling of `f(m=N)`. A tensor product allocates its true width (`TensorProductEffect.get_n_coeffs`, for example `te(s(k=10), f(m=5))` has 130 columns) and is ranked by the discounted surrogate given in the math page.
+
+
 The `DataManager` prepares the expanding window folds. It strictly enforces chronological integrity, guaranteeing that no future data leaks into validation blocks during the evolutionary search.
 
 ```{literalinclude} ../../../../src/tam/model/autotam/pipeline/data_manager.py
@@ -184,6 +205,24 @@ The ensemble stage writes every expert name into a formula and reads its weight 
 :caption: src/tam/model/autotam/pipeline/expert_expander.py (Kalman Expert Name)
 ```
 
+The grid-search experts choose their hyperparameters on one fold and are scored on all of them. The folds of a time series are expanding windows, so the choice is made on the last one, the period closest to the test rows:
+
+```{literalinclude} ../../../../src/tam/model/autotam/pipeline/expert_expander.py
+:language: python
+:start-after: "#: <expert_expander_grid_fold>"
+:end-before: "#: </expert_expander_grid_fold>"
+:caption: src/tam/model/autotam/pipeline/expert_expander.py (Grid-Search Fold)
+```
+
+A candidate that cannot be fitted is dropped and the search goes on, but never silently: every place that survives a failure logs what failed, its formula and the error through one helper (a warning for the experts of the final pool, a debug record for the many candidates the evolution discards):
+
+```{literalinclude} ../../../../src/tam/model/autotam/failures.py
+:language: python
+:start-after: "#: <failures_log>"
+:end-before: "#: </failures_log>"
+:caption: src/tam/model/autotam/failures.py (Logged Failures)
+```
+
 ```{literalinclude} ../../../../src/tam/model/autotam/pipeline/expert_expander.py
 :language: python
 :start-after: "#: <expert_expander_generate>"
@@ -196,6 +235,26 @@ The ensemble stage writes every expert name into a formula and reads its weight 
 ## 6. OPERA Aggregation (`ensemble_selector.py`)
 
 The final layer deploys the `OperaTAM` MLpol algorithm via the `EnsembleSelector`. Instead of selecting a single model, it constructs specialized sub-leagues (Static, Kalman, Adaptive, Island Federation, and the global Apex Ensemble), weighting predictions sequentially via cumulative regret bounds.
+
+The adaptive and Kalman experts rebuild their windows and their state from the frame they are given, so the forecast of a row depends on the rows that precede it. `fit()` keeps the training rows (`history_`); a frame that starts after them gets them in front of it, and the output has exactly the rows given (a forecast on the forecast rows alone equals the same rows inside past + future):
+
+```{literalinclude} ../../../../src/tam/model/autotam/auto_tam.py
+:language: python
+:start-after: "#: <auto_tam_history>"
+:end-before: "#: </auto_tam_history>"
+:caption: src/tam/model/autotam/auto_tam.py (Training Rows in Front of the Forecast Rows)
+```
+
+When the search keeps no expert (too few rows for any formula to be estimated), `fit()` raises a `ValueError` that names the rows of each split and says what to change; an empty `df_fit`, `df_dev` or `df_val` is rejected before the search with the row counts of the three splits. `df_train` is split by fractions, so it works from 12 rows on the one-feature test case; explicit splits from 5 fit rows with 2 dev and 2 val rows:
+
+```{literalinclude} ../../../../src/tam/model/autotam/auto_tam.py
+:language: python
+:start-after: "#: <auto_tam_no_expert>"
+:end-before: "#: </auto_tam_no_expert>"
+:caption: src/tam/model/autotam/auto_tam.py (Error When No Expert Survives)
+```
+
+`predict()` returns one column per expert in search order, then the league ensembles, then the final model; the first column is an expert, not the final model. `AutoTAM.final_model_column_` (set by `fit()`) names the final model column (`AutoTAM.FINAL_MODEL_COLUMN`, `AutoTAM_Apex_Ensemble`; `AutoTAM.FINAL_MODEL_COLUMN_ONLINE`, `AutoTAM_Apex_Online`, for `predict_online()`).
 
 Frozen inference keeps the members of a league whose final weight reaches `ensemble_sparsity_threshold`. The weights of a league sum to one, so the Apex league, which aggregates the whole dynamic pool (several hundred members), can have no weight above the absolute threshold; the members at or above their uniform share `1/n` are then kept, so a league never ends empty:
 

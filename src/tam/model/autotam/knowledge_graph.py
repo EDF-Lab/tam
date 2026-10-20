@@ -17,6 +17,7 @@ with the lowest complexity penalties.
 """
 
 #: <knowledge_graph_imports>
+import logging
 import math
 import random
 import re
@@ -29,6 +30,8 @@ from tam.common.utils import parse_formula_to_terms
 from tam.model._math import decomposition_names
 from tam.model.spectrum import OffsetEffect
 from .parser import terms_are_equivalent, term_subsumes
+from tam.model.autotam.failures import log_failure
+logger = logging.getLogger(__name__)
 #: </knowledge_graph_imports>
 
 #: <knowledge_graph_term_identity>
@@ -168,13 +171,17 @@ class KnowledgeGraph:
         component_penalties = component_penalties or {}
         mandatory_terms = list(mandatory_terms or [])
         mandatory_variables = set(mandatory_variables or [])
-        
+
+        if model is None:
+            return parsed_terms  # the candidate could not be fitted (already reported): there is nothing to prune
+
         try:
             contributions = model.decompose_prediction(df)
             preds_df = model.predict(df)
             pred_col = f"Estimated{target_col}" if f"Estimated{target_col}" in preds_df.columns else preds_df.columns[0]
             total_pred_var = np.var(preds_df[pred_col].values)
-        except Exception:
+        except Exception as exc:
+            log_failure(logger, "Contribution of the terms to the prediction variance (the terms are not pruned)", exc)
             return parsed_terms
 
         pruned_terms = []

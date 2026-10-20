@@ -12,10 +12,11 @@ search, state-space expansions (Kalman/Adaptive), and Minimax aggregation (OPERA
 """
 
 #: <auto_tam_imports>
+import logging
 import pandas as pd
 import numpy as np
 import re
-from typing import Optional, List, Dict
+from typing import Tuple, Optional, List, Dict
 
 from .pipeline.data_manager import DataManager
 from .pipeline.base_discoverer import BaseDiscoverer
@@ -27,12 +28,23 @@ from tam.model.kalman import KalmanTAM
 from tam.model.adaptative import AdaptiveTAM
 from tam.model.opera import OperaTAM
 from tam.common.exceptions import collect_extrapolation
+from tam.model.autotam.failures import log_failure
+logger = logging.getLogger(__name__)
 #: </auto_tam_imports>
 
 #: <auto_tam_class>
 class AutoTAM:
-    """The Clean AutoTAM Director."""
-    
+    """The Clean AutoTAM Director.
+
+    Attributes:
+        FINAL_MODEL_COLUMN: Name of the column of ``predict()`` that holds the final model, the Apex ensemble.
+        FINAL_MODEL_COLUMN_ONLINE: Name of the same model in the output of ``predict_online()``.
+        final_model_column_: ``FINAL_MODEL_COLUMN`` once ``fit()`` has kept experts for the Apex ensemble, else ``None``.
+    """
+
+    FINAL_MODEL_COLUMN = "AutoTAM_Apex_Ensemble"
+    FINAL_MODEL_COLUMN_ONLINE = "AutoTAM_Apex_Online"
+
 #: <auto_tam_init>
     def __init__(
         self, 
@@ -101,6 +113,8 @@ class AutoTAM:
         self.chronological_test_log = []
         self.online_weights_ = {}   # populated by predict_online(): MLpol weight trajectories
         self.apex_members_ = []     # the whole Apex pool, aggregated by predict_online()
+        self.final_model_column_ = None  # set by fit(): the column of predict() that holds the final model
+        self.history_ = None  # set by fit(): the training rows, put in front of a frame that starts after them
         self.extrapolating_features_ = []
 #: </auto_tam_init>
 
@@ -130,6 +144,7 @@ class AutoTAM:
             group_col=group_col,
             validation_strategy=validation_strategy
         )
+        self.history_ = self._training_rows(df_train, df_fit, df_dev, df_val)
         self.ctx.optimization_metric = optimization_metric
         self.ctx.complexity_penalty = self.complexity_penalty
         
@@ -141,23 +156,67 @@ class AutoTAM:
             candidate_pool = self.expander.generate_experts(island_champions, self.ctx, self.chronological_test_log, self.reporter)
 
             if not candidate_pool:
-                print("Warning: No candidates generated. The model will remain unfitted.")
-                return self
+                raise ValueError(self._no_expert_message())
 
             self.trained_experts, self.league_weights, self.weights_top10, self.island_aliases, self.oof_predictions_ = self.selector.evaluate_and_refit(
                 candidate_pool, self.ctx, self.chronological_test_log, self.reporter, self.expander, refit_on_full_train=refit_on_full_train
             )
         self.apex_members_ = list(getattr(self.selector, "apex_members_", []))
+        self.final_model_column_ = self.FINAL_MODEL_COLUMN if self.weights_top10 else None
         self.extrapolating_features_ = sorted(extrapolating)
         
         if not self.trained_experts:
-            print("Warning: All experts failed evaluation. The model is effectively empty.")
+            raise ValueError(self._no_expert_message())
 
         self.reporter.export_final_architectures(self.trained_experts)
         self.reporter.export_chronological_tests(self.chronological_test_log)
         self.reporter.export_collinearity_purge_log(self.data_manager.engineer.purge_log)
         return self
 #: </auto_tam_fit>
+
+#: <auto_tam_no_expert>
+    def _no_expert_message(self) -> str:
+        """Message of the error raised when the search keeps no expert: it names the rows of each split."""
+        sizes = ", ".join(f"{name}={len(getattr(self.ctx, attr))}" for name, attr in (("fit", "df_fit"), ("dev", "df_dev"), ("val", "df_val")))
+        return (
+            f"No valid experts survived the fit (rows: {sizes}; cross-validation folds: {len(self.ctx.cv_folds)}). "
+            "Every candidate formula failed to fit or to score on these rows: a formula needs more fit rows than it has coefficients, "
+            "and dev and val need rows of their own. Give a longer history, fewer features, or pass df_train= so that AutoTAM sizes the splits from the data."
+        )
+#: </auto_tam_no_expert>
+
+#: <auto_tam_history>
+    @staticmethod
+    def _training_rows(*frames: Optional[pd.DataFrame]) -> Optional[pd.DataFrame]:
+        """The rows given to ``fit()`` as they were given, in one frame (``None`` when there are none)."""
+        given = [frame for frame in frames if frame is not None and len(frame)]
+        return pd.concat(given, ignore_index=True) if given else None
+
+    def _with_history(self, df_test: pd.DataFrame, date_col: Optional[str]) -> Tuple[pd.DataFrame, int]:
+        """Puts the training rows in front of a frame that starts after them.
+
+        The adaptive and Kalman experts rebuild their windows and their state from the frame they are given, so the
+        forecast of a row depends on the rows that precede it. A frame that starts after the training data gets the
+        training rows in front of it; a frame that overlaps them is used as given.
+
+        Args:
+            df_test: Frame to forecast.
+            date_col: Name of the date column (the one of the fit when ``None``).
+
+        Returns:
+            The frame to run the experts on, and the number of rows that were added in front of ``df_test``.
+        """
+        date_col = date_col or getattr(self.ctx, "date_col", None)
+        history = self.history_
+        if history is None or not date_col or date_col not in df_test.columns or date_col not in history.columns or df_test.empty:
+            return df_test, 0
+        if pd.to_datetime(df_test[date_col]).min() <= pd.to_datetime(history[date_col]).max():
+            return df_test, 0
+        columns = [c for c in df_test.columns if c in history.columns]
+        missing = [c for c in history.columns if c not in df_test.columns]
+        front = history[columns + [c for c in missing if c == self.ctx.target]]
+        return pd.concat([front, df_test], ignore_index=True), len(front)
+#: </auto_tam_history>
 
 #: <auto_tam_predict>
     def _expert_predictions(self, df_test: pd.DataFrame, date_col: Optional[str] = None):
@@ -176,6 +235,8 @@ class AutoTAM:
                     f"Test data is missing required external mandatory features: {sorted(missing_ext)}"
                 )
 
+        n_rows = len(df_test)
+        df_test, n_history = self._with_history(df_test, date_col)
         df_test_clean, df_aug = self.data_manager.transform_test_data(df_test, self.ctx)
         predictions = {}
         
@@ -247,7 +308,8 @@ class AutoTAM:
                 high = float(self.ctx.df_fit[self.ctx.target].max())
                 margin = 0.15 * (high - low)
                 bounds = (low - margin, high + margin)
-            except Exception:
+            except Exception as exc:
+                log_failure(logger, "Training bounds of the target for the clipping of the experts", exc)
                 bounds = None
         if bounds is not None and not preds_df.empty:
             preds_df = preds_df.clip(lower=bounds[0], upper=bounds[1])
@@ -255,6 +317,11 @@ class AutoTAM:
         for alias, real_name in self.island_aliases.items():
             if real_name in preds_df.columns:
                 preds_df[alias] = preds_df[real_name]
+
+        if n_history:
+            # The training rows were only there for the experts: the output has exactly the rows that were asked for.
+            preds_df = preds_df.iloc[-n_rows:].reset_index(drop=True)
+            df_test_clean = df_test_clean.iloc[-n_rows:].reset_index(drop=True)
 
         return preds_df, df_test_clean
 
@@ -265,6 +332,19 @@ class AutoTAM:
         horizon. Deterministic and target-free. For a chronological backtest where the realized
         target IS available, prefer predict_online(): MLpol then re-weights the experts
         sequentially, which matters a great deal across regime shifts.
+
+        Args:
+            df_test: Frame to forecast, with the features of the fit. It may hold the forecast rows alone: when it
+                starts after the training data, the training rows kept by ``fit()`` (``history_``) are put in front of
+                it for the adaptive and Kalman experts, and the output has exactly the rows given. A frame that
+                overlaps the training data is used as given.
+            date_col: Name of the date column, when the frame has one.
+
+        Returns:
+            One row per row of ``df_test`` and one column per model, in this order: the experts, in search
+            order; the league ensembles (``Ensemble_<league>``); the **final model**, in the column named by
+            ``final_model_column_`` (``AutoTAM_Apex_Ensemble``). The first column is an expert, not the final
+            model: read the final model through ``final_model_column_``.
         """
         preds_df, df_test_clean = self._expert_predictions(df_test, date_col)
 
@@ -280,7 +360,7 @@ class AutoTAM:
             valid_apex = {e: w for e, w in self.weights_top10.items() if e in preds_df}
             apex_sum = sum(valid_apex.values())
             if apex_sum > 0:
-                preds_df["AutoTAM_Apex_Ensemble"] = sum(preds_df[e] * (w / apex_sum) for e, w in valid_apex.items())
+                preds_df[self.FINAL_MODEL_COLUMN] = sum(preds_df[e] * (w / apex_sum) for e, w in valid_apex.items())
 
         target = self.ctx.target
         if target in df_test.columns and df_test[target].notna().all():
@@ -301,6 +381,16 @@ class AutoTAM:
         and stores the weight trajectories on self.online_weights_ for diagnostics/reporting.
         The online Apex aggregates the whole Apex pool (apex_members_); predict() averages only the
         members still weighted at the end of validation (weights_top10).
+
+        Args:
+            df_test: Frame to forecast, with the features of the fit and the realized target. As for ``predict()``, a
+                frame that starts after the training data gets the training rows in front of it internally.
+            date_col: Name of the date column, when the frame has one.
+
+        Returns:
+            The same columns as ``predict()`` (experts, then ``Ensemble_<league>``) plus the online versions
+            ``Ensemble_<league>_Online`` and the online **final model** in ``FINAL_MODEL_COLUMN_ONLINE``
+            (``AutoTAM_Apex_Online``).
         """
         preds_df, df_test_clean = self._expert_predictions(df_test, date_col)
         target = self.ctx.target
@@ -355,7 +445,7 @@ class AutoTAM:
         # The online Apex dynamically aggregates the full pool; static predict() averages only the snapshot weights.
         apex_members = list(getattr(self, "apex_members_", None) or self.weights_top10.keys())
         if apex_members:
-            _aggregate_online(apex_members, "AutoTAM_Apex_Online")
+            _aggregate_online(apex_members, self.FINAL_MODEL_COLUMN_ONLINE)
 
         return preds_df
 
@@ -397,8 +487,8 @@ class AutoTAM:
                 out = merged["__v__"].to_numpy()
                 if len(out) == n and np.isfinite(out).any():
                     return out
-        except Exception:
-            pass
+        except Exception as exc:
+            log_failure(logger, "Alignment of the predictions on the key columns (falls back to positions)", exc)
         vals = np.asarray(getattr(raw_preds, "values", raw_preds), dtype=float)
         return vals[-n:] if len(vals) >= n else np.full(n, np.nan)
 #: </auto_tam_predict>
