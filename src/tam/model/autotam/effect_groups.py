@@ -18,6 +18,7 @@ from typing import Dict, Iterable, List, Optional
 import pandas as pd
 
 from tam.model.additive import StaticTAM
+from tam.model.autotam.tokens import identifier_tokens
 
 #: <effect_groups>
 GROUP_PREFIX = "group_effect_"
@@ -42,7 +43,7 @@ def effect_kind(feature: str, calendar: Iterable[str] = ()) -> str:
         feature: Name of the feature of the effect, without the ``effect_`` prefix (an interaction names its features).
         calendar: Extra column names that are calendar columns (the ones added by ``calendar_features``).
     """
-    tokens = re.findall(r"[A-Za-z0-9_]+", feature)
+    tokens = identifier_tokens(feature)
     if any("_lag_" in token for token in tokens):
         return "autoregressive"
     known = CALENDAR_FEATURES | set(calendar)

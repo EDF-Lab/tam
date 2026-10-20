@@ -37,6 +37,7 @@ from tam.model.autotam.floor import FLOOR_ISLAND, floor_formula
 from tam.model.autotam.group_search import GROUP_COLUMN, add_group, covariates_in_cycles, derived_group, formula_in_cycles, sample_groups, to_cycles
 from tam.model.autotam.alignment import aligned_values
 from tam.model.autotam.expert_ids import experts_table, identifiers
+from tam.model.autotam.tokens import first_arguments, identifier_tokens
 from tam.model.autotam.series_guard import GUARD_ISLANDS, apply_guard, guarded_series
 from tam.model.autotam.external_experts import look_up, normalise_external
 from tam.model.autotam.seeding import seeded_method
@@ -48,7 +49,7 @@ from tam.model.autotam.families import candidate_losses, check_family_mode
 from tam.model.autotam.spectral_profile import spectral_profile
 from tam.model.autotam.calendar_features import calendar_seed_formulas
 from tam.model.autotam.search_preset import (
-    FAST_GENERATIONS, FAST_ISLANDS, FAST_N_EXPERTS, FAST_POP_SIZE, FULL_GENERATIONS, check_search_mode)
+    FAST_GENERATIONS, FAST_ISLANDS, FAST_MAX_CV_FOLDS, FAST_N_EXPERTS, FAST_POP_SIZE, FULL_GENERATIONS, check_search_mode)
 logger = logging.getLogger(__name__)
 #: </auto_tam_imports>
 
@@ -163,6 +164,7 @@ class AutoTAM:
         bounded_rewards: bool = False,
         apex_prune: Optional[float] = None,
         series_guard: bool = False,
+        max_cv_folds: Optional[int] = None,
         **kwargs
     ):
         """
@@ -246,6 +248,9 @@ class AutoTAM:
                 last 10 updates of the validation rows is dropped, the aggregation is run again on the rest, and an expert that no ensemble uses any
                 more is no longer predicted, which cuts the cost of ``fit`` and ``predict``. The experts of ``seed_floor`` / ``pooled_floor`` are never
                 dropped; the names dropped are in ``apex_pruned_``. ``None`` (default) keeps the pool as it was.
+            max_cv_folds (Optional[int]): At most this many expanding-window folds in the usual validation of a daily or monthly series (the step
+                of the folds grows to fit). Without it a series of six years of days has a fold every 30 rows, 48 folds to score every candidate on.
+                ``None`` (default) keeps the folds as they were; ``search="fast"`` takes 5 unless you give it.
             series_guard (bool): Opt-in, for panels of series (a ``group_col``, or a derived group) and for a single series. After the fit, each
                 group whose validation RMSE is smaller for a guard expert than for the final model is forecast by that expert, in the final model's
                 column of ``predict()`` and ``predict_online()``. The guard experts are those of the pooled floor (``pooled_floor=True``) and of the
@@ -350,6 +355,7 @@ class AutoTAM:
             horizon=horizon,
             rolling_folds=rolling_folds,
             pooled_floor=pooled_floor,
+            max_cv_folds=max_cv_folds if max_cv_folds is not None else (FAST_MAX_CV_FOLDS if fast else None),
             calendar_features=calendar_features,
             country=country,
             subdivision=subdivision,
@@ -990,7 +996,7 @@ class AutoTAM:
                 for term in terms:
                     if term.get("type") == "te":
                         for key in term.get("params", {}):
-                            names.update(re.findall(r"\(\s*([A-Za-z_]\w*)", str(key)))
+                            names.update(first_arguments(str(key)))
                     else:
                         names.add(term.get("feature"))
                 if any(n and n not in columns for n in names):
@@ -1049,7 +1055,7 @@ class AutoTAM:
             for term in terms:
                 if term.get("type") == "te":
                     for key in term.get("params", {}):
-                        names.update(re.findall(r"\(\s*([A-Za-z_]\w*)", str(key)))
+                        names.update(first_arguments(str(key)))
                 else:
                     names.add(term.get("feature"))
             missing = sorted(n for n in names if n and n not in columns)
@@ -1138,7 +1144,7 @@ class AutoTAM:
                 base_m = m if m_type == "static" else getattr(m, '_saved_base_model', getattr(m, 'base_model_', None))
                 f_ref = getattr(base_m, 'formula_', '')
                 # The target names the formula but is not a feature: a forecast row has none, and must not be dropped for it.
-                req_cols = sorted(set([c for c in re.findall(r'[a-zA-Z0-9_]+', f_ref) if c in df_aug.columns and c != self.ctx.target]))
+                req_cols = sorted(set([c for c in identifier_tokens(f_ref) if c in df_aug.columns and c != self.ctx.target]))
                 df_aug_clean = df_aug.dropna(subset=req_cols).copy()
                 
                 if m_type == "static": 
@@ -1406,7 +1412,7 @@ class AutoTAM:
             future_columns[member] = predictions[member].to_numpy(dtype=float)[:, None] + offsets[None, :]
         for member in natives:
             try:   # the expert's own quantiles on the validation rows (NaN where a feature is missing)
-                required = [c for c in re.findall(r"[A-Za-z0-9_]+", getattr(by_name[member], "formula_", "")) if c in val.columns and c != target]
+                required = [c for c in identifier_tokens(getattr(by_name[member], "formula_", "")) if c in val.columns and c != target]
                 own = by_name[member].predict_quantiles(val.dropna(subset=required), levels).reindex(val.index)
                 history_columns[member] = own.to_numpy(dtype=float)
                 future_columns[member] = self._native_quantiles_[member]

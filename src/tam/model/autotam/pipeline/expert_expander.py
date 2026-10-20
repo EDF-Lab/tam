@@ -17,6 +17,8 @@ import pandas as pd
 import numpy as np
 import datetime
 import re
+from tam.model.autotam.tokens import identifier_tokens
+from tam.model.autotam.expert_ids import identifier_of
 from typing import Dict, Any, Tuple, List
 from .context import PipelineContext
 from tam.common.utils import parse_formula_to_terms
@@ -167,7 +169,7 @@ class ExpertExpander:
             for rank, base_form in enumerate(base_formulas, 1):
                 prefix = f"{island_name}_R{rank}"
                 try:
-                    all_tokens = re.findall(r'[a-zA-Z0-9_]+', base_form)
+                    all_tokens = identifier_tokens(base_form)
                     req_cols = sorted(set([c for c in all_tokens if c in df_cont_all.columns]))
                     if ctx.target not in req_cols: 
                         req_cols.append(ctx.target)
@@ -397,7 +399,28 @@ class ExpertExpander:
             except Exception as exc:
                 log_failure(logger, f"PDP export of the global static champion", exc)
 
-        return candidate_pool
+        return self._without_duplicates(candidate_pool)
+
+    @staticmethod
+    def _without_duplicates(candidate_pool: dict) -> dict:
+        """The pool without the experts that repeat another: same formula, same expansion, same dynamic formula (the identifier of
+        ``expert_ids``). The experts of the guard islands (``Seed``, ``Floor``, ``Anchor``) are never dropped, the others give way to them and to
+        the first of their kind."""
+        guard = {"Seed", "Floor", "Anchor"}
+        seen, drop = set(), []
+        for name, expert in candidate_pool.items():
+            if expert.get("island") in guard:
+                seen.add(identifier_of({**expert, "name": name}))
+        for name, expert in candidate_pool.items():
+            if expert.get("island") in guard:
+                continue
+            key = identifier_of({**expert, "name": name})
+            if key in seen:
+                drop.append(name)
+            seen.add(key)
+        if drop:
+            logger.info("ExpertExpander: %d expert(s) repeat another one (same formula and expansion) and are left out: %s", len(drop), ", ".join(drop))
+        return {name: expert for name, expert in candidate_pool.items() if name not in drop}
 #: </expert_expander_generate>
 
 #: <expert_expander_grouped_effects>

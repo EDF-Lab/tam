@@ -19,6 +19,7 @@ import numpy as np
 import random
 from typing import List, Dict, Any, Tuple, Callable, Optional, Set
 import re
+from tam.model.autotam.tokens import identifier_tokens
 
 from .knowledge_graph import KnowledgeGraph, term_members
 from .parser import canonicalize_term, terms_are_equivalent, term_subsumes
@@ -374,7 +375,7 @@ class DragTAM:
         must be added explicitly or the grouped StaticTAM loses them after the
         column selection/dropna.
         """
-        req = [c for c in re.findall(r'[a-zA-Z0-9_]+', candidate_formula) if c in available]
+        req = [c for c in identifier_tokens(candidate_formula) if c in available]
         for extra in (self.target_col, self.group_col, self.date_col):
             if extra and extra in available and extra not in req:
                 req.append(extra)

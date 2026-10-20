@@ -19,6 +19,7 @@ from tam.model.autotam.drag_tam import DragTAM
 from tam.model.autotam.population_nodes import get_island_objects
 from tam.model.autotam.guards import guard_violation, monotone_features
 from tam.model.autotam.seeding import rank_key
+from tam.model.autotam.expert_ids import normalise_formula
 from tam.model.autotam.search_preset import FULL_GENERATIONS
 import logging
 logger = logging.getLogger(__name__)
@@ -156,16 +157,31 @@ class BaseDiscoverer:
             evaluated = kept
 
         if evaluated:
-            df_eval = pd.DataFrame(evaluated, columns=["Island", "Formula", "RMSE"])
-            for island, group in df_eval.groupby("Island"):
-                unique = group.drop_duplicates(subset=["Formula"])
-                order = sorted(range(len(unique)), key=lambda i: rank_key(float(unique["RMSE"].iloc[i]), str(unique["Formula"].iloc[i])))
-                top_5 = unique.iloc[order].head(5)
-                island_champions[island] = top_5["Formula"].tolist()
+            island_champions = self.top_formulas(evaluated)
         else:
             logger.warning("No formulas survived the evolutionary evaluation. Check for hidden NaNs or Inf values.")
 
         logger.info(f"BaseDiscoverer: Extracted {sum(len(v) for v in island_champions.values())} Top Formulas across {len(island_champions)} Islands.")
         return island_champions, draga
+
+    @staticmethod
+    def top_formulas(evaluated, per_island: int = 5) -> dict:
+        """The best ``per_island`` distinct formulas of each island, ``{island: [formulas]}``.
+
+        Args:
+            evaluated: ``[(island, formula, error), ...]``.
+            per_island: Number of champions kept per island.
+
+        Two formulas that differ only by blanks or by the order of their terms are the same model: the best ranked is kept and the next distinct
+        formula takes the place of the other (before, both became champions and the same expert was fitted twice and weighted twice).
+        """
+        champions = {}
+        frame = pd.DataFrame(evaluated, columns=["Island", "Formula", "RMSE"])
+        frame["Key"] = frame["Formula"].map(normalise_formula)
+        for island, group in frame.groupby("Island"):
+            order = sorted(range(len(group)), key=lambda i: rank_key(float(group["RMSE"].iloc[i]), str(group["Formula"].iloc[i])))
+            ranked = group.iloc[order].drop_duplicates(subset=["Key"])
+            champions[island] = ranked.head(per_island)["Formula"].tolist()
+        return champions
 #: </base_discoverer_search>
 #: </base_discoverer_class>

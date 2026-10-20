@@ -17,6 +17,7 @@ premature convergence on a single family of functions.
 
 #: <population_nodes_imports>
 import re
+from tam.model.autotam.tokens import first_arguments
 import random
 from typing import List, Dict, Any, Callable, Optional, Tuple, Union
 from .knowledge_graph import KnowledgeGraph
@@ -118,7 +119,7 @@ class BaseIsland:
         for donor in self.donor_genomes:
             for term in donor:
                 if term.get('type') == 'te':
-                    features = [f for f in re.findall(r'\(\s*([A-Za-z_]\w*)', ' '.join(str(k) for k in term.get('params', {}) if '(' in str(k)))]
+                    features = [f for f in first_arguments(' '.join(str(k) for k in term.get('params', {}) if '(' in str(k)))]
                     if not features or any(f not in available_features for f in features):
                         continue
                 else:

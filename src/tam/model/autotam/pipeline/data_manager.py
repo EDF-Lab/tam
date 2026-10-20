@@ -188,6 +188,7 @@ class DataManager:
         extended_search: bool = False,
         rolling_folds: Optional[int] = None,
         pooled_floor: bool = False,
+        max_cv_folds: Optional[int] = None,
     ):
         """
         Initializes the DataManager, parsing the user formula and populating mandatory terms.
@@ -211,6 +212,9 @@ class DataManager:
         if rolling_folds is not None and (isinstance(rolling_folds, bool) or int(rolling_folds) != rolling_folds or rolling_folds < 1):
             raise ValueError(f"rolling_folds must be None or a positive whole number, got {rolling_folds!r}.")
         self.rolling_folds = None if rolling_folds is None else int(rolling_folds)
+        if max_cv_folds is not None and (isinstance(max_cv_folds, bool) or int(max_cv_folds) != max_cv_folds or max_cv_folds < 1):
+            raise ValueError(f"max_cv_folds must be None or a positive whole number, got {max_cv_folds!r}.")
+        self.max_cv_folds = None if max_cv_folds is None else int(max_cv_folds)
         self.country = country
         self.subdivision = subdivision
         self.formula = formula
@@ -469,6 +473,10 @@ class DataManager:
 
         ctx.validation_strategy = validation_strategy
         fold_rows = max(1, int(self.horizon or (min(ctx.lags) if ctx.lags else 1)))
+        if self.rolling_folds and fold_rows < 2 and not (group_col and group_col in df_all_aug.columns and df_all_aug[group_col].nunique() > 1):
+            # A fold of one row is skipped by the search (a fold needs two rows to be scored): every candidate would be dropped. A one-step
+            # horizon is scored on two steps; without a horizon or a lag the folds are a twentieth of the dates.
+            fold_rows = max(2, int(pd.concat([ctx.df_fit, ctx.df_dev])[date_col].nunique()) // 20) if (self.horizon is None and not ctx.lags and date_col) else 2
         ctx.cv_folds = self.generate_cv_folds(ctx.df_fit, ctx.df_dev, date_col, validation_strategy, fold_rows=fold_rows)
 
         look_orders = list(ctx.lags) + [lag for lags in ctx.past_covariates.values() for lag in lags] + ([ctx.anchor_season] if ctx.anchor_season else [])
@@ -552,6 +560,8 @@ class DataManager:
             
             folds = []
             n_samples = len(df_pool)
+            if self.max_cv_folds:   # a long daily or monthly series would otherwise have a fold every 30 rows (12 for months)
+                step_size = max(step_size, -(-(n_samples - max(step_size * 2, n_samples // 3)) // self.max_cv_folds))
             initial_train_size = max(step_size * 2, n_samples // 3)
             
             current_end = initial_train_size
@@ -694,8 +704,11 @@ class DataManager:
         df_combined = df_test.copy()
         
         if ctx.historical_tail is not None and ctx.date_col and ctx.date_col in df_test.columns:
-            if df_test[ctx.date_col].min() > ctx.historical_tail[ctx.date_col].max():
-                df_combined = pd.concat([ctx.historical_tail, df_test], ignore_index=True)
+            test_dates = df_test[ctx.date_col]
+            if pd.api.types.is_datetime64_any_dtype(ctx.historical_tail[ctx.date_col]):
+                test_dates = pd.to_datetime(test_dates, errors="coerce")   # a frame loaded from a file has string dates; the tail has Timestamps
+            if test_dates.min() > ctx.historical_tail[ctx.date_col].max():
+                df_combined = pd.concat([ctx.historical_tail, df_test.assign(**{ctx.date_col: test_dates})], ignore_index=True)
 
         if ctx.lags:
             for d in ctx.lags: 
