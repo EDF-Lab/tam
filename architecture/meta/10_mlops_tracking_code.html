@@ -6,8 +6,8 @@
 <link rel="index" title="Index" href="../../genindex.html"><link rel="search" title="Search" href="../../search.html"><link rel="next" title="🧪 Gallery of Examples &amp; Use Cases" href="../../EXAMPLES.html"><link rel="prev" title="AutoTAM Data Topology: Stateful Architecture &amp; Pandas Vectorization [EXP]" href="09_auto_data_topology_code.html">
         <link rel="prefetch" href="../../_static/logo.png" as="image">
 
-    <!-- Generated with Sphinx 9.1.0 and Furo 2025.12.19 -->
-        <title>MLOps Tracking and Empirical Benchmarking (Engineering) - TAM 1.4.1 documentation</title>
+    <!-- Generated with Sphinx 9.1.1 and Furo 2025.12.19 -->
+        <title>MLOps Tracking and Empirical Benchmarking (Engineering) - TAM 1.5.0 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=d111a655" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo-extensions.css?v=8dab3a3b" />
@@ -162,7 +162,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="../../index.html"><div class="brand">TAM 1.4.1 documentation</div></a>
+      <a href="../../index.html"><div class="brand">TAM 1.5.0 documentation</div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -186,7 +186,7 @@
     <img class="sidebar-logo" src="../../_static/logo.png" alt="Logo"/>
   </div>
   
-  <span class="sidebar-brand-text">TAM 1.4.1 documentation</span>
+  <span class="sidebar-brand-text">TAM 1.5.0 documentation</span>
   
 </a><form class="sidebar-search-container" method="get" action="../../search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
@@ -381,7 +381,13 @@
 <p>If an evolutionary algorithm proposes a mathematically unstable formula, this module safely isolates the failure, returning empty or constrained metrics rather than crashing the global optimization loop.</p>
 <div class="literal-block-wrapper docutils container" id="id2">
 <div class="code-block-caption"><span class="caption-text">src/tam/evaluation/metrics.py (NaN-Safe Metric Vectorization)</span><a class="headerlink" href="#id2" title="Link to this code">¶</a></div>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">def</span><span class="w"> </span><span class="nf">calculate_regression_metrics</span><span class="p">(</span><span class="n">y_true</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">y_pred</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">def</span><span class="w"> </span><span class="nf">calculate_regression_metrics</span><span class="p">(</span>
+    <span class="n">y_true</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+    <span class="n">y_pred</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+    <span class="n">family</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">power</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.5</span><span class="p">,</span>
+    <span class="n">dispersion</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.1</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""</span>
 <span class="sd">    Computes a comprehensive suite of regression and forecasting metrics.</span>
 <span class="sd">    </span>
@@ -424,7 +430,106 @@
     <span class="k">else</span><span class="p">:</span>
         <span class="n">metrics</span><span class="p">[</span><span class="s1">'MAPE'</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span>
         
+    <span class="k">if</span> <span class="n">family</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">metrics</span><span class="p">[</span><span class="s1">'Deviance'</span><span class="p">]</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">unit_deviance</span><span class="p">(</span><span class="n">yt</span><span class="p">,</span> <span class="n">yp</span><span class="p">,</span> <span class="n">family</span><span class="p">,</span> <span class="n">power</span><span class="p">,</span> <span class="n">dispersion</span><span class="p">)))</span>
+        <span class="n">metrics</span><span class="p">[</span><span class="s1">'D2'</span><span class="p">]</span> <span class="o">=</span> <span class="n">deviance_explained</span><span class="p">(</span><span class="n">yt</span><span class="p">,</span> <span class="n">yp</span><span class="p">,</span> <span class="n">family</span><span class="p">,</span> <span class="n">power</span><span class="o">=</span><span class="n">power</span><span class="p">,</span> <span class="n">dispersion</span><span class="o">=</span><span class="n">dispersion</span><span class="p">)</span>
+
     <span class="k">return</span> <span class="n">metrics</span>
+</pre></div>
+</div>
+</div>
+<p><strong>Deviance scores.</strong> <code class="docutils literal notranslate"><span class="pre">unit_deviance</span></code>, <code class="docutils literal notranslate"><span class="pre">deviance_explained</span></code> and <code class="docutils literal notranslate"><span class="pre">deviance_metric</span></code> (same module) score the non-Gaussian families on the response scale. The means are clipped away from the edge of the domain of the family, so a prediction outside it costs a large deviance and never a <code class="docutils literal notranslate"><span class="pre">NaN</span></code>. <code class="docutils literal notranslate"><span class="pre">calculate_regression_metrics(...,</span> <span class="pre">family=...)</span></code> adds <code class="docutils literal notranslate"><span class="pre">Deviance</span></code> and <code class="docutils literal notranslate"><span class="pre">D2</span></code>; without a family its keys are unchanged. The model-selection code of AutoTAM (<code class="docutils literal notranslate"><span class="pre">DragTAM</span></code>, <code class="docutils literal notranslate"><span class="pre">ExpertExpander</span></code>, <code class="docutils literal notranslate"><span class="pre">EnsembleSelector</span></code>) accepts the metric names <code class="docutils literal notranslate"><span class="pre">poisson_deviance</span></code>, <code class="docutils literal notranslate"><span class="pre">gamma_deviance</span></code>, <code class="docutils literal notranslate"><span class="pre">binomial_deviance</span></code> (or <code class="docutils literal notranslate"><span class="pre">logloss</span></code>), <code class="docutils literal notranslate"><span class="pre">negative_binomial_deviance</span></code> and <code class="docutils literal notranslate"><span class="pre">tweedie_deviance</span></code>, so that experts of different families are compared on one proper score; any other name keeps the RMSE fallback.</p>
+<div class="literal-block-wrapper docutils container" id="id3">
+<div class="code-block-caption"><span class="caption-text">src/tam/evaluation/metrics.py (Deviance scores)</span><a class="headerlink" href="#id3" title="Link to this code">¶</a></div>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">def</span><span class="w"> </span><span class="nf">unit_deviance</span><span class="p">(</span>
+    <span class="n">y_true</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+    <span class="n">y_pred</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+    <span class="n">family</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"gaussian"</span><span class="p">,</span>
+    <span class="n">power</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.5</span><span class="p">,</span>
+    <span class="n">dispersion</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.1</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""</span>
+<span class="sd">    Unit deviance d(y, mu) of an exponential dispersion family, per observation.</span>
+
+<span class="sd">    ``d`` is zero at ``mu = y`` and positive elsewhere; for the Gaussian family it is the squared error. The means</span>
+<span class="sd">    ``y_pred`` are clipped away from the edge of the family's domain, so a prediction outside it (a negative count)</span>
+<span class="sd">    costs a very large deviance instead of a NaN.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        y_true: Observations.</span>
+<span class="sd">        y_pred: Predicted means (response scale).</span>
+<span class="sd">        family: ``gaussian``, ``poisson``, ``gamma``, ``binomial`` (targets in [0, 1]), ``negative_binomial`` or ``tweedie``.</span>
+<span class="sd">        power: Variance power p of the Tweedie family, 1 &lt; p &lt; 2.</span>
+<span class="sd">        dispersion: Dispersion alpha of the negative binomial family, Var = mu + alpha mu^2.</span>
+<span class="sd">    """</span>
+    <span class="n">y</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">y_true</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+    <span class="n">mu</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">y_pred</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+    <span class="n">family</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">family</span><span class="p">)</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">family</span> <span class="o">==</span> <span class="s2">"gaussian"</span><span class="p">:</span>
+        <span class="k">return</span> <span class="p">(</span><span class="n">y</span> <span class="o">-</span> <span class="n">mu</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span>
+    <span class="k">if</span> <span class="n">family</span> <span class="o">==</span> <span class="s2">"poisson"</span><span class="p">:</span>
+        <span class="n">mu</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">clip</span><span class="p">(</span><span class="n">mu</span><span class="p">,</span> <span class="n">_TINY</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="k">return</span> <span class="mf">2.0</span> <span class="o">*</span> <span class="p">(</span><span class="n">y</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">clip</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="n">_TINY</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span> <span class="o">/</span> <span class="n">mu</span><span class="p">)</span> <span class="o">-</span> <span class="p">(</span><span class="n">y</span> <span class="o">-</span> <span class="n">mu</span><span class="p">))</span>
+    <span class="k">if</span> <span class="n">family</span> <span class="o">==</span> <span class="s2">"gamma"</span><span class="p">:</span>
+        <span class="n">mu</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">clip</span><span class="p">(</span><span class="n">mu</span><span class="p">,</span> <span class="n">_TINY</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="k">return</span> <span class="mf">2.0</span> <span class="o">*</span> <span class="p">(</span><span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">clip</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="n">_TINY</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span> <span class="o">/</span> <span class="n">mu</span><span class="p">)</span> <span class="o">+</span> <span class="p">(</span><span class="n">y</span> <span class="o">-</span> <span class="n">mu</span><span class="p">)</span> <span class="o">/</span> <span class="n">mu</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">family</span> <span class="o">==</span> <span class="s2">"binomial"</span><span class="p">:</span>
+        <span class="n">mu</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">clip</span><span class="p">(</span><span class="n">mu</span><span class="p">,</span> <span class="n">_TINY</span><span class="p">,</span> <span class="mf">1.0</span> <span class="o">-</span> <span class="n">_TINY</span><span class="p">)</span>
+        <span class="k">return</span> <span class="mf">2.0</span> <span class="o">*</span> <span class="p">(</span><span class="n">y</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">clip</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="n">_TINY</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span> <span class="o">/</span> <span class="n">mu</span><span class="p">)</span> <span class="o">+</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">y</span><span class="p">)</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">clip</span><span class="p">(</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">y</span><span class="p">,</span> <span class="n">_TINY</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">mu</span><span class="p">)))</span>
+    <span class="k">if</span> <span class="n">family</span> <span class="o">==</span> <span class="s2">"negative_binomial"</span><span class="p">:</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">dispersion</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"dispersion must be &gt; 0; got </span><span class="si">{</span><span class="n">dispersion</span><span class="si">!r}</span><span class="s2">"</span><span class="p">)</span>
+        <span class="n">mu</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">clip</span><span class="p">(</span><span class="n">mu</span><span class="p">,</span> <span class="n">_TINY</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="k">return</span> <span class="mf">2.0</span> <span class="o">*</span> <span class="p">(</span><span class="n">y</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">clip</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="n">_TINY</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span> <span class="o">/</span> <span class="n">mu</span><span class="p">)</span> <span class="o">-</span> <span class="p">(</span><span class="n">y</span> <span class="o">+</span> <span class="mf">1.0</span> <span class="o">/</span> <span class="n">dispersion</span><span class="p">)</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">((</span><span class="mf">1.0</span> <span class="o">+</span> <span class="n">dispersion</span> <span class="o">*</span> <span class="n">y</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">+</span> <span class="n">dispersion</span> <span class="o">*</span> <span class="n">mu</span><span class="p">)))</span>
+    <span class="k">if</span> <span class="n">family</span> <span class="o">==</span> <span class="s2">"tweedie"</span><span class="p">:</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="mf">1.0</span> <span class="o">&lt;</span> <span class="n">power</span> <span class="o">&lt;</span> <span class="mf">2.0</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"power must be in (1, 2); got </span><span class="si">{</span><span class="n">power</span><span class="si">!r}</span><span class="s2">"</span><span class="p">)</span>
+        <span class="n">mu</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">clip</span><span class="p">(</span><span class="n">mu</span><span class="p">,</span> <span class="n">_TINY</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="n">y_pos</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">clip</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="k">return</span> <span class="mf">2.0</span> <span class="o">*</span> <span class="p">(</span><span class="n">y_pos</span> <span class="o">**</span> <span class="p">(</span><span class="mf">2.0</span> <span class="o">-</span> <span class="n">power</span><span class="p">)</span> <span class="o">/</span> <span class="p">((</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">power</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="mf">2.0</span> <span class="o">-</span> <span class="n">power</span><span class="p">))</span> <span class="o">-</span> <span class="n">y</span> <span class="o">*</span> <span class="n">mu</span> <span class="o">**</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">power</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">power</span><span class="p">)</span> <span class="o">+</span> <span class="n">mu</span> <span class="o">**</span> <span class="p">(</span><span class="mf">2.0</span> <span class="o">-</span> <span class="n">power</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="mf">2.0</span> <span class="o">-</span> <span class="n">power</span><span class="p">))</span>
+    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Unknown family '</span><span class="si">{</span><span class="n">family</span><span class="si">}</span><span class="s2">'. Use one of </span><span class="si">{</span><span class="n">FAMILIES</span><span class="si">}</span><span class="s2">."</span><span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">deviance_explained</span><span class="p">(</span>
+    <span class="n">y_true</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+    <span class="n">y_pred</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+    <span class="n">family</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"gaussian"</span><span class="p">,</span>
+    <span class="n">y_null</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">power</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.5</span><span class="p">,</span>
+    <span class="n">dispersion</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.1</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""</span>
+<span class="sd">    Proportion of deviance explained, ``D2 = 1 - sum d(y, mu) / sum d(y, y_null)``.</span>
+
+<span class="sd">    ``y_null`` is the intercept-only prediction (the mean of ``y_true`` when None). For the Gaussian family ``D2`` is</span>
+<span class="sd">    the ordinary R2; for the other families it is the likelihood-ratio pseudo-R2 that ``mgcv`` reports as the</span>
+<span class="sd">    deviance explained.</span>
+<span class="sd">    """</span>
+    <span class="n">y</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">y_true</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+    <span class="n">null</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">y</span><span class="p">))</span> <span class="k">if</span> <span class="n">y_null</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="nb">float</span><span class="p">(</span><span class="n">y_null</span><span class="p">)</span>
+    <span class="n">residual</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">unit_deviance</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="n">y_pred</span><span class="p">,</span> <span class="n">family</span><span class="p">,</span> <span class="n">power</span><span class="p">,</span> <span class="n">dispersion</span><span class="p">)))</span>
+    <span class="n">total</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">unit_deviance</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">full_like</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="n">null</span><span class="p">),</span> <span class="n">family</span><span class="p">,</span> <span class="n">power</span><span class="p">,</span> <span class="n">dispersion</span><span class="p">)))</span>
+    <span class="k">return</span> <span class="mf">1.0</span> <span class="o">-</span> <span class="n">residual</span> <span class="o">/</span> <span class="n">total</span> <span class="k">if</span> <span class="n">total</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="k">else</span> <span class="nb">float</span><span class="p">(</span><span class="s2">"nan"</span><span class="p">)</span>
+
+
+<span class="n">_DEVIANCE_METRICS</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">"gaussian_deviance"</span><span class="p">:</span> <span class="s2">"gaussian"</span><span class="p">,</span> <span class="s2">"poisson_deviance"</span><span class="p">:</span> <span class="s2">"poisson"</span><span class="p">,</span> <span class="s2">"gamma_deviance"</span><span class="p">:</span> <span class="s2">"gamma"</span><span class="p">,</span>
+    <span class="s2">"binomial_deviance"</span><span class="p">:</span> <span class="s2">"binomial"</span><span class="p">,</span> <span class="s2">"logloss"</span><span class="p">:</span> <span class="s2">"binomial"</span><span class="p">,</span> <span class="s2">"log_loss"</span><span class="p">:</span> <span class="s2">"binomial"</span><span class="p">,</span>
+    <span class="s2">"negative_binomial_deviance"</span><span class="p">:</span> <span class="s2">"negative_binomial"</span><span class="p">,</span> <span class="s2">"tweedie_deviance"</span><span class="p">:</span> <span class="s2">"tweedie"</span><span class="p">,</span>
+<span class="p">}</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">deviance_metric</span><span class="p">(</span><span class="n">metric</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">y_true</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">y_pred</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">float</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">"""</span>
+<span class="sd">    Mean unit deviance for a metric name of the model-selection code (``poisson_deviance``, ``gamma_deviance``,</span>
+<span class="sd">    ``binomial_deviance`` or ``logloss``, ``negative_binomial_deviance``, ``tweedie_deviance``); None for any other name.</span>
+<span class="sd">    ``logloss`` is half the binomial deviance, the average negative log-likelihood.</span>
+<span class="sd">    """</span>
+    <span class="n">key</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">metric</span><span class="p">)</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">key</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">_DEVIANCE_METRICS</span><span class="p">:</span>
+        <span class="k">return</span> <span class="kc">None</span>
+    <span class="n">mean_deviance</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">unit_deviance</span><span class="p">(</span><span class="n">y_true</span><span class="p">,</span> <span class="n">y_pred</span><span class="p">,</span> <span class="n">_DEVIANCE_METRICS</span><span class="p">[</span><span class="n">key</span><span class="p">])))</span>
+    <span class="k">return</span> <span class="n">mean_deviance</span> <span class="o">/</span> <span class="mf">2.0</span> <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">"logloss"</span><span class="p">,</span> <span class="s2">"log_loss"</span><span class="p">)</span> <span class="k">else</span> <span class="n">mean_deviance</span>
 </pre></div>
 </div>
 </div>
@@ -434,8 +539,8 @@
 <h2>MLOps Diagnostics: Residuals and Degradation<a class="headerlink" href="#mlops-diagnostics-residuals-and-degradation" title="Link to this heading">¶</a></h2>
 <p>To move beyond simple point-accuracy metrics, the <code class="docutils literal notranslate"><span class="pre">performance_analyzer.py</span></code> module computes structural diagnostics.</p>
 <p><strong>Architectural Choice (Fast Proxy Statistics):</strong> Instead of importing heavy statistical libraries (like <code class="docutils literal notranslate"><span class="pre">statsmodels</span></code>) to run a formal Durbin-Watson test for serial correlation, the <code class="docutils literal notranslate"><span class="pre">analyze_residuals</span></code> function computes the <strong>Lag-1 Autocorrelation</strong> natively via <code class="docutils literal notranslate"><span class="pre">np.corrcoef(res[:-1],</span> <span class="pre">res[1:])</span></code>. This provides the exact same diagnostic signal (missing temporal features) but executes orders of magnitude faster, which is critical when analyzing hundreds of models in an AutoTAM loop.</p>
-<div class="literal-block-wrapper docutils container" id="id3">
-<div class="code-block-caption"><span class="caption-text">src/tam/evaluation/performance_analyzer.py (Vectorized Residual Analysis)</span><a class="headerlink" href="#id3" title="Link to this code">¶</a></div>
+<div class="literal-block-wrapper docutils container" id="id4">
+<div class="code-block-caption"><span class="caption-text">src/tam/evaluation/performance_analyzer.py (Vectorized Residual Analysis)</span><a class="headerlink" href="#id4" title="Link to this code">¶</a></div>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">def</span><span class="w"> </span><span class="nf">analyze_residuals</span><span class="p">(</span><span class="n">y_true</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">y_pred</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""</span>
 <span class="sd">    Analyzes prediction residuals to check for bias, skewness, and autocorrelation.</span>
@@ -472,8 +577,8 @@
 </div>
 </div>
 <p>To measure Concept Drift, the <code class="docutils literal notranslate"><span class="pre">detect_temporal_degradation</span></code> function slices the target arrays into strict chronological halves (<code class="docutils literal notranslate"><span class="pre">midpoint</span> <span class="pre">=</span> <span class="pre">len(yt)</span> <span class="pre">//</span> <span class="pre">2</span></code>). It re-routes these sub-arrays back through the safe metric calculator to determine if the test-set error is statistically stationary or actively exploding.</p>
-<div class="literal-block-wrapper docutils container" id="id4">
-<div class="code-block-caption"><span class="caption-text">src/tam/evaluation/performance_analyzer.py (Temporal Degradation Tracking)</span><a class="headerlink" href="#id4" title="Link to this code">¶</a></div>
+<div class="literal-block-wrapper docutils container" id="id5">
+<div class="code-block-caption"><span class="caption-text">src/tam/evaluation/performance_analyzer.py (Temporal Degradation Tracking)</span><a class="headerlink" href="#id5" title="Link to this code">¶</a></div>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">def</span><span class="w"> </span><span class="nf">detect_temporal_degradation</span><span class="p">(</span><span class="n">y_true</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">y_pred</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">metric</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">'RMSE'</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""</span>
 <span class="sd">    Splits the test set in half to detect if performance is decaying over time.</span>
@@ -521,8 +626,8 @@
 <li><p>If it is cross-sectional data, it reconfigures the grid to prioritize Parity Plots (Predicted vs True scatter plots) and Residual Distribution histograms.</p></li>
 </ul>
 <p>This abstraction ensures that data scientists can invoke a single reporting command (<code class="docutils literal notranslate"><span class="pre">plot_benchmark_dashboard</span></code>) and receive a presentation-ready, multi-pane diagnostic view perfectly tailored to the topology of their dataset.</p>
-<div class="literal-block-wrapper docutils container" id="id5">
-<div class="code-block-caption"><span class="caption-text">src/tam/evaluation/eval_plotting.py (Dynamic Matplotlib Dashboard Layout)</span><a class="headerlink" href="#id5" title="Link to this code">¶</a></div>
+<div class="literal-block-wrapper docutils container" id="id6">
+<div class="code-block-caption"><span class="caption-text">src/tam/evaluation/eval_plotting.py (Dynamic Matplotlib Dashboard Layout)</span><a class="headerlink" href="#id6" title="Link to this code">¶</a></div>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">def</span><span class="w"> </span><span class="nf">plot_benchmark_dashboard</span><span class="p">(</span><span class="n">data_dict</span><span class="p">,</span> <span class="n">trackers_dict</span><span class="p">,</span> <span class="n">target_col</span><span class="o">=</span><span class="s1">'value'</span><span class="p">,</span> <span class="n">date_col</span><span class="o">=</span><span class="s1">'date'</span><span class="p">,</span> 
                              <span class="n">is_timeseries</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">primary_metric</span><span class="o">=</span><span class="s1">'MAPE'</span><span class="p">,</span> <span class="n">title</span><span class="o">=</span><span class="s2">"Benchmark Comparison"</span><span class="p">,</span>
                              <span class="n">heatmap_col</span><span class="o">=</span><span class="s1">'month'</span><span class="p">,</span> <span class="n">summary_text</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">forecast_smoothing</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
@@ -829,7 +934,7 @@
       
     </aside>
   </div>
-</div><script src="../../_static/documentation_options.js?v=350a9c04"></script>
+</div><script src="../../_static/documentation_options.js?v=e0a75244"></script>
     <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/scripts/furo.js?v=46bd48cc"></script>

@@ -6,8 +6,8 @@
 <link rel="index" title="Index" href="../../genindex.html"><link rel="search" title="Search" href="../../search.html"><link rel="next" title="The Radial Basis Function (RBF) Effect" href="RBF.html"><link rel="prev" title="The Tree Effect (Random Forests &amp; Binning Features)" href="TREE.html">
         <link rel="prefetch" href="../../_static/logo.png" as="image">
 
-    <!-- Generated with Sphinx 9.1.0 and Furo 2025.12.19 -->
-        <title>The Neural Effect (NEPT) - TAM 1.4.1 documentation</title>
+    <!-- Generated with Sphinx 9.1.1 and Furo 2025.12.19 -->
+        <title>The Neural Effect (NEPT) - TAM 1.5.0 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=d111a655" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo-extensions.css?v=8dab3a3b" />
@@ -162,7 +162,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="../../index.html"><div class="brand">TAM 1.4.1 documentation</div></a>
+      <a href="../../index.html"><div class="brand">TAM 1.5.0 documentation</div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -186,7 +186,7 @@
     <img class="sidebar-logo" src="../../_static/logo.png" alt="Logo"/>
   </div>
   
-  <span class="sidebar-brand-text">TAM 1.4.1 documentation</span>
+  <span class="sidebar-brand-text">TAM 1.5.0 documentation</span>
   
 </a><form class="sidebar-search-container" method="get" action="../../search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
@@ -364,53 +364,62 @@
 </div>
 <p>By equipping the finite-width neural projection with this strictly positive isotropic penalty and the <span class="math notranslate nohighlight">\(1/\sqrt{N_L}\)</span> variance scaling, NEPT guarantees its operation within a valid Reproducing Kernel Hilbert Space (RKHS). This seamlessly integrates the deep representations into the globally exact primal solver alongside classical structural effects without disrupting the global convexity of the regularized normal equations.</p>
 </section>
+<section id="orthogonal-projection-keeping-the-interpretable-terms-interpretable">
+<h2>Orthogonal Projection: Keeping the Interpretable Terms Interpretable<a class="headerlink" href="#orthogonal-projection-keeping-the-interpretable-terms-interpretable" title="Link to this heading">¶</a></h2>
+<p>In an additive model that also holds a flexible block (random neural features, trees), the block can reproduce a smooth main effect as well as the spline of that effect, and the two then share it in an arbitrary way: the spline is attenuated, its smoothing parameter loses its meaning, and the decomposition of the prediction is no longer readable. This confounding <span class="bibtex-citation" id="id2">[<a class="reference internal" href="../../bibliography.html#id136" title="David Rügamer, Chris Kolb, and Nadja Klein. Semi-structured distributional regression. The American Statistician, 78(1):88–99, 2024.">Rügamer <em>et al.</em>, 2024</a>]</span> is removed by restricting the flexible block to the part of its span that the rest of the design cannot reach. With <span class="math notranslate nohighlight">\(X\)</span> the design of the other terms (intercept, splines, linear terms) and <span class="math notranslate nohighlight">\(\Phi\)</span> the features of the flexible block, replace <span class="math notranslate nohighlight">\(\Phi\)</span> by</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[ \widetilde\Phi=\big(I-X(X^\top X)^{+}X^\top\big)\Phi=\Phi-XB,\qquad B=(X^\top X)^{+}X^\top\Phi, \]</div>
+</div>
+<p>so that <span class="math notranslate nohighlight">\(X^\top\widetilde\Phi=0\)</span>. The least-squares fit of the whole model is unchanged in its span (and so is the total fit when the flexible block is not penalised), but every component of the fit that the splines can express is carried by the splines: they recover the best additive approximation of the signal, and the flexible block only the interactions and non-smooth residuals orthogonal to it. The matrix <span class="math notranslate nohighlight">\(B\)</span> is estimated once on the training rows and applied unchanged to new rows, so that a forecast does not depend on the batch it is computed in.</p>
+</section>
 <section id="structural-novelty-the-8-paradigm-synthesis">
 <h2>Structural Novelty: The 8-Paradigm Synthesis<a class="headerlink" href="#structural-novelty-the-8-paradigm-synthesis" title="Link to this heading">¶</a></h2>
 <p>Because NEPT rigorously flattens the deep kernel projection into the deterministic block-diagonal matrix <span class="math notranslate nohighlight">\(\Phi\)</span>, it fundamentally redefines how deep learning interacts with additive modeling. Below is the precise structural differentiation between NEPT and the 8 foundational paradigms it synthesizes:</p>
 <ol class="arabic simple">
-<li><p><strong>Compositional Kernels</strong> <span class="bibtex-citation" id="id2">[<a class="reference internal" href="../../bibliography.html#id20" title="Amit Daniely, Roy Frostig, and Yoram Singer. Toward deeper understanding of neural networks: the power of initialization and a dual view on expressivity. In D. Lee, M. Sugiyama, U. Luxburg, I. Guyon, and R. Garnett, editors, Advances in Neural Information Processing Systems, volume 29. Curran Associates, Inc., 2016. URL: https://proceedings.neurips.cc/paper_files/paper/2016/file/abea47ba24142ed16b7d8fbf2c740e0d-Paper.pdf.">Daniely <em>et al.</em>, 2016</a>]</span></p>
+<li><p><strong>Compositional Kernels</strong> <span class="bibtex-citation" id="id3">[<a class="reference internal" href="../../bibliography.html#id20" title="Amit Daniely, Roy Frostig, and Yoram Singer. Toward deeper understanding of neural networks: the power of initialization and a dual view on expressivity. In D. Lee, M. Sugiyama, U. Luxburg, I. Guyon, and R. Garnett, editors, Advances in Neural Information Processing Systems, volume 29. Curran Associates, Inc., 2016. URL: https://proceedings.neurips.cc/paper_files/paper/2016/file/abea47ba24142ed16b7d8fbf2c740e0d-Paper.pdf.">Daniely <em>et al.</em>, 2016</a>]</span></p>
 <ul class="simple">
 <li><p><strong>Common Point:</strong> Both recognize that the topological architecture of a randomly initialized deep network inherently defines a highly expressive compositional basis.</p></li>
 <li><p><strong>The NEPT Novelty:</strong> While theoretical literature evaluates this expressivity within the abstract Dual kernel space, NEPT explicitly extracts it into a finite Primal tensor. This allows the compositional neural kernel to be algebraically concatenated alongside non-neural structural priors (like exact localized <span class="math notranslate nohighlight">\(\Phi_{wavelet}\)</span> or <span class="math notranslate nohighlight">\(\Phi_{spline}\)</span>), an operation impossible in pure Dual theory.</p></li>
 </ul>
 </li>
-<li><p><strong>Neural Network Gaussian Processes (NNGP)</strong> <span class="bibtex-citation" id="id3">[<a class="reference internal" href="../../bibliography.html#id52" title="Jaehoon Lee, Yasaman Bahri, Roman Novak, Samuel S Schoenholz, Jeffrey Pennington, and Jascha Sohl-Dickstein. Deep neural networks as gaussian processes. arXiv preprint arXiv:1711.00165, 2017.">Lee <em>et al.</em>, 2017</a>]</span></p>
+<li><p><strong>Neural Network Gaussian Processes (NNGP)</strong> <span class="bibtex-citation" id="id4">[<a class="reference internal" href="../../bibliography.html#id52" title="Jaehoon Lee, Yasaman Bahri, Roman Novak, Samuel S Schoenholz, Jeffrey Pennington, and Jascha Sohl-Dickstein. Deep neural networks as gaussian processes. arXiv preprint arXiv:1711.00165, 2017.">Lee <em>et al.</em>, 2017</a>]</span></p>
 <ul class="simple">
 <li><p><strong>Common Point:</strong> Both exploit the theoretical guarantee that infinitely wide, randomly initialized frozen networks converge to a valid Gaussian Process prior.</p></li>
 <li><p><strong>The NEPT Novelty:</strong> Exact NNGP inference requires evaluating the dense Dual covariance matrix, creating an <span class="math notranslate nohighlight">\(\mathcal{O}(N_{total}^3)\)</span> bottleneck that paralyzes hardware on Gigadata (<span class="math notranslate nohighlight">\(N_{total} &gt; 10^6\)</span>). NEPT systematically truncates this GP prior into the <span class="math notranslate nohighlight">\(D\)</span>-dimensional Primal space, collapsing the complexity to <span class="math notranslate nohighlight">\(\mathcal{O}(N_{total} D^2)\)</span> and solving it instantly on GPUs via Sparse Conjugate Gradients.</p></li>
 </ul>
 </li>
-<li><p><strong>Neural Tangent Kernel (NTK)</strong> <span class="bibtex-citation" id="id4">[<a class="reference internal" href="../../bibliography.html#id47" title="Arthur Jacot, Franck Gabriel, and Clément Hongler. Neural tangent kernel: convergence and generalization in neural networks. Advances in neural information processing systems, 2018.">Jacot <em>et al.</em>, 2018</a>]</span></p>
+<li><p><strong>Neural Tangent Kernel (NTK)</strong> <span class="bibtex-citation" id="id5">[<a class="reference internal" href="../../bibliography.html#id47" title="Arthur Jacot, Franck Gabriel, and Clément Hongler. Neural tangent kernel: convergence and generalization in neural networks. Advances in neural information processing systems, 2018.">Jacot <em>et al.</em>, 2018</a>]</span></p>
 <ul class="simple">
 <li><p><strong>Common Point:</strong> Both acknowledge the continuous kernel dynamics governing modern neural networks.</p></li>
 <li><p><strong>The NEPT Novelty:</strong> Exact NTK tracks the continuous gradient descent of <em>all</em> weights in function space. NEPT entirely rejects continuous weight updates. By freezing the internal layers and optimizing only the global readout <span class="math notranslate nohighlight">\(\theta\)</span>, the continuous differential flow collapses into a single-step, closed-form quadratic equation.</p></li>
 </ul>
 </li>
-<li><p><strong>Neural Additive Models (NAMs)</strong> <span class="bibtex-citation" id="id5">[<a class="reference internal" href="../../bibliography.html#id3" title="Rishabh Agarwal, Levi Melnick, Nicholas Frosst, Xuezhou Zhang, Ben Lengerich, Rich Caruana, and Geoffrey E Hinton. Neural additive models: interpretable machine learning with neural nets. Advances in neural information processing systems, 34:4699–4711, 2021.">Agarwal <em>et al.</em>, 2021</a>]</span></p>
+<li><p><strong>Neural Additive Models (NAMs)</strong> <span class="bibtex-citation" id="id6">[<a class="reference internal" href="../../bibliography.html#id3" title="Rishabh Agarwal, Levi Melnick, Nicholas Frosst, Xuezhou Zhang, Ben Lengerich, Rich Caruana, and Geoffrey E Hinton. Neural additive models: interpretable machine learning with neural nets. Advances in neural information processing systems, 34:4699–4711, 2021.">Agarwal <em>et al.</em>, 2021</a>]</span></p>
 <ul class="simple">
 <li><p><strong>Common Point:</strong> Both structurally isolate individual input features into independent neural sub-networks to guarantee strict interpretability.</p></li>
 <li><p><strong>The NEPT Novelty:</strong> NAMs attempt to optimize these sub-networks jointly using non-convex backpropagation. NEPT bypasses backpropagation completely. By flattening the features into static Primal blocks, NEPT solves the additive network exactly alongside classical statistical bases (e.g., GAM Splines), ensuring absolute mathematical convexity.</p></li>
 </ul>
 </li>
-<li><p><strong>N-BEATS</strong> <span class="bibtex-citation" id="id6">[<a class="reference internal" href="../../bibliography.html#id57" title="Boris N. Oreshkin, Dmitri Carpov, Nicolas Chapados, and Yoshua Bengio. N-beats: neural basis expansion analysis for interpretable time series forecasting. In International Conference on Learning Representations. 2020.">Oreshkin <em>et al.</em>, 2020</a>]</span></p>
+<li><p><strong>N-BEATS</strong> <span class="bibtex-citation" id="id7">[<a class="reference internal" href="../../bibliography.html#id57" title="Boris N. Oreshkin, Dmitri Carpov, Nicolas Chapados, and Yoshua Bengio. N-beats: neural basis expansion analysis for interpretable time series forecasting. In International Conference on Learning Representations. 2020.">Oreshkin <em>et al.</em>, 2020</a>]</span></p>
 <ul class="simple">
 <li><p><strong>Common Point:</strong> Both leverage deep hierarchical topologies to discover complex basis expansions specifically optimized for time-series forecasting.</p></li>
 <li><p><strong>The NEPT Novelty:</strong> N-BEATS relies on a deep sequential residual bottleneck (layer <span class="math notranslate nohighlight">\(k\)</span> fits the error leftover by layer <span class="math notranslate nohighlight">\(k-1\)</span>). NEPT rejects sequential error fitting. By flattening all effects into a single block-diagonal global matrix <span class="math notranslate nohighlight">\(\Phi\)</span>, NEPT resolves the interactions of all bases simultaneously, preventing cascading error propagation.</p></li>
 </ul>
 </li>
-<li><p><strong>Efficient BackProp</strong> <span class="bibtex-citation" id="id7">[<a class="reference internal" href="../../bibliography.html#id51" title="Yann LeCun, Léon Bottou, Genevieve B Orr, and Klaus-Robert Müller. Efficient backprop. In Neural Networks: Tricks of the Trade, pages 9–50. Springer, 1998.">LeCun <em>et al.</em>, 1998</a>]</span></p>
+<li><p><strong>Efficient BackProp</strong> <span class="bibtex-citation" id="id8">[<a class="reference internal" href="../../bibliography.html#id51" title="Yann LeCun, Léon Bottou, Genevieve B Orr, and Klaus-Robert Müller. Efficient backprop. In Neural Networks: Tricks of the Trade, pages 9–50. Springer, 1998.">LeCun <em>et al.</em>, 1998</a>]</span></p>
 <ul class="simple">
 <li><p><strong>Common Point:</strong> Both works target the pathological optimization landscapes inherent in deep neural architectures (ill-conditioning, saddle points, vanishing gradients).</p></li>
 <li><p><strong>The NEPT Novelty:</strong> Classical deep learning mitigates these pathologies through stochastic heuristics (initialization, learning rate schedules). NEPT <em>eradicates the problem entirely</em>. The exact global Ridge penalty <span class="math notranslate nohighlight">\(P = \lambda I\)</span> mathematically guarantees a globally optimal loss surface with zero saddle points, transforming deep learning optimization into an exact linear algebra certainty.</p></li>
 </ul>
 </li>
-<li><p><strong>Extreme Learning Machines (ELMs) &amp; Random Vector Functional Links (RVFLs)</strong> <span class="bibtex-citation" id="id8">[<a class="reference internal" href="../../bibliography.html#id58" title="Yoh-Han Pao, Gwang-Hoon Park, and Dejan J Sobajic. Learning and generalization characteristics of the random vector functional-link net. Neurocomputing, 6(2):163–180, 1994.">Pao <em>et al.</em>, 1994</a>, <a class="reference internal" href="../../bibliography.html#id46" title="Guang-Bin Huang, Qin-Yu Zhu, and Chee-Kheong Siew. Extreme learning machine: theory and applications. Neurocomputing, 70(1-3):489–501, 2006.">Huang <em>et al.</em>, 2006</a>]</span></p>
+<li><p><strong>Extreme Learning Machines (ELMs) &amp; Random Vector Functional Links (RVFLs)</strong> <span class="bibtex-citation" id="id9">[<a class="reference internal" href="../../bibliography.html#id58" title="Yoh-Han Pao, Gwang-Hoon Park, and Dejan J Sobajic. Learning and generalization characteristics of the random vector functional-link net. Neurocomputing, 6(2):163–180, 1994.">Pao <em>et al.</em>, 1994</a>, <a class="reference internal" href="../../bibliography.html#id46" title="Guang-Bin Huang, Qin-Yu Zhu, and Chee-Kheong Siew. Extreme learning machine: theory and applications. Neurocomputing, 70(1-3):489–501, 2006.">Huang <em>et al.</em>, 2006</a>]</span></p>
 <ul class="simple">
 <li><p><strong>Common Point:</strong> Both architectures project inputs through randomly initialized hidden layers, freeze those internal weights, and exclusively optimize the final linear readout layer using least squares or Ridge regression.</p></li>
 <li><p><strong>The NEPT Novelty:</strong> Classical ELMs and RVFLs are historically viewed as standalone, heuristic randomized architectures. NEPT explicitly re-contextualizes this frozen mechanism through the rigorous lens of modern NNGP theory. By enforcing the <span class="math notranslate nohighlight">\(1/\sqrt{N_L}\)</span> variance scaling and projecting the readout strictly as an isotropic Ridge penalty (<span class="math notranslate nohighlight">\(P = \lambda I\)</span>) within the global block-diagonal design matrix <span class="math notranslate nohighlight">\(\Phi\)</span>, NEPT elevates the ELM from a stochastic heuristic into a mathematically guaranteed RKHS topology embedded safely within a continuous generalized additive framework.</p></li>
 </ul>
 </li>
-<li><p><strong>Continuous Neural Networks &amp; Exact Kernel Machines</strong> <span class="bibtex-citation" id="id9">[<a class="reference internal" href="../../bibliography.html#id53" title="Nicolas Le Roux and Yoshua Bengio. Continuous neural networks. In Artificial Intelligence and Statistics, 404–411. PMLR, 2007.">Le Roux and Bengio, 2007</a>]</span></p>
+<li><p><strong>Continuous Neural Networks &amp; Exact Kernel Machines</strong> <span class="bibtex-citation" id="id10">[<a class="reference internal" href="../../bibliography.html#id53" title="Nicolas Le Roux and Yoshua Bengio. Continuous neural networks. In Artificial Intelligence and Statistics, 404–411. PMLR, 2007.">Le Roux and Bengio, 2007</a>]</span></p>
 <ul class="simple">
 <li><p><strong>Common Point:</strong> Both frameworks mathematically establish that freezing an infinite-width neural network and applying an <span class="math notranslate nohighlight">\(L_2\)</span>-norm regularization penalty to the output weights creates an exact kernel machine.</p></li>
 <li><p><strong>The NEPT Novelty:</strong> Analytical proofs for continuous neural networks fundamentally relied on uniform priors across a single hidden layer to maintain tractability in the uncountably infinite Dual space. NEPT abandons these single-layer uniform bounds in favor of deep Gaussian representations (<span class="math notranslate nohighlight">\(W^{(l)} \sim \mathcal{N}(0, 1/N_{l-1})\)</span>) and terminal variance scaling. Furthermore, NEPT explicitly truncates this theoretical guarantee into a highly optimized, finite-dimensional Primal block, completely bypassing the <span class="math notranslate nohighlight">\(\mathcal{O}(N_{total}^3)\)</span> bottleneck of Dual space evaluation.</p></li>
@@ -479,6 +488,7 @@
 <li><a class="reference internal" href="#the-nept-concept-neural-explicit-primal-tensorization">The NEPT Concept (Neural Explicit Primal Tensorization)</a></li>
 <li><a class="reference internal" href="#formula-definition-neural-explicit-primal-tensorization">Formula Definition: Neural Explicit Primal Tensorization</a></li>
 <li><a class="reference internal" href="#rkhs-eligibility-optimal-penalization">RKHS Eligibility &amp; Optimal Penalization</a></li>
+<li><a class="reference internal" href="#orthogonal-projection-keeping-the-interpretable-terms-interpretable">Orthogonal Projection: Keeping the Interpretable Terms Interpretable</a></li>
 <li><a class="reference internal" href="#structural-novelty-the-8-paradigm-synthesis">Structural Novelty: The 8-Paradigm Synthesis</a></li>
 </ul>
 </li>
@@ -491,7 +501,7 @@
       
     </aside>
   </div>
-</div><script src="../../_static/documentation_options.js?v=350a9c04"></script>
+</div><script src="../../_static/documentation_options.js?v=e0a75244"></script>
     <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/scripts/furo.js?v=46bd48cc"></script>

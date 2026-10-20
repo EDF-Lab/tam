@@ -6,8 +6,8 @@
 <link rel="index" title="Index" href="../../genindex.html"><link rel="search" title="Search" href="../../search.html"><link rel="next" title="Distributional (Location-Scale): Thin Delegation" href="02_distributional_code.html"><link rel="prev" title="The Statistics API: One Atom, Many Schedules" href="../core/07_the_statistics_api.html">
         <link rel="prefetch" href="../../_static/logo.png" as="image">
 
-    <!-- Generated with Sphinx 9.1.0 and Furo 2025.12.19 -->
-        <title>Reweighted Estimation: Strategy Pattern &amp; IRLS Driver - TAM 1.4.1 documentation</title>
+    <!-- Generated with Sphinx 9.1.1 and Furo 2025.12.19 -->
+        <title>Reweighted Estimation: Strategy Pattern &amp; IRLS Driver - TAM 1.5.0 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=d111a655" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo-extensions.css?v=8dab3a3b" />
@@ -162,7 +162,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="../../index.html"><div class="brand">TAM 1.4.1 documentation</div></a>
+      <a href="../../index.html"><div class="brand">TAM 1.5.0 documentation</div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -186,7 +186,7 @@
     <img class="sidebar-logo" src="../../_static/logo.png" alt="Logo"/>
   </div>
   
-  <span class="sidebar-brand-text">TAM 1.4.1 documentation</span>
+  <span class="sidebar-brand-text">TAM 1.5.0 documentation</span>
   
 </a><form class="sidebar-search-container" method="get" action="../../search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
@@ -551,6 +551,7 @@
 <section id="the-irls-schedule">
 <h2>The IRLS schedule<a class="headerlink" href="#the-irls-schedule" title="Link to this heading">¶</a></h2>
 <p><code class="docutils literal notranslate"><span class="pre">reweighted_penalized_fit</span></code> normalises the weights to unit mean (preserving the <code class="docutils literal notranslate"><span class="pre">nS</span></code> penalty scale), solves one atom, and, for GLMs, step-halves on the penalized objective. For the Gaussian identity it converges in a single step.</p>
+<p>The design matrix depends on neither the coefficients nor the weights, so when it fits in memory (<code class="docutils literal notranslate"><span class="pre">dense_design</span></code>) it is built once per fit and shared by every pass, every step-halving and every dispersion refit; the covariances and the solve then run on that matrix. When it does not fit, the loop goes back to the chunked solver of the dispatcher, which builds it block by block.</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">def</span><span class="w"> </span><span class="nf">reweighted_penalized_fit</span><span class="p">(</span>
     <span class="n">model</span><span class="p">,</span>
     <span class="n">x_data</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
@@ -559,6 +560,7 @@
     <span class="n">max_iter</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">25</span><span class="p">,</span>
     <span class="n">tol</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1e-6</span><span class="p">,</span>
     <span class="n">max_halvings</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">8</span><span class="p">,</span>
+    <span class="n">design_matrix</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""Fit a strategy by iteratively reweighted penalized least squares; return the coefficients.</span>
 
@@ -570,12 +572,16 @@
 <span class="sd">        max_iter: maximum outer iterations.</span>
 <span class="sd">        tol: relative change in eta for convergence.</span>
 <span class="sd">        max_halvings: maximum step-halvings per iteration (GLM divergence guard).</span>
+<span class="sd">        design_matrix: Phi(x) when the caller already built it (``dense_design``); built here when None.</span>
 <span class="sd">    """</span>
     <span class="n">y_data</span> <span class="o">=</span> <span class="n">y_data</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">get_default_dtype</span><span class="p">())</span>
     <span class="n">eta</span> <span class="o">=</span> <span class="n">strategy</span><span class="o">.</span><span class="n">initial_eta</span><span class="p">(</span><span class="n">y_data</span><span class="p">)</span>
     <span class="n">theta</span> <span class="o">=</span> <span class="kc">None</span>
 
     <span class="n">penalty_matrix</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">_build_penalty_matrix</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">design_matrix</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">design_matrix</span> <span class="o">=</span> <span class="n">dense_design</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">x_data</span><span class="p">)</span>
+    <span class="n">loss_matrix</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">_build_loss_matrix</span><span class="p">()</span> <span class="k">if</span> <span class="n">design_matrix</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="kc">None</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">penalized_objective</span><span class="p">(</span><span class="n">theta_value</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">eta_value</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
         <span class="c1"># mean deviance + roughness penalty theta.T * S * theta. Step-halving must judge the</span>
@@ -587,8 +593,8 @@
     <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">max_iter</span><span class="p">):</span>
         <span class="n">working_response</span><span class="p">,</span> <span class="n">weights</span> <span class="o">=</span> <span class="n">strategy</span><span class="o">.</span><span class="n">working_response_and_weights</span><span class="p">(</span><span class="n">y_data</span><span class="p">,</span> <span class="n">eta</span><span class="p">)</span>
         <span class="n">weights</span> <span class="o">=</span> <span class="n">weights</span> <span class="o">/</span> <span class="n">weights</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span><span class="o">.</span><span class="n">clamp_min</span><span class="p">(</span><span class="n">_TINY</span><span class="p">)</span>
-        <span class="n">theta_candidate</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">_solve_pwls_step</span><span class="p">(</span><span class="n">x_data</span><span class="p">,</span> <span class="n">working_response</span><span class="p">,</span> <span class="n">weights</span><span class="o">=</span><span class="n">weights</span><span class="p">)</span>
-        <span class="n">eta_candidate</span> <span class="o">=</span> <span class="n">_linear_predictor</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">x_data</span><span class="p">,</span> <span class="n">theta_candidate</span><span class="p">)</span>
+        <span class="n">theta_candidate</span> <span class="o">=</span> <span class="n">_solve_step</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">x_data</span><span class="p">,</span> <span class="n">working_response</span><span class="p">,</span> <span class="n">weights</span><span class="p">,</span> <span class="n">design_matrix</span><span class="p">,</span> <span class="n">penalty_matrix</span><span class="p">,</span> <span class="n">loss_matrix</span><span class="p">)</span>
+        <span class="n">eta_candidate</span> <span class="o">=</span> <span class="n">_linear_predictor</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">x_data</span><span class="p">,</span> <span class="n">theta_candidate</span><span class="p">,</span> <span class="n">design_matrix</span><span class="p">)</span>
 
         <span class="k">if</span> <span class="n">theta</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">strategy</span><span class="o">.</span><span class="n">is_glm</span><span class="p">:</span>
             <span class="n">theta_full_step</span> <span class="o">=</span> <span class="n">theta_candidate</span>
@@ -600,7 +606,7 @@
                     <span class="ow">and</span> <span class="n">halving</span> <span class="o">&lt;</span> <span class="n">max_halvings</span><span class="p">:</span>
                 <span class="n">step</span> <span class="o">*=</span> <span class="mf">0.5</span>
                 <span class="n">theta_candidate</span> <span class="o">=</span> <span class="n">theta</span> <span class="o">+</span> <span class="n">step</span> <span class="o">*</span> <span class="p">(</span><span class="n">theta_full_step</span> <span class="o">-</span> <span class="n">theta</span><span class="p">)</span>
-                <span class="n">eta_candidate</span> <span class="o">=</span> <span class="n">_linear_predictor</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">x_data</span><span class="p">,</span> <span class="n">theta_candidate</span><span class="p">)</span>
+                <span class="n">eta_candidate</span> <span class="o">=</span> <span class="n">_linear_predictor</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">x_data</span><span class="p">,</span> <span class="n">theta_candidate</span><span class="p">,</span> <span class="n">design_matrix</span><span class="p">)</span>
                 <span class="n">objective_candidate</span> <span class="o">=</span> <span class="n">penalized_objective</span><span class="p">(</span><span class="n">theta_candidate</span><span class="p">,</span> <span class="n">eta_candidate</span><span class="p">)</span>
                 <span class="n">halving</span> <span class="o">+=</span> <span class="mi">1</span>
 
@@ -687,7 +693,7 @@
       
     </aside>
   </div>
-</div><script src="../../_static/documentation_options.js?v=350a9c04"></script>
+</div><script src="../../_static/documentation_options.js?v=e0a75244"></script>
     <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/scripts/furo.js?v=46bd48cc"></script>

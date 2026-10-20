@@ -6,8 +6,8 @@
 <link rel="index" title="Index" href="../../genindex.html"><link rel="search" title="Search" href="../../search.html"><link rel="next" title="The Fourier Effect (Sobolev Spectral Basis)" href="FOURIER.html"><link rel="prev" title="The Linear Effect (Ridge Regression)" href="LINEAR.html">
         <link rel="prefetch" href="../../_static/logo.png" as="image">
 
-    <!-- Generated with Sphinx 9.1.0 and Furo 2025.12.19 -->
-        <title>The Spline Effect (P-Splines) - TAM 1.4.1 documentation</title>
+    <!-- Generated with Sphinx 9.1.1 and Furo 2025.12.19 -->
+        <title>The Spline Effect (P-Splines) - TAM 1.5.0 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=d111a655" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo-extensions.css?v=8dab3a3b" />
@@ -162,7 +162,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="../../index.html"><div class="brand">TAM 1.4.1 documentation</div></a>
+      <a href="../../index.html"><div class="brand">TAM 1.5.0 documentation</div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -186,7 +186,7 @@
     <img class="sidebar-logo" src="../../_static/logo.png" alt="Logo"/>
   </div>
   
-  <span class="sidebar-brand-text">TAM 1.4.1 documentation</span>
+  <span class="sidebar-brand-text">TAM 1.5.0 documentation</span>
   
 </a><form class="sidebar-search-container" method="get" action="../../search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
@@ -365,10 +365,19 @@
 </div>
 <p>This formulation rigorously conserves the fundamental moments of the data (mean and variance) without the boundary bias typical of standard neural networks <span class="bibtex-citation" id="id7">[<a class="reference internal" href="../../bibliography.html#id30" title="Paul HC Eilers and Brian D Marx. Flexible smoothing with b-splines and penalties. Statistical science, 11(2):89–121, 1996.">Eilers and Marx, 1996</a>]</span>, and is a cornerstone of modern GAM theory <span class="bibtex-citation" id="id8">[<a class="reference internal" href="../../bibliography.html#id82" title="Simon N Wood. Generalized additive models: an introduction with R. chapman and hall/CRC, 2017.">Wood, 2017</a>]</span>.</p>
 </section>
+<section id="locally-adaptive-smoothing">
+<h2>Locally Adaptive Smoothing<a class="headerlink" href="#locally-adaptive-smoothing" title="Link to this heading">¶</a></h2>
+<p>A single <span class="math notranslate nohighlight">\(\lambda\)</span> gives the same stiffness to the whole curve: a function that is flat over most of its range and sharply curved in a narrow window (a demand trough at the end of the year, an impact) is either oversmoothed in the window or wiggly elsewhere. The adaptive P-spline <span class="bibtex-citation" id="id9">[<a class="reference internal" href="../../bibliography.html#id130" title="David Ruppert and Raymond J. Carroll. Spatially-adaptive penalties for spline fitting. Australian &amp; New Zealand Journal of Statistics, 42(2):205–223, 2000.">Ruppert and Carroll, 2000</a>]</span> lets the smoothing parameter vary along the curve by writing the penalty with a weight on every difference:</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[P_{spline}(\lambda_1,\dots,\lambda_m)=\sum_{r=1}^{m}\lambda_r\,\Delta_d^\top\operatorname{diag}(W_r)\,\Delta_d,\qquad W_r\ge 0,\quad \sum_{r=1}^{m}W_r=\mathbf 1,\]</div>
+</div>
+<p>where <span class="math notranslate nohighlight">\(W_r\in\mathbb R^{K-d}\)</span> holds the values of the <span class="math notranslate nohighlight">\(r\)</span>-th of <span class="math notranslate nohighlight">\(m\)</span> smooth B-spline basis functions (over the position of the difference in the coefficient sequence). Each part has its own smoothing parameter, chosen by the same generalized cross-validation as the others. Because the weights add up to one, equal parameters give back <span class="math notranslate nohighlight">\(\lambda\,\Delta_d^\top\Delta_d\)</span> exactly, and <span class="math notranslate nohighlight">\(m=1\)</span> is the ordinary penalty. The penalty stays a positive semi-definite quadratic form in the coefficients, so the fit is still one linear system.</p>
+</section>
 <section id="boundary-extrapolation-operational-safety">
 <h2>Boundary Extrapolation &amp; Operational Safety<a class="headerlink" href="#boundary-extrapolation-operational-safety" title="Link to this heading">¶</a></h2>
 <p>A known pathology of unconstrained polynomial basis expansions is Runge’s phenomenon, catastrophic oscillatory explosions when evaluating data points outside the training domain (Out-of-Distribution).</p>
-<p>Original GAM frameworks mitigated this using Natural Cubic Splines, which enforce linearity beyond the outermost boundary knots <span class="bibtex-citation" id="id9">[<a class="reference internal" href="../../bibliography.html#id42" title="Trevor J Hastie. Generalized additive models. Statistical models in S, pages 249–307, 2017.">Hastie, 2017</a>]</span>. The <code class="docutils literal notranslate"><span class="pre">SplineEffect</span></code> natively supports this operational safety protocol via its <code class="docutils literal notranslate"><span class="pre">extrapolate</span></code> parameter. When <code class="docutils literal notranslate"><span class="pre">extrapolate='linear'</span></code> is triggered, <code class="docutils literal notranslate"><span class="pre">_spline.py</span></code> utilizes PyTorch finite differences at the boundary knots to compute the exact Jacobian (gradient) of the spline surface, explicitly projecting a stable, first-order Taylor extension infinitely outward.</p>
+<p>Original GAM frameworks mitigated this using Natural Cubic Splines, which enforce linearity beyond the outermost boundary knots <span class="bibtex-citation" id="id10">[<a class="reference internal" href="../../bibliography.html#id42" title="Trevor J Hastie. Generalized additive models. Statistical models in S, pages 249–307, 2017.">Hastie, 2017</a>]</span>. The <code class="docutils literal notranslate"><span class="pre">SplineEffect</span></code> natively supports this operational safety protocol via its <code class="docutils literal notranslate"><span class="pre">extrapolate</span></code> parameter. When <code class="docutils literal notranslate"><span class="pre">extrapolate='linear'</span></code> is triggered, <code class="docutils literal notranslate"><span class="pre">_spline.py</span></code> utilizes PyTorch finite differences at the boundary knots to compute the exact Jacobian (gradient) of the spline surface, explicitly projecting a stable, first-order Taylor extension infinitely outward.</p>
 </section>
 <section id="the-engineering-novelty">
 <h2>The Engineering Novelty<a class="headerlink" href="#the-engineering-novelty" title="Link to this heading">¶</a></h2>
@@ -435,6 +444,7 @@
 <li><a class="reference internal" href="#foundational-theory-continuous-vs-discrete-splines">Foundational Theory: Continuous vs. Discrete Splines</a></li>
 <li><a class="reference internal" href="#formula-definition-b-spline-basis-phi">Formula Definition: B-Spline Basis (<span class="math notranslate nohighlight">\(\Phi\)</span>)</a></li>
 <li><a class="reference internal" href="#the-discrete-difference-penalty-p">The Discrete Difference Penalty (<span class="math notranslate nohighlight">\(P\)</span>)</a></li>
+<li><a class="reference internal" href="#locally-adaptive-smoothing">Locally Adaptive Smoothing</a></li>
 <li><a class="reference internal" href="#boundary-extrapolation-operational-safety">Boundary Extrapolation &amp; Operational Safety</a></li>
 <li><a class="reference internal" href="#the-engineering-novelty">The Engineering Novelty</a></li>
 </ul>
@@ -448,7 +458,7 @@
       
     </aside>
   </div>
-</div><script src="../../_static/documentation_options.js?v=350a9c04"></script>
+</div><script src="../../_static/documentation_options.js?v=e0a75244"></script>
     <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/scripts/furo.js?v=46bd48cc"></script>

@@ -6,8 +6,8 @@
 <link rel="index" title="Index" href="../../genindex.html"><link rel="search" title="Search" href="../../search.html"><link rel="next" title="The Categorical Effect (Discrete Topologies)" href="CATEGORICAL.html"><link rel="prev" title="The Neural Effect (NEPT)" href="NEURAL.html">
         <link rel="prefetch" href="../../_static/logo.png" as="image">
 
-    <!-- Generated with Sphinx 9.1.0 and Furo 2025.12.19 -->
-        <title>The Radial Basis Function (RBF) Effect - TAM 1.4.1 documentation</title>
+    <!-- Generated with Sphinx 9.1.1 and Furo 2025.12.19 -->
+        <title>The Radial Basis Function (RBF) Effect - TAM 1.5.0 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=d111a655" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo-extensions.css?v=8dab3a3b" />
@@ -162,7 +162,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="../../index.html"><div class="brand">TAM 1.4.1 documentation</div></a>
+      <a href="../../index.html"><div class="brand">TAM 1.5.0 documentation</div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -186,7 +186,7 @@
     <img class="sidebar-logo" src="../../_static/logo.png" alt="Logo"/>
   </div>
   
-  <span class="sidebar-brand-text">TAM 1.4.1 documentation</span>
+  <span class="sidebar-brand-text">TAM 1.5.0 documentation</span>
   
 </a><form class="sidebar-search-container" method="get" action="../../search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
@@ -357,14 +357,29 @@ Evaluated using the modified Bessel function of the second kind <span class="mat
 <p><strong>The Infinite Differentiability Fallacy:</strong> The Gaussian kernel assumes that the underlying data-generating process possesses infinitely mean-square differentiable sample paths <span class="bibtex-citation" id="id2">[<a class="reference internal" href="../../bibliography.html#id78" title="Carl Edward Rasmussen and Christopher KI Williams. Gaussian processes for machine learning. Volume 2. MIT press Cambridge, MA, 2006.">Rasmussen and Williams, 2006</a>]</span>. For chaotic physical processes (e.g., electricity load, atmospheric temperature, or wind speeds), this assumption is highly unrealistic and forces the model to generate surfaces that are excessively smooth.</p>
 <p>By contrast, the Matérn class provides rigorous control over the differentiability of the spatial field via the <span class="math notranslate nohighlight">\(\nu\)</span> parameter. A process with a Matérn covariance is <span class="math notranslate nohighlight">\(\lceil \nu - 1 \rceil\)</span> times mean-square differentiable <span class="bibtex-citation" id="id3">[<a class="reference internal" href="../../bibliography.html#id78" title="Carl Edward Rasmussen and Christopher KI Williams. Gaussian processes for machine learning. Volume 2. MIT press Cambridge, MA, 2006.">Rasmussen and Williams, 2006</a>, <a class="reference internal" href="../../bibliography.html#id38" title="Peter Guttorp and Tilmann Gneiting. Studies in the history of probability and statistics xlix on the matérn correlation family. Biometrika, 93(4):989–995, 2006.">Guttorp and Gneiting, 2006</a>]</span>. This allows the TAM framework to exactly match the fractional Sobolev regularity of the underlying physical phenomenon.</p>
 </section>
+<section id="the-thin-plate-spline-kernel">
+<h2>The Thin-Plate Spline Kernel<a class="headerlink" href="#the-thin-plate-spline-kernel" title="Link to this heading">¶</a></h2>
+<p>A Gaussian or Matérn kernel has a bandwidth and a ridge penalty on the coefficients, which is not a smoothness penalty on the surface. The thin-plate spline <span class="bibtex-citation" id="id4">[<a class="reference internal" href="../../bibliography.html#id132" title="Jean Duchon. Splines minimizing rotation-invariant semi-norms in Sobolev spaces. In Constructive Theory of Functions of Several Variables, volume 571 of Lecture Notes in Mathematics, pages 85–100. Springer, 1977.">Duchon, 1977</a>, <a class="reference internal" href="../../bibliography.html#id131" title="Simon N. Wood. Thin plate regression splines. Journal of the Royal Statistical Society: Series B, 65(1):95–114, 2003.">Wood, 2003</a>]</span> is the minimiser, over functions of <span class="math notranslate nohighlight">\(d\)</span> coordinates, of the data misfit plus <span class="math notranslate nohighlight">\(\lambda\,J_m(f)\)</span>, where <span class="math notranslate nohighlight">\(J_m(f)=\int\lVert\nabla^m f\rVert^2\,dx\)</span> is the integral of the squared derivatives of order <span class="math notranslate nohighlight">\(m\)</span> (<span class="math notranslate nohighlight">\(2m&gt;d\)</span>). It has no bandwidth, it is isotropic (a rotation of the coordinates does not change the fit), and it is the natural two-dimensional counterpart of the cubic smoothing spline.</p>
+<p>On a set of centres <span class="math notranslate nohighlight">\(\kappa_1,\dots,\kappa_K\)</span> the fit is <span class="math notranslate nohighlight">\(f(x)=\sum_j\delta_j\,\eta_{m,d}(\lVert x-\kappa_j\rVert)+\sum_k\alpha_k\,p_k(x)\)</span>, with the radial basis</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[\begin{split} \eta_{m,d}(r)=\begin{cases}\dfrac{(-1)^{m+1+d/2}}{2^{2m-1}\pi^{d/2}(m-1)!\,(m-d/2)!}\,r^{2m-d}\log r &amp; d\text{ even},\\[2mm]\dfrac{\Gamma(d/2-m)}{2^{2m}\pi^{d/2}(m-1)!}\,r^{2m-d} &amp; d\text{ odd},\end{cases} \end{split}\]</div>
+</div>
+<p><span class="math notranslate nohighlight">\(p_k\)</span> the monomials of total degree below <span class="math notranslate nohighlight">\(m\)</span> (the null space of <span class="math notranslate nohighlight">\(J_m\)</span>) and the constraint <span class="math notranslate nohighlight">\(T^\top\delta=0\)</span> with <span class="math notranslate nohighlight">\(T_{jk}=p_k(\kappa_j)\)</span>. Writing <span class="math notranslate nohighlight">\(\delta=Z\gamma\)</span> for an orthonormal basis <span class="math notranslate nohighlight">\(Z\)</span> of the null space of <span class="math notranslate nohighlight">\(T^\top\)</span>, the energy is the quadratic form <span class="math notranslate nohighlight">\(J_m=\gamma^\top(Z^\top E Z)\gamma\)</span> with <span class="math notranslate nohighlight">\(E_{jk}=\eta_{m,d}(\lVert\kappa_j-\kappa_k\rVert)\)</span>, positive semi-definite on that subspace, so the feature map and the penalty are</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[ \Phi(x)=\big[\,\eta(x,\kappa)\,Z,\ p_1(x),\dots\big],\qquad P=\operatorname{blockdiag}\big(\lambda\,Z^\top E Z,\ \lambda_{\text{null}}\,I\big). \]</div>
+</div>
+<p>The polynomials of degree <span class="math notranslate nohighlight">\(\ge1\)</span> are the part of the surface that the energy does not penalise (a plane for <span class="math notranslate nohighlight">\(m=2\)</span>); the constant is absorbed by the intercept of the model, and <span class="math notranslate nohighlight">\(\lambda_{\text{null}}\)</span> is a second, optional smoothing parameter that shrinks that part (a tiny ridge otherwise, for numerical regularity). As <span class="math notranslate nohighlight">\(\lambda\to\infty\)</span> the fit tends to the least-squares plane.</p>
+</section>
 <section id="structural-truncation-the-screening-effect-critique">
 <h2>Structural Truncation &amp; The Screening Effect (Critique)<a class="headerlink" href="#structural-truncation-the-screening-effect-critique" title="Link to this heading">¶</a></h2>
 <p>In standard Gaussian Processes, the RBF network is evaluated across all <span class="math notranslate nohighlight">\(N\)</span> empirical observations, requiring an intractable <span class="math notranslate nohighlight">\(\mathcal{O}(N^3)\)</span> dense Dual covariance inversion. The TAM framework explicitly truncates this space by projecting the continuous kernel strictly onto <span class="math notranslate nohighlight">\(M\)</span> localized centroids (<span class="math notranslate nohighlight">\(M \ll N\)</span>).</p>
 <p><em>Is this truncation mathematically optimal?</em></p>
-<p>Michael Stein’s research on the <strong>Screening Effect</strong> proves that optimal linear predictors can be constructed using only a localized subset of nearest observations, <em>provided</em> that the kernel’s spectral density does not decay faster than algebraically <span class="bibtex-citation" id="id4">[<a class="reference internal" href="../../bibliography.html#id71" title="Michael L Stein. The screening effect in kriging. The Annals of Statistics, 30(1):298–323, 2002.">Stein, 2002</a>]</span>.</p>
+<p>Michael Stein’s research on the <strong>Screening Effect</strong> proves that optimal linear predictors can be constructed using only a localized subset of nearest observations, <em>provided</em> that the kernel’s spectral density does not decay faster than algebraically <span class="bibtex-citation" id="id5">[<a class="reference internal" href="../../bibliography.html#id71" title="Michael L Stein. The screening effect in kriging. The Annals of Statistics, 30(1):298–323, 2002.">Stein, 2002</a>]</span>.</p>
 <ul class="simple">
-<li><p><strong>The Gaussian Failure:</strong> Because the spectral density of the Gaussian kernel decays exponentially at high frequencies, it violates the mathematical conditions required for the screening effect <span class="bibtex-citation" id="id5">[<a class="reference internal" href="../../bibliography.html#id71" title="Michael L Stein. The screening effect in kriging. The Annals of Statistics, 30(1):298–323, 2002.">Stein, 2002</a>]</span>. Consequently, truncating a Gaussian RBF network to a sparse subset of <span class="math notranslate nohighlight">\(M\)</span> centers introduces severe approximation errors and structural instability.</p></li>
-<li><p><strong>The Matérn Solution:</strong> The spectral density of the Matérn kernel decays algebraically. Therefore, the screening effect mathematically holds <span class="bibtex-citation" id="id6">[<a class="reference internal" href="../../bibliography.html#id71" title="Michael L Stein. The screening effect in kriging. The Annals of Statistics, 30(1):298–323, 2002.">Stein, 2002</a>]</span>. Truncating the Matérn RBF network to a finite Primal basis of <span class="math notranslate nohighlight">\(M\)</span> centers is not merely a computational heuristic; it is a theoretically protected approximation that retains near-optimal predictive efficiency.</p></li>
+<li><p><strong>The Gaussian Failure:</strong> Because the spectral density of the Gaussian kernel decays exponentially at high frequencies, it violates the mathematical conditions required for the screening effect <span class="bibtex-citation" id="id6">[<a class="reference internal" href="../../bibliography.html#id71" title="Michael L Stein. The screening effect in kriging. The Annals of Statistics, 30(1):298–323, 2002.">Stein, 2002</a>]</span>. Consequently, truncating a Gaussian RBF network to a sparse subset of <span class="math notranslate nohighlight">\(M\)</span> centers introduces severe approximation errors and structural instability.</p></li>
+<li><p><strong>The Matérn Solution:</strong> The spectral density of the Matérn kernel decays algebraically. Therefore, the screening effect mathematically holds <span class="bibtex-citation" id="id7">[<a class="reference internal" href="../../bibliography.html#id71" title="Michael L Stein. The screening effect in kriging. The Annals of Statistics, 30(1):298–323, 2002.">Stein, 2002</a>]</span>. Truncating the Matérn RBF network to a finite Primal basis of <span class="math notranslate nohighlight">\(M\)</span> centers is not merely a computational heuristic; it is a theoretically protected approximation that retains near-optimal predictive efficiency.</p></li>
 </ul>
 </section>
 <section id="rkhs-eligibility-optimal-penalization">
@@ -374,7 +389,7 @@ Evaluated using the modified Bessel function of the second kind <span class="mat
 <div class="math notranslate nohighlight">
 \[P_{rbf} = \lambda I_M\]</div>
 </div>
-<p>Both the Gaussian and Matérn functions are strictly positive definite, shift-invariant kernels. By Aronszajn’s theorem, they natively generate well-defined Reproducing Kernel Hilbert Spaces <span class="bibtex-citation" id="id7">[<a class="reference internal" href="../../bibliography.html#id9" title="Nachman Aronszajn. Theory of reproducing kernels. Transactions of the American mathematical society, 68(3):337–404, 1950.">Aronszajn, 1950</a>]</span>. Equipping the finite-dimensional prototype projection with the strictly positive isotropic penalty rigorously bounds the hypothesis space, perfectly isolating the null space and satisfying all Mercer conditions.</p>
+<p>Both the Gaussian and Matérn functions are strictly positive definite, shift-invariant kernels. By Aronszajn’s theorem, they natively generate well-defined Reproducing Kernel Hilbert Spaces <span class="bibtex-citation" id="id8">[<a class="reference internal" href="../../bibliography.html#id9" title="Nachman Aronszajn. Theory of reproducing kernels. Transactions of the American mathematical society, 68(3):337–404, 1950.">Aronszajn, 1950</a>]</span>. Equipping the finite-dimensional prototype projection with the strictly positive isotropic penalty rigorously bounds the hypothesis space, perfectly isolating the null space and satisfying all Mercer conditions.</p>
 </section>
 <section id="theoretical-integration-hardware-translation">
 <h2>Theoretical Integration &amp; Hardware Translation<a class="headerlink" href="#theoretical-integration-hardware-translation" title="Link to this heading">¶</a></h2>
@@ -447,6 +462,7 @@ Evaluated using the modified Bessel function of the second kind <span class="mat
 <li><a class="reference internal" href="#">The Radial Basis Function (RBF) Effect</a><ul>
 <li><a class="reference internal" href="#formula-definition">Formula Definition</a></li>
 <li><a class="reference internal" href="#theoretical-critique-gaussian-vs-matern">Theoretical Critique: Gaussian vs. Matérn</a></li>
+<li><a class="reference internal" href="#the-thin-plate-spline-kernel">The Thin-Plate Spline Kernel</a></li>
 <li><a class="reference internal" href="#structural-truncation-the-screening-effect-critique">Structural Truncation &amp; The Screening Effect (Critique)</a></li>
 <li><a class="reference internal" href="#rkhs-eligibility-optimal-penalization">RKHS Eligibility &amp; Optimal Penalization</a></li>
 <li><a class="reference internal" href="#theoretical-integration-hardware-translation">Theoretical Integration &amp; Hardware Translation</a></li>
@@ -461,7 +477,7 @@ Evaluated using the modified Bessel function of the second kind <span class="mat
       
     </aside>
   </div>
-</div><script src="../../_static/documentation_options.js?v=350a9c04"></script>
+</div><script src="../../_static/documentation_options.js?v=e0a75244"></script>
     <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/scripts/furo.js?v=46bd48cc"></script>

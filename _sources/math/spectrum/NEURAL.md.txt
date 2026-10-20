@@ -37,6 +37,14 @@ $$P_{neural} = \lambda I$$
 
 By equipping the finite-width neural projection with this strictly positive isotropic penalty and the $1/\sqrt{N_L}$ variance scaling, NEPT guarantees its operation within a valid Reproducing Kernel Hilbert Space (RKHS). This seamlessly integrates the deep representations into the globally exact primal solver alongside classical structural effects without disrupting the global convexity of the regularized normal equations.
 
+## Orthogonal Projection: Keeping the Interpretable Terms Interpretable
+
+In an additive model that also holds a flexible block (random neural features, trees), the block can reproduce a smooth main effect as well as the spline of that effect, and the two then share it in an arbitrary way: the spline is attenuated, its smoothing parameter loses its meaning, and the decomposition of the prediction is no longer readable. This confounding {cite:p}`rugamer2023orthogonalization` is removed by restricting the flexible block to the part of its span that the rest of the design cannot reach. With $X$ the design of the other terms (intercept, splines, linear terms) and $\Phi$ the features of the flexible block, replace $\Phi$ by
+
+$$ \widetilde\Phi=\big(I-X(X^\top X)^{+}X^\top\big)\Phi=\Phi-XB,\qquad B=(X^\top X)^{+}X^\top\Phi, $$
+
+so that $X^\top\widetilde\Phi=0$. The least-squares fit of the whole model is unchanged in its span (and so is the total fit when the flexible block is not penalised), but every component of the fit that the splines can express is carried by the splines: they recover the best additive approximation of the signal, and the flexible block only the interactions and non-smooth residuals orthogonal to it. The matrix $B$ is estimated once on the training rows and applied unchanged to new rows, so that a forecast does not depend on the batch it is computed in.
+
 ## Structural Novelty: The 8-Paradigm Synthesis
 
 Because NEPT rigorously flattens the deep kernel projection into the deterministic block-diagonal matrix $\Phi$, it fundamentally redefines how deep learning interacts with additive modeling. Below is the precise structural differentiation between NEPT and the 8 foundational paradigms it synthesizes:

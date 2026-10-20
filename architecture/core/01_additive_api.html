@@ -6,8 +6,8 @@
 <link rel="index" title="Index" href="../../genindex.html"><link rel="search" title="Search" href="../../search.html"><link rel="next" title="The Engineering of Normalization and Padding" href="02_data_pipeline.html"><link rel="prev" title="Empirical Evaluation and MLOps Diagnostics" href="../../math/meta/10_mlops_evaluation.html">
         <link rel="prefetch" href="../../_static/logo.png" as="image">
 
-    <!-- Generated with Sphinx 9.1.0 and Furo 2025.12.19 -->
-        <title>The Additive API and Object-Oriented Architecture - TAM 1.4.1 documentation</title>
+    <!-- Generated with Sphinx 9.1.1 and Furo 2025.12.19 -->
+        <title>The Additive API and Object-Oriented Architecture - TAM 1.5.0 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=d111a655" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo-extensions.css?v=8dab3a3b" />
@@ -162,7 +162,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="../../index.html"><div class="brand">TAM 1.4.1 documentation</div></a>
+      <a href="../../index.html"><div class="brand">TAM 1.5.0 documentation</div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -186,7 +186,7 @@
     <img class="sidebar-logo" src="../../_static/logo.png" alt="Logo"/>
   </div>
   
-  <span class="sidebar-brand-text">TAM 1.4.1 documentation</span>
+  <span class="sidebar-brand-text">TAM 1.5.0 documentation</span>
   
 </a><form class="sidebar-search-container" method="get" action="../../search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
@@ -517,7 +517,9 @@
         <span class="n">mixture_components</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">mixture_kwargs</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">dict</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">_internal_effects_list</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="n">BaseEffect</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-        <span class="n">_internal_features_config</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">dict</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">_internal_features_config</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">dict</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">target_transform</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">transform_kwargs</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">dict</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="p">):</span>
 <span class="w">        </span><span class="sd">"""</span>
 <span class="sd">        Initializes the StaticTAM model.</span>
@@ -533,14 +535,42 @@
 <span class="sd">                you must pass date_col explicitly to guarantee correct results</span>
 <span class="sd">                on data that isn't already sorted by time.</span>
 <span class="sd">            default_alpha_p: Default log10(lambda_p) regularization strength.</span>
-<span class="sd">            dist_kwargs: Options of the distributional and mixture modes: ``tail_family``, ``kurtosis_threshold``,</span>
+<span class="sd">            dist_kwargs: Options of the distributional and mixture modes: ``refit_rounds`` (weighted refits of the location, 0 by</span>
+<span class="sd">                default), ``refit_tol`` (relative change of the location that stops them), ``scale_correction`` (``"none"``, ``"leverage"`` or</span>
+<span class="sd">                ``"edf"``: debias the squared residuals of the scale model), ``tail_family``, ``kurtosis_threshold``,</span>
 <span class="sd">                ``scale_shrinkage``, ``location_alpha_p``, ``scale_alpha_p``, and the target scale: ``target_transform``</span>
 <span class="sd">                (``"log"`` by default, ``"none"``, ``"asinh"`` for a skewed target with negative values, ``"logit"`` for a</span>
 <span class="sd">                bounded one, with ``bounds=(low, high)`` or estimated) or the older ``log_target`` (True = ``"log"``).</span>
+<span class="sd">            target_transform: Fit on ``g(y)`` and return the response scale: ``"log"``, ``"log1p"``, ``"asinh"`` (a skewed target with</span>
+<span class="sd">                negative values), ``"logit"`` (a bounded one) or ``"boxcox"``. ``predict`` inverts the fitted value, ``predict_quantiles``</span>
+<span class="sd">                inverts the quantiles of the model-scale residuals (exact for a monotone ``g``). Not available with a GLM loss (its link</span>
+<span class="sd">                already is a transform), a dict formula or a mixture: those take ``dist_kwargs``.</span>
+<span class="sd">            transform_kwargs: Parameters of the transform: ``shift`` (``log``, ``boxcox``), ``lam`` (``boxcox``, else maximum likelihood),</span>
+<span class="sd">                ``centre`` and ``scale`` (``asinh``), ``bounds`` (``logit``), and ``mean_correction=True`` for a mean forecast</span>
+<span class="sd">                (second-order correction ``E[y] = g^-1(z) + (g^-1)''(z) var / 2``) instead of the median-type back-transform.</span>
 <span class="sd">            _internal_effects_list: (Internal) Used for restoring state during grid search.</span>
 <span class="sd">            _internal_features_config: (Internal) Used for restoring state during grid search.</span>
 <span class="sd">        """</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+
+        <span class="k">if</span> <span class="n">target_transform</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">target_transform</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">_tt</span><span class="o">.</span><span class="n">TRANSFORMS</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"target_transform must be one of </span><span class="si">{</span><span class="n">_tt</span><span class="o">.</span><span class="n">TRANSFORMS</span><span class="si">}</span><span class="s2">; got </span><span class="si">{</span><span class="n">target_transform</span><span class="si">!r}</span><span class="s2">"</span><span class="p">)</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">formula</span><span class="p">,</span> <span class="nb">dict</span><span class="p">)</span> <span class="ow">or</span> <span class="n">mixture_components</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"target_transform applies to a plain StaticTAM; a distributional or mixture model takes dist_kwargs={'target_transform': ...}."</span><span class="p">)</span>
+            <span class="n">_tt</span><span class="o">.</span><span class="n">check_kwargs</span><span class="p">(</span><span class="n">target_transform</span><span class="p">,</span> <span class="nb">dict</span><span class="p">(</span><span class="n">transform_kwargs</span> <span class="ow">or</span> <span class="p">{}))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_offset_features_</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">formula</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span> <span class="ow">and</span> <span class="s2">"~"</span> <span class="ow">in</span> <span class="n">formula</span><span class="p">:</span>
+            <span class="n">_</span><span class="p">,</span> <span class="n">all_terms</span> <span class="o">=</span> <span class="n">parse_formula_to_terms</span><span class="p">(</span><span class="n">formula</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_offset_features_</span> <span class="o">=</span> <span class="p">[</span><span class="n">term</span><span class="p">[</span><span class="s1">'feature'</span><span class="p">]</span> <span class="k">for</span> <span class="n">term</span> <span class="ow">in</span> <span class="n">all_terms</span> <span class="k">if</span> <span class="n">term</span><span class="p">[</span><span class="s1">'type'</span><span class="p">]</span> <span class="o">==</span> <span class="s1">'offset'</span><span class="p">]</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_offset_features_</span> <span class="ow">and</span> <span class="n">mixture_components</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"offset(...) is not available in a mixture model."</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_plain_transform_</span> <span class="o">=</span> <span class="s2">"none"</span> <span class="k">if</span> <span class="n">target_transform</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">target_transform</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_plain_kwargs_</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">transform_kwargs</span> <span class="ow">or</span> <span class="p">{})</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_plain_params_</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_plain_variance_</span> <span class="o">=</span> <span class="mf">0.0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_plain_residual_levels_</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_plain_residual_values_</span> <span class="o">=</span> <span class="kc">None</span>
         
         <span class="bp">self</span><span class="o">.</span><span class="n">effects_list_</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">formula_</span> <span class="o">=</span> <span class="n">formula</span> 
@@ -571,6 +601,9 @@
                 <span class="n">scale_shrinkage</span><span class="o">=</span><span class="n">dk</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"scale_shrinkage"</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">),</span>
                 <span class="n">location_alpha_p</span><span class="o">=</span><span class="n">dk</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"location_alpha_p"</span><span class="p">),</span>
                 <span class="n">scale_alpha_p</span><span class="o">=</span><span class="n">dk</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"scale_alpha_p"</span><span class="p">),</span>
+                <span class="n">refit_rounds</span><span class="o">=</span><span class="n">dk</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"refit_rounds"</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span>
+                <span class="n">refit_tol</span><span class="o">=</span><span class="n">dk</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"refit_tol"</span><span class="p">,</span> <span class="mf">1e-4</span><span class="p">),</span>
+                <span class="n">scale_correction</span><span class="o">=</span><span class="n">dk</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"scale_correction"</span><span class="p">,</span> <span class="s2">"none"</span><span class="p">),</span>
             <span class="p">)</span>
             <span class="k">return</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_mode_</span> <span class="o">=</span> <span class="s2">"plain"</span>
@@ -590,7 +623,10 @@
         <span class="c1"># scalar-loss reweighting strategy. None (l2/gaussian/normal, or mixture mode) keeps the default</span>
         <span class="c1"># single unweighted solve; any other loss builds an IRLS strategy from loss_kwargs.</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">loss_</span> <span class="o">=</span> <span class="n">loss</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_loss_kwargs_</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">loss_kwargs</span> <span class="ow">or</span> <span class="p">{})</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">dispersion_</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_plain_transform_</span> <span class="o">!=</span> <span class="s2">"none"</span> <span class="ow">and</span> <span class="nb">str</span><span class="p">(</span><span class="n">loss</span><span class="p">)</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">"l2"</span><span class="p">,</span> <span class="s2">"gaussian"</span><span class="p">,</span> <span class="s2">"normal"</span><span class="p">,</span> <span class="s2">"expectile"</span><span class="p">,</span> <span class="s2">"huber"</span><span class="p">,</span> <span class="s2">"student_t"</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"target_transform=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_plain_transform_</span><span class="si">!r}</span><span class="s2"> cannot be combined with loss=</span><span class="si">{</span><span class="n">loss</span><span class="si">!r}</span><span class="s2">: the link of that family is already a transform."</span><span class="p">)</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_mixture_components_</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_reweighting_strategy_</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="k">else</span><span class="p">:</span>
@@ -607,6 +643,15 @@
         <span class="k">elif</span> <span class="n">formula</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">target_col_</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">parsed_terms_</span> <span class="o">=</span> <span class="n">parse_formula_to_terms</span><span class="p">(</span><span class="n">formula</span><span class="p">)</span>
             <span class="n">real_features</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_extract_recursive_features</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">parsed_terms_</span><span class="p">)</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_offset_features_</span><span class="p">:</span>
+                <span class="c1"># An offset is read from the raw column: no effect, no coefficient, and no other term may read the same column.</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">parsed_terms_</span> <span class="o">=</span> <span class="p">[</span><span class="n">term</span> <span class="k">for</span> <span class="n">term</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">parsed_terms_</span> <span class="k">if</span> <span class="n">term</span><span class="p">[</span><span class="s1">'type'</span><span class="p">]</span> <span class="o">!=</span> <span class="s1">'offset'</span><span class="p">]</span>
+                <span class="c1"># The solvers route the feature columns to the effects by position: the offsets go last, after every column an effect reads.</span>
+                <span class="n">real_features</span> <span class="o">=</span> <span class="p">[</span><span class="n">name</span> <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">real_features</span> <span class="k">if</span> <span class="n">name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_offset_features_</span><span class="p">]</span> <span class="o">+</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_offset_features_</span><span class="p">)</span>
+                <span class="n">shared</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_offset_features_</span><span class="p">)</span> <span class="o">&amp;</span> <span class="nb">set</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_extract_recursive_features</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">parsed_terms_</span><span class="p">)))</span>
+                <span class="k">if</span> <span class="n">shared</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"offset(</span><span class="si">{</span><span class="n">shared</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="si">}</span><span class="s2">) reads the raw column; another term of the formula also reads '</span><span class="si">{</span><span class="n">shared</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="si">}</span><span class="s2">'. "</span>
+                                     <span class="s2">"Give the offset its own column."</span><span class="p">)</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">features_config_</span> <span class="o">=</span> <span class="p">{</span> <span class="s2">"features"</span><span class="p">:</span> <span class="n">real_features</span> <span class="p">}</span>
             
             <span class="bp">self</span><span class="o">.</span><span class="n">is_grid_search_template_</span> <span class="o">=</span> <span class="kc">False</span>
@@ -671,7 +716,10 @@
             <span class="n">balanced_data</span><span class="p">,</span> <span class="n">final_decomposed_effects</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">group_col_</span><span class="p">,</span> <span class="n">groups_stacked</span><span class="p">,</span> <span class="n">date_col</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">date_col_</span>
         <span class="p">)</span>
 
-        <span class="k">return</span> <span class="n">_cleanup_dummies</span><span class="p">(</span><span class="n">decomposed_df</span><span class="p">[</span><span class="n">mask</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">group_col_</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">date_col_</span><span class="p">)</span>
+        <span class="n">decomposed_df</span> <span class="o">=</span> <span class="n">_cleanup_dummies</span><span class="p">(</span><span class="n">decomposed_df</span><span class="p">[</span><span class="n">mask</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">group_col_</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">date_col_</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">"_offset_features_"</span><span class="p">,</span> <span class="p">[]):</span>
+            <span class="n">decomposed_df</span><span class="p">[</span><span class="sa">f</span><span class="s2">"effect_offset_</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">"</span><span class="p">]</span> <span class="o">=</span> <span class="n">decomposed_df</span><span class="p">[</span><span class="n">name</span><span class="p">]</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">decomposed_df</span>
 </pre></div>
 </div>
 <p><strong>Component names.</strong> The output holds one column <code class="docutils literal notranslate"><span class="pre">effect_&lt;name&gt;</span></code> per effect, named by <code class="docutils literal notranslate"><span class="pre">decomposition_names()</span></code>: a feature used by a single effect keeps its own name (<code class="docutils literal notranslate"><span class="pre">effect_temperature</span></code>); a tensor product is <code class="docutils literal notranslate"><span class="pre">te_&lt;a&gt;_x_&lt;b&gt;</span></code>; effects sharing a feature are prefixed by their basis (<code class="docutils literal notranslate"><span class="pre">s_temperature</span></code>, <code class="docutils literal notranslate"><span class="pre">l_temperature</span></code>); a collision that remains (two tensor products over the same features) gets an occurrence suffix. Names never depend on the position of a term in the formula, and each effect keeps the feature it was built on: the model is fitted on exactly the columns its formula names.</p>
@@ -702,8 +750,8 @@
     <span class="c1"># Map effect types to short prefixes for disambiguation</span>
     <span class="n">type_map</span> <span class="o">=</span> <span class="p">{</span>
         <span class="s1">'linear'</span><span class="p">:</span> <span class="s1">'l'</span><span class="p">,</span> <span class="s1">'fourier'</span><span class="p">:</span> <span class="s1">'f'</span><span class="p">,</span> <span class="s1">'spline'</span><span class="p">:</span> <span class="s1">'s'</span><span class="p">,</span> <span class="s1">'wavelet'</span><span class="p">:</span> <span class="s1">'w'</span><span class="p">,</span>
-        <span class="s1">'chebyshev'</span><span class="p">:</span> <span class="s1">'p'</span><span class="p">,</span> <span class="s1">'categorical_nominal'</span><span class="p">:</span> <span class="s1">'c'</span><span class="p">,</span> <span class="s1">'categorical_ordinal'</span><span class="p">:</span> <span class="s1">'c'</span><span class="p">,</span>
-        <span class="s1">'neural'</span><span class="p">:</span> <span class="s1">'n'</span><span class="p">,</span> <span class="s1">'rbf_gauss'</span><span class="p">:</span> <span class="s1">'rbf'</span><span class="p">,</span> <span class="s1">'rbf_matern'</span><span class="p">:</span> <span class="s1">'rbf'</span><span class="p">,</span>
+        <span class="s1">'chebyshev'</span><span class="p">:</span> <span class="s1">'p'</span><span class="p">,</span> <span class="s1">'categorical_nominal'</span><span class="p">:</span> <span class="s1">'c'</span><span class="p">,</span> <span class="s1">'categorical_ordinal'</span><span class="p">:</span> <span class="s1">'c'</span><span class="p">,</span> <span class="s1">'categorical_fourier'</span><span class="p">:</span> <span class="s1">'c'</span><span class="p">,</span> <span class="s1">'categorical_graph'</span><span class="p">:</span> <span class="s1">'c'</span><span class="p">,</span>
+        <span class="s1">'neural'</span><span class="p">:</span> <span class="s1">'n'</span><span class="p">,</span> <span class="s1">'rbf_gauss'</span><span class="p">:</span> <span class="s1">'rbf'</span><span class="p">,</span> <span class="s1">'rbf_matern'</span><span class="p">:</span> <span class="s1">'rbf'</span><span class="p">,</span> <span class="s1">'rbf_tps'</span><span class="p">:</span> <span class="s1">'rbf'</span><span class="p">,</span> <span class="s1">'tree'</span><span class="p">:</span> <span class="s1">'t'</span><span class="p">,</span> <span class="s1">'linear_tree'</span><span class="p">:</span> <span class="s1">'lt'</span><span class="p">,</span> <span class="s1">'pid'</span><span class="p">:</span> <span class="s1">'pid'</span><span class="p">,</span>
         <span class="s1">'tensor_product'</span><span class="p">:</span> <span class="s1">'te'</span><span class="p">,</span> <span class="s1">'phys_spline'</span><span class="p">:</span> <span class="s1">'phys'</span><span class="p">,</span>
         <span class="s1">'phys_fourier'</span><span class="p">:</span> <span class="s1">'phys'</span><span class="p">,</span> <span class="s1">'phys_neural'</span><span class="p">:</span> <span class="s1">'phys'</span><span class="p">,</span> <span class="s1">'offset'</span><span class="p">:</span> <span class="s1">'offset'</span>
     <span class="p">}</span>
@@ -916,10 +964,13 @@
 <span class="sd">            """</span>
             <span class="nb">print</span><span class="p">(</span><span class="s2">"--- Starting Grid Search (Multi-Start Coordinate Descent) ---"</span><span class="p">)</span>
             
+            <span class="n">data_train</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_transformed_frame</span><span class="p">(</span><span class="n">data_train</span><span class="p">,</span> <span class="n">estimate</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="n">data_val</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_transformed_frame</span><span class="p">(</span><span class="n">data_val</span><span class="p">)</span>
+            <span class="n">transformed_train</span> <span class="o">=</span> <span class="n">data_train</span>
             <span class="n">data_train</span> <span class="o">=</span> <span class="n">_ensure_dummies</span><span class="p">(</span><span class="n">data_train</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">group_col_</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">date_col_</span><span class="p">)</span>
             <span class="n">data_val</span> <span class="o">=</span> <span class="n">_ensure_dummies</span><span class="p">(</span><span class="n">data_val</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">group_col_</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">date_col_</span><span class="p">)</span>
             
-            <span class="n">temp_model</span> <span class="o">=</span> <span class="n">StaticTAM</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">formula_</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">group_col_</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">date_col_</span><span class="p">)</span>
+            <span class="n">temp_model</span> <span class="o">=</span> <span class="n">StaticTAM</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">formula_</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">group_col_</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">date_col_</span><span class="p">,</span> <span class="n">loss</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">loss_</span><span class="p">,</span> <span class="n">loss_kwargs</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_loss_kwargs_</span><span class="p">)</span>
             <span class="n">temp_model</span><span class="o">.</span><span class="n">features_config_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">features_config_</span>
             <span class="n">temp_model</span><span class="o">.</span><span class="n">target_col_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">target_col_</span>
             
@@ -1034,14 +1085,25 @@
                 <span class="n">formula</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">formula_</span><span class="p">,</span> 
                 <span class="n">group_col</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">group_col_</span><span class="p">,</span>
                 <span class="n">date_col</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">date_col_</span><span class="p">,</span>
+                <span class="n">loss</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">loss_</span><span class="p">,</span>
+                <span class="n">loss_kwargs</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_loss_kwargs_</span><span class="p">,</span>
+                <span class="n">target_transform</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_plain_transform_</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_transform_active</span><span class="p">()</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
+                <span class="n">transform_kwargs</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_plain_kwargs_</span><span class="p">,</span>
                 <span class="n">_internal_effects_list</span><span class="o">=</span><span class="n">optimal_params_combo</span><span class="p">[</span><span class="s1">'effects_list'</span><span class="p">],</span>
                 <span class="n">_internal_features_config</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">features_config_</span> 
             <span class="p">)</span>
             
             <span class="n">model</span><span class="o">.</span><span class="n">coefficients_</span> <span class="o">=</span> <span class="n">optimal_coeffs</span>
+            <span class="n">model</span><span class="o">.</span><span class="n">validation_rmse_</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">min_global_rmse</span><span class="p">)</span>
+            <span class="n">model</span><span class="o">.</span><span class="n">dispersion_</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_reweighting_strategy_</span><span class="p">,</span> <span class="s2">"dispersion"</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
             <span class="n">model</span><span class="o">.</span><span class="n">target_col_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">target_col_</span> 
             <span class="n">model</span><span class="o">.</span><span class="n">norm_params_</span> <span class="o">=</span> <span class="n">temp_model</span><span class="o">.</span><span class="n">norm_params_</span>
+            <span class="n">model</span><span class="o">.</span><span class="n">_vocabulary_</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">temp_model</span><span class="p">,</span> <span class="s2">"_vocabulary_"</span><span class="p">,</span> <span class="p">{})</span>
             <span class="n">model</span><span class="o">.</span><span class="n">unique_groups_</span> <span class="o">=</span> <span class="n">unique_groups</span>
+            <span class="n">model</span><span class="o">.</span><span class="n">_offset_features_</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">"_offset_features_"</span><span class="p">,</span> <span class="p">[]))</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_transform_active</span><span class="p">():</span>
+                <span class="n">model</span><span class="o">.</span><span class="n">_plain_params_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_plain_params_</span>
+                <span class="n">model</span><span class="o">.</span><span class="n">_finish_transform_fit</span><span class="p">(</span><span class="n">transformed_train</span><span class="p">)</span>
 
             <span class="k">return</span> <span class="n">model</span>
 </pre></div>
@@ -1141,7 +1203,7 @@
       
     </aside>
   </div>
-</div><script src="../../_static/documentation_options.js?v=350a9c04"></script>
+</div><script src="../../_static/documentation_options.js?v=e0a75244"></script>
     <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/scripts/furo.js?v=46bd48cc"></script>

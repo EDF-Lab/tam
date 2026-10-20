@@ -70,6 +70,14 @@ p_{21} & 0 & 0 & p_{22} & 0 & 0 \\
 
 The final structural penalty matrix $P_{cross}$ fundamentally scales to $(D_A \times D_B) \times (D_A \times D_B)$.
 
+## Factor-Smooth Interactions: One Smoothing Parameter per Level
+
+Crossing a smooth $f(x)$ with a factor of $G$ levels gives one curve per level, $f_g(x)$. With the Kronecker structure above, the roughness penalty $\lambda_x\,(P_x\otimes I_G)$ gives all the curves the same stiffness, which is a poor compromise when the levels differ in noise and in complexity: a level with few, noisy observations needs a stiff curve, a level with a clean, rich signal a flexible one. Giving every level its own weight replaces the identity on the factor by a diagonal matrix:
+
+$$ P(\lambda_1,\dots,\lambda_G,\lambda_c)=P_x\otimes\operatorname{diag}(\lambda_1,\dots,\lambda_G)+\lambda_c\,I_{K}\otimes I_G=\bigoplus_{g=1}^{G}\lambda_g\,P_x\ \ +\ \lambda_c I, $$
+
+where the first term is block diagonal (each level penalises only its own curve) and $\lambda_c$ is the ridge on the level effects, which also shrinks the part of each curve that $P_x$ leaves free (constants and lines). The criterion for the smoothing parameters is then a function of $G+1$ coordinates, and the penalty stays a positive semi-definite quadratic form in the coefficients, so the fit is still one linear system. When all the $\lambda_g$ are equal the penalty is the shared one.
+
 ## RKHS Eligibility and The Representer Theorem
 
 The theoretical validity of this construction relies on the fundamental closure properties of kernels. Aronszajn formally proved that the class of positive definite reproducing kernels is strictly closed under pointwise multiplication {cite:p}`aronszajn1950theory`. Therefore, the direct tensor product of multiple valid marginal Hilbert spaces, $\mathcal{H}_{cross} = \mathcal{H}_1 \otimes \dots \otimes \mathcal{H}_N$, rigorously generates a valid, finite-dimensional product RKHS.

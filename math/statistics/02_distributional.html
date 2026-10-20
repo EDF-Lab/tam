@@ -6,8 +6,8 @@
 <link rel="index" title="Index" href="../../genindex.html"><link rel="search" title="Search" href="../../search.html"><link rel="next" title="Mixtures &amp; Gaussian Copulas" href="03_mixture_copula.html"><link rel="prev" title="Reweighted Estimation: GLMs, Expectiles &amp; Robust M-Estimators" href="01_reweighted_estimation.html">
         <link rel="prefetch" href="../../_static/logo.png" as="image">
 
-    <!-- Generated with Sphinx 9.1.0 and Furo 2025.12.19 -->
-        <title>Distributional (Location-Scale) Models - TAM 1.4.1 documentation</title>
+    <!-- Generated with Sphinx 9.1.1 and Furo 2025.12.19 -->
+        <title>Distributional (Location-Scale) Models - TAM 1.5.0 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=d111a655" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo-extensions.css?v=8dab3a3b" />
@@ -162,7 +162,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="../../index.html"><div class="brand">TAM 1.4.1 documentation</div></a>
+      <a href="../../index.html"><div class="brand">TAM 1.5.0 documentation</div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -186,7 +186,7 @@
     <img class="sidebar-logo" src="../../_static/logo.png" alt="Logo"/>
   </div>
   
-  <span class="sidebar-brand-text">TAM 1.4.1 documentation</span>
+  <span class="sidebar-brand-text">TAM 1.5.0 documentation</span>
   
 </a><form class="sidebar-search-container" method="get" action="../../search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
@@ -339,6 +339,22 @@ below zero, so a target taking such values is modelled on its own scale, <span c
 <li><p><strong>Scale.</strong> Read the squared residuals <span class="math notranslate nohighlight">\(r^2=(t-\hat\mu)^2\)</span> and fit <span class="math notranslate nohighlight">\(\sigma(x)\)</span> as a <strong>Gamma-GLM</strong> atom on <span class="math notranslate nohighlight">\(r^2\)</span> (or an L2 atom on <span class="math notranslate nohighlight">\(\log r^2\)</span> with a <span class="math notranslate nohighlight">\(\log\chi^2_1\)</span> bias correction).</p></li>
 </ol>
 </section>
+<section id="efficient-location-and-unbiased-scale">
+<h2>Efficient location and unbiased scale<a class="headerlink" href="#efficient-location-and-unbiased-scale" title="Link to this heading">¶</a></h2>
+<p>The two-stage schedule is exact for the scale given the location, but two things are left on the table.</p>
+<p><strong>Efficiency of the location.</strong> Given the scale, the minimum-variance estimator of <span class="math notranslate nohighlight">\(\theta\)</span> in <span class="math notranslate nohighlight">\(\mu=\Phi\theta\)</span> is the weighted penalized least-squares solution with weights <span class="math notranslate nohighlight">\(w_i=1/\sigma_i^2\)</span>,</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[ \hat\theta=\big(\Phi^\top W\Phi+nP\big)^{-1}\Phi^\top W t, \]</div>
+</div>
+<p>while the first stage uses <span class="math notranslate nohighlight">\(W=I\)</span>: it is unbiased, but its variance exceeds that of the weighted one when the noise is heteroscedastic. For a symmetric law the information matrix is block-diagonal in <span class="math notranslate nohighlight">\((\mu,\sigma)\)</span> (the parameters are orthogonal), so alternating the two steps, location with the weights of the last scale and scale on the residuals of the last location, converges to the joint maximum of the likelihood, usually in one to three rounds, and loses nothing against a joint Newton step. The gain depends on how local the location is: the variance of a flexible smoother at a point is governed by the noise at that point only, so the weights change it little; a parsimonious location (a line, a few knots) over a noise whose spread varies several times gains a third of its error or more.</p>
+<p><strong>Bias of the scale.</strong> The scale is fitted to squared residuals, which the fit has shrunk: with the hat matrix <span class="math notranslate nohighlight">\(H\)</span> of the location, <span class="math notranslate nohighlight">\(\mathbb E[r_i^2]=\sigma_i^2(1-2h_{ii})+\sum_jH_{ij}^2\sigma_j^2\approx\sigma_i^2(1-h_{ii})\)</span> when <span class="math notranslate nohighlight">\(\sigma\)</span> varies slowly compared to the width of the smoother, since <span class="math notranslate nohighlight">\(\sum_jH_{ij}^2=h_{ii}\)</span>. The variance is therefore underestimated by the fraction <span class="math notranslate nohighlight">\(h_{ii}\)</span>, which is large when the location is flexible and the sample small, and the intervals are too narrow. Dividing by the leverage gives an unbiased target,</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[ \tilde r_i^2=\frac{r_i^2}{1-h_{ii}},\qquad h_{ii}=w_i\,\phi_i^\top\big(\Phi^\top W\Phi+nP\big)^{-1}\phi_i, \]</div>
+</div>
+<p>the per-row form of the degrees-of-freedom correction of restricted maximum likelihood <span class="bibtex-citation" id="id2">[<a class="reference internal" href="../../bibliography.html#id135" title="H. D. Patterson and R. Thompson. Recovery of inter-block information when block sizes are unequal. Biometrika, 58(3):545–554, 1971.">Patterson and Thompson, 1971</a>]</span>, whose aggregate version replaces <span class="math notranslate nohighlight">\(n\)</span> by <span class="math notranslate nohighlight">\(n-\operatorname{edf}\)</span> with <span class="math notranslate nohighlight">\(\operatorname{edf}=\sum_ih_{ii}\)</span> the trace of the hat matrix <span class="bibtex-citation" id="id3">[<a class="reference internal" href="../../bibliography.html#id82" title="Simon N Wood. Generalized additive models: an introduction with R. chapman and hall/CRC, 2017.">Wood, 2017</a>]</span>. The leverage is clamped below <span class="math notranslate nohighlight">\(0.9\)</span> because a row that the location nearly interpolates would make <span class="math notranslate nohighlight">\(\tilde r_i^2\)</span> explode.</p>
+</section>
 <section id="the-tail-law-and-quantiles">
 <h2>The tail law and quantiles<a class="headerlink" href="#the-tail-law-and-quantiles" title="Link to this heading">¶</a></h2>
 <p>The standardized residual law <span class="math notranslate nohighlight">\(F\)</span> (Normal or Student-t) is selected from the residual excess kurtosis. Conditional quantiles are then, by construction non-crossing:</p>
@@ -354,12 +370,26 @@ below zero, so a target taking such values is modelled on its own scale, <span c
 <div class="math notranslate nohighlight">
 \[ Q_\tau^{(y)}(x) = g^{-1}\Big(\hat\mu(x) + \hat\sigma(x)\,F^{-1}(\tau)\Big). \]</div>
 </div>
-<p>Two maps cover the targets that the logarithm cannot take.</p>
+<p>Two maps cover the targets that the logarithm cannot take. The shifted logarithm <span class="math notranslate nohighlight">\(\log(y+c)\)</span>, <span class="math notranslate nohighlight">\(\log(1+y)\)</span> and the Box-Cox map <span class="math notranslate nohighlight">\(g(y)=\big((y+c)^{\lambda}-1\big)/\lambda\)</span> (<span class="math notranslate nohighlight">\(\log(y+c)\)</span> at <span class="math notranslate nohighlight">\(\lambda=0\)</span>, <span class="math notranslate nohighlight">\(\lambda\)</span> by maximum likelihood unless given) <span class="bibtex-citation" id="id4">[<a class="reference internal" href="../../bibliography.html#id129" title="George E. P. Box and David R. Cox. An analysis of transformations. Journal of the Royal Statistical Society: Series B, 26(2):211–252, 1964.">Box and Cox, 1964</a>]</span> are available for positive targets whose spread grows less than proportionally to the level.</p>
 <ul class="simple">
-<li><p><strong>Real-valued, skewed, heavy-tailed targets with negative values</strong> (electricity prices, spikes and returns): the area hyperbolic sine <span class="math notranslate nohighlight">\(g(y)=\operatorname{arsinh}\big((y-c)/s\big)\)</span>, with the centre <span class="math notranslate nohighlight">\(c\)</span> the median and the scale <span class="math notranslate nohighlight">\(s\)</span> a robust spread of the training target. It behaves like the identity near <span class="math notranslate nohighlight">\(c\)</span> and like a logarithm in both tails, and it is the standard variance-stabilizing choice for electricity prices <span class="bibtex-citation" id="id2">[<a class="reference internal" href="../../bibliography.html#id124" title="Bartosz Uniejewski, Rafał Weron, and Florian Ziel. Variance stabilizing transformations for electricity spot price forecasting. IEEE Transactions on Power Systems, 33(2):2219–2229, 2018.">Uniejewski <em>et al.</em>, 2018</a>]</span>. With a Normal law on <span class="math notranslate nohighlight">\(t\)</span>, <span class="math notranslate nohighlight">\(y\)</span> follows the Johnson <span class="math notranslate nohighlight">\(S_U\)</span> family <span class="bibtex-citation" id="id3">[<a class="reference internal" href="../../bibliography.html#id125" title="Norman L. Johnson. Systems of frequency curves generated by methods of translation. Biometrika, 36(1/2):149–176, 1949.">Johnson, 1949</a>]</span>: skewed, with heavier tails than a Normal.</p></li>
+<li><p><strong>Real-valued, skewed, heavy-tailed targets with negative values</strong> (electricity prices, spikes and returns): the area hyperbolic sine <span class="math notranslate nohighlight">\(g(y)=\operatorname{arsinh}\big((y-c)/s\big)\)</span>, with the centre <span class="math notranslate nohighlight">\(c\)</span> the median and the scale <span class="math notranslate nohighlight">\(s\)</span> a robust spread of the training target. It behaves like the identity near <span class="math notranslate nohighlight">\(c\)</span> and like a logarithm in both tails, and it is the standard variance-stabilizing choice for electricity prices <span class="bibtex-citation" id="id5">[<a class="reference internal" href="../../bibliography.html#id124" title="Bartosz Uniejewski, Rafał Weron, and Florian Ziel. Variance stabilizing transformations for electricity spot price forecasting. IEEE Transactions on Power Systems, 33(2):2219–2229, 2018.">Uniejewski <em>et al.</em>, 2018</a>]</span>. With a Normal law on <span class="math notranslate nohighlight">\(t\)</span>, <span class="math notranslate nohighlight">\(y\)</span> follows the Johnson <span class="math notranslate nohighlight">\(S_U\)</span> family <span class="bibtex-citation" id="id6">[<a class="reference internal" href="../../bibliography.html#id125" title="Norman L. Johnson. Systems of frequency curves generated by methods of translation. Biometrika, 36(1/2):149–176, 1949.">Johnson, 1949</a>]</span>: skewed, with heavier tails than a Normal.</p></li>
 <li><p><strong>Targets bounded in an interval <span class="math notranslate nohighlight">\((a,b)\)</span></strong> (shares, humidity, capacity-capped power): the logit <span class="math notranslate nohighlight">\(g(y)=\log\big(u/(1-u)\big)\)</span> with <span class="math notranslate nohighlight">\(u=(y-a)/(b-a)\)</span>. Every quantile lies strictly inside <span class="math notranslate nohighlight">\((a,b)\)</span>, which a Normal law on the response scale cannot guarantee. A value exactly on a bound has an infinite logit and is moved inside by a tiny fraction of the interval.</p></li>
 </ul>
+<section id="the-same-maps-on-a-plain-model">
+<h3>The same maps on a plain model<a class="headerlink" href="#the-same-maps-on-a-plain-model" title="Link to this heading">¶</a></h3>
+<p>A model without a scale law can sit on <span class="math notranslate nohighlight">\(t=g(y)\)</span> too. The fit is the ordinary penalized fit of <span class="math notranslate nohighlight">\(t\)</span>, and the quantiles are those of the empirical law of its residuals <span class="math notranslate nohighlight">\(e_i=t_i-\hat t_i\)</span>, shifted to the fitted value and mapped back:</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[ \hat Q_\tau^{(y)}(x) = g^{-1}\big(\hat t(x) + \hat F_e^{-1}(\tau)\big), \]</div>
+</div>
+<p>which is exact for the quantiles of <span class="math notranslate nohighlight">\(y\)</span> whatever the monotone <span class="math notranslate nohighlight">\(g\)</span>, with a residual spread that does not depend on <span class="math notranslate nohighlight">\(x\)</span> (a location-scale model with a scale law relaxes this). The point forecast <span class="math notranslate nohighlight">\(g^{-1}(\hat t)\)</span> is a median-type value. A mean forecast needs the second-order correction of Jensen’s inequality, with <span class="math notranslate nohighlight">\(v\)</span> the variance of the residuals:</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[ \mathbb E[y\mid x]\approx g^{-1}(\hat t)+\tfrac12\,(g^{-1})''(\hat t)\,v, \]</div>
+</div>
+<p>which is <span class="math notranslate nohighlight">\(\exp(\hat t+v/2)\)</span> for the logarithm, where it is the mean of the log-normal law.</p>
 <p>An optional convex <code class="docutils literal notranslate"><span class="pre">scale_shrinkage</span></code> <span class="math notranslate nohighlight">\(\lambda\in[0,1]\)</span> blends the conditional variance toward the global one. The probability integral transform <span class="math notranslate nohighlight">\(F\big((t-\hat\mu)/\hat\sigma\big)\)</span> gives the CDF, a two-sided anomaly score, and the CRPS (closed form for the Normal, else a Gauss-Legendre quantile integral).</p>
+</section>
 </section>
 </section>
 
@@ -420,8 +450,12 @@ below zero, so a target taking such values is modelled on its own scale, <span c
             <ul>
 <li><a class="reference internal" href="#">Distributional (Location-Scale) Models</a><ul>
 <li><a class="reference internal" href="#the-two-stage-schedule">The two-stage schedule</a></li>
+<li><a class="reference internal" href="#efficient-location-and-unbiased-scale">Efficient location and unbiased scale</a></li>
 <li><a class="reference internal" href="#the-tail-law-and-quantiles">The tail law and quantiles</a></li>
-<li><a class="reference internal" href="#monotone-target-transforms">Monotone target transforms</a></li>
+<li><a class="reference internal" href="#monotone-target-transforms">Monotone target transforms</a><ul>
+<li><a class="reference internal" href="#the-same-maps-on-a-plain-model">The same maps on a plain model</a></li>
+</ul>
+</li>
 </ul>
 </li>
 </ul>
@@ -433,7 +467,7 @@ below zero, so a target taking such values is modelled on its own scale, <span c
       
     </aside>
   </div>
-</div><script src="../../_static/documentation_options.js?v=350a9c04"></script>
+</div><script src="../../_static/documentation_options.js?v=e0a75244"></script>
     <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/scripts/furo.js?v=46bd48cc"></script>

@@ -6,8 +6,8 @@
 <link rel="index" title="Index" href="../../genindex.html"><link rel="search" title="Search" href="../../search.html"><link rel="next" title="Distributional (Location-Scale) Models" href="02_distributional.html"><link rel="prev" title="The Linear Tree Effect (Varying-Coefficient Models)" href="../spectrum/LINEAR_TREE.html">
         <link rel="prefetch" href="../../_static/logo.png" as="image">
 
-    <!-- Generated with Sphinx 9.1.0 and Furo 2025.12.19 -->
-        <title>Reweighted Estimation: GLMs, Expectiles &amp; Robust M-Estimators - TAM 1.4.1 documentation</title>
+    <!-- Generated with Sphinx 9.1.1 and Furo 2025.12.19 -->
+        <title>Reweighted Estimation: GLMs, Expectiles &amp; Robust M-Estimators - TAM 1.5.0 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=d111a655" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo-extensions.css?v=8dab3a3b" />
@@ -162,7 +162,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="../../index.html"><div class="brand">TAM 1.4.1 documentation</div></a>
+      <a href="../../index.html"><div class="brand">TAM 1.5.0 documentation</div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -186,7 +186,7 @@
     <img class="sidebar-logo" src="../../_static/logo.png" alt="Logo"/>
   </div>
   
-  <span class="sidebar-brand-text">TAM 1.4.1 documentation</span>
+  <span class="sidebar-brand-text">TAM 1.5.0 documentation</span>
   
 </a><form class="sidebar-search-container" method="get" action="../../search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
@@ -340,16 +340,30 @@
 </div>
 <p>Supported families: Gaussian (identity), Poisson, Gamma, negative binomial and Tweedie (log link), Binomial (logit). Step-halving on the <strong>penalized</strong> deviance guarantees monotone descent <span class="bibtex-citation" id="id3">[<a class="reference internal" href="../../bibliography.html#id82" title="Simon N Wood. Generalized additive models: an introduction with R. chapman and hall/CRC, 2017.">Wood, 2017</a>]</span>.</p>
 </section>
+<section id="choosing-the-smoothing-parameters-of-a-glm">
+<h2>Choosing the smoothing parameters of a GLM<a class="headerlink" href="#choosing-the-smoothing-parameters-of-a-glm" title="Link to this heading">¶</a></h2>
+<p>Generalized cross-validation for a Gaussian model scores <span class="math notranslate nohighlight">\(\lVert y-\hat y\rVert^2\)</span> and the trace of the hat matrix. For a GLM the same score is taken on the <strong>working system</strong> of the last reweighting pass: with the working response <span class="math notranslate nohighlight">\(z\)</span> and the Fisher weights <span class="math notranslate nohighlight">\(W\)</span> at the fitted <span class="math notranslate nohighlight">\(\eta\)</span>, the penalized fit is a weighted least-squares problem in <span class="math notranslate nohighlight">\((\sqrt W\,\Phi,\ \sqrt W\,z)\)</span>, whose hat matrix is <span class="math notranslate nohighlight">\(A_\lambda=\sqrt W\,\Phi\,(\Phi^\top W\Phi+nS_\lambda)^{-1}\Phi^\top\sqrt W\)</span>. The criterion is</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[ \mathrm{GCV}(\lambda)=\frac{n\,\lVert\sqrt W(z-\Phi\hat\theta_\lambda)\rVert^2}{\bigl(n-\gamma\,\operatorname{tr}A_\lambda\bigr)^2}, \]</div>
+</div>
+<p>which is the Pearson-type criterion of the performance iteration <span class="bibtex-citation" id="id4">[<a class="reference internal" href="../../bibliography.html#id82" title="Simon N Wood. Generalized additive models: an introduction with R. chapman and hall/CRC, 2017.">Wood, 2017</a>]</span>. Because <span class="math notranslate nohighlight">\(z\)</span> and <span class="math notranslate nohighlight">\(W\)</span> depend on <span class="math notranslate nohighlight">\(\lambda\)</span> through <span class="math notranslate nohighlight">\(\eta\)</span>, one pass chooses <span class="math notranslate nohighlight">\(\lambda\)</span> for the current working system, the model is refitted at that <span class="math notranslate nohighlight">\(\lambda\)</span>, and the two steps are repeated until <span class="math notranslate nohighlight">\(\log_{10}\lambda\)</span> moves by less than a fraction of a decade. Scoring the raw response with an identity link instead would ignore the variance function <span class="math notranslate nohighlight">\(V(\mu)\)</span> and choose a <span class="math notranslate nohighlight">\(\lambda\)</span> for a model that is not the one fitted.</p>
+</section>
+<section id="exposure-offsets">
+<h2>Exposure offsets<a class="headerlink" href="#exposure-offsets" title="Link to this heading">¶</a></h2>
+<p>Counts observed over a variable effort <span class="math notranslate nohighlight">\(E_i\)</span> (a filtered volume, a surveyed area, a population at risk) have a mean proportional to the effort, <span class="math notranslate nohighlight">\(\mathbb E[Y_i]=E_i\,e^{\eta_i}=e^{\log E_i+\eta_i}\)</span>. The term <span class="math notranslate nohighlight">\(o_i=\log E_i\)</span> is a <strong>known</strong> part of the linear predictor, <span class="math notranslate nohighlight">\(\eta_i^{\text{total}}=o_i+\Phi_i\theta\)</span>, with coefficient fixed at 1 and no parameter. It cannot be replaced by a feature <span class="math notranslate nohighlight">\(\log E\)</span> with a free coefficient: that coefficient is shrunk by the penalty and, when <span class="math notranslate nohighlight">\(\log E\)</span> is correlated with the other features, it absorbs part of their signal and moves the predictions where the effort differs.</p>
+<p>The fit changes in one place only. The working response of a pass is shifted by the offset, <span class="math notranslate nohighlight">\(z_i-o_i=(\eta_i-o_i)+(y_i-\mu_i)\,g'(\mu_i)\)</span>, and the same penalized weighted least-squares system is solved for <span class="math notranslate nohighlight">\(\theta\)</span> with <span class="math notranslate nohighlight">\(\mu_i=g^{-1}(o_i+\Phi_i\theta)\)</span>; for the Gaussian identity case this is the fit of <span class="math notranslate nohighlight">\(y-o\)</span>. The offset takes the raw column, with no rescaling, because a rescaled column would no longer have coefficient 1.</p>
+</section>
 <section id="overdispersed-counts-and-zero-inflated-positive-targets">
 <h2>Overdispersed counts and zero-inflated positive targets<a class="headerlink" href="#overdispersed-counts-and-zero-inflated-positive-targets" title="Link to this heading">¶</a></h2>
 <p>A count with variance above its mean, and a positive target with a share of exact zeros, need a variance that grows faster than the Poisson one, and a law that tells the probability of zero.</p>
-<p><strong>Negative binomial</strong> <span class="bibtex-citation" id="id4">[<a class="reference internal" href="../../bibliography.html#id127" title="Jerald F. Lawless. Negative binomial and mixed Poisson regression. The Canadian Journal of Statistics, 15(3):209–225, 1987.">Lawless, 1987</a>]</span>: <span class="math notranslate nohighlight">\(V(\mu)=\mu+\alpha\mu^2\)</span> with dispersion <span class="math notranslate nohighlight">\(\alpha=1/\theta\)</span>, the Poisson law with a Gamma-distributed rate. The mean is fitted by the reweighting above for a given <span class="math notranslate nohighlight">\(\alpha\)</span>; <span class="math notranslate nohighlight">\(\alpha\)</span> is then the maximiser of the log-likelihood</p>
+<p><strong>Negative binomial</strong> <span class="bibtex-citation" id="id5">[<a class="reference internal" href="../../bibliography.html#id127" title="Jerald F. Lawless. Negative binomial and mixed Poisson regression. The Canadian Journal of Statistics, 15(3):209–225, 1987.">Lawless, 1987</a>]</span>: <span class="math notranslate nohighlight">\(V(\mu)=\mu+\alpha\mu^2\)</span> with dispersion <span class="math notranslate nohighlight">\(\alpha=1/\theta\)</span>, the Poisson law with a Gamma-distributed rate. The mean is fitted by the reweighting above for a given <span class="math notranslate nohighlight">\(\alpha\)</span>; <span class="math notranslate nohighlight">\(\alpha\)</span> is then the maximiser of the log-likelihood</p>
 <div class="math-wrapper docutils container">
 <div class="math notranslate nohighlight">
 \[ \sum_i \Big[\log\Gamma(y_i+\theta)-\log\Gamma(\theta)+\theta\log\frac{\theta}{\theta+\mu_i}+y_i\log\frac{\mu_i}{\theta+\mu_i}\Big] \]</div>
 </div>
 <p>at the fitted means, and the two steps alternate until <span class="math notranslate nohighlight">\(\alpha\)</span> stops moving. The quantile of level <span class="math notranslate nohighlight">\(\tau\)</span> is the smallest integer <span class="math notranslate nohighlight">\(k\)</span> with <span class="math notranslate nohighlight">\(F(k)\ge\tau\)</span>, so it is an integer and never negative.</p>
-<p><strong>Tweedie</strong> with power <span class="math notranslate nohighlight">\(1&lt;p&lt;2\)</span> <span class="bibtex-citation" id="id5">[<a class="reference internal" href="../../bibliography.html#id126" title="Bent Jørgensen. Exponential dispersion models. Journal of the Royal Statistical Society: Series B, 49(2):127–162, 1987.">Jørgensen, 1987</a>]</span>: <span class="math notranslate nohighlight">\(V(\mu)=\phi\,\mu^{p}\)</span>, the law of a Poisson number <span class="math notranslate nohighlight">\(N\)</span> of Gamma-distributed jumps,</p>
+<p><strong>Tweedie</strong> with power <span class="math notranslate nohighlight">\(1&lt;p&lt;2\)</span> <span class="bibtex-citation" id="id6">[<a class="reference internal" href="../../bibliography.html#id126" title="Bent Jørgensen. Exponential dispersion models. Journal of the Royal Statistical Society: Series B, 49(2):127–162, 1987.">Jørgensen, 1987</a>]</span>: <span class="math notranslate nohighlight">\(V(\mu)=\phi\,\mu^{p}\)</span>, the law of a Poisson number <span class="math notranslate nohighlight">\(N\)</span> of Gamma-distributed jumps,</p>
 <div class="math-wrapper docutils container">
 <div class="math notranslate nohighlight">
 \[ N\sim\text{Poisson}(\lambda),\quad \lambda=\frac{\mu^{2-p}}{\phi\,(2-p)}, \qquad \text{jump}\sim\text{Gamma}\Big(\tfrac{2-p}{p-1},\ \phi\,(p-1)\,\mu^{p-1}\Big), \]</div>
@@ -358,7 +372,7 @@
 </section>
 <section id="robust-m-estimators">
 <h2>Robust M-estimators<a class="headerlink" href="#robust-m-estimators" title="Link to this heading">¶</a></h2>
-<p><span class="math notranslate nohighlight">\(z=y\)</span>; the loss enters through a bounded-influence weight <span class="bibtex-citation" id="id6">[<a class="reference internal" href="../../bibliography.html#id111" title="Peter J Huber. Robust estimation of a location parameter. The Annals of Mathematical Statistics, 35(1):73–101, 1964.">Huber, 1964</a>]</span> against a MAD robust scale <span class="math notranslate nohighlight">\(s\)</span>:</p>
+<p><span class="math notranslate nohighlight">\(z=y\)</span>; the loss enters through a bounded-influence weight <span class="bibtex-citation" id="id7">[<a class="reference internal" href="../../bibliography.html#id111" title="Peter J Huber. Robust estimation of a location parameter. The Annals of Mathematical Statistics, 35(1):73–101, 1964.">Huber, 1964</a>]</span> against a MAD robust scale <span class="math notranslate nohighlight">\(s\)</span>:</p>
 <div class="math-wrapper docutils container">
 <div class="math notranslate nohighlight">
 \[ \text{Huber: } w=\min\!\left(1,\ \tfrac{\delta}{|u|/s}\right), \qquad \text{Student-t: } w=\frac{\nu+1}{\nu + (u/s)^2}. \]</div>
@@ -366,7 +380,7 @@
 </section>
 <section id="expectiles-asymmetric-least-squares">
 <h2>Expectiles (asymmetric least squares)<a class="headerlink" href="#expectiles-asymmetric-least-squares" title="Link to this heading">¶</a></h2>
-<p>The <span class="math notranslate nohighlight">\(\tau\)</span>-expectile (asymmetric least squares <span class="bibtex-citation" id="id7">[<a class="reference internal" href="../../bibliography.html#id110" title="Whitney K Newey and James L Powell. Asymmetric least squares estimation and testing. Econometrica: Journal of the Econometric Society, pages 819–847, 1987.">Newey and Powell, 1987</a>]</span>) weights residuals asymmetrically (<span class="math notranslate nohighlight">\(w=\tau\)</span> above the fit, else <span class="math notranslate nohighlight">\(1-\tau\)</span>); the Jones/Yao-Tong bijection <span class="bibtex-citation" id="id8">[<a class="reference internal" href="../../bibliography.html#id116" title="M Chris Jones. Expectiles and m-quantiles are quantiles. Statistics &amp; Probability Letters, 20(2):149–153, 1994.">Jones, 1994</a>, <a class="reference internal" href="../../bibliography.html#id117" title="Qiwli Yao and Howell Tong. Asymmetric least squares regression estimation: a nonparametric approach. Journal of nonparametric statistics, 6(2-3):273–292, 1996.">Yao and Tong, 1996</a>]</span> maps an expectile level back to a genuine quantile.</p>
+<p>The <span class="math notranslate nohighlight">\(\tau\)</span>-expectile (asymmetric least squares <span class="bibtex-citation" id="id8">[<a class="reference internal" href="../../bibliography.html#id110" title="Whitney K Newey and James L Powell. Asymmetric least squares estimation and testing. Econometrica: Journal of the Econometric Society, pages 819–847, 1987.">Newey and Powell, 1987</a>]</span>) weights residuals asymmetrically (<span class="math notranslate nohighlight">\(w=\tau\)</span> above the fit, else <span class="math notranslate nohighlight">\(1-\tau\)</span>); the Jones/Yao-Tong bijection <span class="bibtex-citation" id="id9">[<a class="reference internal" href="../../bibliography.html#id116" title="M Chris Jones. Expectiles and m-quantiles are quantiles. Statistics &amp; Probability Letters, 20(2):149–153, 1994.">Jones, 1994</a>, <a class="reference internal" href="../../bibliography.html#id117" title="Qiwli Yao and Howell Tong. Asymmetric least squares regression estimation: a nonparametric approach. Journal of nonparametric statistics, 6(2-3):273–292, 1996.">Yao and Tong, 1996</a>]</span> maps an expectile level back to a genuine quantile.</p>
 <div class="math-wrapper docutils container">
 <div class="math notranslate nohighlight">
 \[ w = \tau\,\mathbb 1\{y\ge\eta\} + (1-\tau)\,\mathbb 1\{y&lt;\eta\}. \]</div>
@@ -431,6 +445,8 @@
             <ul>
 <li><a class="reference internal" href="#">Reweighted Estimation: GLMs, Expectiles &amp; Robust M-Estimators</a><ul>
 <li><a class="reference internal" href="#exponential-family-glms-p-irls">Exponential-family GLMs (P-IRLS)</a></li>
+<li><a class="reference internal" href="#choosing-the-smoothing-parameters-of-a-glm">Choosing the smoothing parameters of a GLM</a></li>
+<li><a class="reference internal" href="#exposure-offsets">Exposure offsets</a></li>
 <li><a class="reference internal" href="#overdispersed-counts-and-zero-inflated-positive-targets">Overdispersed counts and zero-inflated positive targets</a></li>
 <li><a class="reference internal" href="#robust-m-estimators">Robust M-estimators</a></li>
 <li><a class="reference internal" href="#expectiles-asymmetric-least-squares">Expectiles (asymmetric least squares)</a></li>
@@ -445,7 +461,7 @@
       
     </aside>
   </div>
-</div><script src="../../_static/documentation_options.js?v=350a9c04"></script>
+</div><script src="../../_static/documentation_options.js?v=e0a75244"></script>
     <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/scripts/furo.js?v=46bd48cc"></script>

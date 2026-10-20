@@ -6,8 +6,8 @@
 <link rel="index" title="Index" href="../../genindex.html"><link rel="search" title="Search" href="../../search.html"><link rel="next" title="Reweighted Estimation: Strategy Pattern &amp; IRLS Driver" href="../statistics/01_reweighted_estimation_code.html"><link rel="prev" title="The Spectral Dictionary: PyTorch Implementations &amp; Factory Assembly" href="06_the_spectrum_api.html">
         <link rel="prefetch" href="../../_static/logo.png" as="image">
 
-    <!-- Generated with Sphinx 9.1.0 and Furo 2025.12.19 -->
-        <title>The Statistics API: One Atom, Many Schedules - TAM 1.4.1 documentation</title>
+    <!-- Generated with Sphinx 9.1.1 and Furo 2025.12.19 -->
+        <title>The Statistics API: One Atom, Many Schedules - TAM 1.5.0 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=d111a655" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo-extensions.css?v=8dab3a3b" />
@@ -162,7 +162,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="../../index.html"><div class="brand">TAM 1.4.1 documentation</div></a>
+      <a href="../../index.html"><div class="brand">TAM 1.5.0 documentation</div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -186,7 +186,7 @@
     <img class="sidebar-logo" src="../../_static/logo.png" alt="Logo"/>
   </div>
   
-  <span class="sidebar-brand-text">TAM 1.4.1 documentation</span>
+  <span class="sidebar-brand-text">TAM 1.5.0 documentation</span>
   
 </a><form class="sidebar-search-container" method="get" action="../../search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
@@ -419,6 +419,9 @@
 <span class="sd">        """</span>
         <span class="n">penalty_M_star_M</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_build_penalty_matrix</span><span class="p">()</span>
         <span class="n">loss_L_star_L</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_build_loss_matrix</span><span class="p">()</span>
+        <span class="n">offset</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_offset_of</span><span class="p">(</span><span class="n">x_data</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">offset</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">z_target</span> <span class="o">=</span> <span class="n">z_target</span> <span class="o">-</span> <span class="n">offset</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="o">=</span><span class="n">z_target</span><span class="o">.</span><span class="n">device</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">z_target</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>  <span class="c1"># the offset has coefficient 1: solve for the rest</span>
         <span class="k">return</span> <span class="n">smart_solve</span><span class="p">(</span>
             <span class="n">x_data</span><span class="o">=</span><span class="n">x_data</span><span class="p">,</span>
             <span class="n">y_data</span><span class="o">=</span><span class="n">z_target</span><span class="p">,</span>
@@ -444,6 +447,11 @@
             <span class="k">return</span> <span class="n">_distributional</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data_train</span><span class="p">,</span> <span class="o">**</span><span class="n">schedule_kwargs</span><span class="p">)</span>
         <span class="k">if</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">"_mixture_components_"</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="k">return</span> <span class="n">_mixture</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data_train</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_transform_active</span><span class="p">():</span>
+            <span class="n">working</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_transformed_frame</span><span class="p">(</span><span class="n">data_train</span><span class="p">,</span> <span class="n">estimate</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">working</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_finish_transform_fit</span><span class="p">(</span><span class="n">working</span><span class="p">)</span>
+            <span class="k">return</span> <span class="bp">self</span>
         <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">data_train</span><span class="p">)</span>
 </pre></div>
 </div>
@@ -575,7 +583,7 @@
       
     </aside>
   </div>
-</div><script src="../../_static/documentation_options.js?v=350a9c04"></script>
+</div><script src="../../_static/documentation_options.js?v=e0a75244"></script>
     <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/scripts/furo.js?v=46bd48cc"></script>

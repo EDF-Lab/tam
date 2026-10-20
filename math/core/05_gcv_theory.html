@@ -6,8 +6,8 @@
 <link rel="index" title="Index" href="../../genindex.html"><link rel="search" title="Search" href="../../search.html"><link rel="next" title="One Atom, Many Statistics: The Statistics API" href="07_the_statistics_api.html"><link rel="prev" title="Computational Complexity (\(\mathcal{O}(D^3+T D^2)\) vs \(\mathcal{O}(T^3)\))" href="04_complexity.html">
         <link rel="prefetch" href="../../_static/logo.png" as="image">
 
-    <!-- Generated with Sphinx 9.1.0 and Furo 2025.12.19 -->
-        <title>Hyperparameter Optimization: Generalized Cross-Validation (GCV) - TAM 1.4.1 documentation</title>
+    <!-- Generated with Sphinx 9.1.1 and Furo 2025.12.19 -->
+        <title>Hyperparameter Optimization: Generalized Cross-Validation (GCV) - TAM 1.5.0 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=d111a655" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo-extensions.css?v=8dab3a3b" />
@@ -162,7 +162,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="../../index.html"><div class="brand">TAM 1.4.1 documentation</div></a>
+      <a href="../../index.html"><div class="brand">TAM 1.5.0 documentation</div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -186,7 +186,7 @@
     <img class="sidebar-logo" src="../../_static/logo.png" alt="Logo"/>
   </div>
   
-  <span class="sidebar-brand-text">TAM 1.4.1 documentation</span>
+  <span class="sidebar-brand-text">TAM 1.5.0 documentation</span>
   
 </a><form class="sidebar-search-container" method="get" action="../../search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
@@ -420,6 +420,15 @@ To safely scale, TAM deploys a Discrete Coordinate Descent algorithm <span class
 </section>
 </section>
 <hr class="docutils" />
+<section id="the-restricted-marginal-likelihood-alternative-reml">
+<h2>The Restricted Marginal Likelihood Alternative (REML)<a class="headerlink" href="#the-restricted-marginal-likelihood-alternative-reml" title="Link to this heading">¶</a></h2>
+<p>GCV scores an asymptotic approximation of the leave-one-out error, and its curve in the smoothing parameters can have several minima when the errors are correlated or clustered: a wiggly fit that follows the noise then looks as good as a smooth one, and the parameters come out too small. Treating the coefficients as a Gaussian random effect with precision <span class="math notranslate nohighlight">\(nS_{\boldsymbol\lambda}\)</span>, <span class="math notranslate nohighlight">\(S_{\boldsymbol\lambda}=\sum_p\lambda_pP_p\)</span>, and integrating them out by the Laplace approximation gives the restricted marginal likelihood <span class="bibtex-citation" id="id10">[<a class="reference internal" href="../../bibliography.html#id137" title="Simon N. Wood. Fast stable restricted maximum likelihood and marginal likelihood estimation of semiparametric generalized linear models. Journal of the Royal Statistical Society: Series B, 73(1):3–36, 2011.">Wood, 2011</a>]</span></p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[ \ell_R(\boldsymbol\rho)=-\tfrac12\log\big|X^\top WX+nS_{\boldsymbol\lambda}\big|+\tfrac12\log|nS_{\boldsymbol\lambda}|_+-\frac{n-M_0}{2}\log\hat\phi,\qquad \hat\phi=\frac{D_p}{n-M_0}, \]</div>
+</div>
+<p>with <span class="math notranslate nohighlight">\(\rho_p=\log\lambda_p\)</span>, <span class="math notranslate nohighlight">\(M_0\)</span> the dimension of the null space of the penalty (the part of the fit that is not penalised), <span class="math notranslate nohighlight">\(|\cdot|_+\)</span> the determinant on the penalised subspace and <span class="math notranslate nohighlight">\(D_p=\lVert\sqrt W(y-X\hat\beta)\rVert^2+n\hat\beta^\top S_{\boldsymbol\lambda}\hat\beta\)</span> the penalised residual sum of squares. When the scale is known (Poisson, binomial) the last term is <span class="math notranslate nohighlight">\(-D_p/(2\phi)\)</span>. Its gradient is analytic: <span class="math notranslate nohighlight">\(\partial_{\rho_p}\log|A|=\operatorname{tr}(A^{-1}\partial_{\rho_p}nS_{\boldsymbol\lambda})\)</span> for <span class="math notranslate nohighlight">\(A=X^\top WX+nS_{\boldsymbol\lambda}\)</span>, the same with the pseudo-inverse for <span class="math notranslate nohighlight">\(\log|S|_+\)</span>, and <span class="math notranslate nohighlight">\(\partial_{\rho_p}D_p=\hat\beta^\top(\partial_{\rho_p}nS_{\boldsymbol\lambda})\hat\beta\)</span> because <span class="math notranslate nohighlight">\(\hat\beta\)</span> minimises <span class="math notranslate nohighlight">\(D_p\)</span>. The sampling distribution of the REML estimate of a smoothing parameter is narrower than that of the GCV estimate and it is much less prone to undersmoothing <span class="bibtex-citation" id="id11">[<a class="reference internal" href="../../bibliography.html#id138" title="Philip T. Reiss and R. Todd Ogden. Smoothing parameter selection for a class of semiparametric linear models. Journal of the Royal Statistical Society: Series B, 71(2):505–523, 2009.">Reiss and Ogden, 2009</a>]</span>. For a non-Gaussian family the criterion is evaluated on the working system of the last reweighting pass, as for GCV.</p>
+</section>
 <section id="future-roadmap-matrix-free-gcv">
 <h2>Future Roadmap: Matrix-Free GCV<a class="headerlink" href="#future-roadmap-matrix-free-gcv" title="Link to this heading">¶</a></h2>
 <p>Currently, the exact algebraic trace evaluation requires the dense inversion of the <span class="math notranslate nohighlight">\(D \times D\)</span> system matrix (<span class="math notranslate nohighlight">\(\Phi^T \Lambda^T \Lambda \Phi + T P\)</span>). In PyTorch hardware engineering, this imposes a hard physical ceiling. If the combined feature dimension exceeds <span class="math notranslate nohighlight">\(D = 7500\)</span>, the dense inversion will trigger an Out-Of-Memory (OOM) error. For extreme topologies exceeding this limit, the framework is mathematically forced to abandon exact GCV and fall back to a pure Matrix-Free grid search using the Conjugate Gradient solver.</p>
@@ -494,6 +503,7 @@ To safely scale, TAM deploys a Discrete Coordinate Descent algorithm <span class
 <li><a class="reference internal" href="#the-penalty-coordinates">The Penalty Coordinates</a></li>
 </ul>
 </li>
+<li><a class="reference internal" href="#the-restricted-marginal-likelihood-alternative-reml">The Restricted Marginal Likelihood Alternative (REML)</a></li>
 <li><a class="reference internal" href="#future-roadmap-matrix-free-gcv">Future Roadmap: Matrix-Free GCV</a></li>
 </ul>
 </li>
@@ -506,7 +516,7 @@ To safely scale, TAM deploys a Discrete Coordinate Descent algorithm <span class
       
     </aside>
   </div>
-</div><script src="../../_static/documentation_options.js?v=350a9c04"></script>
+</div><script src="../../_static/documentation_options.js?v=e0a75244"></script>
     <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/scripts/furo.js?v=46bd48cc"></script>

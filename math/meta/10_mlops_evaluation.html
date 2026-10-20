@@ -6,8 +6,8 @@
 <link rel="index" title="Index" href="../../genindex.html"><link rel="search" title="Search" href="../../search.html"><link rel="next" title="The Additive API and Object-Oriented Architecture" href="../../architecture/core/01_additive_api.html"><link rel="prev" title="AutoTAM Data Topology and Structural Safeguards [EXP]" href="09_auto_data_topology.html">
         <link rel="prefetch" href="../../_static/logo.png" as="image">
 
-    <!-- Generated with Sphinx 9.1.0 and Furo 2025.12.19 -->
-        <title>Empirical Evaluation and MLOps Diagnostics - TAM 1.4.1 documentation</title>
+    <!-- Generated with Sphinx 9.1.1 and Furo 2025.12.19 -->
+        <title>Empirical Evaluation and MLOps Diagnostics - TAM 1.5.0 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=d111a655" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo-extensions.css?v=8dab3a3b" />
@@ -162,7 +162,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="../../index.html"><div class="brand">TAM 1.4.1 documentation</div></a>
+      <a href="../../index.html"><div class="brand">TAM 1.5.0 documentation</div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -186,7 +186,7 @@
     <img class="sidebar-logo" src="../../_static/logo.png" alt="Logo"/>
   </div>
   
-  <span class="sidebar-brand-text">TAM 1.4.1 documentation</span>
+  <span class="sidebar-brand-text">TAM 1.5.0 documentation</span>
   
 </a><form class="sidebar-search-container" method="get" action="../../search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
@@ -376,6 +376,20 @@
 </li>
 </ul>
 </section>
+<section id="scoring-rules-of-the-non-gaussian-families-deviance">
+<h3>Scoring rules of the non-Gaussian families (deviance)<a class="headerlink" href="#scoring-rules-of-the-non-gaussian-families-deviance" title="Link to this heading">¶</a></h3>
+<p>The squared error is the right score only when the variance does not depend on the mean. For a count (<span class="math notranslate nohighlight">\(V(\mu)=\mu\)</span>), a positive skewed target (<span class="math notranslate nohighlight">\(V(\mu)=\mu^2\)</span>) or a bounded one, an observation at a large mean carries a much larger error without being worse predicted, and a few spikes decide the RMSE and the <span class="math notranslate nohighlight">\(R^2\)</span>. The proper score of an exponential dispersion family is its <strong>unit deviance</strong></p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[ d(y,\mu)=2\Bigl[\ell(y;y)-\ell(y;\mu)\Bigr]\ \ge 0, \qquad d(y,y)=0, \]</div>
+</div>
+<p>where <span class="math notranslate nohighlight">\(\ell\)</span> is the log-likelihood of the family at the given mean. It is the squared error for the Gaussian family, <span class="math notranslate nohighlight">\(2\bigl[y\log(y/\mu)-(y-\mu)\bigr]\)</span> for Poisson, <span class="math notranslate nohighlight">\(2\bigl[-\log(y/\mu)+(y-\mu)/\mu\bigr]\)</span> for Gamma and <span class="math notranslate nohighlight">\(2\bigl[y\log(y/\mu)+(1-y)\log\frac{1-y}{1-\mu}\bigr]\)</span> for the binomial, whose half is the log-loss. The <strong>proportion of deviance explained</strong> compares the model with the intercept-only prediction <span class="math notranslate nohighlight">\(\bar y\)</span>:</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[ D^2 = 1-\frac{\sum_i d(y_i,\hat\mu_i)}{\sum_i d(y_i,\bar y)}. \]</div>
+</div>
+<p>For the Gaussian family <span class="math notranslate nohighlight">\(D^2=R^2\)</span> exactly; for the others it is the likelihood-ratio pseudo-<span class="math notranslate nohighlight">\(R^2\)</span> that <code class="docutils literal notranslate"><span class="pre">mgcv</span></code> reports. Because the deviance is a strictly proper score, the true conditional mean has the smallest expected deviance, which the squared error does not guarantee when the variance grows with the mean <span class="bibtex-citation" id="id4">[<a class="reference internal" href="../../bibliography.html#id128" title="Tilmann Gneiting and Adrian E. Raftery. Strictly proper scoring rules, prediction, and estimation. Journal of the American Statistical Association, 102(477):359–378, 2007.">Gneiting and Raftery, 2007</a>]</span>. A prediction outside the domain of the family (a negative count) costs a very large deviance, where the squared error may prefer it.</p>
+</section>
 </section>
 <hr class="docutils" />
 <section id="temporal-degradation-tracking">
@@ -394,7 +408,7 @@ It computes the performance ratio:</p>
 <h2>3. Residual Autocorrelation (The Durbin-Watson Proxy)<a class="headerlink" href="#residual-autocorrelation-the-durbin-watson-proxy" title="Link to this heading">¶</a></h2>
 <p>If a Generalized Additive Model perfectly captures the conditional expectation <span class="math notranslate nohighlight">\(\mu(X)\)</span>, the residuals <span class="math notranslate nohighlight">\(\epsilon_t = Y_t - \hat{Y}_t\)</span> must be pure White Noise (<span class="math notranslate nohighlight">\(\mathbb{E}[\epsilon_t \epsilon_{t-k}] = 0\)</span> for all <span class="math notranslate nohighlight">\(k &gt; 0\)</span>).</p>
 <p>If the residuals exhibit serial correlation, it proves the current topology is missing a critical time-dependent feature (e.g., an unmodeled daily seasonality or an auto-regressive tensor product).</p>
-<p>The <code class="docutils literal notranslate"><span class="pre">analyze_residuals</span></code> module computes the <strong>Lag-1 Autocorrelation</strong> (<span class="math notranslate nohighlight">\(\rho_1\)</span>) as a highly efficient computational proxy for the canonical Durbin-Watson (<span class="math notranslate nohighlight">\(DW\)</span>) statistic <span class="bibtex-citation" id="id4">[<a class="reference internal" href="../../bibliography.html#id95" title="James Durbin and Geoffrey S Watson. Testing for serial correlation in least squares regression: i. Biometrika, 37(3/4):409–428, 1950.">Durbin and Watson, 1950</a>]</span>.</p>
+<p>The <code class="docutils literal notranslate"><span class="pre">analyze_residuals</span></code> module computes the <strong>Lag-1 Autocorrelation</strong> (<span class="math notranslate nohighlight">\(\rho_1\)</span>) as a highly efficient computational proxy for the canonical Durbin-Watson (<span class="math notranslate nohighlight">\(DW\)</span>) statistic <span class="bibtex-citation" id="id5">[<a class="reference internal" href="../../bibliography.html#id95" title="James Durbin and Geoffrey S Watson. Testing for serial correlation in least squares regression: i. Biometrika, 37(3/4):409–428, 1950.">Durbin and Watson, 1950</a>]</span>.</p>
 <p>The classical <span class="math notranslate nohighlight">\(DW\)</span> test evaluates:</p>
 <div class="math-wrapper docutils container">
 <div class="math notranslate nohighlight">
@@ -473,6 +487,7 @@ It computes the performance ratio:</p>
 <li><a class="reference internal" href="#the-mathematics-of-forecasting-metrics">1. The Mathematics of Forecasting Metrics</a><ul>
 <li><a class="reference internal" href="#l-1-and-l-2-loss-metrics"><span class="math notranslate nohighlight">\(L_1\)</span> and <span class="math notranslate nohighlight">\(L_2\)</span> Loss Metrics</a></li>
 <li><a class="reference internal" href="#relative-percentage-errors-the-smape-advantage">Relative Percentage Errors (The SMAPE Advantage)</a></li>
+<li><a class="reference internal" href="#scoring-rules-of-the-non-gaussian-families-deviance">Scoring rules of the non-Gaussian families (deviance)</a></li>
 </ul>
 </li>
 <li><a class="reference internal" href="#temporal-degradation-tracking">2. Temporal Degradation Tracking</a></li>
@@ -488,7 +503,7 @@ It computes the performance ratio:</p>
       
     </aside>
   </div>
-</div><script src="../../_static/documentation_options.js?v=350a9c04"></script>
+</div><script src="../../_static/documentation_options.js?v=e0a75244"></script>
     <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/scripts/furo.js?v=46bd48cc"></script>

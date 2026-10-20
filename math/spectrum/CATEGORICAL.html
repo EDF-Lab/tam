@@ -6,8 +6,8 @@
 <link rel="index" title="Index" href="../../genindex.html"><link rel="search" title="Search" href="../../search.html"><link rel="next" title="The Tensor Product Effect (Interactions)" href="CROSS_TENSOR.html"><link rel="prev" title="The Radial Basis Function (RBF) Effect" href="RBF.html">
         <link rel="prefetch" href="../../_static/logo.png" as="image">
 
-    <!-- Generated with Sphinx 9.1.0 and Furo 2025.12.19 -->
-        <title>The Categorical Effect (Discrete Topologies) - TAM 1.4.1 documentation</title>
+    <!-- Generated with Sphinx 9.1.1 and Furo 2025.12.19 -->
+        <title>The Categorical Effect (Discrete Topologies) - TAM 1.5.0 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=d111a655" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo-extensions.css?v=8dab3a3b" />
@@ -162,7 +162,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="../../index.html"><div class="brand">TAM 1.4.1 documentation</div></a>
+      <a href="../../index.html"><div class="brand">TAM 1.5.0 documentation</div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -186,7 +186,7 @@
     <img class="sidebar-logo" src="../../_static/logo.png" alt="Logo"/>
   </div>
   
-  <span class="sidebar-brand-text">TAM 1.4.1 documentation</span>
+  <span class="sidebar-brand-text">TAM 1.5.0 documentation</span>
   
 </a><form class="sidebar-search-container" method="get" action="../../search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
@@ -330,12 +330,13 @@
 <li><p><strong>Related code architecture:</strong> <a class="reference internal" href="../../architecture/core/06_the_spectrum_api.html"><span class="std std-doc">See the Code Architecture</span></a></p></li>
 </ul>
 <p>To model a variable residing in a discrete, non-continuous space <span class="math notranslate nohighlight">\(\mathcal{X} = \{c_1, c_2, \dots, c_K\}\)</span>, the Primal feature map projects the data into a finite-dimensional basis. The TAM framework provides two fundamentally different geometric projections depending on the selected topology:</p>
-<p><strong>1. Euclidean Indicator Projection (<code class="docutils literal notranslate"><span class="pre">nominal</span></code> and <code class="docutils literal notranslate"><span class="pre">ordinal</span></code>):</strong>
+<p><strong>1. Euclidean Indicator Projection (<code class="docutils literal notranslate"><span class="pre">nominal</span></code>, <code class="docutils literal notranslate"><span class="pre">ordinal</span></code> and <code class="docutils literal notranslate"><span class="pre">graph</span></code>):</strong>
 If the data is purely discrete, it is embedded into a <span class="math notranslate nohighlight">\(K\)</span>-dimensional orthogonal Euclidean basis using a standard indicator (One-Hot) vector:</p>
 <div class="math-wrapper docutils container">
 <div class="math notranslate nohighlight">
 \[\phi_{cat}(x) = \left[ I(x=c_1), I(x=c_2), \dots, I(x=c_K) \right]^\top\]</div>
 </div>
+<p>A value that is none of the <span class="math notranslate nohighlight">\(K\)</span> levels has no level of its own, and three conventions are possible. The nearest edge level (the default) lends its coefficient, which suits ordered levels where the nearest known level is the best guess. The zero indicator vector, <span class="math notranslate nohighlight">\(\phi_{cat}(x)=\mathbf 0\)</span>, gives it the effect <span class="math notranslate nohighlight">\(0\)</span>: the prediction falls back on the intercept and the other terms, the posterior mean of a level without data under the Ridge prior below, whose mean is <span class="math notranslate nohighlight">\(0\)</span>. The frequency vector, <span class="math notranslate nohighlight">\(\phi_{cat}(x)=\big(n_1,\dots,n_K\big)/\sum_kn_k\)</span> with <span class="math notranslate nohighlight">\(n_k\)</span> the number of training rows of level <span class="math notranslate nohighlight">\(k\)</span>, gives the mean of the level effects weighted by their frequency, the best prediction for a level drawn like the training rows when nothing else is known about it.</p>
 <p><strong>2. Continuous Angular Projection (<code class="docutils literal notranslate"><span class="pre">fourier</span></code>):</strong>
 If the discrete categories represent sampled points of an underlying continuous cycle (e.g., hours of the day or days of the week), the discrete input <span class="math notranslate nohighlight">\(x\)</span> is mapped to a continuous trigonometric domain and projected using a truncated sequence of <span class="math notranslate nohighlight">\(m\)</span> harmonics:</p>
 <div class="math-wrapper docutils container">
@@ -360,22 +361,29 @@ If the discrete categories represent sampled points of an underlying continuous 
 </div>
 <p>where <span class="math notranslate nohighlight">\(D \in \mathbb{R}^{(K-1) \times K}\)</span> computes the first-order discrete differences <span class="math notranslate nohighlight">\(\beta_k - \beta_{k-1}\)</span>. Minimizing this quadratic form strictly encourages adjacent categories to share similar statistical weights.</p>
 </li>
+<li><p><strong>Spatial (Graph) Categories:</strong> If the levels are regions of a map, the neighbouring regions should have similar effects. Link each level to the levels whose centroids are its <span class="math notranslate nohighlight">\(k\)</span> nearest (the edge set is symmetrised), let <span class="math notranslate nohighlight">\(A\in\{0,1\}^{K\times K}\)</span> be the adjacency matrix and <span class="math notranslate nohighlight">\(D\)</span> its degree matrix, and penalize the differences along the edges, a Gaussian Markov random field <span class="bibtex-citation" id="id3">[<a class="reference internal" href="../../bibliography.html#id133" title="Håvard Rue and Leonhard Held. Gaussian Markov Random Fields: Theory and Applications. Chapman &amp; Hall/CRC, 2005.">Rue and Held, 2005</a>]</span>:</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[P_{cat} = \lambda\,\big(D-A+\varepsilon I\big),\qquad \beta^\top(D-A)\beta=\sum_{i\sim j}(\beta_i-\beta_j)^2,\]</div>
+</div>
+<p>with a small <span class="math notranslate nohighlight">\(\varepsilon\)</span> that makes the matrix positive definite (the Laplacian alone has the constants in its null space). A region with few observations is pulled toward the mean of its neighbours, and a region without any is the harmonic average of them, which is the small-area estimator of disease mapping <span class="bibtex-citation" id="id4">[<a class="reference internal" href="../../bibliography.html#id134" title="Julian Besag, Jeremy York, and Annie Mollié. Bayesian image restoration, with two applications in spatial statistics. Annals of the Institute of Statistical Mathematics, 43(1):1–20, 1991.">Besag <em>et al.</em>, 1991</a>]</span>. The centroid of a level is the mean of the coordinates of its training rows, so a level with no training row has no neighbours and keeps the zero effect.</p>
+</li>
 <li><p><strong>Cyclical (Fourier) Categories:</strong> If the categories are discrete representations of a continuous cycle, they inherit the exact diagonal Sobolev penalty from the Fourier effect:</p>
 <div class="math-wrapper docutils container">
 <div class="math notranslate nohighlight">
 \[P_{cat} = \lambda \cdot \text{diag}\left( [1 + k^{2s}]_{k=1}^m \oplus [1 + k^{2s}]_{k=1}^m \right)\]</div>
 </div>
-<p>This structurally filters out high-frequency ringing artifacts across the discrete bins, stabilizing time-series learning by mapping discrete dummies to continuous angular projections <span class="bibtex-citation" id="id3">[<a class="reference internal" href="../../bibliography.html#id26" title="Nathan Doumèche, Francis Bach, Éloi Bedek, Gérard Biau, Claire Boyer, and Yannig Goude. Forecasting time series with constraints. arXiv preprint arXiv:2502.10485, 2025.">Doumèche <em>et al.</em>, 2025</a>]</span>.</p>
+<p>This structurally filters out high-frequency ringing artifacts across the discrete bins, stabilizing time-series learning by mapping discrete dummies to continuous angular projections <span class="bibtex-citation" id="id5">[<a class="reference internal" href="../../bibliography.html#id26" title="Nathan Doumèche, Francis Bach, Éloi Bedek, Gérard Biau, Claire Boyer, and Yannig Goude. Forecasting time series with constraints. arXiv preprint arXiv:2502.10485, 2025.">Doumèche <em>et al.</em>, 2025</a>]</span>.</p>
 </li>
 </ul>
 </section>
 <section id="rkhs-eligibility">
 <h2>RKHS Eligibility<a class="headerlink" href="#rkhs-eligibility" title="Link to this heading">¶</a></h2>
-<p>These projections securely embed discrete categorical topologies into a continuous, finite-dimensional vector space. In the nominal case, equipping the orthogonal basis with an isotropic penalty natively generates the Kronecker delta kernel, defined as <span class="math notranslate nohighlight">\(k(x, x') = \delta_{x, x'}\)</span>. In the ordinal case, the finite difference penalty dynamically generates a structured covariance matrix where the kernel similarity decays proportionally to the ordinal distance between classes. Both satisfy all Mercer conditions for a valid Reproducing Kernel Hilbert Space (RKHS) <span class="bibtex-citation" id="id4">[<a class="reference internal" href="../../bibliography.html#id9" title="Nachman Aronszajn. Theory of reproducing kernels. Transactions of the American mathematical society, 68(3):337–404, 1950.">Aronszajn, 1950</a>]</span>.</p>
+<p>These projections securely embed discrete categorical topologies into a continuous, finite-dimensional vector space. In the nominal case, equipping the orthogonal basis with an isotropic penalty natively generates the Kronecker delta kernel, defined as <span class="math notranslate nohighlight">\(k(x, x') = \delta_{x, x'}\)</span>. In the ordinal case, the finite difference penalty dynamically generates a structured covariance matrix where the kernel similarity decays proportionally to the ordinal distance between classes. Both satisfy all Mercer conditions for a valid Reproducing Kernel Hilbert Space (RKHS) <span class="bibtex-citation" id="id6">[<a class="reference internal" href="../../bibliography.html#id9" title="Nachman Aronszajn. Theory of reproducing kernels. Transactions of the American mathematical society, 68(3):337–404, 1950.">Aronszajn, 1950</a>]</span>.</p>
 </section>
 <section id="theoretical-integration-hardware-translation">
 <h2>Theoretical Integration &amp; Hardware Translation<a class="headerlink" href="#theoretical-integration-hardware-translation" title="Link to this heading">¶</a></h2>
-<p>In classical statistical software, estimating discrete categorical effects alongside continuous non-linear smoothers often forces the algorithm to rely on partitioned design spaces and alternating iterative backfitting <span class="bibtex-citation" id="id5">[<a class="reference internal" href="../../bibliography.html#id18" title="John M Chambers and Trevor J Hastie. Statistical models. In Statistical models in S, pages 13–44. Routledge, 2017.">Chambers and Hastie, 2017</a>]</span>.</p>
+<p>In classical statistical software, estimating discrete categorical effects alongside continuous non-linear smoothers often forces the algorithm to rely on partitioned design spaces and alternating iterative backfitting <span class="bibtex-citation" id="id7">[<a class="reference internal" href="../../bibliography.html#id18" title="John M Chambers and Trevor J Hastie. Statistical models. In Statistical models in S, pages 13–44. Routledge, 2017.">Chambers and Hastie, 2017</a>]</span>.</p>
 <p>By rigorously formalizing categorical sets as penalized finite-dimensional RKHS blocks, the TAM framework flawlessly concatenates these discrete embeddings directly beside continuous bases (such as Fourier series or Splines). This theoretically bridges discrete and continuous functional analysis, allowing both to be evaluated (<code class="docutils literal notranslate"><span class="pre">torch.nn.functional.one_hot</span></code>) and solved simultaneously within the exact, closed-form inversion of the global Primal matrix on the GPU.</p>
 </section>
 </section>
@@ -450,7 +458,7 @@ If the discrete categories represent sampled points of an underlying continuous 
       
     </aside>
   </div>
-</div><script src="../../_static/documentation_options.js?v=350a9c04"></script>
+</div><script src="../../_static/documentation_options.js?v=e0a75244"></script>
     <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/scripts/furo.js?v=46bd48cc"></script>

@@ -6,8 +6,8 @@
 <link rel="index" title="Index" href="../../genindex.html"><link rel="search" title="Search" href="../../search.html"><link rel="next" title="Dynamic Tracking via Extended Kalman Filtering [BETA]" href="02_kalman_filter.html"><link rel="prev" title="Risk: Conformal, ACI, EVT &amp; Epistemic Uncertainty" href="../statistics/04_risk_conformal_evt.html">
         <link rel="prefetch" href="../../_static/logo.png" as="image">
 
-    <!-- Generated with Sphinx 9.1.0 and Furo 2025.12.19 -->
-        <title>Adaptive Online Learning (AdaptiveTAM) - TAM 1.4.1 documentation</title>
+    <!-- Generated with Sphinx 9.1.1 and Furo 2025.12.19 -->
+        <title>Adaptive Online Learning (AdaptiveTAM) - TAM 1.5.0 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=d111a655" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo-extensions.css?v=8dab3a3b" />
@@ -162,7 +162,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="../../index.html"><div class="brand">TAM 1.4.1 documentation</div></a>
+      <a href="../../index.html"><div class="brand">TAM 1.5.0 documentation</div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -186,7 +186,7 @@
     <img class="sidebar-logo" src="../../_static/logo.png" alt="Logo"/>
   </div>
   
-  <span class="sidebar-brand-text">TAM 1.4.1 documentation</span>
+  <span class="sidebar-brand-text">TAM 1.5.0 documentation</span>
   
 </a><form class="sidebar-search-container" method="get" action="../../search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
@@ -383,6 +383,15 @@
 </div>
 <p>By flattening the group and window dimensions into a single massive 3D tensor batch, the framework computes these dynamic corrector weights simultaneously across all groups and time steps.  This isolates the regularization scale for each distinct topological window and neutralizes concept drift, bypassing the computational overhead typically associated with rolling dense matrix inversions.</p>
 </section>
+<section id="corrector-on-the-link-scale-non-gaussian-expert">
+<h3>Corrector on the Link Scale (Non-Gaussian Expert)<a class="headerlink" href="#corrector-on-the-link-scale-non-gaussian-expert" title="Link to this heading">¶</a></h3>
+<p>When the long-term expert is a GLM with link <span class="math notranslate nohighlight">\(g\)</span> and variance <span class="math notranslate nohighlight">\(V\)</span> (counts, positive means), an additive correction of the mean, <span class="math notranslate nohighlight">\(\hat y_t=\hat\mu_{0,t}+\hat\epsilon_t\)</span>, ignores the variance function and can leave the support of the family: after a stretch of zeros a negative drift gives <span class="math notranslate nohighlight">\(\hat y_t&lt;0\)</span>. The window is instead a GLM whose offset is the linear predictor of the expert, <span class="math notranslate nohighlight">\(\eta_{0,t}=g(\hat\mu_{0,t})\)</span>:</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[ \eta_t=\eta_{0,t}+\Phi(x_t)^\top\theta,\qquad \hat y_t=g^{-1}(\eta_t),\qquad \operatorname{Var}(Y_t)=\phi\,V(\hat y_t), \]</div>
+</div>
+<p>and <span class="math notranslate nohighlight">\(\theta\)</span> is the penalized iteratively reweighted least-squares solution of the window, with working response <span class="math notranslate nohighlight">\(z_s=\eta_s+(y_s-\mu_s)\,g'(\mu_s)\)</span> and weights <span class="math notranslate nohighlight">\(w_s=1/\big(g'(\mu_s)^2V(\mu_s)\big)\)</span>, started at <span class="math notranslate nohighlight">\(\theta=0\)</span> (the expert). A drift is then multiplicative for a log link, <span class="math notranslate nohighlight">\(\hat y_t=\hat\mu_{0,t}\,e^{\Phi^\top\theta}\)</span>, so the forecast is non-negative by construction, and an observation at a large mean no longer dominates the window as it does in the squared error. For the Gaussian identity link the system is the one above.</p>
+</section>
 <section id="online-scale-for-quantile-forecasts">
 <h3>Online Scale for Quantile Forecasts<a class="headerlink" href="#online-scale-for-quantile-forecasts" title="Link to this heading">¶</a></h3>
 <p>When the long-term expert is a location-scale law with location <span class="math notranslate nohighlight">\(\mu_0\)</span> and scale <span class="math notranslate nohighlight">\(\sigma_0\)</span>, the corrected location <span class="math notranslate nohighlight">\(\hat\mu_t=\mu_0+\hat\epsilon_t\)</span> moves with the data but the scale does not, so the intervals do not follow a change of variance. The standardized residual <span class="math notranslate nohighlight">\(r_s=(y_s-\hat\mu_s)/\sigma_{0,s}\)</span> has unit scale when the expert is calibrated; its root mean square over the most recent training window,</p>
@@ -467,6 +476,7 @@
 </li>
 <li><a class="reference internal" href="#mathematical-formulation-of-the-parallel-sliding-window">Mathematical Formulation of the Parallel Sliding-Window</a><ul>
 <li><a class="reference internal" href="#the-exact-local-erm-solution">The Exact Local ERM Solution</a></li>
+<li><a class="reference internal" href="#corrector-on-the-link-scale-non-gaussian-expert">Corrector on the Link Scale (Non-Gaussian Expert)</a></li>
 <li><a class="reference internal" href="#online-scale-for-quantile-forecasts">Online Scale for Quantile Forecasts</a></li>
 <li><a class="reference internal" href="#equivalence-with-a-rolling-statictam">Equivalence with a Rolling StaticTAM</a></li>
 </ul>
@@ -482,7 +492,7 @@
       
     </aside>
   </div>
-</div><script src="../../_static/documentation_options.js?v=350a9c04"></script>
+</div><script src="../../_static/documentation_options.js?v=e0a75244"></script>
     <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/scripts/furo.js?v=46bd48cc"></script>

@@ -6,8 +6,8 @@
 <link rel="index" title="Index" href="../../genindex.html"><link rel="search" title="Search" href="../../search.html"><link rel="next" title="Physics-Informed Kernel Learning (PIKL)" href="PHYSICS_PIKL.html"><link rel="prev" title="The Categorical Effect (Discrete Topologies)" href="CATEGORICAL.html">
         <link rel="prefetch" href="../../_static/logo.png" as="image">
 
-    <!-- Generated with Sphinx 9.1.0 and Furo 2025.12.19 -->
-        <title>The Tensor Product Effect (Interactions) - TAM 1.4.1 documentation</title>
+    <!-- Generated with Sphinx 9.1.1 and Furo 2025.12.19 -->
+        <title>The Tensor Product Effect (Interactions) - TAM 1.5.0 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=d111a655" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo-extensions.css?v=8dab3a3b" />
@@ -162,7 +162,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="../../index.html"><div class="brand">TAM 1.4.1 documentation</div></a>
+      <a href="../../index.html"><div class="brand">TAM 1.5.0 documentation</div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -186,7 +186,7 @@
     <img class="sidebar-logo" src="../../_static/logo.png" alt="Logo"/>
   </div>
   
-  <span class="sidebar-brand-text">TAM 1.4.1 documentation</span>
+  <span class="sidebar-brand-text">TAM 1.5.0 documentation</span>
   
 </a><form class="sidebar-search-container" method="get" action="../../search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
@@ -401,6 +401,15 @@ p_{21} &amp; 0 &amp; 0 &amp; p_{22} &amp; 0 &amp; 0 \\
 </div>
 <p>The final structural penalty matrix <span class="math notranslate nohighlight">\(P_{cross}\)</span> fundamentally scales to <span class="math notranslate nohighlight">\((D_A \times D_B) \times (D_A \times D_B)\)</span>.</p>
 </section>
+<section id="factor-smooth-interactions-one-smoothing-parameter-per-level">
+<h2>Factor-Smooth Interactions: One Smoothing Parameter per Level<a class="headerlink" href="#factor-smooth-interactions-one-smoothing-parameter-per-level" title="Link to this heading">¶</a></h2>
+<p>Crossing a smooth <span class="math notranslate nohighlight">\(f(x)\)</span> with a factor of <span class="math notranslate nohighlight">\(G\)</span> levels gives one curve per level, <span class="math notranslate nohighlight">\(f_g(x)\)</span>. With the Kronecker structure above, the roughness penalty <span class="math notranslate nohighlight">\(\lambda_x\,(P_x\otimes I_G)\)</span> gives all the curves the same stiffness, which is a poor compromise when the levels differ in noise and in complexity: a level with few, noisy observations needs a stiff curve, a level with a clean, rich signal a flexible one. Giving every level its own weight replaces the identity on the factor by a diagonal matrix:</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[ P(\lambda_1,\dots,\lambda_G,\lambda_c)=P_x\otimes\operatorname{diag}(\lambda_1,\dots,\lambda_G)+\lambda_c\,I_{K}\otimes I_G=\bigoplus_{g=1}^{G}\lambda_g\,P_x\ \ +\ \lambda_c I, \]</div>
+</div>
+<p>where the first term is block diagonal (each level penalises only its own curve) and <span class="math notranslate nohighlight">\(\lambda_c\)</span> is the ridge on the level effects, which also shrinks the part of each curve that <span class="math notranslate nohighlight">\(P_x\)</span> leaves free (constants and lines). The criterion for the smoothing parameters is then a function of <span class="math notranslate nohighlight">\(G+1\)</span> coordinates, and the penalty stays a positive semi-definite quadratic form in the coefficients, so the fit is still one linear system. When all the <span class="math notranslate nohighlight">\(\lambda_g\)</span> are equal the penalty is the shared one.</p>
+</section>
 <section id="rkhs-eligibility-and-the-representer-theorem">
 <h2>RKHS Eligibility and The Representer Theorem<a class="headerlink" href="#rkhs-eligibility-and-the-representer-theorem" title="Link to this heading">¶</a></h2>
 <p>The theoretical validity of this construction relies on the fundamental closure properties of kernels. Aronszajn formally proved that the class of positive definite reproducing kernels is strictly closed under pointwise multiplication <span class="bibtex-citation" id="id5">[<a class="reference internal" href="../../bibliography.html#id9" title="Nachman Aronszajn. Theory of reproducing kernels. Transactions of the American mathematical society, 68(3):337–404, 1950.">Aronszajn, 1950</a>]</span>. Therefore, the direct tensor product of multiple valid marginal Hilbert spaces, <span class="math notranslate nohighlight">\(\mathcal{H}_{cross} = \mathcal{H}_1 \otimes \dots \otimes \mathcal{H}_N\)</span>, rigorously generates a valid, finite-dimensional product RKHS.</p>
@@ -502,6 +511,7 @@ p_{21} &amp; 0 &amp; 0 &amp; p_{22} &amp; 0 &amp; 0 \\
 <li><a class="reference internal" href="#formula-definition">Formula Definition</a></li>
 <li><a class="reference internal" href="#optimal-penalization-scale-invariance">Optimal Penalization (Scale-Invariance)</a></li>
 <li><a class="reference internal" href="#the-geometric-scale-of-the-kronecker-product">The Geometric Scale of the Kronecker Product</a></li>
+<li><a class="reference internal" href="#factor-smooth-interactions-one-smoothing-parameter-per-level">Factor-Smooth Interactions: One Smoothing Parameter per Level</a></li>
 <li><a class="reference internal" href="#rkhs-eligibility-and-the-representer-theorem">RKHS Eligibility and The Representer Theorem</a></li>
 <li><a class="reference internal" href="#neural-interactions-and-marginal-clarity-critique">Neural Interactions and Marginal Clarity (Critique)</a></li>
 <li><a class="reference internal" href="#theoretical-integration-hardware-translation">Theoretical Integration &amp; Hardware Translation</a></li>
@@ -520,7 +530,7 @@ p_{21} &amp; 0 &amp; 0 &amp; p_{22} &amp; 0 &amp; 0 \\
       
     </aside>
   </div>
-</div><script src="../../_static/documentation_options.js?v=350a9c04"></script>
+</div><script src="../../_static/documentation_options.js?v=e0a75244"></script>
     <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/scripts/furo.js?v=46bd48cc"></script>
