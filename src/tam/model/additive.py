@@ -1279,7 +1279,7 @@ class StaticTAM(BaseTAM):
                 "Token": "c(x)", 
                 "Effect": "Categorical", 
                 "Syntax Example": "c(day, topo='ordinal', p_order=1)",
-                "Specific Params": "n_cat (auto-inferred), topo ('nominal'/'ordinal'/'fourier'/'graph' with coords='x:y', k_neighbors), p_order"
+                "Specific Params": "n_cat (auto-inferred), topo ('nominal'/'ordinal'/'fourier'/'graph' with coords='x:y', k_neighbors), p_order, unseen ('edge' default, 'mean' of the levels, or 'zero')"
             },
             {
                 "Token": "p(x)", 

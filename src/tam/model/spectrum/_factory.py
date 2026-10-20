@@ -140,8 +140,9 @@ def create_effects_from_parsed_terms(
             coords_raw = params_resolved.get('coords', None)
             coords = [s.strip() for s in str(coords_raw).replace('|', ':').split(':') if s.strip()] if coords_raw else None
             k_neighbors = int(params_resolved.get('k_neighbors', 6))
+            unseen = str(params_resolved.get('unseen', 'edge'))
             effects_list.append(CategoricalEffect(feature_name, n_cat, topo, lambda_p, p_order, extrap_val,
-                                                  coords=coords, k_neighbors=k_neighbors))
+                                                  coords=coords, k_neighbors=k_neighbors, unseen=unseen))
             effects_list[-1].n_cat_given = n_cat_given
             effects_list[-1].vocabulary = vocabulary
         #: </parse_categorical>
@@ -550,7 +551,7 @@ def initialize_effects(
     for effect in effects_list:
         if isinstance(effect, OffsetEffect):
             continue
-        if isinstance(effect, (TensorProductEffect, NeuralEffect, RBFEffect, TreeEffect, LinearTreeEffect, SplineEffect)) or _reads_several(effect):
+        if isinstance(effect, (TensorProductEffect, NeuralEffect, RBFEffect, TreeEffect, LinearTreeEffect, SplineEffect, CategoricalEffect)):
             if isinstance(effect, TensorProductEffect):
                 req_features = []
                 for e in effect.effects:

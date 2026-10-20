@@ -4,8 +4,8 @@
 
 r"""
 ``c(col)`` without ``n_cat``: the levels are the codes of the training rows (any integers, contiguous or not), and a code the model
-never saw at fit time has no categorical effect (zero: the prediction falls back on the intercept and the other terms) instead of
-taking the effect of an edge level.
+never saw at fit time takes the effect of the nearest edge level by default (``unseen='edge'``), or the frequency-weighted mean effect
+(``'mean'``), or none (``'zero'``).
 """
 import numpy as np
 import pandas as pd
@@ -54,7 +54,7 @@ def test_levels_given_in_another_order_or_with_gaps_give_the_same_fit():
 @pytest.mark.parametrize("unseen", [2, 30, 5000, -4])
 def test_an_unseen_code_has_no_categorical_effect(unseen):
     frame = _panel([10, 50, 1000], [4.0, -6.0, 1.0])
-    model = ta.StaticTAM("y ~ l(x) + c(g, ap=-6)").fit(frame)
+    model = ta.StaticTAM("y ~ l(x) + c(g, ap=-6, unseen='zero')").fit(frame)
     probe = pd.DataFrame({"g": [10, unseen], "x": [0.3, 0.3], "y": 0.0})
     parts = model.decompose_prediction(probe)
     assert abs(parts["effect_g"].iloc[0]) > 1.0  # a level that was seen carries its effect
@@ -63,9 +63,9 @@ def test_an_unseen_code_has_no_categorical_effect(unseen):
     assert predicted[1] == pytest.approx(parts["effect_offset"].iloc[1] + parts["effect_x"].iloc[1], abs=1e-9)
 
 
-def test_an_unseen_code_does_not_take_the_effect_of_an_edge_level():
+def test_unseen_zero_does_not_take_the_effect_of_an_edge_level():
     frame = _panel([0, 1, 2], [0.0, 3.0, 9.0])
-    model = ta.StaticTAM("y ~ l(x) + c(g, n_cat=3, ap=-6)").fit(frame)
+    model = ta.StaticTAM("y ~ l(x) + c(g, n_cat=3, ap=-6, unseen='zero')").fit(frame)
     edge = model.predict(pd.DataFrame({"g": [2], "x": [0.0], "y": 0.0}))["Estimatedy"].iloc[0]
     beyond = model.predict(pd.DataFrame({"g": [7], "x": [0.0], "y": 0.0}))["Estimatedy"].iloc[0]
     assert abs(edge - beyond) > 3.0
@@ -102,3 +102,42 @@ def test_a_flag_constant_in_training_keeps_its_single_level_for_every_row():
     probe = pd.DataFrame({"x": [0.0, 0.0], "crisis": [0.0, 1.0], "y": 0.0})
     pred = model.predict(probe)["Estimatedy"].to_numpy()
     assert pred[0] == pytest.approx(pred[1], abs=1e-9)  # the flag did not exist in training: no step at test time
+
+
+def test_unseen_mean_takes_the_mean_effect_of_the_levels_weighted_by_their_rows():
+    rng = np.random.default_rng(9)
+    counts = {10: 120, 50: 60, 1000: 20}
+    codes = np.concatenate([np.full(n, c) for c, n in counts.items()])
+    frame = pd.DataFrame({"g": codes, "x": rng.normal(size=codes.size)})
+    frame["y"] = 2.0 * frame["x"] + frame["g"].map({10: 4.0, 50: -6.0, 1000: 1.0}).to_numpy() + 0.05 * rng.normal(size=codes.size)
+    model = ta.StaticTAM("y ~ l(x) + c(g, ap=-8, unseen='mean')").fit(frame)
+    probe = pd.DataFrame({"g": [10, 50, 1000, 77], "x": 0.0, "y": 0.0})
+    effect = model.decompose_prediction(probe)["effect_g"].to_numpy()
+    weights = np.array(list(counts.values()), dtype=float) / sum(counts.values())
+    assert effect[3] == pytest.approx(float(weights @ effect[:3]), abs=1e-8)
+    assert effect[3] != pytest.approx(0.0, abs=1e-3)
+
+
+def test_unseen_zero_gives_back_the_zero_effect_and_other_values_are_refused():
+    frame = _panel([10, 50, 1000], [4.0, -6.0, 1.0])
+    model = ta.StaticTAM("y ~ l(x) + c(g, ap=-6, unseen='zero')").fit(frame)
+    parts = model.decompose_prediction(pd.DataFrame({"g": [77], "x": 0.0, "y": 0.0}))
+    assert parts["effect_g"].iloc[0] == 0.0
+    with pytest.raises(ValueError, match="unseen"):
+        CategoricalEffect("g", 3, "nominal", 1e-3, 1, "continue", unseen="median")
+
+
+def test_unseen_edge_is_the_default_and_the_previous_behaviour():
+    frame = _panel([0, 1, 2], [0.0, 3.0, 9.0])
+    model = ta.StaticTAM("y ~ l(x) + c(g, n_cat=3, ap=-6)").fit(frame)  # 'edge' is the default
+    probe = pd.DataFrame({"g": [2, 7], "x": 0.0, "y": 0.0})
+    pred = model.predict(probe)["Estimatedy"].to_numpy()
+    assert pred[0] == pytest.approx(pred[1], abs=1e-9)
+
+
+def test_inferred_levels_also_default_to_the_edge_level():
+    frame = _panel([0, 1, 2, 3], [0.0, 1.0, 2.0, 7.0])
+    model = ta.StaticTAM("y ~ l(x) + c(g, ap=-6)").fit(frame)
+    probe = pd.DataFrame({"g": [3, 9], "x": 0.0, "y": 0.0})
+    pred = model.predict(probe)["Estimatedy"].to_numpy()
+    assert pred[0] == pytest.approx(pred[1], abs=1e-9)

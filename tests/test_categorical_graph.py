@@ -81,7 +81,7 @@ def test_a_region_with_few_observations_borrows_strength_from_its_neighbours():
 
 def test_a_code_the_model_never_saw_has_no_effect():
     train, _ = _regions(rows_per_region=4, seed=3)
-    model = ta.StaticTAM("target ~ c(region, n_cat=36, topo='graph', coords='x:y', ap=-2)").fit(train)
+    model = ta.StaticTAM("target ~ c(region, n_cat=36, topo='graph', coords='x:y', ap=-2, unseen='zero')").fit(train)
     probe = pd.DataFrame({"region": [3, 99], "x": [3.0, 9.0], "y": [0.0, 9.0], "target": 0.0})
     parts = model.decompose_prediction(probe)
     assert abs(parts["effect_region"].iloc[0]) > 0.0
