@@ -40,6 +40,14 @@ $$P_{spline} = \lambda (\Delta_d^\top \Delta_d)$$
 
 This formulation rigorously conserves the fundamental moments of the data (mean and variance) without the boundary bias typical of standard neural networks {cite:p}`eilers1996flexible`, and is a cornerstone of modern GAM theory {cite:p}`wood2017generalized`.
 
+## Locally Adaptive Smoothing
+
+A single $\lambda$ gives the same stiffness to the whole curve: a function that is flat over most of its range and sharply curved in a narrow window (a demand trough at the end of the year, an impact) is either oversmoothed in the window or wiggly elsewhere. The adaptive P-spline {cite:p}`ruppert2000spatially` lets the smoothing parameter vary along the curve by writing the penalty with a weight on every difference:
+
+$$P_{spline}(\lambda_1,\dots,\lambda_m)=\sum_{r=1}^{m}\lambda_r\,\Delta_d^\top\operatorname{diag}(W_r)\,\Delta_d,\qquad W_r\ge 0,\quad \sum_{r=1}^{m}W_r=\mathbf 1,$$
+
+where $W_r\in\mathbb R^{K-d}$ holds the values of the $r$-th of $m$ smooth B-spline basis functions (over the position of the difference in the coefficient sequence). Each part has its own smoothing parameter, chosen by the same generalized cross-validation as the others. Because the weights add up to one, equal parameters give back $\lambda\,\Delta_d^\top\Delta_d$ exactly, and $m=1$ is the ordinary penalty. The penalty stays a positive semi-definite quadratic form in the coefficients, so the fit is still one linear system.
+
 ## Boundary Extrapolation & Operational Safety
 
 A known pathology of unconstrained polynomial basis expansions is Runge's phenomenon, catastrophic oscillatory explosions when evaluating data points outside the training domain (Out-of-Distribution). 

@@ -113,7 +113,8 @@ def create_effects_from_parsed_terms(
             deg = int(params_resolved.get('deg', 3))
             p = int(params_resolved.get('p', 2))
             extrap_val = params_resolved.get('extrapolate', 'linear')
-            effects_list.append(SplineEffect(feature_name, k, deg, p, lambda_p, extrap_val))
+            m_pen = int(params_resolved.get('m_pen', 1))
+            effects_list.append(SplineEffect(feature_name, k, deg, p, lambda_p, extrap_val, m_pen))
         #: </parse_spline>
             
         #: <parse_categorical>

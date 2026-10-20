@@ -117,7 +117,7 @@ Executes the recursive Cox-de Boor algorithm dynamically on the GPU.
 ```
 
 **3. Penalty Matrix**
-Constructs the structural penalty natively using consecutive finite difference matrices `torch.diff(I)`.
+Constructs the structural penalty natively using consecutive finite difference matrices `torch.diff(I)`. With `m_pen=m` in the formula (`s(x, k=30, m_pen=5)`), `_part_weights` evaluates `m` B-splines (degree `min(3, m - 1)`) at the position of each difference, the penalty is the sum of `m` weighted difference penalties, and the effect exposes `m` penalty coordinates (`penalty_coordinates`, `set_penalty_coordinates`) that `auto_fit` tunes one by one; inside `te(...)` the coordinates of the margin are listed in order, margin after margin. `m_pen=1` (the default) is the ordinary penalty, bit for bit.
 ```{literalinclude} ../../../../src/tam/model/spectrum/_spline.py
 :language: python
 :start-after: "#: <penalty_matrix>"

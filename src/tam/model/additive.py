@@ -1168,10 +1168,16 @@ class StaticTAM(BaseTAM):
             position += count
             effect.set_penalty_coordinates([float(v) for v in values])
             if isinstance(effect, TensorProductEffect):
-                for margin, value in zip(effect.effects, values):
-                    print(f" - te({', '.join(m.feature_name for m in effect.effects)})[{margin.feature_name}]: {value:.2e} (log10 = {np.log10(value):.2f})")
+                start = 0
+                for margin in effect.effects:
+                    for part, value in enumerate(values[start:start + margin.n_penalty_coordinates]):
+                        label = margin.feature_name if margin.n_penalty_coordinates == 1 else f"{margin.feature_name}#{part + 1}"
+                        print(f" - te({', '.join(m.feature_name for m in effect.effects)})[{label}]: {value:.2e} (log10 = {np.log10(value):.2f})")
+                    start += margin.n_penalty_coordinates
             else:
-                print(f" - {effect.feature_name}: {values[0]:.2e} (log10 = {np.log10(values[0]):.2f})")
+                for part, value in enumerate(values):
+                    label = effect.feature_name if len(values) == 1 else f"{effect.feature_name}#{part + 1}"
+                    print(f" - {label}: {value:.2e} (log10 = {np.log10(value):.2f})")
 
         if self._transform_active():
             self._finish_transform_fit(transformed_train)
@@ -1195,7 +1201,7 @@ class StaticTAM(BaseTAM):
                 "Token": "s(x)", 
                 "Effect": "P-Spline", 
                 "Syntax Example": "s(temp, k=12, deg=3, p=2)",
-                "Specific Params": "k (knots), deg (degree), p (penalty order)"
+                "Specific Params": "k (knots), deg (degree), p (penalty order), m_pen (locally adaptive penalty, m smoothing parameters)"
             },
             {
                 "Token": "f(x)", 

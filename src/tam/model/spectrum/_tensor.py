@@ -44,6 +44,8 @@ class TensorProductEffect(BaseEffect):
             for margin in effects:
                 if margin.n_penalty_coordinates == 1:
                     margin.lambda_p = float(lambda_p) * margin.lambda_p
+                else:
+                    margin.set_penalty_coordinates([float(lambda_p) * c for c in margin.penalty_coordinates()])
             lambda_p = 1.0
         super().__init__(name, "tensor_product", lambda_p, extrapolate)
         self.effects = effects
@@ -55,19 +57,23 @@ class TensorProductEffect(BaseEffect):
             return [self.lambda_p]
         coordinates = []
         for margin in self.effects:
-            if margin.n_penalty_coordinates != 1:
+            if isinstance(margin, TensorProductEffect):
                 raise NotImplementedError("A tensor product nested in a tensor product has no per-margin smoothing coordinates.")
-            coordinates.append(margin.lambda_p)
+            coordinates.extend(margin.penalty_coordinates())
         return coordinates
 
     def set_penalty_coordinates(self, values) -> None:
         values = list(values)
         if not self._fold_weight:
             return super().set_penalty_coordinates(values)
-        if len(values) != len(self.effects):
-            raise ValueError(f"The tensor product {self.feature_name} has {len(self.effects)} penalty coordinates, got {len(values)}.")
-        for margin, value in zip(self.effects, values):
-            margin.lambda_p = float(value)
+        expected = sum(margin.n_penalty_coordinates for margin in self.effects)
+        if len(values) != expected:
+            raise ValueError(f"The tensor product {self.feature_name} has {expected} penalty coordinates, got {len(values)}.")
+        start = 0
+        for margin in self.effects:
+            count = margin.n_penalty_coordinates
+            margin.set_penalty_coordinates(values[start:start + count])
+            start += count
 
     def initialize(self, x_cols: torch.Tensor) -> None:
         r"""Initialises each margin from its columns, sliced as in ``build_feature_map``."""
