@@ -125,3 +125,24 @@ def test_the_other_kernels_are_unchanged():
     a = ta.StaticTAM("y ~ rbf(x1, others='x2', n_centers=30, ap=-3)").fit(train).predict(train)["Estimatedy"].to_numpy()
     b = ta.StaticTAM("y ~ rbf(x1, others='x2', n_centers=30, kernel='matern', ap=-3)").fit(train).predict(train)["Estimatedy"].to_numpy()
     assert np.array_equal(a, b)
+
+
+def test_grid_search_uses_the_thin_plate_penalty_and_survives_few_distinct_points():
+    rng = np.random.default_rng(7)
+    base = rng.uniform(0, 1, (35, 2))
+    rows = base[rng.integers(0, 35, 400)]  # 400 rows on 35 distinct points, fewer than the 50 centres asked
+    frame = pd.DataFrame({"x1": rows[:, 0], "x2": rows[:, 1]})
+    frame["y"] = np.sin(3 * frame["x1"]) + frame["x2"] + 0.1 * rng.normal(size=len(frame))
+    train, val = frame.iloc[:300], frame.iloc[300:]
+    model = ta.StaticTAM("y ~ rbf(x1, others='x2', n_centers=50, kernel='tps', ap='pen')").grid_search_fit(train, val, {"pen": [-6.0, -2.0]})
+    effect = next(e for e in model.effects_list_ if isinstance(e, RBFEffect))
+    assert effect.n_centers <= 35
+    penalty = effect.build_penalty_matrix()
+    assert penalty.shape[0] == effect.get_n_coeffs() and not torch.allclose(penalty, torch.diag(torch.diagonal(penalty)))  # a bending energy, not a ridge
+
+
+def test_collinear_centres_are_refused():
+    effect = RBFEffect("x1", 12, None, None, 1e-3, ["x2"], "continue", kernel="tps")
+    line = torch.linspace(-1, 1, 30, dtype=torch.float64)
+    with pytest.raises(ValueError, match="collinear|rank"):
+        effect.initialize(torch.stack([line, 2 * line], dim=-1).unsqueeze(0))

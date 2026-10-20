@@ -135,3 +135,23 @@ def test_reml_handles_per_level_and_adaptive_coordinates():
     assert lam[0] > 5.0 * lam[1]
     adaptive = ta.StaticTAM("y ~ s(x, k=20, m_pen=3)").auto_fit(frame[frame["g"] == 1], criterion="reml")
     assert np.isfinite(adaptive.reml_score_)
+
+
+def test_reml_with_an_offset_and_with_several_groups():
+    rng = np.random.default_rng(5)
+    n = 600
+    exposure = rng.uniform(1, 30, n)
+    x = rng.uniform(0, 1, n)
+    frame = pd.DataFrame({"x": x, "log_e": np.log(exposure), "y": rng.poisson(exposure * np.exp(0.3 + np.sin(3 * x))).astype(float)})
+    model = ta.StaticTAM("y ~ offset(log_e) + s(x, k=10)", loss="poisson").auto_fit(frame, criterion="reml")
+    low = pd.DataFrame({"x": [0.5, 0.5], "log_e": [1.0, 1.0 + np.log(2.0)], "y": 0.0})
+    pred = model.predict(low)["Estimatedy"].to_numpy()
+    assert pred[1] / pred[0] == pytest.approx(2.0, rel=1e-9)
+
+    frames = []
+    for g in range(3):
+        xg = rng.uniform(0, 1, 300)
+        frames.append(pd.DataFrame({"g": g, "date": np.arange(300), "x": xg, "y": np.sin(4 * xg) + 0.2 * rng.normal(size=300)}))
+    panel = pd.concat(frames, ignore_index=True)
+    grouped = ta.StaticTAM("y ~ s(x, k=10)", group_col="g", date_col="date").auto_fit(panel, criterion="reml")
+    assert np.all(np.isfinite(grouped.predict(panel)["Estimatedy"].to_numpy())) and np.isfinite(grouped.reml_score_)

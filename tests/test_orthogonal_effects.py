@@ -92,3 +92,11 @@ def test_the_projection_is_the_same_in_a_batch_and_row_by_row():
 def test_the_flag_is_reported_by_the_effect():
     model = ta.StaticTAM("y ~ s(x1, k=8) + n(x1, others='x2', n_neurons=20, orthogonalize=True)").fit(_data(300))
     assert [type(e) for e in model.effects_list_ if getattr(e, "orthogonalize", False)] == [NeuralEffect]
+
+
+def test_the_decomposition_adds_up_to_the_prediction_with_an_orthogonal_block():
+    frame, test = _data(seed=7), _data(n=60, seed=8)
+    model = ta.StaticTAM("y ~ s(x1, k=8) + s(x2, k=8) + n(x1, others='x2', n_neurons=40, ap=-6, orthogonalize=True)").fit(frame)
+    parts = model.decompose_prediction(test)
+    columns = [c for c in parts.columns if c.startswith("effect_")]
+    assert np.allclose(parts[columns].sum(axis=1).to_numpy(), model.predict(test)["Estimatedy"].to_numpy(), atol=1e-8)

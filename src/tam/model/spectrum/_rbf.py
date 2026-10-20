@@ -176,6 +176,9 @@ class RBFEffect(BaseEffect):
             chosen = distinct[torch.randperm(distinct.shape[0], generator=rng, device=x_in.device)[:self.n_centers]]
         if chosen.shape[0] <= self._n_polynomial_terms():
             raise ValueError(f"The thin-plate spline of '{self.feature_name}' needs more than {self._n_polynomial_terms()} distinct points; got {chosen.shape[0]}.")
+        if int(torch.linalg.matrix_rank(self._monomials(chosen.to(torch.get_default_dtype())))) < self._n_polynomial_terms():
+            raise ValueError(f"The centres of the thin-plate spline of '{self.feature_name}' are collinear (rank-deficient for the polynomials of degree below {self.m}): "
+                             "the coordinates do not span the plane.")
         self.centers = chosen
         self.n_centers = int(chosen.shape[0])
         self._prepare_basis()

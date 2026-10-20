@@ -99,7 +99,8 @@ class TensorProductEffect(BaseEffect):
                 raise ValueError(f"The tensor product {self.feature_name} has {len(self._level_lambdas) + 1} penalty coordinates, got {len(values)}.")
             self._level_lambdas = [float(v) for v in values[:-1]]
             self.effects[self._factor_index].lambda_p = float(values[-1])
-            self.effects[self._smooth_index].lambda_p = float(np.exp(np.mean(np.log(self._level_lambdas))))  # stands for the smooth where one weight is read
+            positive = [max(v, 1e-300) for v in self._level_lambdas]
+            self.effects[self._smooth_index].lambda_p = float(np.exp(np.mean(np.log(positive))))  # stands for the smooth where one weight is read
             return
         expected = sum(margin.n_penalty_coordinates for margin in self.effects)
         if len(values) != expected:

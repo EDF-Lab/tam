@@ -105,3 +105,27 @@ def test_nominal_and_ordinal_are_unchanged():
     a = ta.StaticTAM("target ~ c(region, n_cat=36, topo='nominal', ap=-2)").fit(frame).predict(frame)["Estimatedtarget"].to_numpy()
     b = ta.StaticTAM("target ~ c(region, n_cat=36, ap=-2)").fit(frame).predict(frame)["Estimatedtarget"].to_numpy()
     assert np.array_equal(a, b)
+
+
+def test_a_graph_margin_of_a_tensor_product_uses_the_laplacian():
+    from tam.model.spectrum import TensorProductEffect
+    frame, _ = _regions(rows_per_region=6, seed=9)
+    frame["t"] = np.random.default_rng(9).uniform(0, 1, len(frame))
+    model = ta.StaticTAM("target ~ te(s(t, k=5), c(region, n_cat=36, topo='graph', coords='x:y', k_neighbors=4))").fit(frame)
+    te = next(e for e in model.effects_list_ if isinstance(e, TensorProductEffect))
+    margin = next(e for e in te.effects if isinstance(e, CategoricalEffect))
+    assert margin._laplacian is not None and margin._level_weights is not None
+
+
+def test_the_coordinates_of_a_graph_term_count_as_read_by_it():
+    from tam.model.spectrum import categorical_ranges, resolve_vocabulary
+    x_levels = CategoricalEffect("x", 6, "nominal", 1e-3, 1, "continue")
+    x_levels.n_cat_given = True
+    graph = CategoricalEffect("region", 36, "graph", 1e-3, 1, "continue", coords=["x", "y"])
+    graph.n_cat_given = True
+    # `x` is a coordinate read by the graph term as a continuous column: it is not a level index, whatever another c(x) says
+    assert "x" not in categorical_ranges([x_levels, graph])
+    assert "region" in categorical_ranges([x_levels, graph])
+    x_vocabulary = CategoricalEffect("x", 6, "nominal", 1e-3, 1, "continue")
+    x_vocabulary.vocabulary = True
+    assert resolve_vocabulary([x_vocabulary, graph], {"x": 9, "region": 36}) == []

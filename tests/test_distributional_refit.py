@@ -244,3 +244,10 @@ def test_the_leverage_correction_removes_the_downward_bias_of_the_scale(kind):
             ratios[key].append(np.mean(sigma_hat ** 2) / np.mean(sigma ** 2))
     assert np.mean(ratios["none"]) < 0.92
     assert abs(np.mean(ratios[kind]) - 1.0) < 0.05
+
+
+def test_the_leverage_of_a_refitted_location_names_the_missing_weight_column():
+    frame, _ = _data(400)
+    model = _model(refit_rounds=1).fit(frame)
+    with pytest.raises(ValueError, match="__w__"):
+        model._location_submodel_.leverage(frame)

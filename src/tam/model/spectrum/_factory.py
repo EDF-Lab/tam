@@ -365,6 +365,7 @@ def categorical_ranges(effects_list: List[BaseEffect]) -> Dict[str, int]:
         if isinstance(effect, OffsetEffect):
             return
         if isinstance(effect, CategoricalEffect):
+            other.update(getattr(effect, 'input_features', [effect.feature_name])[1:])  # the coordinate columns of a graph topology are continuous
             if getattr(effect, 'n_cat_given', False) or getattr(effect, 'vocabulary', False):
                 levels.setdefault(effect.feature_name, set()).add(effect.n_categories)
             else:
@@ -404,7 +405,10 @@ def resolve_vocabulary(effects_list: List[BaseEffect], data_info: Dict[str, Any]
             return
         if isinstance(effect, CategoricalEffect) and getattr(effect, 'vocabulary', False):
             vocab_effects.setdefault(effect.feature_name, []).append(effect)
+            other.update(getattr(effect, 'input_features', [effect.feature_name])[1:])
             return
+        if isinstance(effect, CategoricalEffect):
+            other.update(getattr(effect, 'input_features', [effect.feature_name])[1:])
         other.update(getattr(effect, 'input_features', None) or [effect.feature_name])
 
     for effect in effects_list:

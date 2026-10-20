@@ -122,3 +122,12 @@ def test_a_plain_linear_term_is_unchanged():
     a = ta.StaticTAM("y ~ s(x, k=8) + l(z)").fit(frame).predict(frame)["Estimatedy"].to_numpy()
     b = ta.StaticTAM("y ~ s(x, k=8) + l(z, raw=False)").fit(frame).predict(frame)["Estimatedy"].to_numpy()
     assert np.array_equal(a, b)
+
+
+def test_a_zero_level_coordinate_raises_no_warning():
+    import warnings
+    effect = _te("per_level", lambda_c=0.0)
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")
+        effect.set_penalty_coordinates([1.0, 0.0, 0.0, 0.0, 0.0])
+    assert np.isfinite(effect.effects[0].lambda_p)

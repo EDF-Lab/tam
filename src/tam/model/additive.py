@@ -535,6 +535,8 @@ class StaticTAM(BaseTAM):
         mask, balanced_data = _balance_groups(dataset=data, group_col=self.group_col_, date_col=self.date_col_, method="fill")
         x_data, _, groups_stacked = self._prepare_data(balanced_data)
         weight_column = getattr(self, "_weight_col_", None)
+        if weight_column is not None and weight_column not in balanced_data.columns:
+            raise ValueError(f"This model was fitted with the observation weights in column '{weight_column}': the leverage needs that column in `data`.")
         weights = self._stacked_column(balanced_data, weight_column) if weight_column is not None else None
         penalty = self._build_penalty_matrix()
         n_samples = x_data.shape[1]
@@ -638,7 +640,7 @@ class StaticTAM(BaseTAM):
             elif isinstance(effect, SplineEffect) and not isinstance(effect, UniversalPhysicsEffect):
                 details = f"Knots={effect.n_knots}, Diff(d={effect.penalty_order})"
             elif isinstance(effect, CategoricalEffect):
-                details = f"Cats={effect.n_categories}, Topo={effect.topology}"
+                details = f"Cats={effect.n_categories}, Topo={effect.topology}, Unseen={effect.unseen}"
             elif isinstance(effect, NeuralEffect):
                 details = f"Neurons={effect.n_neurons}, Act={effect.activation}"
             elif isinstance(effect, UniversalPhysicsEffect):
@@ -648,7 +650,10 @@ class StaticTAM(BaseTAM):
             elif isinstance(effect, WaveletEffect):
                 details = f"Scales={effect.n_scales}, Locs={effect.n_locations}"
             elif isinstance(effect, RBFEffect):
-                details = f"Centers={effect.n_centers}" + (f", Gamma={effect.gamma:.2f}" if effect.gamma else "")
+                if effect.kernel == 'tps':
+                    details = f"TPS(m={effect.m}), Centers={effect.n_centers}"
+                else:
+                    details = f"Centers={effect.n_centers}" + (f", Gamma={effect.gamma:.2f}" if effect.gamma else "")
             elif isinstance(effect, ChebyshevEffect):
                 details = f"Deg={effect.degree}, Sobolev(s={effect.s})"
             elif isinstance(effect, TensorProductEffect):
@@ -922,6 +927,8 @@ class StaticTAM(BaseTAM):
         """
         try:
             effects_list = combo["effects_list"]
+            # Centres, trees, knots are set from the training tensor before the penalty is built (the thin-plate penalty needs its centres)
+            initialize_effects(x_train, effects_list, feature_columns=self.features_config_['features'] if self.features_config_ else None)
             penalty_M_star_M = build_penalty_from_effects(effects_list)
             self.effects_list_ = effects_list 
             
