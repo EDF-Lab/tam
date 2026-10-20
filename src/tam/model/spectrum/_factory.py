@@ -129,7 +129,7 @@ def create_effects_from_parsed_terms(
                     # The levels are the codes of the training rows (any integers) when the model asks for it and the topology is
                     # a set of levels: one column per code, whatever the largest code.
                     levels = (data_info.get('__levels__') or {}).get(feature_name)
-                    if levels is not None and str(topo).lower() in ('nominal', 'ordinal'):
+                    if levels is not None and str(topo).lower() in ('nominal', 'ordinal', 'graph'):
                         n_cat, vocabulary = levels, True
                 else:
                     raise ValueError(f"Categorical term 'c({feature_name})' requires 'n_cat' or data context to infer it.")
@@ -137,7 +137,11 @@ def create_effects_from_parsed_terms(
                 n_cat = int(n_cat)
             p_order = int(params_resolved.get('p_order', 1))
             extrap_val = params_resolved.get('extrapolate', 'continue')
-            effects_list.append(CategoricalEffect(feature_name, n_cat, topo, lambda_p, p_order, extrap_val))
+            coords_raw = params_resolved.get('coords', None)
+            coords = [s.strip() for s in str(coords_raw).replace('|', ':').split(':') if s.strip()] if coords_raw else None
+            k_neighbors = int(params_resolved.get('k_neighbors', 6))
+            effects_list.append(CategoricalEffect(feature_name, n_cat, topo, lambda_p, p_order, extrap_val,
+                                                  coords=coords, k_neighbors=k_neighbors))
             effects_list[-1].n_cat_given = n_cat_given
             effects_list[-1].vocabulary = vocabulary
         #: </parse_categorical>
@@ -521,6 +525,11 @@ def extrapolating_features(effects_list: List[BaseEffect]) -> set:
     return names
 
 
+def _reads_several(effect) -> bool:
+    """A categorical effect with a graph topology reads its level column and the coordinate columns of the levels."""
+    return isinstance(effect, CategoricalEffect) and len(getattr(effect, 'input_features', [None])) > 1
+
+
 #: <build_phi>
 def initialize_effects(
     x_data: torch.Tensor,
@@ -541,7 +550,7 @@ def initialize_effects(
     for effect in effects_list:
         if isinstance(effect, OffsetEffect):
             continue
-        if isinstance(effect, (TensorProductEffect, NeuralEffect, RBFEffect, TreeEffect, LinearTreeEffect, SplineEffect)):
+        if isinstance(effect, (TensorProductEffect, NeuralEffect, RBFEffect, TreeEffect, LinearTreeEffect, SplineEffect)) or _reads_several(effect):
             if isinstance(effect, TensorProductEffect):
                 req_features = []
                 for e in effect.effects:
@@ -577,8 +586,8 @@ def build_phi_from_effects(
         if isinstance(effect, OffsetEffect):
             phi_components.append(effect.transform(x_data))
             
-        elif isinstance(effect, (TensorProductEffect, NeuralEffect, RBFEffect, TreeEffect, LinearTreeEffect)):
-            
+        elif isinstance(effect, (TensorProductEffect, NeuralEffect, RBFEffect, TreeEffect, LinearTreeEffect)) or _reads_several(effect):
+
             if isinstance(effect, TensorProductEffect):
                 req_features = []
                 for e in effect.effects:

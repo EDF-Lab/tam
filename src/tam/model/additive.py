@@ -464,6 +464,11 @@ class StaticTAM(BaseTAM):
             if 'slope' in term['params'] and isinstance(term['params']['slope'], str):
                 add_feature(term['params']['slope'].strip())
 
+            if term['type'] == 'c' and 'coords' in term['params'] and isinstance(term['params']['coords'], str):
+                for extra in re.split(r"[:|]", term['params']['coords']):
+                    if extra.strip():
+                        add_feature(extra.strip())
+
             if term['type'] == 'te':
                 for sub_term_raw in term['params'].keys():
                     if not sub_term_raw: continue
@@ -1220,7 +1225,7 @@ class StaticTAM(BaseTAM):
                 "Token": "c(x)", 
                 "Effect": "Categorical", 
                 "Syntax Example": "c(day, topo='ordinal', p_order=1)",
-                "Specific Params": "n_cat (auto-inferred), topo ('nominal'/'ordinal'), p_order"
+                "Specific Params": "n_cat (auto-inferred), topo ('nominal'/'ordinal'/'fourier'/'graph' with coords='x:y', k_neighbors), p_order"
             },
             {
                 "Token": "p(x)", 
