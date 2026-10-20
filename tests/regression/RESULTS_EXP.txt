@@ -1424,14 +1424,33 @@
 28_neural_tam.val_split_half.q75 = 56918.3
 28_neural_tam.val_split_half.rmse = 1474.41
 28_neural_tam.val_split_half.std = 10241.8
+33_autotam_small.AutoTAM_Apex_Ensemble.bias = -224.227
+33_autotam_small.AutoTAM_Apex_Ensemble.max = 77036.1
+33_autotam_small.AutoTAM_Apex_Ensemble.mean = 52500.9
+33_autotam_small.AutoTAM_Apex_Ensemble.min = 30848.5
 33_autotam_small.AutoTAM_Apex_Ensemble.missing = 0
 33_autotam_small.AutoTAM_Apex_Ensemble.n = 2208
-33_autotam_small.AutoTAM_Apex_Ensemble.rmse_above_6000 = <= 0
+33_autotam_small.AutoTAM_Apex_Ensemble.q25 = 46060.7
+33_autotam_small.AutoTAM_Apex_Ensemble.q50 = 52122.6
+33_autotam_small.AutoTAM_Apex_Ensemble.q75 = 58801
+33_autotam_small.AutoTAM_Apex_Ensemble.rmse = 2433.07
+33_autotam_small.AutoTAM_Apex_Ensemble.std = 9206.17
+33_autotam_small.Ensemble_Static.bias = -2522.71
+33_autotam_small.Ensemble_Static.max = 69881.3
+33_autotam_small.Ensemble_Static.mean = 50202.4
+33_autotam_small.Ensemble_Static.min = 30896.4
 33_autotam_small.Ensemble_Static.missing = 0
 33_autotam_small.Ensemble_Static.n = 2208
-33_autotam_small.Ensemble_Static.rmse_above_6000 = <= 0
+33_autotam_small.Ensemble_Static.q25 = 44917.5
+33_autotam_small.Ensemble_Static.q50 = 49942.9
+33_autotam_small.Ensemble_Static.q75 = 55540.3
+33_autotam_small.Ensemble_Static.rmse = 3395.57
+33_autotam_small.Ensemble_Static.std = 7683.28
+33_autotam_small.experts = 31
 33_autotam_small.experts_missing = <= 0
 33_autotam_small.output_columns = Ensemble_Static, Ensemble_Island_Federation, AutoTAM_Apex_Ensemble
+33_autotam_small.static_formulas = 31
+33_autotam_small.static_formulas_digest = 07ee1668aa10
 38_interactions_neural.neural_others_toy.bias = 37.7828
 38_interactions_neural.neural_others_toy.max = 78825.9
 38_interactions_neural.neural_others_toy.mean = 49812

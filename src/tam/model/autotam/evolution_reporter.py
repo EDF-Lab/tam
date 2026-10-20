@@ -25,6 +25,7 @@ Exports:
 import pandas as pd
 import numpy as np
 import datetime
+import json
 import os
 import re
 from typing import Dict, List, Any
@@ -52,6 +53,14 @@ class EvolutionReporter:
         os.makedirs(self.export_dir, exist_ok=True)
         self.run_timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
 #: </reporter_init>
+
+#: <reporter_export_run_info>
+    def export_run_info(self, seed: int) -> None:
+        """Writes the seed of the run next to its other exports, so that the run can be replayed."""
+        filepath = os.path.join(self.export_dir, f"AutoTAM_run_info_{self.run_timestamp}.json")
+        with open(filepath, "w", encoding="utf-8") as handle:
+            json.dump({"seed": seed, "run_timestamp": self.run_timestamp}, handle)
+#: </reporter_export_run_info>
 
 #: <reporter_export_chronological>
     def export_chronological_tests(self, test_registry: List[Dict[str, Any]]) -> None:

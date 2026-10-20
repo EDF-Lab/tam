@@ -320,7 +320,7 @@ class FeatureEngineer:
                     })
                 
         if to_drop:
-            to_drop = list(set(to_drop))
+            to_drop = sorted(set(to_drop))
             self.dropped_features.extend(to_drop)
             df.drop(columns=to_drop, inplace=True, errors='ignore')
             

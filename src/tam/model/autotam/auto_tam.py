@@ -29,6 +29,9 @@ from tam.model.adaptative import AdaptiveTAM
 from tam.model.opera import OperaTAM
 from tam.common.exceptions import collect_extrapolation
 from tam.model.autotam.failures import log_failure
+from tam.common.utils import parse_formula_to_terms
+from tam.model.autotam.anchor import ANCHOR_ISLAND, anchor_formula
+from tam.model.autotam.seeding import seeded_method
 logger = logging.getLogger(__name__)
 #: </auto_tam_imports>
 
@@ -57,6 +60,11 @@ class AutoTAM:
         eta: float = 0.1, 
         complexity_penalty: float = 1.0,
         export_dir: str = "AutoTAM_exports", 
+        extrapolation_guards: bool = False,
+        seasonal_anchor: bool = False,
+        season: Optional[int] = None,
+        replace_sentinels: bool = False,
+        seed: Optional[int] = None,
         **kwargs
     ):
         """
@@ -66,6 +74,20 @@ class AutoTAM:
             formula (str): High-level AutoTAM formula with embedded mandatory terms and a
                 pipeline macro (e.g., 'load ~ s(temp, k=10) + AutoPipe(temp, humidity)').
             lags (Optional[List[int]]): Explicit lag orders to evaluate during feature engineering.
+            seed (Optional[int]): Makes the search reproducible. With an integer, ``fit()`` seeds the global generators of ``random``, ``numpy`` and
+                ``torch``, runs, and restores them: the same seed on the same data gives the same experts, whatever was drawn before and the hash seed
+                of the interpreter; the seed is written in the export next to the run. ``None`` (default) draws from the global generators as before.
+                Not thread-safe. It does not make the numerical solver differ between CPU and GPU.
+            replace_sentinels (bool): Opt-in. Values that repeat at an extreme of the training target, far outside its robust spread (a
+                missing-value code such as -9999), are always reported (``target_profile_['sentinels']``, with a warning); with ``True`` they are
+                replaced by missing values before the fit, otherwise they are fitted as values.
+            seasonal_anchor (bool): Opt-in anchor: an expert that regresses the target on its value one season earlier is added to the pool
+                (island ``Anchor``, expanded like any champion), so the ensembles can always fall back on the last season repeated.
+            season (Optional[int]): Number of steps of one season for the anchor; by default the natural season of the sampling step (24 hourly,
+                7 daily, 52 weekly, 12 monthly, 4 quarterly). It must be at least the horizon (the smallest lag of the target).
+            extrapolation_guards (bool): Opt-in rules against extrapolation. Champions with more coefficients than half the fit rows, a neural or
+                PID term on fewer than 1000 rows, or a linear term on a counter are refused; a never-negative target is floored at zero; the rows
+                each expert had to be clipped on are counted against it in the selection and reported in ``clipped_rows_``.
             mandatory_variables (Optional[List[str]]): Variables required in all models.
             n_experts (int): Number of top expert architectures to retain in the ensemble.
             pop_size (int): Population size for island-based evolutionary exploration.
@@ -113,12 +135,20 @@ class AutoTAM:
         self.chronological_test_log = []
         self.online_weights_ = {}   # populated by predict_online(): MLpol weight trajectories
         self.apex_members_ = []     # the whole Apex pool, aggregated by predict_online()
+        self.extrapolation_guards = bool(extrapolation_guards)
+        self.seasonal_anchor = bool(seasonal_anchor)
+        self.replace_sentinels = bool(replace_sentinels)
+        self.seed = seed
+        self.target_profile_ = {}  # set by fit(): sentinels, bounds, shape and a family hint of the training target
+        self.season = season
+        self.clipped_rows_ = {}  # with the guards: rows clipped, by expert, set by predict()
         self.final_model_column_ = None  # set by fit(): the column of predict() that holds the final model
         self.history_ = None  # set by fit(): the training rows, put in front of a frame that starts after them
         self.extrapolating_features_ = []
 #: </auto_tam_init>
 
 #: <auto_tam_fit>
+    @seeded_method
     def fit(
         self, 
         df_train: Optional[pd.DataFrame] = None, 
@@ -130,8 +160,36 @@ class AutoTAM:
         expansions: Optional[Dict[str, bool]] = None, 
         validation_strategy: str = 'auto',
         optimization_metric: str = 'rmse',
-        refit_on_full_train: bool = False
+        refit_on_full_train: bool = False,
+        past_covariates: Optional[Dict[str, List[int]]] = None,
+        seed_formulas: Optional[List[str]] = None
     ):
+        """Fits the search on the given data.
+
+        Args:
+            df_train: Training frame, split by fractions into fit, dev and val.
+            df_fit: Fit rows, used with ``df_dev`` and ``df_val`` instead of ``df_train``.
+            df_dev: Development rows.
+            df_val: Validation rows.
+            date_col: Name of the date column.
+            group_col: Name of the group column (one model per group).
+            expansions: Which dynamic and static expansions of the base models are tried.
+            validation_strategy: ``'auto'``, ``'holdout'`` or ``'expanding_window'``.
+            optimization_metric: Metric the search minimises.
+            refit_on_full_train: Refit the experts on the training rows before the final scoring.
+            past_covariates: Past-only covariates, ``{column: [lag orders]}``: columns known up to the forecast origin only. The covariate itself is
+                never a feature; ``<column>_lag_<order>`` is built per group like the lags of the target and offered to the search. Each order must
+                be at least the horizon (the smallest lag of the target).
+            seed_formulas: Formulas the user already trusts, ``["y ~ l(x1) + s(x2, k=10)"]``. Each is expanded like a champion of the search (prior,
+                Kalman and adaptive experts) under the island name ``Seed``, so it competes in the leagues and in the Apex pool; the experts
+                are named ``..._Seed_R<k>_...``. A formula with another target, an unknown column or a syntax error raises a ``ValueError``.
+
+        Returns:
+            The fitted model.
+
+        Raises:
+            ValueError: Invalid ``past_covariates``, an empty split, or no expert survives the search.
+        """
         print("AutoTAM: Starting Pipeline...")
         self.expander.expansions = expansions or {"prior": True, "autofit": True, "kalman": True, "adaptive": True, "grid": False}
         
@@ -142,15 +200,26 @@ class AutoTAM:
             df_val=df_val, 
             date_col=date_col, 
             group_col=group_col,
-            validation_strategy=validation_strategy
+            validation_strategy=validation_strategy,
+            past_covariates=past_covariates,
+            seasonal_anchor=self.seasonal_anchor,
+            season=self.season,
+            replace_sentinels=self.replace_sentinels
         )
+        self.target_profile_ = self.ctx.target_profile
         self.history_ = self._training_rows(df_train, df_fit, df_dev, df_val)
+        seed_champions = self._seed_champions(seed_formulas)
+        self.ctx.extrapolation_guards = self.extrapolation_guards
         self.ctx.optimization_metric = optimization_metric
         self.ctx.complexity_penalty = self.complexity_penalty
         
         # The search fits and scores hundreds of models: their extrapolation warnings are collected, not raised one by one.
         with collect_extrapolation() as extrapolating:
             island_champions, draga_engine = self.discoverer.search(self.ctx)
+            if seed_champions:
+                island_champions = {**island_champions, "Seed": seed_champions}
+            if self.ctx.anchor_season:
+                island_champions = {**island_champions, ANCHOR_ISLAND: [anchor_formula(self.ctx.target, self.ctx.anchor_season)]}
             self.reporter.export_evolutionary_diagnostics(draga_engine)
 
             candidate_pool = self.expander.generate_experts(island_champions, self.ctx, self.chronological_test_log, self.reporter)
@@ -169,10 +238,53 @@ class AutoTAM:
             raise ValueError(self._no_expert_message())
 
         self.reporter.export_final_architectures(self.trained_experts)
+        if self.seed is not None:
+            self.reporter.export_run_info(self.seed)
         self.reporter.export_chronological_tests(self.chronological_test_log)
         self.reporter.export_collinearity_purge_log(self.data_manager.engineer.purge_log)
         return self
 #: </auto_tam_fit>
+
+#: <auto_tam_seed_formulas>
+    def _seed_champions(self, seed_formulas: Optional[List[str]]) -> List[str]:
+        """Validates the seed formulas given to ``fit()`` before the search and returns them as a list.
+
+        Args:
+            seed_formulas: Formulas the user already trusts, for example ``["y ~ l(x1) + s(x2, k=10)"]``.
+
+        Returns:
+            The formulas, in the order given (empty when ``seed_formulas`` is ``None``).
+
+        Raises:
+            ValueError: ``seed_formulas`` is not a list of strings, a formula cannot be parsed, its target is not the one of the AutoTAM
+                formula, or it names a column that is not in the data.
+        """
+        if seed_formulas is None:
+            return []
+        if not isinstance(seed_formulas, (list, tuple)):
+            raise ValueError(f"seed_formulas must be a list of formula strings, got {type(seed_formulas).__name__}.")
+        columns = set(self.ctx.df_all_aug.columns)
+        for formula in seed_formulas:
+            if not isinstance(formula, str):
+                raise ValueError(f"Each seed formula must be a string, got {formula!r}.")
+            try:
+                target, terms = parse_formula_to_terms(formula)
+            except ValueError as exc:
+                raise ValueError(f"Seed formula {formula!r} is not valid: {exc}") from exc
+            if target != self.ctx.target:
+                raise ValueError(f"Seed formula {formula!r} has target '{target}', the target of the AutoTAM formula is '{self.ctx.target}'.")
+            names = set()
+            for term in terms:
+                if term.get("type") == "te":
+                    for key in term.get("params", {}):
+                        names.update(re.findall(r"\(\s*([A-Za-z_]\w*)", str(key)))
+                else:
+                    names.add(term.get("feature"))
+            missing = sorted(n for n in names if n and n not in columns)
+            if missing:
+                raise ValueError(f"Seed formula {formula!r} uses columns that are not in the data: {missing}.")
+        return list(seed_formulas)
+#: </auto_tam_seed_formulas>
 
 #: <auto_tam_no_expert>
     def _no_expert_message(self) -> str:
@@ -245,7 +357,7 @@ class AutoTAM:
             try:
                 base_m = m if m_type == "static" else getattr(m, '_saved_base_model', getattr(m, 'base_model_', None))
                 f_ref = getattr(base_m, 'formula_', '')
-                req_cols = list(set([c for c in re.findall(r'[a-zA-Z0-9_]+', f_ref) if c in df_aug.columns]))
+                req_cols = sorted(set([c for c in re.findall(r'[a-zA-Z0-9_]+', f_ref) if c in df_aug.columns]))
                 df_aug_clean = df_aug.dropna(subset=req_cols).copy()
                 
                 if m_type == "static": 
@@ -312,7 +424,13 @@ class AutoTAM:
                 log_failure(logger, "Training bounds of the target for the clipping of the experts", exc)
                 bounds = None
         if bounds is not None and not preds_df.empty:
-            preds_df = preds_df.clip(lower=bounds[0], upper=bounds[1])
+            clipped = preds_df.clip(lower=bounds[0], upper=bounds[1])
+            if self.extrapolation_guards:
+                counts = (clipped != preds_df).sum()
+                self.clipped_rows_ = {str(name): int(n) for name, n in counts.items() if n}
+                if self.clipped_rows_:
+                    logger.info("Extrapolation guard: %d experts clipped (%d rows in total)", len(self.clipped_rows_), sum(self.clipped_rows_.values()))
+            preds_df = clipped
 
         for alias, real_name in self.island_aliases.items():
             if real_name in preds_df.columns:

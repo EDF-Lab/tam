@@ -17,6 +17,8 @@ from typing import Dict, Any, List, Optional, Tuple
 from .context import PipelineContext
 from tam.model.autotam.drag_tam import DragTAM
 from tam.model.autotam.population_nodes import get_island_objects
+from tam.model.autotam.guards import guard_violation, monotone_features
+from tam.model.autotam.seeding import rank_key
 #: </base_discoverer_imports>
 
 #: <base_discoverer_class>
@@ -126,10 +128,25 @@ class BaseDiscoverer:
                         island = self._get_island_from_formula(row['Formula'])
                         evaluated.append((island, row['Formula'], row['RMSE']))
 
+        if evaluated and getattr(ctx, "extrapolation_guards", False):
+            monotone = monotone_features(ctx.df_fit, [c for c in ctx.df_fit.columns if c != ctx.target])
+            n_rows = len(ctx.df_fit)
+            kept = []
+            for island, form, rmse in evaluated:
+                reason = guard_violation(form, n_rows, monotone, ctx.estimate_complexity)
+                if reason is None:
+                    kept.append((island, form, rmse))
+                else:
+                    code = reason.split(":")[0]
+                    ctx.guard_rejections[code] = ctx.guard_rejections.get(code, 0) + 1
+            evaluated = kept
+
         if evaluated:
             df_eval = pd.DataFrame(evaluated, columns=["Island", "Formula", "RMSE"])
             for island, group in df_eval.groupby("Island"):
-                top_5 = group.drop_duplicates(subset=["Formula"]).sort_values("RMSE").head(5)
+                unique = group.drop_duplicates(subset=["Formula"])
+                order = sorted(range(len(unique)), key=lambda i: rank_key(float(unique["RMSE"].iloc[i]), str(unique["Formula"].iloc[i])))
+                top_5 = unique.iloc[order].head(5)
                 island_champions[island] = top_5["Formula"].tolist()
         else:
             print("Warning: No formulas survived the evolutionary evaluation. Check for hidden NaNs or Inf values.")

@@ -160,7 +160,7 @@ class ExpertExpander:
                 prefix = f"{island_name}_R{rank}"
                 try:
                     all_tokens = re.findall(r'[a-zA-Z0-9_]+', base_form)
-                    req_cols = list(set([c for c in all_tokens if c in df_cont_all.columns]))
+                    req_cols = sorted(set([c for c in all_tokens if c in df_cont_all.columns]))
                     if ctx.target not in req_cols: 
                         req_cols.append(ctx.target)
                     

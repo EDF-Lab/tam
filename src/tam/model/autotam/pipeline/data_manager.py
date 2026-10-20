@@ -25,8 +25,77 @@ from tam.model.autotam.data_profiler import DataProfiler
 from tam.model.autotam.feature_engineer import FeatureEngineer
 from tam.model.autotam.effect_selector import EffectSelector
 from tam.model.autotam.failures import log_failure
+from tam.model.autotam.anchor import add_anchor_lag, anchor_column, resolve_season
+from tam.model.autotam.target_profile import mask_sentinels, profile_target
 logger = logging.getLogger(__name__)
 #: </data_manager_imports>
+
+#: <data_manager_past_covariates>
+def normalize_past_covariates(past_covariates: Optional[Dict[str, List[int]]], columns, target: str, date_col: Optional[str],
+                              group_col: Optional[str], features, target_lags: List[int]) -> Dict[str, List[int]]:
+    """Validates the declaration of the past-only covariates and returns it with sorted, distinct lags.
+
+    A past-only covariate is known up to the forecast origin only: its value at a forecast row is not known, so only its lags of
+    at least the horizon are legitimate features. The horizon is the smallest lag of the target when the target has lags.
+
+    Args:
+        past_covariates: Column name -> lag orders, as given to ``AutoTAM.fit``.
+        columns: Columns of the training data.
+        target: Name of the target column.
+        date_col: Name of the date column.
+        group_col: Name of the group column.
+        features: Features named in the formula pipeline macro.
+        target_lags: Lag orders of the target (explicit or parsed from the formula).
+
+    Returns:
+        The validated declaration, ``{}`` when ``past_covariates`` is ``None``.
+
+    Raises:
+        ValueError: A column is unknown, is the target, the date or the group column, or is also a feature of the formula; a lag is not an integer,
+            is below 1, or is below the horizon.
+    """
+    if not past_covariates:
+        return {}
+    horizon = min(target_lags) if target_lags else 1
+    clean: Dict[str, List[int]] = {}
+    for column, lags in past_covariates.items():
+        if column not in columns:
+            raise ValueError(f"Past covariate '{column}' is not a column of the training data.")
+        if column in (target, date_col, group_col):
+            raise ValueError(f"Past covariate '{column}' is the target, the date or the group column: it cannot be a covariate.")
+        if column in set(features):
+            raise ValueError(
+                f"'{column}' is declared as a past covariate: it is known only up to the forecast origin, so it cannot be a feature itself. "
+                "Remove it from the pipeline macro; its lags are offered to the search."
+            )
+        if isinstance(lags, (int, np.integer)):
+            lags = [lags]
+        lags = list(lags or [])
+        if not lags:
+            raise ValueError(f"Past covariate '{column}' needs at least one lag order.")
+        for lag in lags:
+            if isinstance(lag, bool) or not isinstance(lag, (int, np.integer)):
+                raise ValueError(f"The lag orders of past covariate '{column}' must be integers, got {lag!r}.")
+            if lag < 1:
+                raise ValueError(f"The lag orders of past covariate '{column}' must be at least 1, got {lag}.")
+            if lag < horizon:
+                raise ValueError(
+                    f"Lag {lag} of past covariate '{column}' is shorter than the horizon ({horizon}, the smallest lag of the target): "
+                    "its value would not be known at the forecast origin."
+                )
+        clean[column] = sorted({int(lag) for lag in lags})
+    return clean
+
+
+def add_past_covariate_lags(df: pd.DataFrame, past_covariates: Dict[str, List[int]], group_col: Optional[str]) -> None:
+    """Adds ``<column>_lag_<order>`` for each past covariate, inside each group, the way the lags of the target are built (in place)."""
+    for column, lags in past_covariates.items():
+        for lag in lags:
+            if group_col and group_col in df.columns:
+                df[f"{column}_lag_{lag}"] = df.groupby(group_col)[column].shift(lag)
+            else:
+                df[f"{column}_lag_{lag}"] = df[column].shift(lag)
+#: </data_manager_past_covariates>
 
 #: <data_manager_class>
 class DataManager:
@@ -80,7 +149,11 @@ class DataManager:
         df_val: Optional[pd.DataFrame] = None, 
         date_col: Optional[str] = None, 
         group_col: Optional[str] = None,
-        validation_strategy: str = 'auto'
+        validation_strategy: str = 'auto',
+        past_covariates: Optional[Dict[str, List[int]]] = None,
+        seasonal_anchor: bool = False,
+        season: Optional[int] = None,
+        replace_sentinels: bool = False
     ) -> PipelineContext:
         """
         Executes the data preparation phase and populates the pipeline context.
@@ -193,6 +266,13 @@ class DataManager:
         
         parsed_lags = list(ctx.formula_config.get("lags", {}).values())
         ctx.lags = list(set(self.user_lags + parsed_lags))
+        ctx.past_covariates = normalize_past_covariates(
+            past_covariates, ref_df.columns, ctx.target, date_col, group_col, ctx.formula_config["features"], ctx.lags
+        )
+        for column, lags in ctx.past_covariates.items():
+            for lag in lags:
+                if f"{column}_lag_{lag}" not in ctx.formula_config["features"]:
+                    ctx.formula_config["features"].append(f"{column}_lag_{lag}")
 
         if df_train is not None:
             df_proc = df_train.sort_values(date_col) if date_col else df_train
@@ -222,6 +302,15 @@ class DataManager:
                 raw_val.index = pd.RangeIndex(n_fit + n_dev, n_fit + n_dev + n_val)
             df_all_raw = pd.concat([raw_fit, raw_dev, raw_val])
 
+        ctx.target_profile = profile_target(pd.concat([raw_fit, raw_dev, raw_val])[ctx.target])
+        sentinels = ctx.target_profile["sentinels"]
+        if sentinels and replace_sentinels:
+            raw_fit, raw_dev, raw_val, df_all_raw = (mask_sentinels(frame, ctx.target, sentinels) for frame in (raw_fit, raw_dev, raw_val, df_all_raw))
+            logger.warning("The value(s) %s of the target are missing-value codes: replaced by missing values (replace_sentinels=True).", sentinels)
+        elif sentinels:
+            logger.warning("The value(s) %s repeat at an extreme of the target and look like missing-value codes (sentinels): they are fitted as values. "
+                           "Pass replace_sentinels=True to turn them into missing values.", sentinels)
+
         empty = [name for name, rows in (("df_fit", raw_fit), ("df_dev", raw_dev), ("df_val", raw_val)) if len(rows) == 0]
         if empty:
             raise ValueError(
@@ -232,6 +321,11 @@ class DataManager:
 
         _, ctx.metadata = self.profiler.profile_and_clean(raw_fit, ctx.formula_config, date_col, group_col)
 
+        if seasonal_anchor:
+            ctx.anchor_season = resolve_season(season, ctx.metadata.get("delta_t", "1D"), ctx.lags)
+            if anchor_column(ctx.anchor_season) not in ctx.formula_config["features"]:
+                ctx.formula_config["features"].append(anchor_column(ctx.anchor_season))
+
         if date_col:
             df_all_raw = df_all_raw.sort_values(date_col)
 
@@ -241,6 +335,10 @@ class DataManager:
                     df_all_raw[f"{ctx.target}_lag_{d}"] = df_all_raw.groupby(group_col)[ctx.target].shift(d)
                 else: 
                     df_all_raw[f"{ctx.target}_lag_{d}"] = df_all_raw[ctx.target].shift(d)
+
+        add_past_covariate_lags(df_all_raw, ctx.past_covariates, group_col)
+        if ctx.anchor_season:
+            add_anchor_lag(df_all_raw, ctx.target, ctx.anchor_season, group_col)
 
         df_all_clean = self.profiler.transform(df_all_raw, ctx.formula_config, date_col) if hasattr(self.profiler, 'transform') else df_all_raw
         df_all_aug = self.engineer.engineer_features(df_all_clean, ctx.formula_config, ctx.metadata, date_col)
@@ -265,7 +363,8 @@ class DataManager:
         ctx.validation_strategy = validation_strategy
         ctx.cv_folds = self.generate_cv_folds(ctx.df_fit, ctx.df_dev, date_col, validation_strategy)
 
-        max_look = max(ctx.lags) if ctx.lags else 24
+        look_orders = list(ctx.lags) + [lag for lags in ctx.past_covariates.values() for lag in lags] + ([ctx.anchor_season] if ctx.anchor_season else [])
+        max_look = max(look_orders) if look_orders else 24
         if group_col and group_col in df_all_aug.columns:
             ctx.historical_tail = df_all_aug.groupby(group_col).tail(max_look + 1).copy() 
         else:
@@ -396,6 +495,10 @@ class DataManager:
                     df_combined[f"{ctx.target}_lag_{d}"] = df_combined.groupby(ctx.group_col)[ctx.target].shift(d)
                 else: 
                     df_combined[f"{ctx.target}_lag_{d}"] = df_combined[ctx.target].shift(d)
+
+        add_past_covariate_lags(df_combined, ctx.past_covariates, ctx.group_col)
+        if ctx.anchor_season:
+            add_anchor_lag(df_combined, ctx.target, ctx.anchor_season, ctx.group_col)
 
         df_clean = self.profiler.transform(df_combined, ctx.formula_config, ctx.date_col) if hasattr(self.profiler, 'transform') else df_combined
         df_aug = self.engineer.engineer_features(df_clean, ctx.formula_config, ctx.metadata, ctx.date_col)

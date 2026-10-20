@@ -179,6 +179,11 @@ class PipelineContext:
     date_col: Optional[str] = None
     group_col: Optional[str] = None
     lags: List[int] = field(default_factory=list)
+    past_covariates: Dict[str, List[int]] = field(default_factory=dict)  # past-only covariates and their lag orders
+    extrapolation_guards: bool = False  # opt-in rules against extrapolation (see guards.py)
+    anchor_season: Optional[int] = None  # season of the seasonal anchor expert, None without the anchor (see anchor.py)
+    target_profile: Dict[str, Any] = field(default_factory=dict)  # facts about the training target (see target_profile.py)
+    guard_rejections: Dict[str, int] = field(default_factory=dict)  # champions refused by the guards, by reason code
     mandatory_terms: List[str] = field(default_factory=list)
     mandatory_variables: List[str] = field(default_factory=list)
     canonical_to_verbatim_mandatory: Dict[str, str] = field(default_factory=dict)

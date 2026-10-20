@@ -22,6 +22,8 @@ from typing import Dict, Any, List, Optional, Tuple
 from .context import PipelineContext
 from tam.model.opera import OperaTAM
 from tam.model.autotam.failures import log_failure
+from tam.model.autotam.guards import guard_bounds
+from tam.model.autotam.seeding import rank_key
 logger = logging.getLogger(__name__)
 #: </ensemble_selector_imports>
 
@@ -164,6 +166,8 @@ class EnsembleSelector:
             # 29k-88k, which a half-range margin (lower bound -540) let straight through.
             margin = 0.15 * (target_max - target_min)
             ctx.target_clip = (target_min - margin, target_max + margin)
+            if getattr(ctx, "extrapolation_guards", False):
+                ctx.target_clip = guard_bounds(target_min, target_max)
         except Exception as exc:
             log_failure(logger, "Training bounds of the target for the clipping of the experts", exc)
             ctx.target_clip = None
@@ -207,6 +211,8 @@ class EnsembleSelector:
                 base_ratio = comp_base / max(1, n_fit_samples)
                 dyn_ratio = comp_dyn / max(1, n_val_samples)
                 penalized_score = cv_score * (1.0 + penalty_factor * (base_ratio + dyn_ratio))
+                if getattr(ctx, "extrapolation_guards", False):
+                    penalized_score *= 1.0 + exp.get("clipped_share", 0.0)  # the rows an expert had to be clipped on count against it
                 
                 exp_record = {
                     **exp, 
@@ -323,7 +329,7 @@ class EnsembleSelector:
                           f"{len(valid_experts) - len(dynamic_only)} static experts excluded; {floor}; "
                           f"aggregating the remaining {len(admitted)} (no top-n truncation).")
 
-            apex_pool = sorted(apex_pool, key=lambda x: x["penalized_score"])
+            apex_pool = sorted(apex_pool, key=lambda x: rank_key(x["penalized_score"], x["name"]))
             if truncate:
                 apex_pool = apex_pool[:self.n_apex_experts]
             top_apex_names = [e["name"] for e in apex_pool]
@@ -369,7 +375,7 @@ class EnsembleSelector:
                     base_m = m if m_type == "static" else getattr(m, '_saved_base_model', getattr(m, 'base_model_', None))
                     if base_m and base_m not in refitted_bases:
                         f_ref = getattr(base_m, 'formula_', '')
-                        req_cols = list(set([c for c in re.findall(r'[a-zA-Z0-9_]+', f_ref) if c in ctx.df_all_aug.columns]))
+                        req_cols = sorted(set([c for c in re.findall(r'[a-zA-Z0-9_]+', f_ref) if c in ctx.df_all_aug.columns]))
                         if ctx.target not in req_cols: req_cols.append(ctx.target)
                         
                         full_train_clean = ctx.df_all_aug.dropna(subset=req_cols)  # new frame; fit copies it
@@ -422,7 +428,7 @@ class EnsembleSelector:
         Extracts predictions from an expert model across the specified validation space.
         """
         f_ref = getattr(m_ref, 'formula_', getattr(getattr(m_ref, '_saved_base_model', getattr(m_ref, 'base_model_', None)), 'formula_', ''))
-        req_cols = list(set([c for c in re.findall(r'[a-zA-Z0-9_]+', f_ref) if c in df_cont_val.columns]))
+        req_cols = sorted(set([c for c in re.findall(r'[a-zA-Z0-9_]+', f_ref) if c in df_cont_val.columns]))
         if ctx.target not in req_cols: req_cols.append(ctx.target)
         df_cv_clean = df_cont_val.dropna(subset=req_cols)  # new frame; never written to below
 
@@ -468,7 +474,11 @@ class EnsembleSelector:
             bounds = (float(ctx.df_fit[ctx.target].min()) - 0.5 * span,
                       float(ctx.df_fit[ctx.target].max()) + 0.5 * span)
         if bounds is not None:
-            values = np.clip(values, bounds[0], bounds[1])
+            clipped = np.clip(values, bounds[0], bounds[1])
+            if getattr(ctx, "extrapolation_guards", False):
+                exp["clipped_rows"] = int(np.sum(clipped != values))
+                exp["clipped_share"] = exp["clipped_rows"] / max(1, len(values))
+            values = clipped
         return values
 
     def _update_log_rmse(self, test_log, name, score, penalized_score=None, complexity=None):

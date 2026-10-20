@@ -254,6 +254,67 @@ When the search keeps no expert (too few rows for any formula to be estimated), 
 :caption: src/tam/model/autotam/auto_tam.py (Error When No Expert Survives)
 ```
 
+Past-only covariates (columns known up to the forecast origin, such as an availability that is observed but not planned) are declared in `fit(past_covariates={"availability": [24, 48]})`. The covariate itself is never a feature, because its value at a forecast row is not known; its lags are built per group like the lags of the target (`availability_lag_24`, `availability_lag_48`), added to the candidate features of the search, and rebuilt from the stored history at prediction. A lag below the horizon (the smallest lag of the target), an unknown column, or a covariate that is also named in the pipeline macro is rejected with a message:
+
+```{literalinclude} ../../../../src/tam/model/autotam/pipeline/data_manager.py
+:language: python
+:start-after: "#: <data_manager_past_covariates>"
+:end-before: "#: </data_manager_past_covariates>"
+:caption: src/tam/model/autotam/pipeline/data_manager.py (Past-Only Covariates)
+```
+
+Seed formulas (`fit(seed_formulas=["y ~ l(x1) + s(x2, k=10)"])`) are formulas the user already trusts. They are validated before the search (target, syntax, columns), then added to the champions of the search under the island name `Seed` and expanded like any champion: prior, Kalman and adaptive experts named `..._Seed_R<k>_...`, which appear in the performance board, in the leagues and, when they pass the quality floor, in the Apex pool. A seed is never forced into the final model: it competes, so the search cannot do worse than a good seed on the validation rows:
+
+```{literalinclude} ../../../../src/tam/model/autotam/auto_tam.py
+:language: python
+:start-after: "#: <auto_tam_seed_formulas>"
+:end-before: "#: </auto_tam_seed_formulas>"
+:caption: src/tam/model/autotam/auto_tam.py (Seed Formulas)
+```
+
+The extrapolation guards (`AutoTAM(extrapolation_guards=True)`, off by default) keep the worst extrapolations out of the search. A champion is refused when it has more coefficients than half the fit rows, a neural or PID term on fewer than 1,000 rows, or a linear term on a counter (a monotone column such as a trend index); the reasons are counted in the context (`guard_rejections`). The forecast bounds keep the training range plus a 15 % margin and are floored at zero for a target that was never negative; the rows each expert had to be clipped on are counted against it in the selection and reported by `AutoTAM.clipped_rows_` after a prediction. The thresholds are constants of the module, to be tuned on the multi-seed measurement before the guards become the default:
+
+```{literalinclude} ../../../../src/tam/model/autotam/guards.py
+:language: python
+:start-after: "#: <guards_constants>"
+:end-before: "#: </guards_constants>"
+:caption: src/tam/model/autotam/guards.py (Thresholds)
+```
+
+```{literalinclude} ../../../../src/tam/model/autotam/guards.py
+:language: python
+:start-after: "#: <guards_rules>"
+:end-before: "#: </guards_rules>"
+:caption: src/tam/model/autotam/guards.py (Rules)
+```
+
+The seasonal anchor (`AutoTAM(seasonal_anchor=True, season=None)`, off by default) puts the "last season repeated" reference in the pool. It is an expert of its own, a regression of the target on its value one season earlier (`y ~ l(anchor_lag_<season>)`, an intercept and a slope calibrate the reference), added to the champions under the island name `Anchor` and expanded like any champion (prior, Kalman and adaptive experts), so that the leagues and the Apex pool can fall back on it. The season is the natural season of the sampling step (24 hourly, 7 daily, 52 weekly, 12 monthly, 4 quarterly) unless `season=` is given; it must be at least the horizon, the smallest lag of the target, because its value one season earlier has to be known at the forecast origin:
+
+```{literalinclude} ../../../../src/tam/model/autotam/anchor.py
+:language: python
+:start-after: "#: <anchor_rules>"
+:end-before: "#: </anchor_rules>"
+:caption: src/tam/model/autotam/anchor.py (Seasonal Anchor)
+```
+
+Before the search the data manager reads the facts about the training target that make a fit wrong when nobody looks (`AutoTAM.target_profile_`): the sentinels (a value that repeats at an extreme of the range, far outside the robust spread, such as a missing-value code -9999), the physical bounds (a proportion in 0 to 1, a percentage reaching 100), the monotone share (a cumulative series), the integer, zero and negative shares, the skewness and kurtosis, and a one-word family hint: `cumulative`, `bounded`, `count`, `tweedie`, `log`, `asinh` or `gaussian`. A sentinel is always reported with a warning and fitted as a value unless `replace_sentinels=True` turns it into a missing value, because replacing changes the data. The hints are reported only: the search does not use them yet:
+
+```{literalinclude} ../../../../src/tam/model/autotam/target_profile.py
+:language: python
+:start-after: "#: <target_profile_rules>"
+:end-before: "#: </target_profile_rules>"
+:caption: src/tam/model/autotam/target_profile.py (Target Profile)
+```
+
+The search is reproducible with `AutoTAM(seed=42)`. The search draws from the global generators of `random`, `numpy` and `torch` (the knowledge graph, the population nodes and the evolutionary loop): `fit()` seeds the three, runs, and puts them back as it found them, so the same seed on the same data gives the same experts whatever was drawn before and whatever the hash seed of the interpreter, and the program around the fit is not disturbed. Candidates are ranked on their score rounded to 10 significant digits and then on their label, so a tie does not depend on the order they arrived in nor on the last digits a processor rounds differently, and the sets of column names that reach a formula are iterated in sorted order. The seed is written in the export next to the run (`AutoTAM_run_info_<timestamp>.json`). The generators are global, so the method is not thread-safe; the numerical solver of each static model is deterministic by itself, and a CPU and a GPU run are not made identical:
+
+```{literalinclude} ../../../../src/tam/model/autotam/seeding.py
+:language: python
+:start-after: "#: <seeding_rules>"
+:end-before: "#: </seeding_rules>"
+:caption: src/tam/model/autotam/seeding.py (Seeding and Ranking)
+```
+
 `predict()` returns one column per expert in search order, then the league ensembles, then the final model; the first column is an expert, not the final model. `AutoTAM.final_model_column_` (set by `fit()`) names the final model column (`AutoTAM.FINAL_MODEL_COLUMN`, `AutoTAM_Apex_Ensemble`; `AutoTAM.FINAL_MODEL_COLUMN_ONLINE`, `AutoTAM_Apex_Online`, for `predict_online()`).
 
 Frozen inference keeps the members of a league whose final weight reaches `ensemble_sparsity_threshold`. The weights of a league sum to one, so the Apex league, which aggregates the whole dynamic pool (several hundred members), can have no weight above the absolute threshold; the members at or above their uniform share `1/n` are then kept, so a league never ends empty:
