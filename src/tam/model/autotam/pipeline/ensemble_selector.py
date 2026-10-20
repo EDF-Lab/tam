@@ -50,13 +50,19 @@ def sparse_league_weights(final_weights: Dict[str, float], threshold: float) -> 
     return {name: w for name, w in final_weights.items() if w >= uniform}
 #: </ensemble_selector_sparse_weights>
 
+SEED_ISLAND = "Seed"   # the island of the formulas given to fit(seed_formulas=...)
+
+#: <ensemble_selector_frozen_weight>
+WEIGHT_AVERAGES = {"snapshot": None, "mean_7": 7, "mean_30": 30, "full": 0}   # days averaged; 0 is the whole validation part
+#: </ensemble_selector_frozen_weight>
+
 #: <ensemble_selector_class>
 class EnsembleSelector:
     """Selects best Island representations and aggregates them via OPERA Minimax."""
     
 #: <ensemble_selector_init>
     def __init__(self, use_opera: bool = True, n_apex_experts: int = 5, ensemble_sparsity_threshold: float = 0.01,
-                 apex_quality_ratio: Optional[float] = 1.5):
+                 apex_quality_ratio: Optional[float] = 1.5, weight_average: str = "snapshot", seed_floor: bool = False):
         """
         Initializes the ensemble aggregator.
 
@@ -66,17 +72,66 @@ class EnsembleSelector:
             ensemble_sparsity_threshold (float): Minimum weight required to keep a model active in the ensemble.
             apex_quality_ratio (Optional[float]): A dynamic expert joins the Apex pool only if its validation
                 error is at most this multiple of the best dynamic expert's. ``None`` admits the whole pool.
+            seed_floor (bool): Opt-in. The experts of the island ``Seed`` (the formulas the caller trusts) always join the Apex pool, whatever the
+                quality ratio, and the frozen final model is never worse on the validation rows than the best of them: if it is, that expert is
+                the final model (logged).
+            weight_average (str): What the frozen ``predict()`` takes as the weight of an expert: ``"snapshot"`` (default) the last weight of
+                the online aggregation on the validation rows, ``"mean_7"`` / ``"mean_30"`` the mean over the last 7 or 30 days of them, or
+                ``"full"`` the mean over the whole validation part.
 
         Raises:
             ValueError: If apex_quality_ratio is below 1 (or NaN), which would exclude the best expert itself.
         """
         if apex_quality_ratio is not None and not apex_quality_ratio >= 1.0:
             raise ValueError(f"apex_quality_ratio must be None or >= 1, got {apex_quality_ratio}")
+        if weight_average not in WEIGHT_AVERAGES:
+            raise ValueError(f"weight_average must be one of {tuple(WEIGHT_AVERAGES)}, got {weight_average!r}")
+        self.weight_average = weight_average
+        self.seed_floor = bool(seed_floor)
         self.use_opera = use_opera
         self.n_apex_experts = n_apex_experts
         self.ensemble_sparsity_threshold = ensemble_sparsity_threshold
         self.apex_quality_ratio = apex_quality_ratio
 #: </ensemble_selector_init>
+
+#: <ensemble_selector_seed_floor>
+    def _apply_seed_floor(self, weights: Dict[str, float], experts: List[dict], df_p: pd.DataFrame, ctx, metric: str) -> Dict[str, float]:
+        """The frozen final model, or the best ``Seed`` expert when that one is better on the validation rows.
+
+        Args:
+            weights: The frozen Apex weights.
+            experts: The experts that have a column in ``df_p``.
+            df_p: The validation rows with the target and the prediction of every expert and of the Apex (column ``AutoTAM_Apex_Ensemble``).
+            ctx: The pipeline context (target name).
+            metric: The optimisation metric.
+
+        Returns:
+            ``weights`` unchanged, or ``{best seed expert: 1.0}``.
+        """
+        seeds = [e["name"] for e in experts if e.get("island") == SEED_ISLAND and e["name"] in df_p.columns]
+        if not seeds or "AutoTAM_Apex_Ensemble" not in df_p.columns:
+            return weights
+        y = df_p[ctx.target].to_numpy(dtype=float)
+        errors = {name: self._calculate_error(y, df_p[name].to_numpy(dtype=float), metric) for name in seeds}
+        best = min(errors, key=lambda n: (errors[n], n))
+        apex_error = self._calculate_error(y, df_p["AutoTAM_Apex_Ensemble"].to_numpy(dtype=float), metric)
+        if np.isfinite(errors[best]) and errors[best] < apex_error:
+            logger.info("Seed floor: the Apex (%.5g) is worse than the seed expert %s (%.5g) on the validation rows: the seed expert is the final model.",
+                        apex_error, best, errors[best])
+            return {best: 1.0}
+        return weights
+#: </ensemble_selector_seed_floor>
+
+#: <ensemble_selector_frozen>
+    def _frozen_weight(self, trajectory: pd.Series, ctx) -> float:
+        """The weight ``predict()`` freezes for an expert from its weight trajectory on the validation rows (see ``weight_average``)."""
+        days = WEIGHT_AVERAGES[self.weight_average]
+        if days is None:
+            return float(trajectory.iloc[-1])
+        if days == 0:
+            return float(trajectory.mean())
+        return float(trajectory.iloc[-max(1, int(days * getattr(ctx, "steps_per_period", 1))):].mean())
+#: </ensemble_selector_frozen>
 
 #: <ensemble_selector_metric_calculator>
     def _calculate_error(self, y_true: np.ndarray, y_pred: np.ndarray, metric: str) -> float:
@@ -260,7 +315,7 @@ class EnsembleSelector:
                                          "Expert names are written into a formula: keep letters, digits and underscores only.")
                     w_series = res[f"weight_{e}"]
                     ensemble_pred += df_p[e].values * w_series.values
-                    weights[e] = w_series.iloc[-1]
+                    weights[e] = self._frozen_weight(w_series, ctx)
                 weights = sparse_league_weights(weights, self.ensemble_sparsity_threshold)
                 
                 df_p[league_name] = ensemble_pred
@@ -332,10 +387,15 @@ class EnsembleSelector:
             apex_pool = sorted(apex_pool, key=lambda x: rank_key(x["penalized_score"], x["name"]))
             if truncate:
                 apex_pool = apex_pool[:self.n_apex_experts]
+            if self.seed_floor:
+                members = {e["name"] for e in apex_pool}
+                apex_pool = list(apex_pool) + [e for e in valid_experts if e.get("island") == SEED_ISLAND and e["name"] not in members]
             top_apex_names = [e["name"] for e in apex_pool]
 
             if len(top_apex_names) > 1: weights_top10 = run_single_opera("AutoTAM_Apex_Ensemble", top_apex_names)
             elif top_apex_names: weights_top10 = {top_apex_names[0]: 1.0}
+            if self.seed_floor:
+                weights_top10 = self._apply_seed_floor(weights_top10, valid_experts, df_p, ctx, opt_metric)
             self.apex_members_ = top_apex_names
             if len(top_apex_names) > 1:
                 logger.info(f"Apex: predict_online() aggregates all {len(top_apex_names)} pool members; frozen predict() "

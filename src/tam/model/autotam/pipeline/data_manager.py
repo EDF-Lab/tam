@@ -28,6 +28,8 @@ from tam.model.autotam.failures import log_failure
 from tam.model.autotam.anchor import add_anchor_lag, anchor_column, resolve_season
 from tam.model.autotam.calendar_features import add_calendar, calendar_names
 from tam.model.autotam.spectral_profile import steps_per_day
+from tam.model.autotam.regimes import add_regime_column, fit_regimes
+from tam.model.autotam.anchor import natural_season
 from tam.model.autotam.target_profile import mask_sentinels, profile_target
 logger = logging.getLogger(__name__)
 #: </data_manager_imports>
@@ -148,6 +150,8 @@ class DataManager:
         calendar_features: bool = False,
         country: Optional[str] = None,
         subdivision: Optional[str] = None,
+        regimes: bool = False,
+        extended_search: bool = False,
     ):
         """
         Initializes the DataManager, parsing the user formula and populating mandatory terms.
@@ -165,6 +169,7 @@ class DataManager:
             raise ValueError(f"horizon must be a positive whole number of steps, got {horizon!r}.")
         self.horizon = None if horizon is None else int(horizon)
         self.calendar_features = bool(calendar_features)
+        self.regimes = bool(regimes)
         self.country = country
         self.subdivision = subdivision
         self.formula = formula
@@ -180,7 +185,7 @@ class DataManager:
         self.mandatory_terms = self.formula_config["mandatory_terms"]
         self.profiler = DataProfiler()
         self.engineer = FeatureEngineer(collinearity_threshold=0.95)  # spec I: bar |rho| > 0.95
-        self.selector = EffectSelector()
+        self.selector = EffectSelector(extended=extended_search)
 #: </data_manager_init>
 
 #: <data_manager_prepare>
@@ -401,6 +406,7 @@ class DataManager:
         df_all_aug = self.engineer.engineer_features(df_all_clean, ctx.formula_config, ctx.metadata, date_col)
         
         df_all_aug = self._add_calendar_columns(df_all_aug, ctx)
+        df_all_aug = self._add_regime_column(df_all_aug, ctx)
         ctx.df_all_aug = df_all_aug
 
         if date_col and date_col in df_all_aug.columns and date_col in raw_fit.columns:
@@ -540,7 +546,9 @@ class DataManager:
         ctx.calendar = {"names": calendar_names(spd) if self.calendar_features else [], "country": self.country, "subdivision": self.subdivision,
                         "steps_per_day": spd}
         df_aug = df_aug.copy()
-        added = add_calendar(df_aug, ctx.date_col, ctx.calendar, skip_equivalent=True)
+        features = list(ctx.formula_config["features"])
+        among = [c for c in df_aug.columns if any(c == f or c.startswith(f"{f}_") for f in features)] if features else None
+        added = add_calendar(df_aug, ctx.date_col, ctx.calendar, skip_equivalent=True, among=among)
         for name in added:
             if name not in ctx.formula_config["features"]:
                 ctx.formula_config["features"].append(name)
@@ -549,6 +557,29 @@ class DataManager:
         ctx.formula_config["calendar_columns"] = {name: periods[name] for name in added if name in periods}
         return df_aug
 #: </data_manager_calendar>
+
+#: <data_manager_regimes>
+    def _add_regime_column(self, df_aug: pd.DataFrame, ctx: PipelineContext) -> pd.DataFrame:
+        """Detects the regimes of the training target and adds the ``regime`` column (a category for the search); nothing when none is found."""
+        if not self.regimes:
+            return df_aug
+        if not ctx.date_col or ctx.date_col not in df_aug.columns:
+            raise ValueError("regimes needs a date column: pass date_col=.")
+        rows = df_aug[df_aug[ctx.target].notna()]
+        season = natural_season(ctx.metadata.get("delta_t", "1D"))
+        fitted = fit_regimes(rows, ctx.target, ctx.date_col, ctx.group_col, season)
+        if not any(fitted["breaks"].values()):
+            logger.info("Regimes: no level shift found in the training target.")
+            return df_aug
+        df_aug = df_aug.copy()
+        add_regime_column(df_aug, ctx.date_col, ctx.group_col, fitted)
+        ctx.regime = fitted
+        if "regime" not in ctx.formula_config["features"]:
+            ctx.formula_config["features"].append("regime")
+        ctx.formula_config["categorical_columns"] = list(ctx.formula_config.get("categorical_columns", [])) + ["regime"]
+        logger.info("Regimes: %d break(s) found in the training target.", sum(len(v) for v in fitted["breaks"].values()))
+        return df_aug
+#: </data_manager_regimes>
 
 #: <data_manager_transform>
     def transform_test_data(self, df_test: pd.DataFrame, ctx: PipelineContext) -> pd.DataFrame:
@@ -584,6 +615,8 @@ class DataManager:
         df_aug = keep_forecast_targets_missing(df_aug, df_combined, ctx)
         if ctx.calendar:
             add_calendar(df_aug, ctx.date_col, ctx.calendar)
+        if ctx.regime:
+            add_regime_column(df_aug, ctx.date_col, ctx.group_col, ctx.regime)
 
         # Tz-safe left-merge to perfectly realign predictions with df_test's original row order.
         date_col, group_col = ctx.date_col, ctx.group_col

@@ -196,8 +196,10 @@ class PipelineContext:
     steps_per_period: int = 1
     adaptive_lags: List[int] = field(default_factory=list)
     inferred_horizon: int = 1
+    regime: Dict[str, Any] = field(default_factory=dict)  # break dates of the detected regimes (see regimes.py), {} when off or none found
     calendar: Dict[str, Any] = field(default_factory=dict)  # calendar columns and holiday country in use (see calendar_features.py), {} when off
     family_losses: List[str] = field(default_factory=list)  # non-Gaussian losses offered with family='auto' (see families.py)
+    dynamic_top: Optional[int] = None  # dynamic experts only for the champions ranked at most this in their island, None for all
     fast_search: bool = False  # the fast preset: fewer islands, rates and windows in the dynamic expansions (see search_preset.py)
     requested_horizon: Optional[int] = None  # the horizon argument, None when it is inferred from the lags
     candidate_windows: List[int] = field(default_factory=list)

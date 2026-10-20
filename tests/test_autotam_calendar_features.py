@@ -175,3 +175,21 @@ def test_a_frame_without_equivalent_columns_gets_all_of_them():
     frame = pd.DataFrame({"ds": dates, "x1": np.random.default_rng(0).normal(size=len(dates))})
     spec = {"names": ["tod", "toy", "dow"]}
     assert cf.add_calendar(frame, "ds", spec, skip_equivalent=True) == ["tod", "toy", "dow"]
+
+
+def test_a_column_the_model_does_not_use_does_not_count_as_an_equivalent():
+    dates = pd.date_range("2024-01-01", periods=24 * 20, freq="h")
+    frame = pd.DataFrame({"ds": dates, "hour": dates.hour.to_numpy(), "x1": np.random.default_rng(0).normal(size=len(dates))})
+    assert cf.add_calendar(frame.copy(), "ds", {"names": ["tod"]}, skip_equivalent=True, among=["x1"]) == ["tod"]          # hour is not a feature
+    assert cf.add_calendar(frame.copy(), "ds", {"names": ["tod"]}, skip_equivalent=True, among=["x1", "hour"]) == []     # hour is a feature
+    assert cf.add_calendar(frame.copy(), "ds", {"names": ["tod"]}, skip_equivalent=True) == []                             # no list: every column counts
+
+
+def test_a_search_adds_the_calendar_even_when_the_frame_carries_unused_copies(tmp_path):
+    rng = np.random.default_rng(1)
+    n = 200
+    ds = pd.date_range("2023-01-01", periods=n)
+    frame = pd.DataFrame({"ds": ds, "x1": rng.normal(size=n), "dow_unused": ds.dayofweek.to_numpy()})
+    frame["y"] = 10 + frame["x1"] + 2 * (ds.dayofweek.to_numpy() >= 5) + rng.normal(scale=0.3, size=n)
+    model = _model(tmp_path, calendar_features=True).fit(frame, date_col="ds", expansions={"prior": True, "autofit": False, "kalman": False, "adaptive": False, "grid": False})
+    assert "dow" in model.ctx.calendar["columns"]

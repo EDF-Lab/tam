@@ -91,15 +91,16 @@ def holiday_columns(dates: pd.Series, country: str, subdivision: Optional[str] =
 EQUIVALENT_CORRELATION = 0.999
 
 
-def has_equivalent(frame: pd.DataFrame, values: np.ndarray, name: str) -> Optional[str]:
+def has_equivalent(frame: pd.DataFrame, values: np.ndarray, name: str, among: Optional[List[str]] = None) -> Optional[str]:
     """The name of a numeric column of ``frame`` that carries the same information as ``values`` (same up to a linear change), else ``None``.
 
     A caller who already gives the hour, the day of week or a holiday flag does not need ours: the two would be collinear terms of the search.
+    Only the columns in ``among`` are compared (the features of the model); a column the frame carries but the model does not use does not count.
     """
     v = np.asarray(values, dtype=float)
     if np.nanstd(v) == 0:
         return None
-    for column in frame.columns:
+    for column in (frame.columns if among is None else [c for c in frame.columns if c in set(among)]):
         if column == name or not pd.api.types.is_numeric_dtype(frame[column]):
             continue
         other = frame[column].to_numpy(dtype=float)
@@ -111,12 +112,13 @@ def has_equivalent(frame: pd.DataFrame, values: np.ndarray, name: str) -> Option
     return None
 
 
-def add_calendar(df: pd.DataFrame, date_col: str, spec: Dict[str, Any], skip_equivalent: bool = False) -> List[str]:
+def add_calendar(df: pd.DataFrame, date_col: str, spec: Dict[str, Any], skip_equivalent: bool = False, among: Optional[List[str]] = None) -> List[str]:
     """Adds the calendar and holiday columns of ``spec`` that the frame does not already have (in place); returns the names added.
 
     With ``skip_equivalent`` (the fit) a column is not added when the frame already has one that carries the same information under another name
     (an hour column for ``tod``, a day-of-week column for ``dow``, a holiday flag for ``holiday``); the names kept are then in ``spec['keep']``,
-    which the later frames (the forecast rows) follow, so the columns of the fit and of the prediction are the same.
+    which the later frames (the forecast rows) follow, so the columns of the fit and of the prediction are the same. ``among`` names the columns
+    that count as equivalents (the features of the model); ``None`` means every column.
     """
     added = []
     wanted = list(spec.get("names", []))
@@ -127,7 +129,7 @@ def add_calendar(df: pd.DataFrame, date_col: str, spec: Dict[str, Any], skip_equ
     for name in new.columns:
         if name in df.columns or (keep is not None and name not in keep):
             continue
-        if skip_equivalent and has_equivalent(df, new[name].to_numpy(), name):
+        if skip_equivalent and has_equivalent(df, new[name].to_numpy(), name, among):
             logger.info("Calendar column '%s' not added: the frame already has an equivalent column.", name)
             continue
         df[name] = new[name].to_numpy()

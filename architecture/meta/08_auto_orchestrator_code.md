@@ -360,6 +360,46 @@ Diagnostics (`AutoTAM(..., diagnostics=True)`) keep two profiles for the user an
 :caption: src/tam/model/autotam/diagnostics.py
 ```
 
+Detected regimes (`AutoTAM(..., regimes=True)`) are level shifts in the training target (a lockdown, a crisis, a change of process), found by binary segmentation of its level with the seasonal profile removed and kept as break dates, per group when the data are grouped. Each row gets the number of the regime its date falls in, and a forecast row, dated after the last break, carries the regime in force at the cutoff, so no feature of a forecast row depends on data after the cutoff. The number is offered to the search as a category only, never as a quantity. When no break is found, nothing is added. A dated calendar of external events and variance bursts are not built:
+
+```{literalinclude} ../../../../src/tam/model/autotam/regimes.py
+:language: python
+:start-after: "#: <regimes>"
+:end-before: "#: </regimes>"
+:caption: src/tam/model/autotam/regimes.py
+```
+
+Two arguments expose how the final model is built, with the search as it was as default. `apex_quality_ratio` (default 1.5) is the multiple of the best dynamic expert's validation error that a dynamic expert may have to join the Apex pool (`None` admits the whole pool). `frozen_weights` is what the frozen `predict()` takes as the weight of an expert: the last online weight of the validation rows (`"snapshot"`, default), the mean of the last 7 or 30 days of them (`"mean_7"`, `"mean_30"`) or of the whole validation part (`"full"`). The defaults are to be chosen by measurement:
+
+```{literalinclude} ../../../../src/tam/model/autotam/pipeline/ensemble_selector.py
+:language: python
+:start-after: "#: <ensemble_selector_frozen>"
+:end-before: "#: </ensemble_selector_frozen>"
+:caption: src/tam/model/autotam/pipeline/ensemble_selector.py (Frozen weights)
+```
+
+The seed floor (`AutoTAM(..., seed_floor=True)`, with `seed_formulas`) guards the final model against the noise of the selection. The experts of the seed formulas always join the Apex pool, whatever `apex_quality_ratio` (they are the model the caller already trusts, and the online weights decide how much they count), and the frozen final model is never worse on the validation rows than the best seed expert: when it is, that expert is the final model and the choice is logged. The validation rows are the ones the search saw, so the floor is a guard against a clearly worse model, not an unbiased estimate of the gain:
+
+```{literalinclude} ../../../../src/tam/model/autotam/pipeline/ensemble_selector.py
+:language: python
+:start-after: "#: <ensemble_selector_seed_floor>"
+:end-before: "#: </ensemble_selector_seed_floor>"
+:caption: src/tam/model/autotam/pipeline/ensemble_selector.py (Seed floor)
+```
+
+Differenced targets (`AutoTAM(..., difference=h)` or `difference="auto"`) are for a cumulative or monotone series, a unit root, or quarterly and yearly data, where the level has no stable mean. The model learns `d_t = y_t - y_{t-h}`; the training frames carry `d` as their target and the levels are kept apart, never as a column the model could read. A forecast row takes the level `h` steps before it, observed or already forecast, so inside the horizon the levels are rebuilt recursively, column by column. `"auto"` differences when the profile of the training target says it is cumulative, or when the unit-root verdict (Dickey-Fuller and KPSS, in most of up to five series) says so, with `h` the smallest lag (else 1). The verdict is not perfect (a strongly autocorrelated stationary series is sometimes called a unit root): pass `difference=h` to decide yourself. `predict()` and `predict_quantiles()` return levels (the quantiles are the increments' quantiles added to the level, not compounded); `predict_online()` is not available. The lags and the anchor are on the increments:
+
+```{literalinclude} ../../../../src/tam/model/autotam/differencing.py
+:language: python
+:start-after: "#: <differencing>"
+:end-before: "#: </differencing>"
+:caption: src/tam/model/autotam/differencing.py
+```
+
+Fewer dynamic experts (`AutoTAM(..., dynamic_top=k)`) cuts the cost of a fit. The Kalman noise rates and the adaptive windows and architectures, built on every champion formula, are most of the time; with `dynamic_top=1` they are built only for the best champion of each island, and every champion still gets its static experts. `None` (default) builds them for all of them, the search as it was. How much accuracy it costs is to be measured on the benchmark.
+
+The extended search space (`AutoTAM(..., extended_search=True)`) is an opt-in widening of what the search can try: spline knots and RBF centres take two more values each (twice and four times the profiled size, up to a twentieth of the rows and at most 50), the PID window grid gains 6 (the width the benchmark formulas use), and a constant feature is left out of the space; a mutation may also add a second basis on a feature the formula already uses, within the covariate lock. The default search is the one it always was. Generation of `lt(slope=)` and `te(c, c)` terms and the bounded bandit rewards are not built.
+
 The extrapolation guards (`AutoTAM(extrapolation_guards=True)`, off by default) keep the worst extrapolations out of the search. A champion is refused when it has more coefficients than half the fit rows, a neural or PID term on fewer than 1,000 rows, or a linear term on a counter (a monotone column such as a trend index); the reasons are counted in the context (`guard_rejections`). The forecast bounds keep the training range plus a 15 % margin and are floored at zero for a target that was never negative; the rows each expert had to be clipped on are counted against it in the selection and reported by `AutoTAM.clipped_rows_` after a prediction. The thresholds are constants of the module, to be tuned on the multi-seed measurement before the guards become the default:
 
 ```{literalinclude} ../../../../src/tam/model/autotam/guards.py
@@ -402,6 +442,8 @@ The search is reproducible with `AutoTAM(seed=42)`. The search draws from the gl
 :end-before: "#: </seeding_rules>"
 :caption: src/tam/model/autotam/seeding.py (Seeding and Ranking)
 ```
+
+Reproducibility across environments: the same `seed` on the same environment gives the same experts and forecasts. Across environments (another Python, numpy, pandas or scipy version, another BLAS kernel set, another thread count, CPU or GPU) the least-squares fits agree to the last digits, and a measured run of the search agreed to about 8 significant digits (RMSE 828.2648 on three environments, one of them 3.10 with older libraries and no AVX2). The run info file (`AutoTAM_run_info_*.json`) records the versions, the threads, the linear-algebra backend, the processor features and the thread variables, so that a difference between two runs can be traced. The search compares candidates: if a last-bit difference ever flips a comparison, the two runs diverge from that point, so a comparison between environments should use several seeds.
 
 `predict()` returns one column per expert in search order, then the league ensembles, then the final model; the first column is an expert, not the final model. `AutoTAM.final_model_column_` (set by `fit()`) names the final model column (`AutoTAM.FINAL_MODEL_COLUMN`, `AutoTAM_Apex_Ensemble`; `AutoTAM.FINAL_MODEL_COLUMN_ONLINE`, `AutoTAM_Apex_Online`, for `predict_online()`).
 

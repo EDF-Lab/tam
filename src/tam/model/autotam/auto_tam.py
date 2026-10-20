@@ -33,7 +33,9 @@ from tam.model.autotam.failures import log_failure
 from tam.common.utils import parse_formula_to_terms
 from tam.model.autotam.anchor import ANCHOR_ISLAND, anchor_formula
 from tam.model.autotam.seeding import seeded_method
-from tam.model.autotam.diagnostics import residual_diagnostics, target_diagnostics
+from tam.model.autotam.differencing import add_back, difference_test, difference_training
+from tam.model.autotam.target_profile import profile_target
+from tam.model.autotam.diagnostics import residual_diagnostics, stationarity_verdict, target_diagnostics
 from tam.model.autotam.anchor import natural_season
 from tam.model.autotam.families import candidate_losses, check_family_mode
 from tam.model.autotam.spectral_profile import spectral_profile
@@ -134,6 +136,13 @@ class AutoTAM:
         family: str = "gaussian",
         search_groups: Optional[int] = None,
         diagnostics: bool = False,
+        regimes: bool = False,
+        apex_quality_ratio: Optional[float] = 1.5,
+        frozen_weights: str = "snapshot",
+        extended_search: bool = False,
+        seed_floor: bool = False,
+        difference: Union[None, int, str] = None,
+        dynamic_top: Optional[int] = None,
         **kwargs
     ):
         """
@@ -173,6 +182,31 @@ class AutoTAM:
                 strength, spread, tails, outliers, demand class, break, autocorrelation) in ``target_diagnostics_``, and of the residuals of the
                 final model on the validation rows (structure left, volatility clustering, bias) in ``residual_profile_``. They are hints for
                 the user, they do not change the search.
+            regimes (bool): Opt-in. Detects level shifts in the training target (a lockdown, a crisis, a change of process) by binary segmentation
+                of its level with the seasonal profile removed, and offers the regime number to the search as a category. Only the data of the task
+                are used; a regime lasts at least four seasons, and a forecast row carries the regime in force at the end of the training rows, or the
+                previous one while the last has lasted fewer than eight seasons. Needs ``date_col``. Not a default: it was measured worse on hourly
+                electricity prices.
+            apex_quality_ratio (Optional[float]): A dynamic expert joins the Apex pool only if its validation error is at most this multiple of the
+                best dynamic expert's (default 1.5, the search as it was). ``None`` admits the whole pool.
+            frozen_weights (str): What the frozen ``predict()`` takes as the weight of an expert: ``"snapshot"`` (default) the last online weight
+                of the validation rows, ``"mean_7"`` / ``"mean_30"`` the mean over the last 7 or 30 days, ``"full"`` the mean over the whole
+                validation part.
+            extended_search (bool): Opt-in wider search space: more spline knots and RBF centres (up to a twentieth of the rows, at most 50), a
+                wider PID window grid, constant features left out, and a mutation that may add a second basis on a feature the formula already uses. ``False``
+                (default) is the search as it was. With ``search="fast"`` it improved the forecast of hourly prices and of weekly orders for about 30 % more
+                time; it was not checked with ``search="full"``, so it stays off by default.
+            seed_floor (bool): Opt-in, for runs with ``seed_formulas``. The seed experts always join the Apex pool, whatever ``apex_quality_ratio``,
+                and the frozen final model is never worse on the validation rows than the best of them: when it is, that seed expert is the final
+                model (logged). The validation rows are the ones the search saw, so the floor is a guard, not an unbiased estimate.
+            difference (Union[None, int, str]): Opt-in. ``h`` (a whole number of steps) makes the model learn the increments ``y_t - y_{t-h}`` and
+                forecast the level by adding them back step by step; ``"auto"`` does it, with ``h`` the horizon (the smallest lag, else 1), when the
+                profile of the training target says it is cumulative or monotone, or the Dickey-Fuller and KPSS tests find a unit root. For a cumulative series, a unit root or quarterly and yearly data,
+                where the level has no stable mean. Needs ``date_col``. ``predict()`` and ``predict_quantiles()`` return levels; ``predict_online()``
+                is not available. The lags and the anchor are on the increments. ``None`` (default) is the search as it was.
+            dynamic_top (Optional[int]): Opt-in, to cut the cost of a fit. The Kalman and adaptive experts, which take most of the time, are built
+                only for the champion formulas ranked at most this in their island (1: the best of each island); every champion still gets its
+                static experts. ``None`` (default) builds them for all champions, the search as it was.
             horizon (Optional[int]): Number of steps ahead the model is asked to forecast. By default it is the smallest lag (the target is
                 known up to that many steps before a forecast row). When given, every lag of the target must be at least the horizon (a
                 shorter lag is not known that far ahead): ``fit()`` raises a ``ValueError`` otherwise. Without explicit lags, the lags of the
@@ -229,6 +263,8 @@ class AutoTAM:
             calendar_features=calendar_features,
             country=country,
             subdivision=subdivision,
+            regimes=regimes,
+            extended_search=extended_search,
         )
         self.mandatory_terms = self.data_manager.mandatory_terms
         self.discoverer = BaseDiscoverer(
@@ -238,9 +274,10 @@ class AutoTAM:
             mandatory_variables=self.mandatory_variables,
             islands=FAST_ISLANDS if fast else None,
             n_generations=FAST_GENERATIONS if fast else FULL_GENERATIONS,
+            extended=bool(extended_search),
         )
         self.expander = ExpertExpander()
-        self.selector = EnsembleSelector(use_opera=use_opera)
+        self.selector = EnsembleSelector(use_opera=use_opera, apex_quality_ratio=apex_quality_ratio, weight_average=frozen_weights, seed_floor=seed_floor)
         self.reporter = EvolutionReporter(export_dir=export_dir)
         
         self.export_directory = export_dir
@@ -263,6 +300,13 @@ class AutoTAM:
         self.final_model_column_ = None  # set by fit(): the column of predict() that holds the final model
         self.calendar_profile_ = {}  # set by fit() with calendar_features: the spectral profile of the training target
         self.search_groups = search_groups
+        self.difference = difference
+        if dynamic_top is not None and (isinstance(dynamic_top, bool) or int(dynamic_top) != dynamic_top or dynamic_top < 1):
+            raise ValueError(f"dynamic_top must be None or a positive whole number, got {dynamic_top!r}.")
+        self.dynamic_top = None if dynamic_top is None else int(dynamic_top)
+        self.difference_ = None          # set by fit(): the lag of the difference in use, None for the level
+        self._levels = None
+        self._differenced_input = False
         self.diagnostics = bool(diagnostics)
         self.target_diagnostics_ = {}    # set by fit() with diagnostics=True
         self.residual_profile_ = {}      # set by fit() with diagnostics=True
@@ -325,6 +369,8 @@ class AutoTAM:
         if self.search_groups and architectures is None and group_col:
             architectures = self._search_on_a_sample(df_train, df_fit, df_dev, df_val, date_col, group_col, expansions, validation_strategy,
                                                      optimization_metric, refit_on_full_train, past_covariates, seed_formulas)
+        if self.difference is not None:
+            df_train, df_fit, df_dev, df_val = self._difference_training_frames(df_train, df_fit, df_dev, df_val, date_col, group_col)
         logger.info("AutoTAM: Starting Pipeline...")
         self.chronological_test_log = []
         self.expander.expansions = expansions or {"prior": True, "autofit": True, "kalman": True, "adaptive": True, "grid": False}
@@ -351,6 +397,7 @@ class AutoTAM:
             seed_champions = list(seed_champions) + self._calendar_seeds()
         self.ctx.extrapolation_guards = self.extrapolation_guards
         self.ctx.fast_search = self.search == "fast"
+        self.ctx.dynamic_top = self.dynamic_top
         self.ctx.family_losses = candidate_losses(self.ctx.target_profile) if self.family == "auto" else []
         self.ctx.optimization_metric = optimization_metric
         self.ctx.complexity_penalty = self.complexity_penalty
@@ -421,6 +468,51 @@ class AutoTAM:
         errors = val[self.ctx.target].to_numpy(dtype=float) - in_val
         return residual_diagnostics(errors, horizon=getattr(self.ctx, "inferred_horizon", 1))
 #: </auto_tam_diagnostics>
+
+#: <auto_tam_difference>
+    def _difference_lag(self, frames, target: str, date_col: Optional[str] = None, group_col: Optional[str] = None) -> Optional[int]:
+        """The lag of the difference to use: the number given, or for ``"auto"`` the horizon when the training target is cumulative, monotone
+        or has a unit root (the verdict of the Dickey-Fuller and KPSS tests, in most of up to five groups)."""
+        if self.difference == "auto":
+            training = pd.concat([f for f in frames if f is not None])
+            if profile_target(training[target])["hints"][0] != "cumulative" and not self._has_unit_root(training, target, date_col, group_col):
+                return None
+            return int(self.data_manager.horizon or min(self.data_manager.user_lags or [1]))
+        if isinstance(self.difference, bool) or not isinstance(self.difference, (int, np.integer)):
+            raise ValueError(f"difference must be None, \"auto\" or a whole number of steps, got {self.difference!r}.")
+        return int(self.difference)
+
+    @staticmethod
+    def _has_unit_root(training: pd.DataFrame, target: str, date_col: Optional[str], group_col: Optional[str]) -> bool:
+        """Whether the unit-root verdict holds for most of up to five series (the groups, or the series itself)."""
+        if group_col and group_col in training.columns:
+            keys = sorted(training[group_col].unique(), key=str)
+            keys = [keys[int(i)] for i in np.linspace(0, len(keys) - 1, min(5, len(keys))).round()]
+            series = [training.loc[training[group_col] == k] for k in keys]
+        else:
+            series = [training]
+        verdicts = []
+        for part in series:
+            part = part.sort_values(date_col) if date_col and date_col in part.columns else part
+            values = part[target].to_numpy(dtype=float)
+            values = values[np.isfinite(values)]
+            if len(values) >= 30:
+                verdicts.append(stationarity_verdict(values)["verdict"] == "unit_root")
+        return bool(verdicts) and sum(verdicts) * 2 > len(verdicts)
+
+    def _difference_training_frames(self, df_train, df_fit, df_dev, df_val, date_col, group_col):
+        """Replaces the target of the training frames by its increments (see ``differencing.py``) and keeps the levels apart."""
+        target = self.data_manager.parser.parse(self.formula)["targets"][0]
+        h = self._difference_lag([df_train, df_fit, df_dev, df_val], target, date_col, group_col)
+        self.difference_, self._levels = None, None
+        if h is None:
+            logger.info("Difference not used: the training target is not cumulative or monotone.")
+            return df_train, df_fit, df_dev, df_val
+        frames, levels = difference_training({"train": df_train, "fit": df_fit, "dev": df_dev, "val": df_val}, target, date_col, group_col, h)
+        self.difference_, self._levels, self._difference_target = h, levels, target
+        logger.info("AutoTAM: the model learns the increments over %d step(s).", h)
+        return frames["train"], frames["fit"], frames["dev"], frames["val"]
+#: </auto_tam_difference>
 
 #: <auto_tam_sample_search>
     def _search_on_a_sample(self, df_train, df_fit, df_dev, df_val, date_col, group_col, expansions, validation_strategy, optimization_metric,
@@ -738,6 +830,8 @@ class AutoTAM:
             ``final_model_column_`` (``AutoTAM_Apex_Ensemble``). The first column is an expert, not the final
             model: read the final model through ``final_model_column_``.
         """
+        if self.difference_ and not self._differenced_input:
+            return self._predict_levels(df_test, date_col)
         preds_df, df_test_clean = self._expert_predictions(df_test, date_col)
 
         for league_name, weights in self.league_weights.items():
@@ -811,6 +905,18 @@ class AutoTAM:
         return pd.DataFrame(out, index=point.index)
 #: </auto_tam_quantiles>
 
+    def _predict_levels(self, df_test: pd.DataFrame, date_col: Optional[str]) -> pd.DataFrame:
+        """``predict()`` of a model fitted on increments: forecasts the increments, then adds the levels back (see ``differencing.py``)."""
+        date_col = date_col or self.ctx.date_col
+        target, group_col = self._difference_target, self.ctx.group_col
+        increments = difference_test(df_test, self._levels, target, date_col, group_col, self.difference_)
+        self._differenced_input = True
+        try:
+            forecast = self.predict(increments, date_col)
+        finally:
+            self._differenced_input = False
+        return add_back(forecast, df_test, self._levels, target, date_col, group_col, self.difference_)
+
     def predict_online(self, df_test: pd.DataFrame, date_col: Optional[str] = None) -> pd.DataFrame:
         """Sequential inference: MLpol re-weights the experts chronologically.
 
@@ -832,7 +938,12 @@ class AutoTAM:
             The same columns as ``predict()`` (experts, then ``Ensemble_<league>``) plus the online versions
             ``Ensemble_<league>_Online`` and the online **final model** in ``FINAL_MODEL_COLUMN_ONLINE``
             (``AutoTAM_Apex_Online``).
+
+        Raises:
+            NotImplementedError: The model learns increments (``difference``): use ``predict()``.
         """
+        if self.difference_:
+            raise NotImplementedError("predict_online() is not available for a model fitted on increments (difference=...): use predict().")
         preds_df, df_test_clean = self._expert_predictions(df_test, date_col)
         target = self.ctx.target
 

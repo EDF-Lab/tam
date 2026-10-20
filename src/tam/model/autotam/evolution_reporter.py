@@ -29,6 +29,7 @@ import json
 import os
 import re
 from typing import Dict, List, Any
+from tam.model.autotam.seeding import environment_info
 import logging
 logger = logging.getLogger(__name__)
 #: </evolution_reporter_imports>
@@ -58,10 +59,10 @@ class EvolutionReporter:
 
 #: <reporter_export_run_info>
     def export_run_info(self, seed: int) -> None:
-        """Writes the seed of the run next to its other exports, so that the run can be replayed."""
+        """Writes the seed of the run and the environment it ran in next to its other exports, so that the run can be replayed and compared."""
         filepath = os.path.join(self.export_dir, f"AutoTAM_run_info_{self.run_timestamp}.json")
         with open(filepath, "w", encoding="utf-8") as handle:
-            json.dump({"seed": seed, "run_timestamp": self.run_timestamp}, handle)
+            json.dump({"seed": seed, "run_timestamp": self.run_timestamp, "environment": environment_info()}, handle, indent=1)
 #: </reporter_export_run_info>
 
 #: <reporter_export_chronological>

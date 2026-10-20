@@ -71,6 +71,8 @@ class BaseIsland:
     """
     # The Island's own basis inside the tensor products it builds (None: the Knowledge Graph chooses).
     tensor_family: Optional[str] = None
+    # Opt-in (extended search): a mutation may add a second basis on a feature the genome already uses, within the covariate lock.
+    extended_mutations: bool = False
 
     def __init__(self, name: str, valid_effects: List[str], max_terms: int = 10):
         self.name = name
@@ -92,6 +94,19 @@ class BaseIsland:
         selected first on every draw.
         """
         return True
+
+    def _second_bases(self, genome: List[Dict[str, Any]], search_space: Dict[str, Any]) -> List[tuple]:
+        """Used features that can take one more basis: ``(feature, [effects])`` within the covariate lock and the eligible effects."""
+        found = []
+        for feature in sorted({t.get('feature') for t in genome if t.get('feature')}):
+            space = search_space.get(feature, {})
+            used = {t['type'] for t in genome if t.get('feature') == feature}
+            if len(used) >= space.get('max_active_effects', 2):
+                continue
+            options = [e for e in self.valid_effects if e in space.get('eligible_effects', []) and e not in used and e != 'te']
+            if options:
+                found.append((feature, options))
+        return found
 
     def mutate(self, kg: KnowledgeGraph, available_features: List[str], search_space: Dict[str, Any]) -> str:
         """
@@ -185,6 +200,9 @@ class BaseIsland:
             ops.append('insert')
         if modifiable_indices:
             ops.append('modify')
+        second_bases = self._second_bases(genome, search_space) if self.extended_mutations else []
+        if second_bases:
+            ops.append('second_basis')
 
         if not ops:
             return _genome_to_rhs(genome, mandatory_terms=mandatory_terms)
@@ -202,6 +220,11 @@ class BaseIsland:
             eff = kg.suggest_effect_for_feature(feat, choices)
             params = _get_safe_params(kg, search_space, feat, eff, complexity_cap=False)
             genome.append({'type': eff, 'feature': feat, 'params': params})
+
+        elif op == 'second_basis':
+            feat, options = random.choice(second_bases)
+            eff = kg.suggest_effect_for_feature(feat, options)
+            genome.append({'type': eff, 'feature': feat, 'params': _get_safe_params(kg, search_space, feat, eff, complexity_cap=False)})
 
         elif op == 'modify':
             idx_to_modify = random.choice(modifiable_indices)

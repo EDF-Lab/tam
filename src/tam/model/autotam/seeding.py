@@ -11,12 +11,19 @@ give the same experts whatever was drawn before, and the program around the fit 
 """
 
 import functools
+import logging
+import os
+import platform
 import random
 from contextlib import contextmanager
-from typing import Optional, Tuple
+from typing import Any, Dict, Optional, Tuple
 
 import numpy as np
 import torch
+
+from tam.model.autotam.failures import log_failure
+
+logger = logging.getLogger(__name__)
 
 #: <seeding_rules>
 @contextmanager
@@ -66,4 +73,42 @@ def rank_key(score: float, label: str) -> Tuple[float, str]:
         The sort key.
     """
     return (float(f"{score:.9e}"), label)
+
+
+def environment_info() -> Dict[str, Any]:
+    """The environment of a run: versions, threads, linear-algebra backend and processor, as plain values for the run info file.
+
+    The same seed gives the same result in the same environment; two environments can differ in the last bits of a sum (another BLAS kernel,
+    another thread count, another version) and a search that compares candidates may then pick another champion. Recording the environment
+    makes such a difference traceable. Every entry that cannot be read is ``None``.
+    """
+    import pandas
+    import scipy
+
+    def safe(read):
+        try:
+            return read()
+        except (OSError, KeyError, ValueError, AttributeError, TypeError, ImportError) as exc:
+            log_failure(logger, "Reading the environment for the run info", exc, level=logging.DEBUG)
+            return None
+
+    def blas() -> Optional[str]:
+        config = np.show_config(mode="dicts")
+        found = config.get("Build Dependencies", {}).get("blas", {})
+        return " ".join(str(found.get(key)) for key in ("name", "version") if found.get(key)) or None
+
+    def cpu_flags() -> Optional[list]:
+        with open("/proc/cpuinfo", encoding="utf-8") as handle:
+            for line in handle:
+                if line.startswith("flags"):
+                    return sorted(flag for flag in line.split(":", 1)[1].split() if flag in ("avx", "avx2", "fma", "avx512f", "sse4_2"))
+        return None
+
+    return {
+        "python": platform.python_version(), "platform": platform.platform(), "processor": safe(platform.processor),
+        "numpy": np.__version__, "pandas": pandas.__version__, "scipy": scipy.__version__, "torch": torch.__version__,
+        "torch_threads": torch.get_num_threads(), "cpu_count": os.cpu_count(), "blas": safe(blas), "cpu_flags": safe(cpu_flags),
+        "cuda": bool(torch.cuda.is_available()), "omp_num_threads": os.environ.get("OMP_NUM_THREADS"),
+        "openblas_coretype": os.environ.get("OPENBLAS_CORETYPE"),
+    }
 #: </seeding_rules>

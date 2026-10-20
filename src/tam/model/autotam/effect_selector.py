@@ -36,7 +36,7 @@ class EffectSelector:
     """
     
 #: <effect_selector_init>
-    def __init__(self, categorical_threshold: int = 15, sparsity_threshold: float = 0.80, max_active_effects: int = 2):
+    def __init__(self, categorical_threshold: int = 15, sparsity_threshold: float = 0.80, max_active_effects: int = 2, extended: bool = False):
         """
         Initializes the EffectSelector with strict empirical and structural thresholds.
 
@@ -48,8 +48,11 @@ class EffectSelector:
             max_active_effects (int): Strict Covariate Lock. The maximum number of different 
                 mathematical term types (e.g., Spline, Tree, Fourier) a single feature 
                 can simultaneously hold in a generated formula. Prevents feature deduplication bloat.
+            extended (bool): Opt-in extended grids (spline knots and RBF centres up to the size of the data, a wider PID window grid) and
+                constant features left out of the space. ``False`` is the search space as it was.
         """
         self.cat_threshold = categorical_threshold
+        self.extended = bool(extended)
         self.sparsity_threshold = sparsity_threshold
         self.max_active_effects = max_active_effects
         self.profiler = FeatureProfiler()
@@ -122,6 +125,8 @@ class EffectSelector:
         search_space = {}
 
         for col in features:
+            if self.extended and df[col].nunique(dropna=True) <= 1:
+                continue   # a constant column explains nothing and only costs candidates
             topology = self._analyze_topology(df[col])
 
             # The profiler only speaks for continuous features; discrete/sparse topologies are
@@ -133,6 +138,13 @@ class EffectSelector:
             cap_k = max(10, min(50, dataset_size // 100))
             prof_k = int(np.clip(int(prof["k"]) if profiled and prof.get("k") else min(10, max_k),
                                  3, cap_k))
+
+            if self.extended:
+                size_cap = max(10, min(50, dataset_size // 20))
+                ext_k = sorted({prof_k, min(size_cap, prof_k * 2), min(size_cap, prof_k * 4)})
+                ext_centers = sorted({int(np.clip(prof_k, 10, 50)), int(np.clip(prof_k * 2, 10, size_cap)), int(np.clip(prof_k * 4, 10, size_cap))})
+            else:
+                ext_k, ext_centers = [prof_k], [int(np.clip(prof_k, 10, 50))]
 
             def _ap(effect: str) -> List[float]:
                 return [FeatureProfiler.penalty_for(effect, col, prof_m, prof_k)]
@@ -146,7 +158,7 @@ class EffectSelector:
                     "l": {"ap": _ap("l")},
                     "f": {"m": [prof_m], "s": [2], "ap": _ap("f")},
                     "p": {"deg": [int(np.clip(prof_m, 5, 20))], "s": [2], "ap": _ap("p")},
-                    "s": {"k": [prof_k], "deg": [3], "p": [2], "ap": _ap("s")},
+                    "s": {"k": ext_k, "deg": [3], "p": [2], "ap": _ap("s")},
                     "w": {"n_scales": [4], "n_locations": [int(np.clip(prof_k // 3, 10, 16))],
                           "ap": _ap("w")},
                     # A tree is an oblivious binary tree (max_depth) or a flat histogram
@@ -157,11 +169,18 @@ class EffectSelector:
                            "ap": _ap("lt")},
                     # Exclude 'cos' activation: extrapolates poorly across regime shifts.
                     "n": {"n_neurons": [100], "n_hidden_layers": [1], "act": ["relu", "tanh"]},
-                    "rbf": {"n_centers": [int(np.clip(prof_k, 10, 50))], "ap": _ap("rbf")},
-                    "pid": {"w": [3, 7], "d_pen": [10.0], "ap": _ap("pid")}
+                    "rbf": {"n_centers": ext_centers, "ap": _ap("rbf")},
+                    "pid": {"w": [3, 6, 7] if self.extended else [3, 7], "d_pen": [10.0], "ap": _ap("pid")}
                 },
                 "max_active_effects": self.max_active_effects
             }
+
+            if col in config.get("categorical_columns", []):
+                # A regime number is a label, not a quantity: only a categorical effect is offered.
+                feature_space["eligible_effects"] = ["c"]
+                feature_space["grids"]["c"] = {"n_cat": [int(df[col].nunique())], "topo": ["nominal"], "p_order": [1]}
+                search_space[col] = feature_space
+                continue
 
             if col in config.get("calendar_columns", {}):
                 # A calendar position lives on a cycle: only a cyclic Fourier term (and a categorical day of week) is offered, never a linear one.

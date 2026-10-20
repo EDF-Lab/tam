@@ -270,6 +270,9 @@ class ExpertExpander:
                         global_best_cv = best_static_cv
                         global_best_static = best_static_model
 
+                    if ctx.dynamic_top is not None and rank > ctx.dynamic_top:
+                        continue   # the dynamic experts (Kalman, adaptive) are the cost of a fit: only the best champions of each island get them
+
                     try:
                         d_meta = self._prepare_meta_learning_data(df_cont_all, best_static_model, ctx)
 
