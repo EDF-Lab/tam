@@ -1227,12 +1227,8 @@ class StaticTAM(BaseTAM):
             position += count
             effect.set_penalty_coordinates([float(v) for v in values])
             if isinstance(effect, TensorProductEffect):
-                start = 0
-                for margin in effect.effects:
-                    for part, value in enumerate(values[start:start + margin.n_penalty_coordinates]):
-                        label = margin.feature_name if margin.n_penalty_coordinates == 1 else f"{margin.feature_name}#{part + 1}"
-                        print(f" - te({', '.join(m.feature_name for m in effect.effects)})[{label}]: {value:.2e} (log10 = {np.log10(value):.2f})")
-                    start += margin.n_penalty_coordinates
+                for label, value in zip(effect.coordinate_labels(), values):
+                    print(f" - te({', '.join(m.feature_name for m in effect.effects)})[{label}]: {value:.2e} (log10 = {np.log10(value):.2f})")
             else:
                 for part, value in enumerate(values):
                     label = effect.feature_name if len(values) == 1 else f"{effect.feature_name}#{part + 1}"
@@ -1254,7 +1250,7 @@ class StaticTAM(BaseTAM):
                 "Token": "l(x)", 
                 "Effect": "Linear / Ridge", 
                 "Syntax Example": "l(trend, scaled=3.14)",
-                "Specific Params": "scaled (data scaling)"
+                "Specific Params": "scaled (data scaling), raw (True: unnormalised covariate, effect exactly 0 at 0; own column)"
             },
             {
                 "Token": "s(x)", 
@@ -1304,7 +1300,7 @@ class StaticTAM(BaseTAM):
                 "Token": "te(a, b)", 
                 "Effect": "Tensor Product", 
                 "Syntax Example": "te(s(Temp), f(Hour))",
-                "Specific Params": "List of functional sub-effects"
+                "Specific Params": "List of functional sub-effects, mode ('shared', or 'per_level': one smoothing parameter per level of a nominal c())"
             },
             {
                 "Token": "w(x)", 

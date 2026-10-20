@@ -322,7 +322,7 @@ Generates the interaction surface using row-wise Kronecker products via `torch.e
 ```
 
 **3. Penalty Matrix**
-Preserves marginal regularization independence via the Kronecker sum.
+Preserves marginal regularization independence via the Kronecker sum. With `mode='per_level'` (`te(s(x), c(group), mode='per_level')`: exactly one smooth margin with a single smoothing parameter and one nominal categorical margin) the penalty is `kron(P_smooth_at_1, diag(lambda_g)) + kron(I, ridge)`; the effect exposes `n_cat + 1` penalty coordinates (one per level, then the ridge of the factor), `coordinate_labels()` names them, and `auto_fit` tunes them one by one (a finer `number_of_steps` helps to separate levels). `l(z, raw=True)` makes the linear effect read the covariate unnormalised and unscaled: `fixed_ranges` gives such a feature the identity range (-1, 1), like the offset, and refuses a raw covariate that another term also reads.
 ```{literalinclude} ../../../../src/tam/model/spectrum/_tensor.py
 :language: python
 :start-after: "#: <penalty_matrix>"

@@ -93,7 +93,8 @@ def create_effects_from_parsed_terms(
         if ttype == 'l':
             scaled = float(params_resolved.get('scaled', np.pi))
             extrap_val = params_resolved.get('extrapolate', 'continue')
-            effects_list.append(LinearEffect(feature_name, scaled, lambda_p, extrap_val))
+            raw = str(params_resolved.get('raw', 'False')).strip().lower() in ('true', '1', 't', 'y', 'yes')
+            effects_list.append(LinearEffect(feature_name, scaled, lambda_p, extrap_val, raw=raw))
         #: </parse_linear>
             
         #: <parse_fourier>
@@ -239,7 +240,7 @@ def create_effects_from_parsed_terms(
                 if len(sub_effects) < 2:
                      raise ValueError(f"Tensor Product requires at least two functional sub-terms. Found {len(sub_effects)}.")
                 extrap_val = params_resolved.get('extrapolate', 'continue')
-                effects_list.append(TensorProductEffect(sub_effects, lambda_p, extrap_val))
+                effects_list.append(TensorProductEffect(sub_effects, lambda_p, extrap_val, mode=str(params_resolved.get('mode', 'shared'))))
 
             except ValueError as e:
                 raise ValueError(f"Tensor Product failed to parse functional sub-terms {functional_sub_term_strings}: {e}")
@@ -457,12 +458,19 @@ def fixed_ranges(effects_list: List[BaseEffect]) -> Dict[str, tuple]:
     """
     periods: Dict[str, tuple] = {}
     categorical: set = set()
+    raw: set = set()
+    others: set = set()
 
     def visit(effect) -> None:
         if isinstance(effect, TensorProductEffect):
             for sub in effect.effects:
                 visit(sub)
             return
+        if isinstance(effect, LinearEffect) and getattr(effect, 'raw', False):
+            raw.add(effect.feature_name)
+            return
+        if not isinstance(effect, OffsetEffect):
+            others.update(getattr(effect, 'input_features', None) or [effect.feature_name])
         if isinstance(effect, CategoricalEffect):
             categorical.add(effect.feature_name)
         elif isinstance(effect, FourierEffect) and getattr(effect, 'period', None) is not None:
@@ -472,7 +480,13 @@ def fixed_ranges(effects_list: List[BaseEffect]) -> Dict[str, tuple]:
 
     for effect in effects_list:
         visit(effect)
-    return {name: rng for name, rng in sorted(periods.items()) if name not in categorical}
+    shared = sorted(raw & others)
+    if shared:
+        raise ValueError(f"l({shared[0]}, raw=True) reads the covariate unnormalised; another term of the formula also reads '{shared[0]}'. "
+                         "Give the raw covariate its own column.")
+    ranges = {name: rng for name, rng in sorted(periods.items()) if name not in categorical}
+    ranges.update({name: (-1.0, 1.0) for name in sorted(raw)})  # the identity range of the normalisation: the raw value reaches the effect
+    return ranges
 
 
 def categorical_range(n_cat: int, low: float, high: float, integer_codes: bool = True) -> tuple:
