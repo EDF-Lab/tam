@@ -40,6 +40,7 @@ from ._data import (
 
 from ._dispatcher import smart_solve, smart_evaluate_rmse, smart_decompose
 from ._dispatcher_gcv import smart_solve_gcv
+from ._reml import smart_solve_reml
 from ._math import _ridge_floor
 from tam.common.hardware import hw
 
@@ -1115,7 +1116,7 @@ class StaticTAM(BaseTAM):
             return model
 #: </grid_search_logic>
     
-    def _auto_fit_reweighted(self, x_train, y_train, loss_L, alpha_p_bounds, number_of_steps, alpha_p_list, gamma, verbose):
+    def _auto_fit_reweighted(self, x_train, y_train, loss_L, alpha_p_bounds, number_of_steps, alpha_p_list, gamma, verbose, criterion="gcv"):
         """Working-weight GCV of a GLM loss: fit, score the working system, repeat until the smoothing parameters settle.
 
         One pass fits the reweighted model at the current smoothing parameters, takes its working response z and Fisher
@@ -1129,10 +1130,23 @@ class StaticTAM(BaseTAM):
             self._solve_prepared(x_train, y_train)
             eta = _linear_predictor(self, x_train, self.coefficients_)
             working_response, weights = strategy.working_response_and_weights(y_train.to(torch.get_default_dtype()), eta)
+            mean_weight = float(weights.mean())
             weights = weights / weights.mean().clamp_min(_TINY)
             offset = self._offset_of(x_train)
             if offset is not None:
                 working_response = working_response - offset.to(working_response.dtype)
+            if criterion == "reml":
+                # Poisson, binomial and negative binomial have a known scale 1: after the unit-mean normalisation of the weights it is 1 / mean(w)
+                known = 1.0 / max(mean_weight, 1e-300) if getattr(strategy, "name", "") in ("poisson", "binomial", "negative_binomial") else None
+                _, best_lambda_ps, gcv_score = smart_solve_reml(
+                    x_data=x_train, y_data=working_response, effects_list=self.effects_list_, loss_matrix=loss_L,
+                    alpha_p_bounds=alpha_p_bounds, alpha_p_list=alpha_p_list, sample_weights=weights, known_scale=known, verbose=verbose,
+                )
+                moved = float(np.max(np.abs(np.log10(best_lambda_ps) - np.log10(previous))))
+                previous = np.asarray(best_lambda_ps, dtype=np.float64)
+                if moved < _GCV_REWEIGHTING_TOL:
+                    break
+                continue
             _, best_lambda_ps, gcv_score = smart_solve_gcv(
                 x_data=x_train,
                 y_data=working_response,
@@ -1160,7 +1174,8 @@ class StaticTAM(BaseTAM):
         number_of_steps: int = 10,
         alpha_p_list: Optional[List[float]] = None,
         gamma: float = 1.4,
-        verbose: bool = False
+        verbose: bool = False,
+        criterion: str = "gcv"
     ) -> 'StaticTAM':
         """
         Automatically trains the model by finding the optimal regularization per effect.
@@ -1181,11 +1196,17 @@ class StaticTAM(BaseTAM):
                    (typically 1.4 to 1.5) force smoother models, preventing GCV 
                    from overfitting when data has autocorrelated errors.
             verbose: print verbose details if True
-            
+            criterion: ``"gcv"`` (default) or ``"reml"``. ``"reml"`` maximises the Laplace restricted marginal likelihood by L-BFGS on
+                log(lambda) (analytic gradient): less prone than GCV to undersmooth on autocorrelated or clustered data. ``gamma`` is not used.
+                The fitted model keeps ``smoothing_criterion_`` and, with ``"reml"``, ``reml_score_``.
+
         Returns:
             self: The trained model instance with optimal lambda_ps applied.
         """
-        print("--- Auto-Fitting with MSP-GCV (Multiple Smoothing Parameters) ---")
+        if criterion not in ("gcv", "reml"):
+            raise ValueError(f"criterion must be 'gcv' or 'reml'; got {criterion!r}")
+        print(f"--- Auto-Fitting with MSP-{criterion.upper()} (Multiple Smoothing Parameters) ---")
+        self.smoothing_criterion_, self.reml_score_ = criterion, None
 
         data_train = self._transformed_frame(data_train, estimate=True)
         transformed_train = data_train
@@ -1202,7 +1223,18 @@ class StaticTAM(BaseTAM):
         
         if getattr(self, "_reweighting_strategy_", None) is not None:
             best_lambda_ps, gcv_score = self._auto_fit_reweighted(
-                x_train, y_train, loss_L, alpha_p_bounds, number_of_steps, alpha_p_list, gamma, verbose
+                x_train, y_train, loss_L, alpha_p_bounds, number_of_steps, alpha_p_list, gamma, verbose, criterion
+            )
+        elif criterion == "reml":
+            offset = self._offset_of(x_train)
+            self.coefficients_, best_lambda_ps, gcv_score = smart_solve_reml(
+                x_data=x_train,
+                y_data=y_train if offset is None else y_train - offset.to(y_train.dtype),
+                effects_list=self.effects_list_,
+                loss_matrix=loss_L,
+                alpha_p_bounds=alpha_p_bounds,
+                alpha_p_list=alpha_p_list,
+                verbose=verbose,
             )
         else:
             offset = self._offset_of(x_train)
@@ -1218,7 +1250,11 @@ class StaticTAM(BaseTAM):
                 verbose=verbose
             )
         
-        print(f"\nFinal GCV Score: {gcv_score:.4f}")
+        if criterion == "reml":
+            self.reml_score_ = float(gcv_score)
+            print(f"\nFinal REML criterion: {gcv_score:.4f}")
+        else:
+            print(f"\nFinal GCV Score: {gcv_score:.4f}")
         print("Optimal lambda_ps found per effect (per margin for a tensor product):")
         position = 0
         for effect in self.effects_list_:
