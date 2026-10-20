@@ -25,6 +25,7 @@ from tam.model.additive import StaticTAM
 from tam.model.kalman import KalmanTAM
 from tam.model.adaptative import AdaptiveTAM
 from tam.model.autotam.failures import log_failure
+from tam.model.autotam.quantile_loss import is_wql, parse_levels, wql
 from tam.model.autotam.search_preset import FAST_ADAPTIVE_WINDOW_COUNT, FAST_KALMAN_RATE_COUNT
 
 logger = logging.getLogger(__name__)
@@ -104,6 +105,8 @@ class ExpertExpander:
             return float('inf')
         
         y_t, y_p = y_true[mask], y_pred[mask]
+        if is_wql(metric):
+            return wql(y_t, y_p, parse_levels(metric))
         
         if metric.lower() == 'rmse':
             return np.sqrt(np.mean((y_t - y_p)**2))

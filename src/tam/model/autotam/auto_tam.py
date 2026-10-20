@@ -32,6 +32,7 @@ from tam.common.exceptions import collect_extrapolation
 from tam.model.autotam.failures import log_failure
 from tam.common.utils import parse_formula_to_terms
 from tam.model.autotam.anchor import ANCHOR_ISLAND, anchor_formula
+from tam.model.autotam.floor import FLOOR_ISLAND, floor_formula
 from tam.model.autotam.seeding import seeded_method
 from tam.model.autotam.differencing import add_back, difference_test, difference_training
 from tam.model.autotam.target_profile import profile_target
@@ -143,6 +144,8 @@ class AutoTAM:
         seed_floor: bool = False,
         difference: Union[None, int, str] = None,
         dynamic_top: Optional[int] = None,
+        rolling_folds: Optional[int] = None,
+        pooled_floor: bool = False,
         **kwargs
     ):
         """
@@ -199,11 +202,21 @@ class AutoTAM:
             seed_floor (bool): Opt-in, for runs with ``seed_formulas``. The seed experts always join the Apex pool, whatever ``apex_quality_ratio``,
                 and the frozen final model is never worse on the validation rows than the best of them: when it is, that seed expert is the final
                 model (logged). The validation rows are the ones the search saw, so the floor is a guard, not an unbiased estimate.
-            difference (Union[None, int, str]): Opt-in. ``h`` (a whole number of steps) makes the model learn the increments ``y_t - y_{t-h}`` and
+            difference (Union[None, int, str]): Opt-in. ``"select"`` fits a level model and a differenced model on the earlier rows, forecasts the last
+                three horizons with each, and keeps the one with the smaller error in the level scale (``difference_scores_``); it costs two more fits.
+                ``h`` (a whole number of steps) makes the model learn the increments ``y_t - y_{t-h}`` and
                 forecast the level by adding them back step by step; ``"auto"`` does it, with ``h`` the horizon (the smallest lag, else 1), when the
                 profile of the training target says it is cumulative or monotone, or the Dickey-Fuller and KPSS tests find a unit root. For a cumulative series, a unit root or quarterly and yearly data,
                 where the level has no stable mean. Needs ``date_col``. ``predict()`` and ``predict_quantiles()`` return levels; ``predict_online()``
                 is not available. The lags and the anchor are on the increments. ``None`` (default) is the search as it was.
+            pooled_floor (bool): Opt-in. Adds to the pool a seasonal profile (one coefficient per position of the natural season of the sampling
+                step: the hour of the day, the day of the week, the week of the year, the month or the quarter), fitted for all the series at once.
+                It always joins the Apex pool and the frozen final model is never worse than it on the validation rows (logged when it is the
+                final model). The benchmark of seasonal series, as a guard. Needs ``date_col`` and a step with a natural season.
+            rolling_folds (Optional[int]): Opt-in. The experts and the champions are scored on ``rolling_folds`` rolling origins instead of the usual
+                folds: the last ``rolling_folds`` horizons of the training rows (the horizon is ``horizon``, else the smallest lag, else 1 date),
+                each predicted by a model trained on everything before it. A selection on one horizon of data is noisy; the mean of several is
+                steadier. Needs ``date_col``; with a ``'holdout'`` validation or too short a history the usual folds are used.
             dynamic_top (Optional[int]): Opt-in, to cut the cost of a fit. The Kalman and adaptive experts, which take most of the time, are built
                 only for the champion formulas ranked at most this in their island (1: the best of each island); every champion still gets its
                 static experts. ``None`` (default) builds them for all champions, the search as it was.
@@ -260,6 +273,8 @@ class AutoTAM:
             lags=lags,
             mandatory_variables=self.mandatory_variables,
             horizon=horizon,
+            rolling_folds=rolling_folds,
+            pooled_floor=pooled_floor,
             calendar_features=calendar_features,
             country=country,
             subdivision=subdivision,
@@ -277,7 +292,7 @@ class AutoTAM:
             extended=bool(extended_search),
         )
         self.expander = ExpertExpander()
-        self.selector = EnsembleSelector(use_opera=use_opera, apex_quality_ratio=apex_quality_ratio, weight_average=frozen_weights, seed_floor=seed_floor)
+        self.selector = EnsembleSelector(use_opera=use_opera, apex_quality_ratio=apex_quality_ratio, weight_average=frozen_weights, seed_floor=seed_floor, pooled_floor=pooled_floor)
         self.reporter = EvolutionReporter(export_dir=export_dir)
         
         self.export_directory = export_dir
@@ -305,6 +320,7 @@ class AutoTAM:
             raise ValueError(f"dynamic_top must be None or a positive whole number, got {dynamic_top!r}.")
         self.dynamic_top = None if dynamic_top is None else int(dynamic_top)
         self.difference_ = None          # set by fit(): the lag of the difference in use, None for the level
+        self.difference_scores_ = {}     # set by fit() with difference='select': the errors of the level and of the difference
         self._levels = None
         self._differenced_input = False
         self.diagnostics = bool(diagnostics)
@@ -345,7 +361,9 @@ class AutoTAM:
             group_col: Name of the group column (one model per group).
             expansions: Which dynamic and static expansions of the base models are tried.
             validation_strategy: ``'auto'``, ``'holdout'`` or ``'expanding_window'``.
-            optimization_metric: Metric the search minimises.
+            optimization_metric: Metric the experts and the ensembles are selected on: ``'rmse'`` (default), ``'mae'``, ``'mape'``, or the weighted
+                quantile loss ``'wql'`` (levels 0.1, 0.5, 0.9) or ``'wql:0.05,0.5,0.95'``, the loss of the quantile layer of ``predict_quantiles``
+                (the point forecast plus the quantiles of its own errors). The structure search itself keeps the point loss.
             refit_on_full_train: Refit the experts on the training rows before the final scoring.
             past_covariates: Past-only covariates, ``{column: [lag orders]}``: columns known up to the forecast origin only. The covariate itself is
                 never a feature; ``<column>_lag_<order>`` is built per group like the lags of the target and offered to the search. Each order must
@@ -370,7 +388,9 @@ class AutoTAM:
             architectures = self._search_on_a_sample(df_train, df_fit, df_dev, df_val, date_col, group_col, expansions, validation_strategy,
                                                      optimization_metric, refit_on_full_train, past_covariates, seed_formulas)
         if self.difference is not None:
-            df_train, df_fit, df_dev, df_val = self._difference_training_frames(df_train, df_fit, df_dev, df_val, date_col, group_col)
+            fit_arguments = dict(expansions=expansions, validation_strategy=validation_strategy, optimization_metric=optimization_metric,
+                                 refit_on_full_train=refit_on_full_train, past_covariates=past_covariates, seed_formulas=seed_formulas)
+            df_train, df_fit, df_dev, df_val = self._difference_training_frames(df_train, df_fit, df_dev, df_val, date_col, group_col, fit_arguments)
         logger.info("AutoTAM: Starting Pipeline...")
         self.chronological_test_log = []
         self.expander.expansions = expansions or {"prior": True, "autofit": True, "kalman": True, "adaptive": True, "grid": False}
@@ -413,6 +433,8 @@ class AutoTAM:
                 island_champions = {**island_champions, "Seed": seed_champions}
             if self.ctx.anchor_season:
                 island_champions = {**island_champions, ANCHOR_ISLAND: [anchor_formula(self.ctx.target, self.ctx.anchor_season)]}
+            if self.ctx.floor:
+                island_champions = {**island_champions, FLOOR_ISLAND: [floor_formula(self.ctx.target, self.ctx.floor["count"])]}
             self.architectures_ = {island: list(formulas) for island, formulas in island_champions.items()}
             if draga_engine is not None:
                 self.reporter.export_evolutionary_diagnostics(draga_engine)
@@ -436,7 +458,8 @@ class AutoTAM:
 
         self.reporter.export_final_architectures(self.trained_experts)
         if self.seed is not None:
-            self.reporter.export_run_info(self.seed)
+            self.reporter.export_run_info(
+                self.seed, {"diagnostics": {"target": self.target_diagnostics_, "residuals": self.residual_profile_}} if self.diagnostics else None)
         self.reporter.export_chronological_tests(self.chronological_test_log)
         self.reporter.export_collinearity_purge_log(self.data_manager.engineer.purge_log)
         return self
@@ -479,8 +502,48 @@ class AutoTAM:
                 return None
             return int(self.data_manager.horizon or min(self.data_manager.user_lags or [1]))
         if isinstance(self.difference, bool) or not isinstance(self.difference, (int, np.integer)):
-            raise ValueError(f"difference must be None, \"auto\" or a whole number of steps, got {self.difference!r}.")
+            raise ValueError(f"difference must be None, \"auto\", \"select\" or a whole number of steps, got {self.difference!r}.")
         return int(self.difference)
+
+    def _select_difference(self, frames, target: str, date_col: Optional[str], group_col: Optional[str], fit_arguments: Dict[str, Any]) -> Optional[int]:
+        """Level or difference, chosen on forecasts the models did not see: the lag of the difference, or ``None`` for the level.
+
+        The training rows are cut at their last three horizons. A level model and a differenced model are fitted on the rows before, each
+        forecasts the three horizons in turn (the rows before each one observed, the horizon itself hidden), and the one with the smaller mean
+        absolute error, in the level scale, wins. The scores are kept in ``difference_scores_``.
+        """
+        if not date_col:
+            raise ValueError("difference needs a date column: pass date_col=.")
+        h = int(self.data_manager.horizon or min(self.data_manager.user_lags or [1]))
+        training = pd.concat([f for f in frames if f is not None])
+        dates = np.sort(pd.to_datetime(training[date_col]).unique())
+        blocks = 3
+        if len(dates) < 4 * blocks * h + 10:
+            logger.info("Difference not selected: %d dates are too few to hold out three horizons of %d.", len(dates), h)
+            return None
+        stamps = pd.to_datetime(training[date_col])
+        edges = [dates[len(dates) - (blocks - i) * h] for i in range(blocks)] + [None]
+        early = training[stamps < edges[0]]
+        scores: Dict[str, float] = {}
+        for label, mode in (("level", None), ("difference", h)):
+            arguments = {**self._constructor_args, "difference": mode, "search_groups": None,
+                         "export_dir": str(pathlib.Path(self.export_directory) / f"select_{label}")}
+            child = type(self)(**arguments)
+            child.fit(early, date_col=date_col, group_col=group_col, **fit_arguments)
+            column = child.final_model_column_ or child.trained_experts[0]["name"]
+            errors = []
+            for i in range(blocks):
+                upper = dates[len(dates) - (blocks - i - 1) * h - 1]
+                window = training[(stamps >= edges[0]) & (stamps <= upper)].copy()
+                hidden = pd.to_datetime(window[date_col]) >= edges[i]
+                truth = window.loc[hidden, target].to_numpy(dtype=float, copy=True)   # a copy: the target is hidden just below
+                window.loc[hidden, target] = np.nan
+                forecast = child.predict(window, date_col=date_col)[column].to_numpy(dtype=float)[hidden.to_numpy()]
+                errors.append(float(np.nanmean(np.abs(forecast - truth))))
+            scores[label] = float(np.mean(errors))
+        self.difference_scores_ = scores
+        logger.info("Difference selection (mean absolute error of %d forecasts of %d steps): level %.5g, difference %.5g.", blocks, h, scores["level"], scores["difference"])
+        return h if scores["difference"] < scores["level"] else None
 
     @staticmethod
     def _has_unit_root(training: pd.DataFrame, target: str, date_col: Optional[str], group_col: Optional[str]) -> bool:
@@ -500,11 +563,14 @@ class AutoTAM:
                 verdicts.append(stationarity_verdict(values)["verdict"] == "unit_root")
         return bool(verdicts) and sum(verdicts) * 2 > len(verdicts)
 
-    def _difference_training_frames(self, df_train, df_fit, df_dev, df_val, date_col, group_col):
+    def _difference_training_frames(self, df_train, df_fit, df_dev, df_val, date_col, group_col, fit_arguments=None):
         """Replaces the target of the training frames by its increments (see ``differencing.py``) and keeps the levels apart."""
         target = self.data_manager.parser.parse(self.formula)["targets"][0]
-        h = self._difference_lag([df_train, df_fit, df_dev, df_val], target, date_col, group_col)
         self.difference_, self._levels = None, None
+        if self.difference == "select":
+            h = self._select_difference([df_train, df_fit, df_dev, df_val], target, date_col, group_col, fit_arguments or {})
+        else:
+            h = self._difference_lag([df_train, df_fit, df_dev, df_val], target, date_col, group_col)
         if h is None:
             logger.info("Difference not used: the training target is not cumulative or monotone.")
             return df_train, df_fit, df_dev, df_val
@@ -859,7 +925,8 @@ class AutoTAM:
         return preds_df
 
 #: <auto_tam_quantiles>
-    def predict_quantiles(self, df_test: pd.DataFrame, taus: Sequence[float] = (0.1, 0.5, 0.9), date_col: Optional[str] = None) -> pd.DataFrame:
+    def predict_quantiles(self, df_test: pd.DataFrame, taus: Sequence[float] = (0.1, 0.5, 0.9), date_col: Optional[str] = None,
+                          aggregation: str = "empirical") -> pd.DataFrame:
         """Quantile forecasts of the final model: its point forecast plus the quantiles of its validation errors.
 
         The error of the final model on the validation rows (``y - forecast``, rows the search did not fit) is the empirical law of the
@@ -872,25 +939,42 @@ class AutoTAM:
             df_test: Frame to forecast, as for ``predict()``.
             taus: Quantile levels in (0, 1).
             date_col: Name of the date column, when the frame has one.
+            aggregation: ``"empirical"`` (the default) as described above. ``"opera"`` aggregates, level by level, the quantile
+                forecasts of the members of the final model: each member forecasts the ``tau``-quantile as its own point forecast plus
+                the ``tau``-quantile of its own validation errors, and one ``OperaTAM`` with the pinball loss of that level, run over
+                the validation rows, gives the weights (the last ones are applied to the rows to forecast). Levels are sorted on each
+                row. The quantile of a member comes from all the validation errors of the member, not from its group. With a single
+                member it is the ``"empirical"`` forecast.
 
         Returns:
             One row per row of ``df_test`` and one ``q<tau>`` column per level, in increasing order of level.
 
         Raises:
-            ValueError: A level is outside (0, 1), or the model has no final model (it needs the Apex ensemble: ``use_opera=True``).
+            ValueError: A level is outside (0, 1), ``aggregation`` is unknown, or the model has no final model (it needs the Apex
+                ensemble: ``use_opera=True``).
+            NotImplementedError: ``aggregation="opera"`` on a model fitted on increments (``difference``).
         """
+        if aggregation not in ("empirical", "opera"):
+            raise ValueError(f"aggregation must be 'empirical' or 'opera'; got {aggregation!r}")
+        if aggregation == "opera" and self.difference_:
+            raise NotImplementedError("predict_quantiles(aggregation='opera') is not available for a model fitted on increments (difference=...).")
         levels = sorted(float(tau) for tau in taus)
         if not levels or any(not 0.0 < tau < 1.0 for tau in levels):
             raise ValueError(f"taus must lie in (0, 1); got {list(taus)!r}")
         column = self.final_model_column_
         if column is None or column not in self.oof_predictions_:
             raise ValueError("predict_quantiles needs the final model of the Apex ensemble: fit with use_opera=True and enough rows for a validation part.")
-        point = self.predict(df_test, date_col)[column]
+        predictions = self.predict(df_test, date_col)
+        point = predictions[column]
         val = self.ctx.df_val
         in_val = np.asarray(self.oof_predictions_[column], dtype=float)[-len(val):]   # the validation rows come last in the fit + dev + val frame
         errors = (val[self.ctx.target] - pd.Series(in_val, index=val.index)).dropna()
         if errors.empty:
             raise ValueError("predict_quantiles: the validation part has no usable error.")
+        if aggregation == "opera":
+            aggregated = self._opera_quantiles(predictions, df_test, levels, date_col)
+            if aggregated is not None:
+                return pd.DataFrame(aggregated, index=point.index, columns=[f"q{tau}" for tau in levels])
         pooled = np.quantile(errors.to_numpy(dtype=float), levels)
         out = {f"q{tau}": point.to_numpy(dtype=float) + pooled[i] for i, tau in enumerate(levels)}
         group_col = self.ctx.group_col
@@ -903,6 +987,46 @@ class AutoTAM:
                     for i, tau in enumerate(levels):
                         out[f"q{tau}"][rows] = point.to_numpy(dtype=float)[rows] + own[i]
         return pd.DataFrame(out, index=point.index)
+
+    def _opera_quantiles(self, predictions: pd.DataFrame, df_test: pd.DataFrame, levels: List[float],
+                         date_col: Optional[str]) -> Optional[np.ndarray]:
+        """Per-level Opera of the quantile forecasts of the members of the final model (``None`` when it has fewer than two members).
+
+        Returns:
+            An array of one row per row of ``df_test`` and one column per level, sorted on each row.
+        """
+        val, target = self.ctx.df_val, self.ctx.target
+        members = [m for m in self.weights_top10 if m in self.oof_predictions_ and m in predictions.columns]
+        if len(members) < 2:
+            return None
+        d_col = date_col or self.ctx.date_col
+        g_col = self.ctx.group_col
+        names = [f"member_{j}" for j in range(len(members))]
+        truth = pd.to_numeric(val[target], errors="coerce").to_numpy(dtype=float)
+        offsets, scored = [], pd.DataFrame(index=range(len(val)))
+        for name, member in zip(names, members):
+            in_val = np.asarray(self.oof_predictions_[member], dtype=float)[-len(val):]
+            errors = truth - in_val
+            offsets.append(np.quantile(errors[np.isfinite(errors)], levels))
+            scored[name] = in_val
+        keep = np.isfinite(truth) & np.isfinite(scored.to_numpy()).all(axis=1)
+        if keep.sum() < 2:
+            return None
+        carried = [c for c in (d_col, g_col) if c and c in val.columns and c in df_test.columns]
+        columns = {c: val[c].to_numpy()[keep] for c in carried}
+        test_columns = {c: df_test[c].to_numpy() for c in carried}
+        table = np.empty((len(df_test), len(levels)))
+        for i, tau in enumerate(levels):
+            history = pd.DataFrame({**columns, target: truth[keep]})
+            future = pd.DataFrame(test_columns, index=range(len(df_test)))
+            for j, name in enumerate(names):
+                history[name] = scored[name].to_numpy()[keep] + offsets[j][i]
+                future[name] = predictions[members[j]].to_numpy(dtype=float) + offsets[j][i]
+            opera = OperaTAM(target_col=target, expert_cols=names, algorithm="MLPOL", loss_type="pinball", tau=tau,
+                             date_col=d_col if d_col in carried else None, group_col=g_col if g_col in carried else None)
+            opera.fit(history)
+            table[:, i] = opera.predict(future)["prediction_opera"].to_numpy(dtype=float)
+        return np.sort(table, axis=1)
 #: </auto_tam_quantiles>
 
     def _predict_levels(self, df_test: pd.DataFrame, date_col: Optional[str]) -> pd.DataFrame:

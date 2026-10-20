@@ -29,6 +29,7 @@ from tam.model.autotam.anchor import add_anchor_lag, anchor_column, resolve_seas
 from tam.model.autotam.calendar_features import add_calendar, calendar_names
 from tam.model.autotam.spectral_profile import steps_per_day
 from tam.model.autotam.regimes import add_regime_column, fit_regimes
+from tam.model.autotam.floor import FLOOR_COLUMN, season_position
 from tam.model.autotam.anchor import natural_season
 from tam.model.autotam.target_profile import mask_sentinels, profile_target
 logger = logging.getLogger(__name__)
@@ -131,6 +132,37 @@ def keep_forecast_targets_missing(df_aug: pd.DataFrame, df_observed: pd.DataFram
     return out
 #: </data_manager_missing_target>
 
+#: <data_manager_rolling>
+def rolling_origin_folds(pool: pd.DataFrame, date_col: str, k: int, rows: int) -> List[Tuple[pd.DataFrame, pd.DataFrame]]:
+    """Rolling-origin folds: the last ``k * rows`` dates of ``pool`` in ``k`` consecutive blocks of ``rows`` dates, expanding training sets.
+
+    A block is validated on a model trained on every row dated before it, so a fold has the same look-ahead as a forecast of ``rows`` steps
+    from its origin, for every group at once. When the pool is too short to leave a third of its dates (at least two blocks) for the first
+    training set, fewer folds are made; ``[]`` when not even one fits.
+
+    Args:
+        pool: Training rows (fit and dev), with ``date_col``.
+        date_col: Name of the date column.
+        k: Number of folds asked for.
+        rows: Dates per fold (the horizon).
+
+    Returns:
+        ``[(train, validation), ...]`` in time order.
+    """
+    stamps = pd.to_datetime(pool[date_col])
+    dates = np.sort(stamps.unique())
+    minimum_train = max(2 * rows, len(dates) // 3)
+    folds_possible = min(k, (len(dates) - minimum_train) // rows)
+    if folds_possible < 1:
+        return []
+    folds = []
+    for i in range(folds_possible):
+        start = len(dates) - (folds_possible - i) * rows
+        block = dates[start:start + rows]
+        folds.append((pool[stamps < dates[start]].copy(), pool[stamps.isin(block)].copy()))
+    return folds
+#: </data_manager_rolling>
+
 #: <data_manager_class>
 class DataManager:
     """
@@ -152,6 +184,8 @@ class DataManager:
         subdivision: Optional[str] = None,
         regimes: bool = False,
         extended_search: bool = False,
+        rolling_folds: Optional[int] = None,
+        pooled_floor: bool = False,
     ):
         """
         Initializes the DataManager, parsing the user formula and populating mandatory terms.
@@ -170,6 +204,10 @@ class DataManager:
         self.horizon = None if horizon is None else int(horizon)
         self.calendar_features = bool(calendar_features)
         self.regimes = bool(regimes)
+        self.pooled_floor = bool(pooled_floor)
+        if rolling_folds is not None and (isinstance(rolling_folds, bool) or int(rolling_folds) != rolling_folds or rolling_folds < 1):
+            raise ValueError(f"rolling_folds must be None or a positive whole number, got {rolling_folds!r}.")
+        self.rolling_folds = None if rolling_folds is None else int(rolling_folds)
         self.country = country
         self.subdivision = subdivision
         self.formula = formula
@@ -407,6 +445,7 @@ class DataManager:
         
         df_all_aug = self._add_calendar_columns(df_all_aug, ctx)
         df_all_aug = self._add_regime_column(df_all_aug, ctx)
+        df_all_aug = self._add_floor_column(df_all_aug, ctx)
         ctx.df_all_aug = df_all_aug
 
         if date_col and date_col in df_all_aug.columns and date_col in raw_fit.columns:
@@ -425,7 +464,8 @@ class DataManager:
             ctx.df_val = df_all_aug.iloc[len_fit + len_dev:].copy()
 
         ctx.validation_strategy = validation_strategy
-        ctx.cv_folds = self.generate_cv_folds(ctx.df_fit, ctx.df_dev, date_col, validation_strategy)
+        fold_rows = max(1, int(self.horizon or (min(ctx.lags) if ctx.lags else 1)))
+        ctx.cv_folds = self.generate_cv_folds(ctx.df_fit, ctx.df_dev, date_col, validation_strategy, fold_rows=fold_rows)
 
         look_orders = list(ctx.lags) + [lag for lags in ctx.past_covariates.values() for lag in lags] + ([ctx.anchor_season] if ctx.anchor_season else [])
         max_look = max(look_orders) if look_orders else 24
@@ -463,10 +503,14 @@ class DataManager:
         df_fit: pd.DataFrame, 
         df_dev: pd.DataFrame, 
         date_col: Optional[str], 
-        validation_strategy: str
+        validation_strategy: str,
+        fold_rows: Optional[int] = None
     ) -> List[Tuple[pd.DataFrame, pd.DataFrame]]:
         """
         Generates cross-validation folds based on the specified strategy and data topology.
+
+        With ``rolling_folds=k`` (and a date column, and not a holdout) the folds are rolling origins instead: the last ``k * fold_rows`` dates of the
+        pool are cut into ``k`` blocks of ``fold_rows`` dates (the horizon), each validated on a model trained on everything before it.
         """
         if validation_strategy == 'holdout':
             return [(df_fit.copy(), df_dev.copy())]
@@ -474,6 +518,10 @@ class DataManager:
         df_pool = pd.concat([df_fit, df_dev])
         if date_col and date_col in df_pool.columns:
             df_pool = df_pool.sort_values(date_col)
+            if self.rolling_folds:
+                rolling = rolling_origin_folds(df_pool, date_col, self.rolling_folds, fold_rows or 1)
+                if rolling:
+                    return rolling
 
         is_timeseries = False
         step_size = None
@@ -558,6 +606,21 @@ class DataManager:
         return df_aug
 #: </data_manager_calendar>
 
+#: <data_manager_floor>
+    def _add_floor_column(self, df_aug: pd.DataFrame, ctx: PipelineContext) -> pd.DataFrame:
+        """Adds the position of each row inside its natural season, the column of the pooled seasonal floor (not offered to the search)."""
+        if not self.pooled_floor:
+            return df_aug
+        if not ctx.date_col or ctx.date_col not in df_aug.columns:
+            raise ValueError("pooled_floor needs a date column: pass date_col=.")
+        spd = steps_per_day(df_aug[ctx.date_col])
+        positions, count = season_position(df_aug[ctx.date_col], spd)
+        ctx.floor = {"steps_per_day": spd, "count": count}
+        df_aug = df_aug.copy()
+        df_aug[FLOOR_COLUMN] = positions
+        return df_aug
+#: </data_manager_floor>
+
 #: <data_manager_regimes>
     def _add_regime_column(self, df_aug: pd.DataFrame, ctx: PipelineContext) -> pd.DataFrame:
         """Detects the regimes of the training target and adds the ``regime`` column (a category for the search); nothing when none is found."""
@@ -617,6 +680,8 @@ class DataManager:
             add_calendar(df_aug, ctx.date_col, ctx.calendar)
         if ctx.regime:
             add_regime_column(df_aug, ctx.date_col, ctx.group_col, ctx.regime)
+        if ctx.floor:
+            df_aug[FLOOR_COLUMN] = season_position(df_aug[ctx.date_col], ctx.floor["steps_per_day"])[0]
 
         # Tz-safe left-merge to perfectly realign predictions with df_test's original row order.
         date_col, group_col = ctx.date_col, ctx.group_col

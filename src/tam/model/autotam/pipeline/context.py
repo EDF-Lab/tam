@@ -196,6 +196,7 @@ class PipelineContext:
     steps_per_period: int = 1
     adaptive_lags: List[int] = field(default_factory=list)
     inferred_horizon: int = 1
+    floor: Dict[str, Any] = field(default_factory=dict)  # season length and step of the pooled seasonal floor (see floor.py), {} when off
     regime: Dict[str, Any] = field(default_factory=dict)  # break dates of the detected regimes (see regimes.py), {} when off or none found
     calendar: Dict[str, Any] = field(default_factory=dict)  # calendar columns and holiday country in use (see calendar_features.py), {} when off
     family_losses: List[str] = field(default_factory=list)  # non-Gaussian losses offered with family='auto' (see families.py)

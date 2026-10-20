@@ -26,6 +26,7 @@ from .population_nodes import MAX_ACTIVE_EFFECTS_PER_FEATURE
 from tam.common.utils import parse_formula_to_terms, split_args_respecting_parentheses
 from tam.model.additive import StaticTAM
 from tam.model.autotam.failures import log_failure
+from tam.model.autotam.quantile_loss import is_wql, parse_levels, wql
 logger = logging.getLogger(__name__)
 #: </dragtam_imports>
 
@@ -347,6 +348,8 @@ class DragTAM:
             return float('inf')
         
         y_t, y_p = y_true[mask], y_pred[mask]
+        if is_wql(metric):
+            return wql(y_t, y_p, parse_levels(metric))
         
         if metric.lower() == 'rmse':
             return np.sqrt(np.mean((y_t - y_p)**2))

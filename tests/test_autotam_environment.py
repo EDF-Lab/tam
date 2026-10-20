@@ -34,3 +34,27 @@ def test_the_run_info_file_carries_the_seed_and_the_environment(tmp_path):
     files = list(Path(tmp_path).glob("AutoTAM_run_info_*.json"))
     recorded = json.loads(files[0].read_text(encoding="utf-8"))
     assert recorded["seed"] == 11 and recorded["environment"]["numpy"] == np.__version__
+
+
+def test_the_run_info_file_carries_the_diagnostics_when_they_are_asked_for(tmp_path):
+    rng = np.random.default_rng(1)
+    n = 120
+    frame = pd.DataFrame({"ds": pd.date_range("2023-01-01", periods=n), "x1": rng.normal(size=n)})
+    frame["y"] = 5 + frame["x1"] + rng.normal(scale=0.2, size=n)
+    expansions = {"prior": True, "autofit": False, "kalman": False, "adaptive": False, "grid": False}
+    AutoTAM("y ~ AutoPipe(x1)", n_experts=2, pop_size=4, use_opera=True, seed=3, diagnostics=True, export_dir=str(tmp_path)).fit(
+        frame, date_col="ds", expansions=expansions)
+    recorded = json.loads(next(Path(tmp_path).glob("AutoTAM_run_info_*.json")).read_text(encoding="utf-8"))
+    assert {"target", "residuals"} <= set(recorded["diagnostics"])
+    assert recorded["diagnostics"]["target"] and recorded["diagnostics"]["residuals"]
+
+
+def test_the_run_info_file_has_no_diagnostics_by_default(tmp_path):
+    rng = np.random.default_rng(1)
+    n = 90
+    frame = pd.DataFrame({"ds": pd.date_range("2023-01-01", periods=n), "x1": rng.normal(size=n)})
+    frame["y"] = 5 + frame["x1"] + rng.normal(scale=0.2, size=n)
+    AutoTAM("y ~ AutoPipe(x1)", n_experts=1, pop_size=4, use_opera=False, seed=3, export_dir=str(tmp_path)).fit(
+        frame, date_col="ds", expansions={"prior": True, "autofit": False, "kalman": False, "adaptive": False, "grid": False})
+    recorded = json.loads(next(Path(tmp_path).glob("AutoTAM_run_info_*.json")).read_text(encoding="utf-8"))
+    assert "diagnostics" not in recorded

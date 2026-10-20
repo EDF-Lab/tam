@@ -28,7 +28,7 @@ import datetime
 import json
 import os
 import re
-from typing import Dict, List, Any
+from typing import Dict, List, Any, Optional
 from tam.model.autotam.seeding import environment_info
 import logging
 logger = logging.getLogger(__name__)
@@ -58,11 +58,17 @@ class EvolutionReporter:
 #: </reporter_init>
 
 #: <reporter_export_run_info>
-    def export_run_info(self, seed: int) -> None:
-        """Writes the seed of the run and the environment it ran in next to its other exports, so that the run can be replayed and compared."""
+    def export_run_info(self, seed: int, extra: Optional[Dict[str, Any]] = None) -> None:
+        """Writes the seed of the run and the environment it ran in next to its other exports, so that the run can be replayed and compared.
+
+        Args:
+            seed: The seed of the run.
+            extra: More entries of the file (the diagnostics of a run with ``diagnostics=True``); values that JSON cannot hold are written as text.
+        """
         filepath = os.path.join(self.export_dir, f"AutoTAM_run_info_{self.run_timestamp}.json")
+        info = {"seed": seed, "run_timestamp": self.run_timestamp, "environment": environment_info(), **(extra or {})}
         with open(filepath, "w", encoding="utf-8") as handle:
-            json.dump({"seed": seed, "run_timestamp": self.run_timestamp, "environment": environment_info()}, handle, indent=1)
+            json.dump(info, handle, indent=1, default=lambda value: value.item() if hasattr(value, "item") else str(value))
 #: </reporter_export_run_info>
 
 #: <reporter_export_chronological>

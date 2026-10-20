@@ -333,7 +333,7 @@ Distribution families (`AutoTAM(..., family="auto")`, default `"gaussian"`) add 
 :caption: src/tam/model/autotam/families.py
 ```
 
-Quantile forecasts (`predict_quantiles(df_test, taus)`) are the point forecast of the final model plus the empirical quantiles of its errors on the validation rows, which the search did not fit: per group when a group has at least 30 validation errors, else pooled. The levels come back sorted, so the columns never cross. It needs the Apex ensemble (`use_opera=True`). The width does not grow with the horizon; selection on the weighted quantile loss (`optimization_metric='wql'`) and an Opera aggregation per level are not built yet:
+Quantile forecasts (`predict_quantiles(df_test, taus)`) are the point forecast of the final model plus the empirical quantiles of its errors on the validation rows, which the search did not fit: per group when a group has at least 30 validation errors, else pooled. The levels come back sorted, so the columns never cross. It needs the Apex ensemble (`use_opera=True`). The width does not grow with the horizon. With `aggregation="opera"` the levels are aggregated instead: each member of the final model forecasts the `tau`-quantile as its own point forecast plus the `tau`-quantile of its own validation errors, and one `OperaTAM` with the pinball loss of that level, run over the validation rows, gives the weights, applied to the rows to forecast; the levels are sorted on each row. The quantiles of a member come from all its validation errors, not from its group, and a model with a single member gives the empirical forecast:
 
 ```{literalinclude} ../../../../src/tam/model/autotam/auto_tam.py
 :language: python
@@ -342,7 +342,7 @@ Quantile forecasts (`predict_quantiles(df_test, taus)`) are the point forecast o
 :caption: src/tam/model/autotam/auto_tam.py (Quantiles)
 ```
 
-Search on a sample of the groups (`AutoTAM(..., search_groups=50)`) is for data with thousands of groups. `fit()` takes that many groups evenly spaced by the mean of their target (small and large series both in it, the same on every machine), runs the search on them with a new `AutoTAM` of the same arguments (exports to `<export_dir>/sample_search`), then fits the architectures found on every group, the way `architectures=` does. The sample is kept in `search_sample_`. A pooled seasonal floor expert and chunked feature building are not built yet:
+Search on a sample of the groups (`AutoTAM(..., search_groups=50)`) is for data with thousands of groups. `fit()` takes that many groups evenly spaced by the mean of their target (small and large series both in it, the same on every machine), runs the search on them with a new `AutoTAM` of the same arguments (exports to `<export_dir>/sample_search`), then fits the architectures found on every group, the way `architectures=` does. The sample is kept in `search_sample_`. Chunked feature building is not built yet:
 
 ```{literalinclude} ../../../../src/tam/model/autotam/auto_tam.py
 :language: python
@@ -442,6 +442,35 @@ The search is reproducible with `AutoTAM(seed=42)`. The search draws from the gl
 :end-before: "#: </seeding_rules>"
 :caption: src/tam/model/autotam/seeding.py (Seeding and Ranking)
 ```
+
+Selection on the quantile loss (`fit(optimization_metric='wql')` or `'wql:0.05,0.5,0.95'`) ranks the experts and the ensembles on the loss of the quantile layer that `predict_quantiles` delivers: the pinball loss of the point forecast plus the quantiles of its own errors, summed over the levels and divided by the sum of the absolute targets (scale-free, like the benchmark's WQL). A constant bias costs nothing, because the layer re-centres on the errors; the width and the tails of the errors do. The structure search keeps the point loss (it is cheap); the expansion, the leagues and the Apex use the quantile loss:
+
+```{literalinclude} ../../../../src/tam/model/autotam/quantile_loss.py
+:language: python
+:start-after: "#: <quantile_loss>"
+:end-before: "#: </quantile_loss>"
+:caption: src/tam/model/autotam/quantile_loss.py
+```
+
+Rolling-origin folds (`AutoTAM(..., rolling_folds=k)`) steady a selection that rests on one horizon of data. The last `k` horizons of the training rows (the horizon is `horizon`, else the smallest lag, else one date) are cut into `k` consecutive blocks; each is predicted by a model trained on everything dated before it, for every group at once, and the experts and champions are ranked on the mean of the `k` scores. Fewer folds are made when the history is short (a third of the dates stay for the first training set), none with a `'holdout'` validation or without a date column, in which case the usual folds are used:
+
+```{literalinclude} ../../../../src/tam/model/autotam/pipeline/data_manager.py
+:language: python
+:start-after: "#: <data_manager_rolling>"
+:end-before: "#: </data_manager_rolling>"
+:caption: src/tam/model/autotam/pipeline/data_manager.py (Rolling origins)
+```
+
+The pooled seasonal floor (`AutoTAM(..., pooled_floor=True)`) is the benchmark of seasonal series, kept as a guard. It adds a static expert, of the island `Floor`, with one coefficient per position of the natural season of the sampling step (the hour of the day, the day of the week, the week of the year, the month or the quarter), fitted for all the series at once on the training rows; it needs no feature and no search. Its experts always join the Apex pool, whatever `apex_quality_ratio`, and the frozen final model is never worse than the best of them on the validation rows (logged when the floor is the final model), the same guard as the seed floor. The position column is added to the frames (and to the forecast rows) but is not offered to the search:
+
+```{literalinclude} ../../../../src/tam/model/autotam/floor.py
+:language: python
+:start-after: "#: <floor_rules>"
+:end-before: "#: </floor_rules>"
+:caption: src/tam/model/autotam/floor.py
+```
+
+Choosing between the level and the difference (`difference="select"`) does not rely on a rule: it measures. The training rows are cut at their last three horizons (the horizon is `horizon`, else the smallest lag, else one step). A level model and a differenced model are fitted on the rows before, each forecasts the three horizons in turn (the rows before each one observed, the horizon itself hidden), and the one with the smaller mean absolute error in the level scale is kept, then fitted on all the rows; the two scores are in `difference_scores_`. It costs two more fits, and it needs a history of at least a dozen horizons. A seasonal series whose season is the horizon often keeps the difference, because the difference at the seasonal lag removes the season.
 
 Reproducibility across environments: the same `seed` on the same environment gives the same experts and forecasts. Across environments (another Python, numpy, pandas or scipy version, another BLAS kernel set, another thread count, CPU or GPU) the least-squares fits agree to the last digits, and a measured run of the search agreed to about 8 significant digits (RMSE 828.2648 on three environments, one of them 3.10 with older libraries and no AVX2). The run info file (`AutoTAM_run_info_*.json`) records the versions, the threads, the linear-algebra backend, the processor features and the thread variables, so that a difference between two runs can be traced. The search compares candidates: if a last-bit difference ever flips a comparison, the two runs diverge from that point, so a comparison between environments should use several seeds.
 
