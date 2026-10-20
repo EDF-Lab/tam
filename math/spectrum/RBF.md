@@ -35,6 +35,20 @@ While the Gaussian kernel is the default choice in standard machine learning, it
 
 By contrast, the Matérn class provides rigorous control over the differentiability of the spatial field via the $\nu$ parameter. A process with a Matérn covariance is $\lceil \nu - 1 \rceil$ times mean-square differentiable {cite:p}`williams2006gaussian, guttorp2006studies`. This allows the TAM framework to exactly match the fractional Sobolev regularity of the underlying physical phenomenon.
 
+## The Thin-Plate Spline Kernel
+
+A Gaussian or Matérn kernel has a bandwidth and a ridge penalty on the coefficients, which is not a smoothness penalty on the surface. The thin-plate spline {cite:p}`duchon1977splines,wood2003thin` is the minimiser, over functions of $d$ coordinates, of the data misfit plus $\lambda\,J_m(f)$, where $J_m(f)=\int\lVert\nabla^m f\rVert^2\,dx$ is the integral of the squared derivatives of order $m$ ($2m>d$). It has no bandwidth, it is isotropic (a rotation of the coordinates does not change the fit), and it is the natural two-dimensional counterpart of the cubic smoothing spline.
+
+On a set of centres $\kappa_1,\dots,\kappa_K$ the fit is $f(x)=\sum_j\delta_j\,\eta_{m,d}(\lVert x-\kappa_j\rVert)+\sum_k\alpha_k\,p_k(x)$, with the radial basis
+
+$$ \eta_{m,d}(r)=\begin{cases}\dfrac{(-1)^{m+1+d/2}}{2^{2m-1}\pi^{d/2}(m-1)!\,(m-d/2)!}\,r^{2m-d}\log r & d\text{ even},\\[2mm]\dfrac{\Gamma(d/2-m)}{2^{2m}\pi^{d/2}(m-1)!}\,r^{2m-d} & d\text{ odd},\end{cases} $$
+
+$p_k$ the monomials of total degree below $m$ (the null space of $J_m$) and the constraint $T^\top\delta=0$ with $T_{jk}=p_k(\kappa_j)$. Writing $\delta=Z\gamma$ for an orthonormal basis $Z$ of the null space of $T^\top$, the energy is the quadratic form $J_m=\gamma^\top(Z^\top E Z)\gamma$ with $E_{jk}=\eta_{m,d}(\lVert\kappa_j-\kappa_k\rVert)$, positive semi-definite on that subspace, so the feature map and the penalty are
+
+$$ \Phi(x)=\big[\,\eta(x,\kappa)\,Z,\ p_1(x),\dots\big],\qquad P=\operatorname{blockdiag}\big(\lambda\,Z^\top E Z,\ \lambda_{\text{null}}\,I\big). $$
+
+The polynomials of degree $\ge1$ are the part of the surface that the energy does not penalise (a plane for $m=2$); the constant is absorbed by the intercept of the model, and $\lambda_{\text{null}}$ is a second, optional smoothing parameter that shrinks that part (a tiny ridge otherwise, for numerical regularity). As $\lambda\to\infty$ the fit tends to the least-squares plane.
+
 ## Structural Truncation & The Screening Effect (Critique)
 
 In standard Gaussian Processes, the RBF network is evaluated across all $N$ empirical observations, requiring an intractable $\mathcal{O}(N^3)$ dense Dual covariance inversion. The TAM framework explicitly truncates this space by projecting the continuous kernel strictly onto $M$ localized centroids ($M \ll N$).

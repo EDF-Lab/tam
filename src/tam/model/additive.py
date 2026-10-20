@@ -1233,7 +1233,7 @@ class StaticTAM(BaseTAM):
                 "Token": "rbf(x)", 
                 "Effect": "RBF / Matérn Kernel", 
                 "Syntax Example": "rbf(Lat, others='Lon', n_centers=50)",
-                "Specific Params": "n_centers, gamma, nu, others (multivariate)"
+                "Specific Params": "n_centers, gamma, nu, others (multivariate), kernel ('tps': thin-plate spline), m, ap_null"
             },
             {
                 "Token": "n(x)", 

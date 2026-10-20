@@ -204,7 +204,7 @@ Computes pairwise Euclidean distances to centroids natively via `torch.cdist` be
 ```
 
 **3. Penalty Matrix**
-Applies an isotropic identity penalty over the spatial prototypes.
+Applies an isotropic identity penalty over the spatial prototypes. With `kernel='tps'` the effect is the thin-plate spline instead: `_init_tps` picks distinct centres from the training tensor (every distinct point when there are fewer than `n_centers`), `_prepare_basis` builds the constraint basis `Z` (QR of the monomials at the centres) and the bending energy `Z' E Z` (negative round-off eigenvalues set to zero), `build_feature_map` returns `[eta(|x - c|) Z, polynomials of degree 1 .. m-1]` (`n_centers - 1` columns: the constant is the model intercept), and the penalty is `blockdiag(lambda Z'EZ, lambda_null I)`. `ap_null=...` in the formula makes `lambda_null` a second penalty coordinate for `auto_fit` (otherwise a fixed ridge of 1e-9); `m` is the order (default 2, with `2m > d`); the default extrapolation is `linear`. The coordinates are min-max normalised feature by feature before the effect, so the isotropy holds in the normalised coordinates: give both coordinates a common unit (or the same range) when the aspect of the map matters.
 ```{literalinclude} ../../../../src/tam/model/spectrum/_rbf.py
 :language: python
 :start-after: "#: <penalty_matrix>"

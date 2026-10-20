@@ -183,8 +183,13 @@ def create_effects_from_parsed_terms(
             if others_str:
                 additional_features = [s.strip() for s in others_str.split('|') if s.strip()]
             seed = int(params_resolved.get('seed', 42))
-            extrap_val = params_resolved.get('extrapolate', 'continue')
-            effects_list.append(RBFEffect(feature_name, n_centers, gamma, nu, lambda_p, additional_features, extrap_val, seed=seed))
+            kernel = str(params_resolved.get('kernel', 'matern'))
+            extrap_val = params_resolved.get('extrapolate', 'linear' if kernel.lower() == 'tps' else 'continue')
+            m_order = int(params_resolved.get('m', 2))
+            ap_null = params_resolved.get('ap_null', None)
+            lambda_null = None if ap_null is None else 10 ** float(ap_null)
+            effects_list.append(RBFEffect(feature_name, n_centers, gamma, nu, lambda_p, additional_features, extrap_val, seed=seed,
+                                          kernel=kernel, m=m_order, lambda_null=lambda_null))
         #: </parse_rbf>
 
         #: <parse_tree>
