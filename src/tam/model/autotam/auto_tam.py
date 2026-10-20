@@ -32,21 +32,20 @@ from tam.model.opera import OperaTAM
 from tam.common.exceptions import collect_extrapolation
 from tam.model.autotam.failures import log_failure
 from tam.common.utils import parse_formula_to_terms
-from tam.model.autotam.anchor import ANCHOR_ISLAND, anchor_formula
+from tam.model.autotam.anchor import ANCHOR_ISLAND, anchor_formula, natural_season
 from tam.model.autotam.floor import FLOOR_COLUMN, FLOOR_ISLAND, floor_formula
 from tam.model.autotam.group_search import GROUP_COLUMN, add_group, covariates_in_cycles, derived_group, formula_in_cycles, sample_groups, to_cycles
 from tam.model.autotam.alignment import aligned_values
 from tam.model.autotam.expert_ids import experts_table, identifiers
 from tam.model.autotam.inactivity import InactivityGate, drop_leading_zeros
 from tam.model.autotam.covariate_ranking import rank_covariates
-from tam.model.autotam.tokens import first_arguments, identifier_tokens
+from tam.model.autotam.tokens import formula_columns, term_columns
 from tam.model.autotam.series_guard import GUARD_ISLANDS, apply_guard, guarded_series
 from tam.model.autotam.external_experts import look_up, normalise_external
 from tam.model.autotam.seeding import seeded_method
 from tam.model.autotam.differencing import add_back, difference_test, difference_training
 from tam.model.autotam.target_profile import profile_target
 from tam.model.autotam.diagnostics import feature_diagnostics, residual_advice, residual_diagnostics, stationarity_verdict, target_diagnostics
-from tam.model.autotam.anchor import natural_season
 from tam.model.autotam.families import candidate_losses, check_family_mode
 from tam.model.autotam.spectral_profile import spectral_profile
 from tam.model.autotam.calendar_features import calendar_seed_formulas
@@ -1105,13 +1104,7 @@ class AutoTAM:
         for island, formulas in architectures.items():
             for formula in formulas:
                 _, terms = parse_formula_to_terms(formula)
-                names = set()
-                for term in terms:
-                    if term.get("type") == "te":
-                        for key in term.get("params", {}):
-                            names.update(first_arguments(str(key)))
-                    else:
-                        names.add(term.get("feature"))
+                names = set(term_columns(terms))
                 if any(n and n not in columns for n in names):
                     dropped += 1
                 else:
@@ -1164,13 +1157,7 @@ class AutoTAM:
                 raise ValueError(f"Seed formula {formula!r} is not valid: {exc}") from exc
             if target != self.ctx.target:
                 raise ValueError(f"Seed formula {formula!r} has target '{target}', the target of the AutoTAM formula is '{self.ctx.target}'.")
-            names = set()
-            for term in terms:
-                if term.get("type") == "te":
-                    for key in term.get("params", {}):
-                        names.update(first_arguments(str(key)))
-                else:
-                    names.add(term.get("feature"))
+            names = set(term_columns(terms))
             missing = sorted(n for n in names if n and n not in columns)
             if missing:
                 raise ValueError(f"Seed formula {formula!r} uses columns that are not in the data: {missing}.")
@@ -1257,7 +1244,7 @@ class AutoTAM:
                 base_m = m if m_type == "static" else getattr(m, '_saved_base_model', getattr(m, 'base_model_', None))
                 f_ref = getattr(base_m, 'formula_', '')
                 # The target names the formula but is not a feature: a forecast row has none, and must not be dropped for it.
-                req_cols = sorted(set([c for c in identifier_tokens(f_ref) if c in df_aug.columns and c != self.ctx.target]))
+                req_cols = sorted(set(c for c in formula_columns(f_ref, df_aug.columns) if c != self.ctx.target))
                 df_aug_clean = df_aug.dropna(subset=req_cols).copy()
                 
                 if m_type == "static": 
@@ -1526,7 +1513,7 @@ class AutoTAM:
             future_columns[member] = predictions[member].to_numpy(dtype=float)[:, None] + offsets[None, :]
         for member in natives:
             try:   # the expert's own quantiles on the validation rows (NaN where a feature is missing)
-                required = [c for c in identifier_tokens(getattr(by_name[member], "formula_", "")) if c in val.columns and c != target]
+                required = [c for c in formula_columns(getattr(by_name[member], "formula_", ""), val.columns) if c != target]
                 own = by_name[member].predict_quantiles(val.dropna(subset=required), levels).reindex(val.index)
                 history_columns[member] = own.to_numpy(dtype=float)
                 future_columns[member] = self._native_quantiles_[member]

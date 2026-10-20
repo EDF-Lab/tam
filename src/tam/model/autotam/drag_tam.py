@@ -19,7 +19,7 @@ import numpy as np
 import random
 from typing import List, Dict, Any, Tuple, Callable, Optional, Set
 import re
-from tam.model.autotam.tokens import identifier_tokens
+from tam.model.autotam.tokens import formula_columns
 from tam.model.autotam.tensor_penalty import with_tensor_outer_penalty
 
 from .knowledge_graph import KnowledgeGraph, term_members
@@ -378,7 +378,7 @@ class DragTAM:
         must be added explicitly or the grouped StaticTAM loses them after the
         column selection/dropna.
         """
-        req = [c for c in identifier_tokens(candidate_formula) if c in available]
+        req = formula_columns(candidate_formula, available)
         for extra in (self.target_col, self.group_col, self.date_col):
             if extra and extra in available and extra not in req:
                 req.append(extra)

@@ -25,13 +25,12 @@ from tam.model.autotam.data_profiler import DataProfiler
 from tam.model.autotam.feature_engineer import FeatureEngineer
 from tam.model.autotam.effect_selector import EffectSelector
 from tam.model.autotam.failures import log_failure
-from tam.model.autotam.anchor import add_anchor_lag, anchor_column, resolve_season
+from tam.model.autotam.anchor import add_anchor_lag, anchor_column, natural_season, resolve_season
 from tam.model.autotam.calendar_features import MIN_STEPS_PER_DAY_FOR_HOLIDAYS, add_calendar, calendar_names, guarded_calendar_names
 from tam.model.autotam.spectral_profile import steps_per_day
 from tam.model.autotam.regimes import add_regime_column, fit_regimes
 from tam.model.autotam.crisis_calendar import active_events, add_crisis, resolve_events
 from tam.model.autotam.floor import FLOOR_COLUMN, season_position
-from tam.model.autotam.anchor import natural_season
 from tam.model.autotam.target_profile import mask_sentinels, profile_target
 from tam.model.autotam.sentinel_cleaning import SentinelCleaner
 logger = logging.getLogger(__name__)

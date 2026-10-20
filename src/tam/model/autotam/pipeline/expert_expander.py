@@ -17,7 +17,7 @@ import pandas as pd
 import numpy as np
 import datetime
 import re
-from tam.model.autotam.tokens import identifier_tokens
+from tam.model.autotam.tokens import formula_columns
 from tam.model.autotam.expert_ids import identifier_of
 from typing import Dict, Any, Tuple, List
 from .context import PipelineContext
@@ -169,8 +169,7 @@ class ExpertExpander:
             for rank, base_form in enumerate(base_formulas, 1):
                 prefix = f"{island_name}_R{rank}"
                 try:
-                    all_tokens = identifier_tokens(base_form)
-                    req_cols = sorted(set([c for c in all_tokens if c in df_cont_all.columns]))
+                    req_cols = sorted(set(formula_columns(base_form, df_cont_all.columns)))
                     if ctx.target not in req_cols: 
                         req_cols.append(ctx.target)
                     

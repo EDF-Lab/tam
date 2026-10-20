@@ -27,7 +27,7 @@ from tam.model.autotam.guards import guard_bounds
 from tam.model.autotam.seeding import rank_key
 from tam.model.autotam.quantile_loss import is_wql, parse_levels, wql
 from tam.model.autotam.floor import FLOOR_ISLAND
-from tam.model.autotam.tokens import identifier_tokens
+from tam.model.autotam.tokens import formula_columns
 from tam.model.autotam.external_experts import look_up
 logger = logging.getLogger(__name__)
 #: </ensemble_selector_imports>
@@ -501,7 +501,7 @@ class EnsembleSelector:
                     base_m = m if m_type == "static" else getattr(m, '_saved_base_model', getattr(m, 'base_model_', None))
                     if base_m and base_m not in refitted_bases:
                         f_ref = getattr(base_m, 'formula_', '')
-                        req_cols = sorted(set([c for c in identifier_tokens(f_ref) if c in ctx.df_all_aug.columns]))
+                        req_cols = sorted(set(formula_columns(f_ref, ctx.df_all_aug.columns)))
                         if ctx.target not in req_cols: req_cols.append(ctx.target)
                         
                         full_train_clean = ctx.df_all_aug.dropna(subset=req_cols)  # new frame; fit copies it
@@ -554,7 +554,7 @@ class EnsembleSelector:
         Extracts predictions from an expert model across the specified validation space.
         """
         f_ref = getattr(m_ref, 'formula_', getattr(getattr(m_ref, '_saved_base_model', getattr(m_ref, 'base_model_', None)), 'formula_', ''))
-        req_cols = sorted(set([c for c in identifier_tokens(f_ref) if c in df_cont_val.columns]))
+        req_cols = sorted(set(formula_columns(f_ref, df_cont_val.columns)))
         if ctx.target not in req_cols: req_cols.append(ctx.target)
         df_cv_clean = df_cont_val.dropna(subset=req_cols)  # new frame; never written to below
 
