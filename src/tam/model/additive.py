@@ -34,11 +34,14 @@ from ._data import (
     _groups_in_data,
     _check_known_groups,
     _coefficients_of_groups,
-    _reassemble_decomposed_predictions
+    _reassemble_decomposed_predictions,
+    _reassemble_predictions
 )
 
 from ._dispatcher import smart_solve, smart_evaluate_rmse, smart_decompose
 from ._dispatcher_gcv import smart_solve_gcv
+from ._math import _ridge_floor
+from tam.common.hardware import hw
 
 from .spectrum import (
     BaseEffect, 
@@ -115,7 +118,9 @@ class StaticTAM(BaseTAM):
                 you must pass date_col explicitly to guarantee correct results
                 on data that isn't already sorted by time.
             default_alpha_p: Default log10(lambda_p) regularization strength.
-            dist_kwargs: Options of the distributional and mixture modes: ``tail_family``, ``kurtosis_threshold``,
+            dist_kwargs: Options of the distributional and mixture modes: ``refit_rounds`` (weighted refits of the location, 0 by
+                default), ``refit_tol`` (relative change of the location that stops them), ``scale_correction`` (``"none"``, ``"leverage"`` or
+                ``"edf"``: debias the squared residuals of the scale model), ``tail_family``, ``kurtosis_threshold``,
                 ``scale_shrinkage``, ``location_alpha_p``, ``scale_alpha_p``, and the target scale: ``target_transform``
                 (``"log"`` by default, ``"none"``, ``"asinh"`` for a skewed target with negative values, ``"logit"`` for a
                 bounded one, with ``bounds=(low, high)`` or estimated) or the older ``log_target`` (True = ``"log"``).
@@ -179,6 +184,9 @@ class StaticTAM(BaseTAM):
                 scale_shrinkage=dk.get("scale_shrinkage", 0.0),
                 location_alpha_p=dk.get("location_alpha_p"),
                 scale_alpha_p=dk.get("scale_alpha_p"),
+                refit_rounds=dk.get("refit_rounds", 0),
+                refit_tol=dk.get("refit_tol", 1e-4),
+                scale_correction=dk.get("scale_correction", "none"),
             )
             return
         self._mode_ = "plain"
@@ -499,6 +507,52 @@ class StaticTAM(BaseTAM):
         if with_levels:
             info['__levels__'] = levels
         return info
+
+    def _stacked_column(self, data: pd.DataFrame, column: str) -> torch.Tensor:
+        """A column of ``data`` stacked like the target of the training tensors (same balancing, groups and order)."""
+        _, stacked = _transform_data_stacked(
+            data=self._apply_vocabulary(data), features=self.features_config_["features"], group_col=self.group_col_,
+            norm_params=self.norm_params_, target_col=column, unique_groups=self.unique_groups_, date_col=self.date_col_
+        )
+        return stacked
+
+    def leverage(self, data: pd.DataFrame) -> np.ndarray:
+        r"""
+        Leverage ``h_ii`` of every row of ``data`` in the penalized fit: ``h_ii = w_i phi_i' (Phi' W Phi + n P + ridge)^-1 phi_i`` per group,
+        with the observation weights ``w`` of the fit (one when there are none). ``sum(h_ii)`` is the effective degrees of freedom, and
+        under the Gaussian model ``E[r_i^2] = sigma_i^2 (1 - h_ii)``.
+
+        Args:
+            data: The rows (as for ``predict``; the weight column, if the model has one, must be in it).
+
+        Returns:
+            One value per row of ``data``, in its order.
+        """
+        if self.coefficients_ is None:
+            raise RuntimeError("Model must be fitted before computing the leverage.")
+        data = _ensure_dummies(data, self.group_col_, self.date_col_)
+        mask, balanced_data = _balance_groups(dataset=data, group_col=self.group_col_, date_col=self.date_col_, method="fill")
+        x_data, _, groups_stacked = self._prepare_data(balanced_data)
+        weight_column = getattr(self, "_weight_col_", None)
+        weights = self._stacked_column(balanced_data, weight_column) if weight_column is not None else None
+        penalty = self._build_penalty_matrix()
+        n_samples = x_data.shape[1]
+        stacked = []
+        for g in range(x_data.shape[0]):
+            phi = self._build_design_matrix(x_data[g:g + 1])
+            w = torch.ones(1, n_samples, 1, dtype=phi.dtype, device=phi.device) if weights is None else weights[g:g + 1].to(device=phi.device, dtype=phi.dtype).nan_to_num(0.0).clamp_min(0.0)
+            root = w.sqrt()
+            weighted = phi * root
+            system = weighted.mT @ weighted + n_samples * penalty.to(phi.dtype) + _ridge_floor(n_samples, phi.shape[-1], phi.dtype, phi.device)
+            solved = hw.safe_solve(system, phi.mT)  # (1, K, n)
+            stacked.append((w.squeeze(-1) * (phi * solved.mT).sum(dim=-1)).cpu())
+        leverage = torch.cat(stacked, dim=0)
+        frame = _reassemble_predictions(
+            original_data=balanced_data, predictions_stacked=leverage, group_col=self.group_col_,
+            unique_groups=groups_stacked, target_col=self.target_col_, date_col=self.date_col_
+        )
+        frame = _cleanup_dummies(frame[mask], self.group_col_, self.date_col_)
+        return frame[f"Estimated{self.target_col_}"].to_numpy(dtype=float)
 
     def _offset_of(self, x_data: torch.Tensor) -> Optional[torch.Tensor]:
         """The sum of the ``offset(col)`` columns of the formula, read from the (identity-normalised) feature tensor."""

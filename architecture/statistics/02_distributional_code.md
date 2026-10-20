@@ -15,6 +15,25 @@ There is **no `DistributionalTAM` class**: a dict formula makes `StaticTAM` a th
 :pyobject: fit
 ```
 
+## Weighted refit of the location and debiased scale
+
+`dist_kwargs` takes three more options, defaults of which reproduce the fit above bit for bit: `refit_rounds` (0), `refit_tol` (1e-4) and `scale_correction` (`"none"`, `"leverage"`, `"edf"`).
+
+- **Weights.** A plain `StaticTAM` has a private attribute `_weight_col_`; when it names a column of the training frame, `BaseTAM.fit` stacks that column exactly like the target (`_stacked_column`: same balancing, groups and order), checks it (finite, non-negative, not all zero) and passes it to the penalized least-squares atom (`_solve_prepared(..., weights)`). `predict` ignores it.
+- **Loop.** After the first location and scale fits, each round computes the unshrunk conditional variance of the scale model, turns its inverse into weights (normalised to unit mean so that the `n P` penalty keeps its scale, then kept within a factor 1e3 of the median: `_inverse_variance_weights`), refits the same location sub-model with them (its penalties and knots are kept: the smoothing chosen by `select` on the first pass is not re-chosen), and refits the scale on the new residuals. It stops when the relative change of the fitted location is below `refit_tol`; if the cap `refit_rounds` is reached first, a `UserWarning` gives the last change and the last round is kept.
+- **Leverage.** `StaticTAM.leverage(data)` returns `h_ii` for every row (one batched solve per group, with the same penalty and ridge floor as the fit and the weights of the fit). `scale_correction="leverage"` divides the squared residuals by `1 - min(h, 0.9)`, `"edf"` multiplies them per group by `n / (n - sum h)` (`_corrected_squared_residual`); `_global_scale_variance_` is the mean of the corrected values. It works with `refit_rounds=0`. A warning is given once when more than 1% of the leverages hit the clamp.
+- **Record.** `refit_history_` (one dict per round: `round`, `change`, `log_likelihood`, `clipped_weights`, `clamped_leverages`), `n_refits_`, `converged_` and `log_likelihood_`, the log-likelihood of the training rows at the final location, scale and tail law.
+
+```{literalinclude} ../../../../src/tam/model/statistics/estimation/_distributional.py
+:language: python
+:pyobject: _corrected_squared_residual
+```
+
+```{literalinclude} ../../../../src/tam/model/statistics/estimation/_distributional.py
+:language: python
+:pyobject: _inverse_variance_weights
+```
+
 ## The tail law and the location/scale predictions
 
 ```{literalinclude} ../../../../src/tam/model/statistics/estimation/_distributional.py

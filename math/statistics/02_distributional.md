@@ -13,6 +13,22 @@ A `{ "mu": ..., "sigma": ... }` formula fits a 2-parameter location-scale distri
    below zero, so a target taking such values is modelled on its own scale, $t=y$.
 2. **Scale.** Read the squared residuals $r^2=(t-\hat\mu)^2$ and fit $\sigma(x)$ as a **Gamma-GLM** atom on $r^2$ (or an L2 atom on $\log r^2$ with a $\log\chi^2_1$ bias correction).
 
+## Efficient location and unbiased scale
+
+The two-stage schedule is exact for the scale given the location, but two things are left on the table.
+
+**Efficiency of the location.** Given the scale, the minimum-variance estimator of $\theta$ in $\mu=\Phi\theta$ is the weighted penalized least-squares solution with weights $w_i=1/\sigma_i^2$,
+
+$$ \hat\theta=\big(\Phi^\top W\Phi+nP\big)^{-1}\Phi^\top W t, $$
+
+while the first stage uses $W=I$: it is unbiased, but its variance exceeds that of the weighted one when the noise is heteroscedastic. For a symmetric law the information matrix is block-diagonal in $(\mu,\sigma)$ (the parameters are orthogonal), so alternating the two steps, location with the weights of the last scale and scale on the residuals of the last location, converges to the joint maximum of the likelihood, usually in one to three rounds, and loses nothing against a joint Newton step. The gain depends on how local the location is: the variance of a flexible smoother at a point is governed by the noise at that point only, so the weights change it little; a parsimonious location (a line, a few knots) over a noise whose spread varies several times gains a third of its error or more.
+
+**Bias of the scale.** The scale is fitted to squared residuals, which the fit has shrunk: with the hat matrix $H$ of the location, $\mathbb E[r_i^2]=\sigma_i^2(1-2h_{ii})+\sum_jH_{ij}^2\sigma_j^2\approx\sigma_i^2(1-h_{ii})$ when $\sigma$ varies slowly compared to the width of the smoother, since $\sum_jH_{ij}^2=h_{ii}$. The variance is therefore underestimated by the fraction $h_{ii}$, which is large when the location is flexible and the sample small, and the intervals are too narrow. Dividing by the leverage gives an unbiased target,
+
+$$ \tilde r_i^2=\frac{r_i^2}{1-h_{ii}},\qquad h_{ii}=w_i\,\phi_i^\top\big(\Phi^\top W\Phi+nP\big)^{-1}\phi_i, $$
+
+the per-row form of the degrees-of-freedom correction of restricted maximum likelihood {cite:p}`patterson1971recovery`, whose aggregate version replaces $n$ by $n-\operatorname{edf}$ with $\operatorname{edf}=\sum_ih_{ii}$ the trace of the hat matrix {cite:p}`wood2017generalized`. The leverage is clamped below $0.9$ because a row that the location nearly interpolates would make $\tilde r_i^2$ explode.
+
 ## The tail law and quantiles
 
 The standardized residual law $F$ (Normal or Student-t) is selected from the residual excess kurtosis. Conditional quantiles are then, by construction non-crossing:

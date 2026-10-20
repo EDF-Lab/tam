@@ -209,12 +209,18 @@ class BaseTAM(ABC):
         )
 #: </pwls_atom>
 
-    def _solve_prepared(self, x_train: torch.Tensor, y_train: torch.Tensor) -> None:
-        r"""Solves the coefficients on prepared tensors: one exact solve for ``l2``, else the reweighted loop (and the dispersion refits)."""
+    def _stacked_column(self, data: pd.DataFrame, column: str) -> torch.Tensor:
+        r"""A column of ``data`` stacked like the target (same groups, same order): shape (n_groups, n_samples, 1)."""
+        raise NotImplementedError
+
+    def _solve_prepared(self, x_train: torch.Tensor, y_train: torch.Tensor, weights: Optional[torch.Tensor] = None) -> None:
+        r"""Solves the coefficients on prepared tensors: one exact solve for ``l2`` (weighted when ``weights`` is given), else the reweighted loop (and the dispersion refits)."""
         reweighting_strategy = getattr(self, "_reweighting_strategy_", None)
         if reweighting_strategy is None:
-            self.coefficients_ = self._solve_pwls_step(x_train, y_train, weights=None)
+            self.coefficients_ = self._solve_pwls_step(x_train, y_train, weights=weights)
         else:
+            if weights is not None:
+                raise ValueError("Observation weights are available for the squared loss only.")
             from .statistics.estimation._reweighting import reweighted_penalized_fit, _linear_predictor, dense_design
             validate = getattr(reweighting_strategy, "validate_target", None)
             if validate is not None:
@@ -281,7 +287,13 @@ class BaseTAM(ABC):
         if x_train.shape[0] == 0:
             raise ValueError("No valid training data found after balancing.")
             
-        self._solve_prepared(x_train, y_train)
+        weights = None
+        weight_column = getattr(self, "_weight_col_", None)
+        if weight_column is not None:
+            weights = self._stacked_column(balanced_data, weight_column)
+            if not bool(torch.isfinite(weights).all()) or bool((weights < 0).any()) or not bool((weights > 0).any()):
+                raise ValueError(f"The observation weights in '{weight_column}' must be finite, non-negative and not all zero.")
+        self._solve_prepared(x_train, y_train, weights)
 
         return self
 #: </fit_method>

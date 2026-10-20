@@ -73,14 +73,31 @@ def require_distributional(model, method_name: str) -> None:
         )
 
 
+_SCALE_CORRECTIONS = ("none", "leverage", "edf")
+# Leverage above this is clamped (a row the location interpolates would make r^2 / (1 - h) explode).
+_LEVERAGE_MAX: float = 0.9
+# The inverse-variance weights are normalised to unit mean, then kept within this factor of their median.
+_WEIGHT_RANGE: float = 1e3
+
+
 def init_config(model, formulas, loss, group_col, date_col, default_alpha_p,
                 tail_family, kurtosis_threshold, scale_shrinkage,
-                location_alpha_p, scale_alpha_p) -> None:
+                location_alpha_p, scale_alpha_p,
+                refit_rounds=0, refit_tol=1e-4, scale_correction="none") -> None:
     """Configure a location-scale distributional container from a {param: formula} dict."""
     if "mu" not in formulas:
         raise ValueError("A distributional formula dict must contain a 'mu' (location) entry.")
     if not 0.0 <= scale_shrinkage <= 1.0:
         raise ValueError(f"scale_shrinkage must lie in [0, 1]; got {scale_shrinkage!r}")
+    if int(refit_rounds) != refit_rounds or refit_rounds < 0:
+        raise ValueError(f"refit_rounds must be an integer >= 0; got {refit_rounds!r}")
+    if not float(refit_tol) >= 0.0:
+        raise ValueError(f"refit_tol must be >= 0; got {refit_tol!r}")
+    if scale_correction not in _SCALE_CORRECTIONS:
+        raise ValueError(f"scale_correction must be one of {_SCALE_CORRECTIONS}; got {scale_correction!r}")
+    model._refit_rounds_ = int(refit_rounds)
+    model._refit_tol_ = float(refit_tol)
+    model._scale_correction_ = scale_correction
 
     model.target_col_ = formulas["mu"].split("~", 1)[0].strip()
     model._mu_rhs_ = formulas["mu"].split("~", 1)[1].strip()
@@ -106,6 +123,10 @@ def init_config(model, formulas, loss, group_col, date_col, default_alpha_p,
     model.nu_ = None
     model._global_scale_variance_ = None
     model._transform_params_ = {}
+    model.refit_history_ = []
+    model.n_refits_ = 0
+    model.converged_ = True
+    model.log_likelihood_ = -np.inf
 
 
 # --- Helpers ----------------------------------------------------------------------------------------
@@ -280,21 +301,112 @@ def fit(model, data: pd.DataFrame, select: str = "fixed",
     else:
         model._location_submodel_ = _build_location_submodel(model, location_alpha).fit(working)
 
+    model.refit_history_, model.n_refits_, model.converged_ = [], 0, True
+    mu_hat, residual, clamped = _fit_scale(model, working)
+
+    for round_index in range(1, model._refit_rounds_ + 1):
+        # Efficient location: the weights are the inverse conditional variance of the scale model just fitted.
+        weights, clipped = _inverse_variance_weights(_unshrunk_variance(model, working))
+        working["__w__"] = weights
+        location = model._location_submodel_
+        location._weight_col_ = "__w__"
+        location.fit(working)
+        mu_new, residual, clamped = _fit_scale(model, working)
+        change = float(np.linalg.norm(mu_new - mu_hat) / max(np.linalg.norm(mu_hat), _TINY))
+        mu_hat = mu_new
+        model.refit_history_.append({
+            "round": round_index, "change": change, "log_likelihood": _log_likelihood(model, working, residual),
+            "clipped_weights": clipped, "clamped_leverages": clamped,
+        })
+        model.n_refits_ = round_index
+        if change < model._refit_tol_:
+            break
+    if model._refit_rounds_ > 0:
+        model.converged_ = bool(model.refit_history_[-1]["change"] < model._refit_tol_)
+        if not model.converged_:
+            warnings.warn(
+                f"The weighted refit of the location did not converge in {model.n_refits_} round(s): the fitted location still moved by "
+                f"{model.refit_history_[-1]['change']:.2e} (refit_tol={model._refit_tol_:g}). The last round is kept.",
+                UserWarning, stacklevel=3,
+            )
+
+    _, sigma_hat = mu_sigma(model, working)
+    fit_tail_family(model, residual / sigma_hat)
+    model.log_likelihood_ = _log_likelihood(model, working, residual)
+    return model
+
+
+def _unshrunk_variance(model, data: pd.DataFrame) -> np.ndarray:
+    """The conditional variance of the scale model, without the prediction-time shrinkage."""
+    scale_prediction = _estimated(model._scale_submodel_.predict(data), "__sigma__")
+    if model._scale_loss_ == "gamma":
+        return np.clip(scale_prediction, _TINY, None)
+    return np.exp(scale_prediction - _LOG_CHI2_1_MEAN)
+
+
+def _inverse_variance_weights(variance: np.ndarray) -> Tuple[np.ndarray, int]:
+    """``1 / variance`` normalised to unit mean (the penalty keeps its scale), then kept within 1e3 of the median; returns them and the
+    number of clipped weights."""
+    raw = 1.0 / np.clip(variance, _TINY, None)
+    weights = raw / np.mean(raw)
+    median = float(np.median(weights))
+    clipped = np.clip(weights, median / _WEIGHT_RANGE, median * _WEIGHT_RANGE)
+    return clipped / np.mean(clipped), int(np.count_nonzero(clipped != weights))
+
+
+def _corrected_squared_residual(model, working: pd.DataFrame, residual: np.ndarray) -> Tuple[np.ndarray, int]:
+    """Squared residuals of the location fit, debiased for its leverage: ``r^2 / (1 - h)`` (``"leverage"``) or ``r^2 n / (n - edf)`` per
+    group (``"edf"``); returns them and the number of leverages that hit the clamp."""
+    squared = np.clip(residual ** 2, _TINY, None)
+    if model._scale_correction_ == "none":
+        return squared, 0
+    leverage = model._location_submodel_.leverage(working)
+    clamped = int(np.count_nonzero(leverage > _LEVERAGE_MAX))
+    if model._scale_correction_ == "leverage":
+        return squared / (1.0 - np.clip(leverage, 0.0, _LEVERAGE_MAX)), clamped
+    group_col = model._sub_group_col_
+    if group_col is not None and group_col in working.columns:
+        keys = working[group_col].to_numpy()
+    else:
+        keys = np.zeros(len(working))
+    factor = np.ones(len(working))
+    for key in np.unique(keys):
+        rows = keys == key
+        n_rows = int(rows.sum())
+        factor[rows] = n_rows / max(n_rows - float(leverage[rows].sum()), 0.1 * n_rows)
+    return squared * factor, clamped
+
+
+def _fit_scale(model, working: pd.DataFrame):
+    """Fit the scale model on the (debiased) squared residuals of the current location; returns the fitted location, the residuals and
+    the number of clamped leverages."""
     mu_hat = _estimated(model._location_submodel_.predict(working), "__mu__")
     residual = working["__mu__"].to_numpy() - mu_hat
-    squared_residual = np.clip(residual ** 2, _TINY, None)
+    squared_residual, clamped = _corrected_squared_residual(model, working, residual)
     model._global_scale_variance_ = float(np.mean(squared_residual))
-
     if model._scale_loss_ == "gamma":
         working["__sigma__"] = squared_residual
     else:
         working["__sigma__"] = np.log(squared_residual + _TINY)
-
     model._scale_submodel_ = _build_scale_submodel(model).fit(working)
+    if clamped > 0.01 * len(working) and not getattr(model, "_leverage_warned_", False):
+        model._leverage_warned_ = True
+        warnings.warn(
+            f"The location interpolates part of the training rows: {clamped} of {len(working)} leverages exceed {_LEVERAGE_MAX} and are "
+            "clamped before the scale correction. A smoother location (larger penalty, fewer knots) gives a better scale.",
+            UserWarning, stacklevel=4,
+        )
+    return mu_hat, residual, clamped
 
-    _, sigma_hat = mu_sigma(model, working)
-    fit_tail_family(model, residual / sigma_hat)
-    return model
+
+def _log_likelihood(model, working: pd.DataFrame, residual: np.ndarray) -> float:
+    """Log-likelihood of the training rows at the fitted location and scale (Normal, or Student-t when that family is selected)."""
+    _, sigma = mu_sigma(model, working)
+    standardized = residual / sigma
+    if model.tail_family_ == "student_t" and model.nu_ is not None:
+        scale = np.sqrt((model.nu_ - 2.0) / model.nu_)
+        return float(np.sum(stats.t.logpdf(standardized / scale, model.nu_) - np.log(scale) - np.log(sigma)))
+    return float(np.sum(stats.norm.logpdf(standardized) - np.log(sigma)))
 
 
 def fit_tail_family(model, standardized_residual: np.ndarray) -> None:
