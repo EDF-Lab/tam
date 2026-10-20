@@ -54,6 +54,8 @@ The Tweedie family computes the compound Poisson-gamma distribution function wit
 
 `reweighted_penalized_fit` normalises the weights to unit mean (preserving the `nS` penalty scale), solves one atom, and, for GLMs, step-halves on the penalized objective. For the Gaussian identity it converges in a single step.
 
+The design matrix depends on neither the coefficients nor the weights, so when it fits in memory (`dense_design`) it is built once per fit and shared by every pass, every step-halving and every dispersion refit; the covariances and the solve then run on that matrix. When it does not fit, the loop goes back to the chunked solver of the dispatcher, which builds it block by block.
+
 ```{literalinclude} ../../../../src/tam/model/statistics/estimation/_reweighting.py
 :language: python
 :start-after: "#: <reweighting_loop>"

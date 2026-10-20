@@ -93,7 +93,8 @@ def create_effects_from_parsed_terms(
         if ttype == 'l':
             scaled = float(params_resolved.get('scaled', np.pi))
             extrap_val = params_resolved.get('extrapolate', 'continue')
-            effects_list.append(LinearEffect(feature_name, scaled, lambda_p, extrap_val))
+            raw = str(params_resolved.get('raw', 'False')).strip().lower() in ('true', '1', 't', 'y', 'yes')
+            effects_list.append(LinearEffect(feature_name, scaled, lambda_p, extrap_val, raw=raw))
         #: </parse_linear>
             
         #: <parse_fourier>
@@ -113,25 +114,38 @@ def create_effects_from_parsed_terms(
             deg = int(params_resolved.get('deg', 3))
             p = int(params_resolved.get('p', 2))
             extrap_val = params_resolved.get('extrapolate', 'linear')
-            effects_list.append(SplineEffect(feature_name, k, deg, p, lambda_p, extrap_val))
+            m_pen = int(params_resolved.get('m_pen', 1))
+            effects_list.append(SplineEffect(feature_name, k, deg, p, lambda_p, extrap_val, m_pen))
         #: </parse_spline>
             
         #: <parse_categorical>
         elif ttype == 'c':
             n_cat = params_resolved.get('n_cat')
             n_cat_given = n_cat is not None
+            topo = params_resolved.get('topo', 'nominal')
+            vocabulary = False
             if n_cat is None:
                 if data_info is not None and feature_name in data_info:
                     n_cat = data_info[feature_name]
+                    # The levels are the codes of the training rows (any integers) when the model asks for it and the topology is
+                    # a set of levels: one column per code, whatever the largest code.
+                    levels = (data_info.get('__levels__') or {}).get(feature_name)
+                    if levels is not None and str(topo).lower() in ('nominal', 'ordinal', 'graph'):
+                        n_cat, vocabulary = levels, True
                 else:
                     raise ValueError(f"Categorical term 'c({feature_name})' requires 'n_cat' or data context to infer it.")
             else:
                 n_cat = int(n_cat)
-            topo = params_resolved.get('topo', 'nominal')
             p_order = int(params_resolved.get('p_order', 1))
             extrap_val = params_resolved.get('extrapolate', 'continue')
-            effects_list.append(CategoricalEffect(feature_name, n_cat, topo, lambda_p, p_order, extrap_val))
+            coords_raw = params_resolved.get('coords', None)
+            coords = [s.strip() for s in str(coords_raw).replace('|', ':').split(':') if s.strip()] if coords_raw else None
+            k_neighbors = int(params_resolved.get('k_neighbors', 6))
+            unseen = str(params_resolved.get('unseen', 'edge'))
+            effects_list.append(CategoricalEffect(feature_name, n_cat, topo, lambda_p, p_order, extrap_val,
+                                                  coords=coords, k_neighbors=k_neighbors, unseen=unseen))
             effects_list[-1].n_cat_given = n_cat_given
+            effects_list[-1].vocabulary = vocabulary
         #: </parse_categorical>
             
         #: <parse_chebyshev>
@@ -162,6 +176,7 @@ def create_effects_from_parsed_terms(
                 additional_features = [s.strip() for s in others_str.split('|') if s.strip()]
             extrap_val = params_resolved.get('extrapolate', 'linear')
             effects_list.append(NeuralEffect(feature_name, n_neurons, act, lambda_p, additional_features, seed, n_hidden_layers, extrap_val))
+            effects_list[-1].orthogonalize = _as_bool(params_resolved.get('orthogonalize', False))
         #: </parse_neural>
             
         #: <parse_rbf>
@@ -175,8 +190,13 @@ def create_effects_from_parsed_terms(
             if others_str:
                 additional_features = [s.strip() for s in others_str.split('|') if s.strip()]
             seed = int(params_resolved.get('seed', 42))
-            extrap_val = params_resolved.get('extrapolate', 'continue')
-            effects_list.append(RBFEffect(feature_name, n_centers, gamma, nu, lambda_p, additional_features, extrap_val, seed=seed))
+            kernel = str(params_resolved.get('kernel', 'matern'))
+            extrap_val = params_resolved.get('extrapolate', 'linear' if kernel.lower() == 'tps' else 'continue')
+            m_order = int(params_resolved.get('m', 2))
+            ap_null = params_resolved.get('ap_null', None)
+            lambda_null = None if ap_null is None else 10 ** float(ap_null)
+            effects_list.append(RBFEffect(feature_name, n_centers, gamma, nu, lambda_p, additional_features, extrap_val, seed=seed,
+                                          kernel=kernel, m=m_order, lambda_null=lambda_null))
         #: </parse_rbf>
 
         #: <parse_tree>
@@ -194,6 +214,7 @@ def create_effects_from_parsed_terms(
                 additional_features = [s.strip() for s in others_str.split('|') if s.strip()]
             extrap_val = params_resolved.get('extrapolate', 'continue')
             effects_list.append(TreeEffect(feature_name, n_trees, max_depth, max_leaves, lambda_p, additional_features, seed, extrap_val, sp_alpha, split_strategy))
+            effects_list[-1].orthogonalize = _as_bool(params_resolved.get('orthogonalize', False))
         #: </parse_tree>
 
         #: <parse_tensor>
@@ -221,7 +242,7 @@ def create_effects_from_parsed_terms(
                 if len(sub_effects) < 2:
                      raise ValueError(f"Tensor Product requires at least two functional sub-terms. Found {len(sub_effects)}.")
                 extrap_val = params_resolved.get('extrapolate', 'continue')
-                effects_list.append(TensorProductEffect(sub_effects, lambda_p, extrap_val))
+                effects_list.append(TensorProductEffect(sub_effects, lambda_p, extrap_val, mode=str(params_resolved.get('mode', 'shared'))))
 
             except ValueError as e:
                 raise ValueError(f"Tensor Product failed to parse functional sub-terms {functional_sub_term_strings}: {e}")
@@ -344,7 +365,8 @@ def categorical_ranges(effects_list: List[BaseEffect]) -> Dict[str, int]:
         if isinstance(effect, OffsetEffect):
             return
         if isinstance(effect, CategoricalEffect):
-            if getattr(effect, 'n_cat_given', False):
+            other.update(getattr(effect, 'input_features', [effect.feature_name])[1:])  # the coordinate columns of a graph topology are continuous
+            if getattr(effect, 'n_cat_given', False) or getattr(effect, 'vocabulary', False):
                 levels.setdefault(effect.feature_name, set()).add(effect.n_categories)
             else:
                 other.add(effect.feature_name)     # n_cat inferred from the data: the level set is not known, min/max rule
@@ -354,6 +376,52 @@ def categorical_ranges(effects_list: List[BaseEffect]) -> Dict[str, int]:
     for effect in effects_list:
         visit(effect)
     return {name: int(next(iter(n))) for name, n in levels.items() if name not in other and len(n) == 1}
+
+
+def resolve_vocabulary(effects_list: List[BaseEffect], data_info: Dict[str, Any]) -> List[str]:
+    """
+    The features whose ``c()`` levels are the codes of the training rows, once every reader of the feature is known.
+
+    A feature qualifies when only vocabulary categorical effects read it, with one level count. A vocabulary effect on a feature that
+    another effect also reads (``l(g) + c(g)``) goes back to the level range ``0 .. max code``, which keeps the raw code meaningful
+    to the other effect.
+
+    Args:
+        effects_list: The effects built with ``data_info['__levels__']``.
+        data_info: The data information of ``StaticTAM._get_data_info`` (``data_info[feature]`` is the largest code plus one).
+
+    Returns:
+        The names of the features to map to level indices.
+    """
+    vocab_effects: Dict[str, list] = {}
+    other: set = set()
+
+    def visit(effect) -> None:
+        if isinstance(effect, TensorProductEffect):
+            for sub in effect.effects:
+                visit(sub)
+            return
+        if isinstance(effect, OffsetEffect):
+            return
+        if isinstance(effect, CategoricalEffect) and getattr(effect, 'vocabulary', False):
+            vocab_effects.setdefault(effect.feature_name, []).append(effect)
+            other.update(getattr(effect, 'input_features', [effect.feature_name])[1:])
+            return
+        if isinstance(effect, CategoricalEffect):
+            other.update(getattr(effect, 'input_features', [effect.feature_name])[1:])
+        other.update(getattr(effect, 'input_features', None) or [effect.feature_name])
+
+    for effect in effects_list:
+        visit(effect)
+    exclusive = []
+    for name, group in vocab_effects.items():
+        if name not in other and len({e.n_categories for e in group}) == 1:
+            exclusive.append(name)
+            continue
+        for effect in group:
+            effect.vocabulary = False
+            effect.n_categories = int(data_info[name])
+    return exclusive
 
 
 def _parse_period(raw, feature_name: str):
@@ -396,12 +464,19 @@ def fixed_ranges(effects_list: List[BaseEffect]) -> Dict[str, tuple]:
     """
     periods: Dict[str, tuple] = {}
     categorical: set = set()
+    raw: set = set()
+    others: set = set()
 
     def visit(effect) -> None:
         if isinstance(effect, TensorProductEffect):
             for sub in effect.effects:
                 visit(sub)
             return
+        if isinstance(effect, LinearEffect) and getattr(effect, 'raw', False):
+            raw.add(effect.feature_name)
+            return
+        if not isinstance(effect, OffsetEffect):
+            others.update(getattr(effect, 'input_features', None) or [effect.feature_name])
         if isinstance(effect, CategoricalEffect):
             categorical.add(effect.feature_name)
         elif isinstance(effect, FourierEffect) and getattr(effect, 'period', None) is not None:
@@ -411,7 +486,13 @@ def fixed_ranges(effects_list: List[BaseEffect]) -> Dict[str, tuple]:
 
     for effect in effects_list:
         visit(effect)
-    return {name: rng for name, rng in sorted(periods.items()) if name not in categorical}
+    shared = sorted(raw & others)
+    if shared:
+        raise ValueError(f"l({shared[0]}, raw=True) reads the covariate unnormalised; another term of the formula also reads '{shared[0]}'. "
+                         "Give the raw covariate its own column.")
+    ranges = {name: rng for name, rng in sorted(periods.items()) if name not in categorical}
+    ranges.update({name: (-1.0, 1.0) for name in sorted(raw)})  # the identity range of the normalisation: the raw value reaches the effect
+    return ranges
 
 
 def categorical_range(n_cat: int, low: float, high: float, integer_codes: bool = True) -> tuple:
@@ -465,6 +546,53 @@ def extrapolating_features(effects_list: List[BaseEffect]) -> set:
     return names
 
 
+def _as_bool(value) -> bool:
+    return str(value).strip().lower() in ('true', '1', 't', 'y', 'yes')
+
+
+#: Rows used to estimate the projection of an orthogonalised block (a random subsample beyond this).
+_PROJECTION_ROWS: int = 200000
+
+
+def _project_blocks(effects_list: List[BaseEffect], phi_components: list) -> list:
+    """Remove from every orthogonalised block its regression on the other blocks: ``Phi_deep - Phi_rest @ B`` (B fixed at training)."""
+    flagged = [i for i, e in enumerate(effects_list) if getattr(e, '_projection', None) is not None]
+    if not flagged:
+        return phi_components
+    rest = [i for i, e in enumerate(effects_list) if not getattr(e, 'orthogonalize', False)]
+    base = torch.cat([phi_components[i] for i in rest], dim=-1)
+    out = list(phi_components)
+    for i in flagged:
+        out[i] = phi_components[i] - base @ effects_list[i]._projection.to(device=base.device, dtype=base.dtype)
+    return out
+
+
+def _estimate_projections(x_data: torch.Tensor, effects_list: List[BaseEffect], feature_columns: Optional[List[str]]) -> None:
+    """Estimate, on the training tensor, the matrix ``B`` of the least-squares regression of each orthogonalised block on the rest of the design."""
+    flagged = [e for e in effects_list if getattr(e, 'orthogonalize', False)]
+    if not flagged:
+        return
+    if len(flagged) == len(effects_list):
+        raise ValueError("orthogonalize=True needs at least one other term (the intercept is one) to be orthogonal to.")
+    for effect in flagged:
+        effect._projection = None
+    components = build_phi_from_effects(x_data, effects_list, feature_columns, return_components=True)
+    rest = [i for i, e in enumerate(effects_list) if not getattr(e, 'orthogonalize', False)]
+    base = torch.cat([components[i] for i in rest], dim=-1)
+    base = base.reshape(-1, base.shape[-1])
+    keep = None
+    if base.shape[0] > _PROJECTION_ROWS:
+        keep = torch.randperm(base.shape[0], generator=torch.Generator().manual_seed(0))[:_PROJECTION_ROWS]
+        base = base[keep]
+    base = base.to(torch.float64)
+    for i, effect in enumerate(effects_list):
+        if not getattr(effect, 'orthogonalize', False):
+            continue
+        deep = components[i].reshape(-1, components[i].shape[-1])
+        deep = (deep if keep is None else deep[keep]).to(torch.float64)
+        effect._projection = torch.linalg.lstsq(base.cpu(), deep.cpu(), driver='gelsd').solution.to(components[i].dtype)
+
+
 #: <build_phi>
 def initialize_effects(
     x_data: torch.Tensor,
@@ -485,27 +613,21 @@ def initialize_effects(
     for effect in effects_list:
         if isinstance(effect, OffsetEffect):
             continue
-        if isinstance(effect, (TensorProductEffect, NeuralEffect, RBFEffect, TreeEffect, LinearTreeEffect, SplineEffect)):
-            if isinstance(effect, TensorProductEffect):
-                req_features = []
-                for e in effect.effects:
-                    req_features.extend(getattr(e, 'input_features', [e.feature_name]))
-            else:
-                req_features = getattr(effect, 'input_features', [effect.feature_name])
-            if name_to_idx:
-                x_cols = x_data[..., [name_to_idx[name] for name in req_features]]
-            else:
-                x_cols = x_data[..., col_idx : col_idx + len(req_features)]
-                col_idx += len(req_features)
-            effect.initialize(x_cols)
-        elif not name_to_idx:
-            col_idx += 1
+        required = effect.required_features
+        if name_to_idx:
+            x_cols = x_data[..., [name_to_idx[name] for name in required]]
+        else:
+            x_cols = x_data[..., col_idx : col_idx + len(required)]
+            col_idx += len(required)
+        effect.initialize(x_cols)  # a no-op for an effect without data-dependent state
+    _estimate_projections(x_data, effects_list, feature_columns)
 
 
 def build_phi_from_effects(
-    x_data: torch.Tensor, 
+    x_data: torch.Tensor,
     effects_list: List[BaseEffect],
-    feature_columns: Optional[List[str]] = None
+    feature_columns: Optional[List[str]] = None,
+    return_components: bool = False
 ) -> torch.Tensor:
     """
     Constructs the global Design Matrix by concatenating effect feature maps.
@@ -521,15 +643,8 @@ def build_phi_from_effects(
         if isinstance(effect, OffsetEffect):
             phi_components.append(effect.transform(x_data))
             
-        elif isinstance(effect, (TensorProductEffect, NeuralEffect, RBFEffect, TreeEffect, LinearTreeEffect)):
-            
-            if isinstance(effect, TensorProductEffect):
-                req_features = []
-                for e in effect.effects:
-                    req_features.extend(getattr(e, 'input_features', [e.feature_name]))
-            else:
-                req_features = getattr(effect, 'input_features', [effect.feature_name])
-
+        elif effect.multi_input:
+            req_features = effect.required_features
             if name_to_idx:
                 try:
                     indices = [name_to_idx[name] for name in req_features]
@@ -559,6 +674,9 @@ def build_phi_from_effects(
             
             phi_components.append(effect.transform(x_col))
             
+    if return_components:
+        return phi_components
+    phi_components = _project_blocks(effects_list, phi_components)
     return torch.cat(phi_components, dim=-1).to(x_data.device)
 #: </build_phi>
 

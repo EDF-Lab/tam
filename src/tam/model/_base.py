@@ -144,6 +144,9 @@ class BaseTAM(ABC):
                 
                 beta_chunk = beta[g_start:g_end] 
                 y_hat_chunk = _predict_from_coeffs(phi_chunk, beta_chunk)
+                offset_chunk = self._offset_of(x_chunk)
+                if offset_chunk is not None:
+                    y_hat_chunk = y_hat_chunk + offset_chunk.to(device=y_hat_chunk.device, dtype=y_hat_chunk.dtype)
                 predictions.append(y_hat_chunk.cpu())
                 
                 del x_chunk, phi_chunk, y_hat_chunk, beta_chunk
@@ -167,6 +170,10 @@ class BaseTAM(ABC):
         return torch.cat(predictions, dim=0)
 #: </predictive_chunking>
 
+    def _offset_of(self, x_data: torch.Tensor) -> Optional[torch.Tensor]:
+        r"""The fixed part of the linear predictor, shape (n_groups, n_samples, 1), or None when the model has none (the default)."""
+        return None
+
 #: <pwls_atom>
     def _solve_pwls_step(
         self,
@@ -188,6 +195,9 @@ class BaseTAM(ABC):
         """
         penalty_M_star_M = self._build_penalty_matrix()
         loss_L_star_L = self._build_loss_matrix()
+        offset = self._offset_of(x_data)
+        if offset is not None:
+            z_target = z_target - offset.to(device=z_target.device, dtype=z_target.dtype)  # the offset has coefficient 1: solve for the rest
         return smart_solve(
             x_data=x_data,
             y_data=z_target,
@@ -198,6 +208,37 @@ class BaseTAM(ABC):
             sample_weights=weights,
         )
 #: </pwls_atom>
+
+    def _stacked_column(self, data: pd.DataFrame, column: str) -> torch.Tensor:
+        r"""A column of ``data`` stacked like the target (same groups, same order): shape (n_groups, n_samples, 1)."""
+        raise NotImplementedError
+
+    def _solve_prepared(self, x_train: torch.Tensor, y_train: torch.Tensor, weights: Optional[torch.Tensor] = None) -> None:
+        r"""Solves the coefficients on prepared tensors: one exact solve for ``l2`` (weighted when ``weights`` is given), else the reweighted loop (and the dispersion refits)."""
+        reweighting_strategy = getattr(self, "_reweighting_strategy_", None)
+        if reweighting_strategy is None:
+            self.coefficients_ = self._solve_pwls_step(x_train, y_train, weights=weights)
+        else:
+            if weights is not None:
+                raise ValueError("Observation weights are available for the squared loss only.")
+            from .statistics.estimation._reweighting import reweighted_penalized_fit, _linear_predictor, dense_design
+            validate = getattr(reweighting_strategy, "validate_target", None)
+            if validate is not None:
+                validate(y_train)
+            irls = dict(max_iter=getattr(self, "_irls_max_iter_", 25), tol=getattr(self, "_irls_tol_", 1e-6))
+            design_matrix = dense_design(self, x_train)  # built once, shared by every pass and every dispersion refit
+            self.coefficients_ = reweighted_penalized_fit(self, x_train, y_train, reweighting_strategy, design_matrix=design_matrix, **irls)
+            # A family with a dispersion (negative binomial, Tweedie) estimates it from the fitted means and refits the means
+            # with the new variance until it stops moving.
+            estimate = getattr(reweighting_strategy, "estimate_dispersion", None)
+            if estimate is not None:
+                y_fit = y_train.to(torch.get_default_dtype())
+                for _ in range(_DISPERSION_REFITS):
+                    mean = reweighting_strategy.inverse_link(_linear_predictor(self, x_train, self.coefficients_, design_matrix))
+                    if not estimate(y_fit, mean):
+                        break
+                    self.coefficients_ = reweighted_penalized_fit(self, x_train, y_train, reweighting_strategy, design_matrix=design_matrix, **irls)
+        self.dispersion_ = getattr(reweighting_strategy, "dispersion", None)
 
 #: <fit_method>
     def fit(self, data_train: pd.DataFrame) -> 'BaseTAM':
@@ -246,27 +287,13 @@ class BaseTAM(ABC):
         if x_train.shape[0] == 0:
             raise ValueError("No valid training data found after balancing.")
             
-        reweighting_strategy = getattr(self, "_reweighting_strategy_", None)
-        if reweighting_strategy is None:
-            self.coefficients_ = self._solve_pwls_step(x_train, y_train, weights=None)
-        else:
-            from .statistics.estimation._reweighting import reweighted_penalized_fit, _linear_predictor
-            validate = getattr(reweighting_strategy, "validate_target", None)
-            if validate is not None:
-                validate(y_train)
-            irls = dict(max_iter=getattr(self, "_irls_max_iter_", 25), tol=getattr(self, "_irls_tol_", 1e-6))
-            self.coefficients_ = reweighted_penalized_fit(self, x_train, y_train, reweighting_strategy, **irls)
-            # A family with a dispersion (negative binomial, Tweedie) estimates it from the fitted means and refits the means
-            # with the new variance until it stops moving.
-            estimate = getattr(reweighting_strategy, "estimate_dispersion", None)
-            if estimate is not None:
-                y_fit = y_train.to(torch.get_default_dtype())
-                for _ in range(_DISPERSION_REFITS):
-                    mean = reweighting_strategy.inverse_link(_linear_predictor(self, x_train, self.coefficients_))
-                    if not estimate(y_fit, mean):
-                        break
-                    self.coefficients_ = reweighted_penalized_fit(self, x_train, y_train, reweighting_strategy, **irls)
-        self.dispersion_ = getattr(reweighting_strategy, "dispersion", None)
+        weights = None
+        weight_column = getattr(self, "_weight_col_", None)
+        if weight_column is not None:
+            weights = self._stacked_column(balanced_data, weight_column)
+            if not bool(torch.isfinite(weights).all()) or bool((weights < 0).any()) or not bool((weights > 0).any()):
+                raise ValueError(f"The observation weights in '{weight_column}' must be finite, non-negative and not all zero.")
+        self._solve_prepared(x_train, y_train, weights)
 
         return self
 #: </fit_method>

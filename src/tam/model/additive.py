@@ -34,11 +34,15 @@ from ._data import (
     _groups_in_data,
     _check_known_groups,
     _coefficients_of_groups,
-    _reassemble_decomposed_predictions
+    _reassemble_decomposed_predictions,
+    _reassemble_predictions
 )
 
 from ._dispatcher import smart_solve, smart_evaluate_rmse, smart_decompose
 from ._dispatcher_gcv import smart_solve_gcv
+from ._reml import smart_solve_reml
+from ._math import _ridge_floor
+from tam.common.hardware import hw
 
 from .spectrum import (
     BaseEffect, 
@@ -49,6 +53,7 @@ from .spectrum import (
     create_effects_from_parsed_terms,
     initialize_effects,
     categorical_ranges,
+    resolve_vocabulary,
     fixed_ranges,
     categorical_features,
     extrapolating_features,
@@ -56,9 +61,14 @@ from .spectrum import (
     build_penalty_from_effects
 )
 from .statistics.estimation import build_strategy, _distributional, _mixture
+from .statistics.estimation._reweighting import _linear_predictor
+from .statistics.estimation import _target_transform as _tt
 from .statistics.estimation._count_families import predict_count_quantiles
 
 _TINY: float = 1e-12
+#: Reweighting passes of the working-weight GCV of a GLM loss, and the move (in log10 of lambda) under which they stop.
+_GCV_REWEIGHTING_PASSES: int = 4
+_GCV_REWEIGHTING_TOL: float = 0.25
 
 class StaticTAM(BaseTAM):
     """
@@ -91,7 +101,9 @@ class StaticTAM(BaseTAM):
         mixture_components: Optional[int] = None,
         mixture_kwargs: Optional[dict] = None,
         _internal_effects_list: Optional[List[BaseEffect]] = None,
-        _internal_features_config: Optional[dict] = None
+        _internal_features_config: Optional[dict] = None,
+        target_transform: Optional[str] = None,
+        transform_kwargs: Optional[dict] = None
     ):
         """
         Initializes the StaticTAM model.
@@ -107,14 +119,42 @@ class StaticTAM(BaseTAM):
                 you must pass date_col explicitly to guarantee correct results
                 on data that isn't already sorted by time.
             default_alpha_p: Default log10(lambda_p) regularization strength.
-            dist_kwargs: Options of the distributional and mixture modes: ``tail_family``, ``kurtosis_threshold``,
+            dist_kwargs: Options of the distributional and mixture modes: ``refit_rounds`` (weighted refits of the location, 0 by
+                default), ``refit_tol`` (relative change of the location that stops them), ``scale_correction`` (``"none"``, ``"leverage"`` or
+                ``"edf"``: debias the squared residuals of the scale model), ``tail_family``, ``kurtosis_threshold``,
                 ``scale_shrinkage``, ``location_alpha_p``, ``scale_alpha_p``, and the target scale: ``target_transform``
                 (``"log"`` by default, ``"none"``, ``"asinh"`` for a skewed target with negative values, ``"logit"`` for a
                 bounded one, with ``bounds=(low, high)`` or estimated) or the older ``log_target`` (True = ``"log"``).
+            target_transform: Fit on ``g(y)`` and return the response scale: ``"log"``, ``"log1p"``, ``"asinh"`` (a skewed target with
+                negative values), ``"logit"`` (a bounded one) or ``"boxcox"``. ``predict`` inverts the fitted value, ``predict_quantiles``
+                inverts the quantiles of the model-scale residuals (exact for a monotone ``g``). Not available with a GLM loss (its link
+                already is a transform), a dict formula or a mixture: those take ``dist_kwargs``.
+            transform_kwargs: Parameters of the transform: ``shift`` (``log``, ``boxcox``), ``lam`` (``boxcox``, else maximum likelihood),
+                ``centre`` and ``scale`` (``asinh``), ``bounds`` (``logit``), and ``mean_correction=True`` for a mean forecast
+                (second-order correction ``E[y] = g^-1(z) + (g^-1)''(z) var / 2``) instead of the median-type back-transform.
             _internal_effects_list: (Internal) Used for restoring state during grid search.
             _internal_features_config: (Internal) Used for restoring state during grid search.
         """
         super().__init__()
+
+        if target_transform is not None:
+            if target_transform not in _tt.TRANSFORMS:
+                raise ValueError(f"target_transform must be one of {_tt.TRANSFORMS}; got {target_transform!r}")
+            if isinstance(formula, dict) or mixture_components is not None:
+                raise ValueError("target_transform applies to a plain StaticTAM; a distributional or mixture model takes dist_kwargs={'target_transform': ...}.")
+            _tt.check_kwargs(target_transform, dict(transform_kwargs or {}))
+        self._offset_features_ = []
+        if isinstance(formula, str) and "~" in formula:
+            _, all_terms = parse_formula_to_terms(formula)
+            self._offset_features_ = [term['feature'] for term in all_terms if term['type'] == 'offset']
+            if self._offset_features_ and mixture_components is not None:
+                raise ValueError("offset(...) is not available in a mixture model.")
+        self._plain_transform_ = "none" if target_transform is None else target_transform
+        self._plain_kwargs_ = dict(transform_kwargs or {})
+        self._plain_params_ = {}
+        self._plain_variance_ = 0.0
+        self._plain_residual_levels_ = None
+        self._plain_residual_values_ = None
         
         self.effects_list_ = []
         self.formula_ = formula 
@@ -145,6 +185,9 @@ class StaticTAM(BaseTAM):
                 scale_shrinkage=dk.get("scale_shrinkage", 0.0),
                 location_alpha_p=dk.get("location_alpha_p"),
                 scale_alpha_p=dk.get("scale_alpha_p"),
+                refit_rounds=dk.get("refit_rounds", 0),
+                refit_tol=dk.get("refit_tol", 1e-4),
+                scale_correction=dk.get("scale_correction", "none"),
             )
             return
         self._mode_ = "plain"
@@ -164,7 +207,10 @@ class StaticTAM(BaseTAM):
         # scalar-loss reweighting strategy. None (l2/gaussian/normal, or mixture mode) keeps the default
         # single unweighted solve; any other loss builds an IRLS strategy from loss_kwargs.
         self.loss_ = loss
+        self._loss_kwargs_ = dict(loss_kwargs or {})
         self.dispersion_ = None
+        if self._plain_transform_ != "none" and str(loss).lower() not in ("l2", "gaussian", "normal", "expectile", "huber", "student_t"):
+            raise ValueError(f"target_transform={self._plain_transform_!r} cannot be combined with loss={loss!r}: the link of that family is already a transform.")
         if self._mixture_components_ is not None:
             self._reweighting_strategy_ = None
         else:
@@ -181,6 +227,15 @@ class StaticTAM(BaseTAM):
         elif formula:
             self.target_col_, self.parsed_terms_ = parse_formula_to_terms(formula)
             real_features = self._extract_recursive_features(self.parsed_terms_)
+            if self._offset_features_:
+                # An offset is read from the raw column: no effect, no coefficient, and no other term may read the same column.
+                self.parsed_terms_ = [term for term in self.parsed_terms_ if term['type'] != 'offset']
+                # The solvers route the feature columns to the effects by position: the offsets go last, after every column an effect reads.
+                real_features = [name for name in real_features if name not in self._offset_features_] + list(self._offset_features_)
+                shared = sorted(set(self._offset_features_) & set(self._extract_recursive_features(self.parsed_terms_)))
+                if shared:
+                    raise ValueError(f"offset({shared[0]}) reads the raw column; another term of the formula also reads '{shared[0]}'. "
+                                     "Give the offset its own column.")
             self.features_config_ = { "features": real_features }
             
             self.is_grid_search_template_ = False
@@ -218,7 +273,41 @@ class StaticTAM(BaseTAM):
             return _distributional.fit(self, data_train, **schedule_kwargs)
         if getattr(self, "_mixture_components_", None) is not None:
             return _mixture.fit(self, data_train)
+        if self._transform_active():
+            working = self._transformed_frame(data_train, estimate=True)
+            super().fit(working)
+            self._finish_transform_fit(working)
+            return self
         return super().fit(data_train)
+
+    # --- Target transform of the plain mode (statistics.estimation._target_transform) ---
+    def _transform_active(self) -> bool:
+        return getattr(self, "_plain_transform_", "none") != "none"
+
+    def _transformed_frame(self, data: pd.DataFrame, estimate: bool = False) -> pd.DataFrame:
+        """A copy of ``data`` whose target is ``g(y)``; ``estimate`` fits the parameters of ``g`` on it first."""
+        if not self._transform_active():
+            return data
+        values = data[self.target_col_].to_numpy(dtype=float)
+        if estimate:
+            self._plain_params_ = _tt.estimate_params(self._plain_transform_, values, self._plain_kwargs_)
+        working = data.copy()
+        working[self.target_col_] = _tt.forward(self._plain_transform_, self._plain_params_, values)
+        return working
+
+    def _finish_transform_fit(self, working: pd.DataFrame) -> None:
+        """Store the law of the model-scale residuals (variance and quantile function) that ``predict_quantiles`` and the mean correction use."""
+        fitted = BaseTAM.predict(self, working)[f"Estimated{self.target_col_}"].to_numpy(dtype=float)
+        residual = working[self.target_col_].to_numpy(dtype=float) - fitted
+        residual = residual[np.isfinite(residual)]
+        if residual.size == 0:
+            residual = np.zeros(1)
+        self._plain_variance_ = float(np.var(residual))
+        self._plain_residual_levels_ = np.linspace(0.0, 1.0, int(min(max(residual.size, 2), 20001)))
+        self._plain_residual_values_ = np.quantile(residual, self._plain_residual_levels_)
+
+    def _model_scale_prediction(self, data: pd.DataFrame) -> np.ndarray:
+        return BaseTAM.predict(self, data)[f"Estimated{self.target_col_}"].to_numpy(dtype=float, copy=True)
 
     def predict(self, data: pd.DataFrame) -> pd.DataFrame:
         """Predict, mapping GLM losses back to the mean scale via the inverse link.
@@ -246,6 +335,14 @@ class StaticTAM(BaseTAM):
                     predicted[estimated_column].to_numpy(copy=True), dtype=torch.get_default_dtype()
                 )
                 predicted[estimated_column] = strategy.inverse_link(linear_predictor).cpu().numpy()
+        if self._transform_active():
+            estimated_column = f"Estimated{self.target_col_}"
+            if estimated_column in predicted.columns:
+                z_hat = predicted[estimated_column].to_numpy(dtype=float, copy=True)
+                if self._plain_kwargs_.get("mean_correction", False):
+                    predicted[estimated_column] = _tt.inverse_mean(self._plain_transform_, self._plain_params_, z_hat, self._plain_variance_)
+                else:
+                    predicted[estimated_column] = _tt.inverse(self._plain_transform_, self._plain_params_, z_hat)
         return predicted
 
     # --- Distributional API: thin delegates to statistics.estimation._distributional ---
@@ -271,6 +368,13 @@ class StaticTAM(BaseTAM):
         strategy = getattr(self, "_reweighting_strategy_", None)
         if getattr(self, "_mode_", "plain") != "distributional" and hasattr(strategy, "quantiles"):
             return predict_count_quantiles(self, data, taus)
+        if self._transform_active():
+            levels = list(taus)
+            offsets = np.interp(levels, self._plain_residual_levels_, self._plain_residual_values_)
+            z_hat = self._model_scale_prediction(data)
+            quantiles = {f"q{level}": _tt.inverse(self._plain_transform_, self._plain_params_, z_hat + offset)
+                         for level, offset in zip(levels, offsets)}
+            return pd.DataFrame(quantiles, index=data.index)
         return _distributional.predict_quantiles(self, data, taus)
 
     def cdf(self, data: pd.DataFrame) -> np.ndarray:
@@ -369,6 +473,11 @@ class StaticTAM(BaseTAM):
             if 'slope' in term['params'] and isinstance(term['params']['slope'], str):
                 add_feature(term['params']['slope'].strip())
 
+            if term['type'] == 'c' and 'coords' in term['params'] and isinstance(term['params']['coords'], str):
+                for extra in re.split(r"[:|]", term['params']['coords']):
+                    if extra.strip():
+                        add_feature(extra.strip())
+
             if term['type'] == 'te':
                 for sub_term_raw in term['params'].keys():
                     if not sub_term_raw: continue
@@ -382,13 +491,97 @@ class StaticTAM(BaseTAM):
         
         return features_ordered
     
-    def _get_data_info(self, data: pd.DataFrame) -> Dict[str, Any]:
-        """Safely infers the number of categories (max + 1) for features."""
-        info = {}
+    def _get_data_info(self, data: pd.DataFrame, with_levels: bool = False) -> Dict[str, Any]:
+        """Safely infers the number of categories (max + 1) for features.
+
+        With ``with_levels`` the integer-coded features also get ``'__levels__'``: the number of distinct codes, which a ``c()`` term
+        without ``n_cat`` takes as its level count (see ``resolve_vocabulary``).
+        """
+        info: Dict[str, Any] = {}
+        levels: Dict[str, int] = {}
         for col in self.features_config_.get('features', []):
             if col in data.columns and pd.api.types.is_numeric_dtype(data[col]):
                 info[col] = int(data[col].max(skipna=True)) + 1
+                codes = data[col].dropna()
+                if with_levels and len(codes) and bool((codes == np.round(codes)).all()):
+                    levels[col] = int(codes.nunique())
+        if with_levels:
+            info['__levels__'] = levels
         return info
+
+    def _stacked_column(self, data: pd.DataFrame, column: str) -> torch.Tensor:
+        """A column of ``data`` stacked like the target of the training tensors (same balancing, groups and order)."""
+        _, stacked = _transform_data_stacked(
+            data=self._apply_vocabulary(data), features=self.features_config_["features"], group_col=self.group_col_,
+            norm_params=self.norm_params_, target_col=column, unique_groups=self.unique_groups_, date_col=self.date_col_
+        )
+        return stacked
+
+    def leverage(self, data: pd.DataFrame) -> np.ndarray:
+        r"""
+        Leverage ``h_ii`` of every row of ``data`` in the penalized fit: ``h_ii = w_i phi_i' (Phi' W Phi + n P + ridge)^-1 phi_i`` per group,
+        with the observation weights ``w`` of the fit (one when there are none). ``sum(h_ii)`` is the effective degrees of freedom, and
+        under the Gaussian model ``E[r_i^2] = sigma_i^2 (1 - h_ii)``.
+
+        Args:
+            data: The rows (as for ``predict``; the weight column, if the model has one, must be in it).
+
+        Returns:
+            One value per row of ``data``, in its order.
+        """
+        if self.coefficients_ is None:
+            raise RuntimeError("Model must be fitted before computing the leverage.")
+        data = _ensure_dummies(data, self.group_col_, self.date_col_)
+        mask, balanced_data = _balance_groups(dataset=data, group_col=self.group_col_, date_col=self.date_col_, method="fill")
+        x_data, _, groups_stacked = self._prepare_data(balanced_data)
+        weight_column = getattr(self, "_weight_col_", None)
+        if weight_column is not None and weight_column not in balanced_data.columns:
+            raise ValueError(f"This model was fitted with the observation weights in column '{weight_column}': the leverage needs that column in `data`.")
+        weights = self._stacked_column(balanced_data, weight_column) if weight_column is not None else None
+        penalty = self._build_penalty_matrix()
+        n_samples = x_data.shape[1]
+        stacked = []
+        for g in range(x_data.shape[0]):
+            phi = self._build_design_matrix(x_data[g:g + 1])
+            w = torch.ones(1, n_samples, 1, dtype=phi.dtype, device=phi.device) if weights is None else weights[g:g + 1].to(device=phi.device, dtype=phi.dtype).nan_to_num(0.0).clamp_min(0.0)
+            root = w.sqrt()
+            weighted = phi * root
+            system = weighted.mT @ weighted + n_samples * penalty.to(phi.dtype) + _ridge_floor(n_samples, phi.shape[-1], phi.dtype, phi.device)
+            solved = hw.safe_solve(system, phi.mT)  # (1, K, n)
+            stacked.append((w.squeeze(-1) * (phi * solved.mT).sum(dim=-1)).cpu())
+        leverage = torch.cat(stacked, dim=0)
+        frame = _reassemble_predictions(
+            original_data=balanced_data, predictions_stacked=leverage, group_col=self.group_col_,
+            unique_groups=groups_stacked, target_col=self.target_col_, date_col=self.date_col_
+        )
+        frame = _cleanup_dummies(frame[mask], self.group_col_, self.date_col_)
+        return frame[f"Estimated{self.target_col_}"].to_numpy(dtype=float)
+
+    def _offset_of(self, x_data: torch.Tensor) -> Optional[torch.Tensor]:
+        """The sum of the ``offset(col)`` columns of the formula, read from the (identity-normalised) feature tensor."""
+        names = getattr(self, "_offset_features_", None)
+        if not names:
+            return None
+        features = self.features_config_['features']
+        columns = [features.index(name) for name in names]
+        return x_data[..., columns].sum(dim=-1, keepdim=True)
+
+    def _apply_vocabulary(self, data: pd.DataFrame) -> pd.DataFrame:
+        """Replaces the codes of the vocabulary features by their level index; a code not in the training vocabulary gets the index
+        past the last level, where the categorical effect is zero. NaN stays NaN."""
+        vocabulary = getattr(self, "_vocabulary_", None)
+        if not vocabulary:
+            return data
+        mapped = data.copy()
+        for name, codes in vocabulary.items():
+            if name not in mapped.columns:
+                continue
+            values = mapped[name].to_numpy(dtype=float)
+            position = np.clip(np.searchsorted(codes, values), 0, len(codes) - 1)
+            known = codes[position] == values
+            indices = np.where(known, position, len(codes)).astype(float)
+            mapped[name] = np.where(np.isnan(values), np.nan, indices)
+        return mapped
     
     def _warn_missing_levels(self, data: pd.DataFrame) -> None:
         r"""
@@ -413,6 +606,7 @@ class StaticTAM(BaseTAM):
                 "nominal": "Their effect is regularized to 0.",
                 "ordinal": "Their effect follows from their neighbours through the smoothness penalty.",
                 "fourier": "They have no estimate of their own (the effect is a smooth periodic curve).",
+                "graph": "They have no centroid, so no neighbour: they keep the zero effect.",
             }[effect.topology]
             warnings.warn(
                 f"TAM [Info]: the categorical feature '{effect.feature_name}' is configured with {n} categories, but "
@@ -433,39 +627,10 @@ class StaticTAM(BaseTAM):
         summary_data = []
         
         for effect in self.effects_list_:
-            eff_type_raw = effect.__class__.__name__.replace('Effect', '')
+            eff_type_raw = effect.summary_type()
             name = effect.feature_name
             complexity = effect.get_n_coeffs()
-            details = ""
-            
-            if isinstance(effect, OffsetEffect):
-                details = "Global Bias"
-            elif isinstance(effect, LinearEffect):
-                details = "Slope (Ridge)"
-            elif isinstance(effect, FourierEffect):
-                details = f"m={effect.m}, Sobolev(s={effect.s})"
-            elif isinstance(effect, SplineEffect) and not isinstance(effect, UniversalPhysicsEffect):
-                details = f"Knots={effect.n_knots}, Diff(d={effect.penalty_order})"
-            elif isinstance(effect, CategoricalEffect):
-                details = f"Cats={effect.n_categories}, Topo={effect.topology}"
-            elif isinstance(effect, NeuralEffect):
-                details = f"Neurons={effect.n_neurons}, Act={effect.activation}"
-            elif isinstance(effect, UniversalPhysicsEffect):
-                ops = [f"{k}={v}" for k, v in effect.diff_weights.items()]
-                details = f"Basis={effect.basis_type}, PDE[{', '.join(ops)}]"
-                eff_type_raw = "Physics"
-            elif isinstance(effect, WaveletEffect):
-                details = f"Scales={effect.n_scales}, Locs={effect.n_locations}"
-            elif isinstance(effect, RBFEffect):
-                details = f"Centers={effect.n_centers}" + (f", Gamma={effect.gamma:.2f}" if effect.gamma else "")
-            elif isinstance(effect, ChebyshevEffect):
-                details = f"Deg={effect.degree}, Sobolev(s={effect.s})"
-            elif isinstance(effect, TensorProductEffect):
-                details = f"Interaction ({len(effect.effects)} terms)"
-            elif isinstance(effect, TreeEffect):
-                details = f"Trees={effect.n_trees}, MaxDepth={effect.max_depth}"
-            else:
-                details = "Custom"
+            details = effect.summary_details()
 
             coordinates = effect.penalty_coordinates()
             logs = [round(float(np.log10(c)), 2) if c > 0 else -np.inf for c in coordinates]
@@ -477,6 +642,15 @@ class StaticTAM(BaseTAM):
                 "Complexity (D)": complexity,
                 "Structure / Params": details,
                 "Reg (log10)": lambda_p_log
+            })
+
+        for column in getattr(self, "_offset_features_", []):
+            summary_data.append({
+                "Feature": column,
+                "Type": "ExposureOffset",
+                "Complexity (D)": 0,
+                "Structure / Params": "Fixed (coeff=1)",
+                "Reg (log10)": "-"
             })
             
         return pd.DataFrame(summary_data)
@@ -495,32 +669,38 @@ class StaticTAM(BaseTAM):
         current_target_col = target_col if target_col is not None else self.target_col_
 
         if not self.effects_list_ and not self.is_grid_search_template_:
-            data_info = self._get_data_info(data)
+            data_info = self._get_data_info(data, with_levels=True)
             self.effects_list_ = create_effects_from_parsed_terms(
-                self.parsed_terms_, 
-                token_values={}, 
+                self.parsed_terms_,
+                token_values={},
                 default_alpha_p=self.default_alpha_p_,
                 data_info=data_info
             )
+            self._vocabulary_ = {
+                name: np.unique(data[name].dropna().to_numpy(dtype=float))
+                for name in resolve_vocabulary(self.effects_list_, data_info)
+            }
 
+        mapped_data = self._apply_vocabulary(data)
         if self.norm_params_ is None:
             self.norm_params_, self.unique_groups_ = _fit_normalization_params(
-                data=data, 
+                data=mapped_data,  
                 features=self.features_config_["features"], 
                 group_col=self.group_col_,
                 categorical_levels=categorical_ranges(self.effects_list_),
-                fixed_ranges=_resolve_fixed_ranges(data, fixed_ranges(self.effects_list_))
+                fixed_ranges={**_resolve_fixed_ranges(data, fixed_ranges(self.effects_list_)),
+                              **{name: (-1.0, 1.0) for name in getattr(self, "_offset_features_", [])}}
             )
             
         if target_col is not None:
             self._warn_missing_levels(data)
 
         x_stacked, y_stacked = _transform_data_stacked(
-            data=data, 
-            features=self.features_config_["features"], 
+            data=mapped_data,
+            features=self.features_config_["features"],
             group_col=self.group_col_,
             norm_params=self.norm_params_,
-            target_col=current_target_col, 
+            target_col=current_target_col,  
             unique_groups=self.unique_groups_,
             date_col=self.date_col_
         )
@@ -584,7 +764,7 @@ class StaticTAM(BaseTAM):
                 warned.add(key)
                 warn_extrapolation(key,
                     f"'{name}': level(s) {unseen[:10]} not seen in training; the categorical effect has no estimate for them "
-                    f"(a level that falls outside 0..n_cat-1 takes the nearest edge level).", stacklevel=4)
+                    f"(a code that is none of the levels has no categorical effect: the prediction falls back on the other terms).", stacklevel=4)
 
     def _build_design_matrix(self, x_data: torch.Tensor) -> torch.Tensor:
         """Builds the global design matrix."""
@@ -633,7 +813,10 @@ class StaticTAM(BaseTAM):
             balanced_data, final_decomposed_effects, self.group_col_, groups_stacked, date_col=self.date_col_
         )
 
-        return _cleanup_dummies(decomposed_df[mask], self.group_col_, self.date_col_)
+        decomposed_df = _cleanup_dummies(decomposed_df[mask], self.group_col_, self.date_col_)
+        for name in getattr(self, "_offset_features_", []):
+            decomposed_df[f"effect_offset_{name}"] = decomposed_df[name].to_numpy(dtype=float)
+        return decomposed_df
 #: </decompose_pred>
     
     # --- Grid Search (Coordinate Descent) Methods ---
@@ -713,20 +896,33 @@ class StaticTAM(BaseTAM):
         """
         try:
             effects_list = combo["effects_list"]
+            # Centres, trees, knots are set from the training tensor before the penalty is built (the thin-plate penalty needs its centres)
+            initialize_effects(x_train, effects_list, feature_columns=self.features_config_['features'] if self.features_config_ else None)
             penalty_M_star_M = build_penalty_from_effects(effects_list)
             self.effects_list_ = effects_list 
             
-            adaptive_coeffs_batch = smart_solve(
-                x_data=x_train,
-                y_data=y_train,
-                effects_list=effects_list,
-                penalty_matrix=penalty_M_star_M,
-                loss_matrix=loss_L_star_L,
-                num_samples=num_samples_train
-            )
-            
-            rmse = smart_evaluate_rmse(x_val, y_val, adaptive_coeffs_batch, effects_list)
-            
+            strategy = getattr(self, "_reweighting_strategy_", None)
+            if strategy is not None:
+                # A GLM loss: reweighted fit of the candidate, scored on the response scale (inverse link applied).
+                self._reweighting_strategy_ = build_strategy(self.loss_, **self._loss_kwargs_)
+                self._solve_prepared(x_train, y_train)
+                adaptive_coeffs_batch = self.coefficients_
+                mean = self._reweighting_strategy_.inverse_link(_linear_predictor(self, x_val, adaptive_coeffs_batch).cpu())
+                rmse = torch.sqrt(torch.mean((mean - y_val.cpu().to(mean.dtype)) ** 2))
+            else:
+                offset_train, offset_val = self._offset_of(x_train), self._offset_of(x_val)
+                adaptive_coeffs_batch = smart_solve(
+                    x_data=x_train,
+                    y_data=y_train if offset_train is None else y_train - offset_train.to(y_train.dtype),
+                    effects_list=effects_list,
+                    penalty_matrix=penalty_M_star_M,
+                    loss_matrix=loss_L_star_L,
+                    num_samples=num_samples_train
+                )
+
+                rmse = smart_evaluate_rmse(x_val, y_val if offset_val is None else y_val - offset_val.to(y_val.dtype),
+                                           adaptive_coeffs_batch, effects_list)
+
             return rmse, adaptive_coeffs_batch
 
         except Exception:
@@ -752,10 +948,13 @@ class StaticTAM(BaseTAM):
             """
             print("--- Starting Grid Search (Multi-Start Coordinate Descent) ---")
             
+            data_train = self._transformed_frame(data_train, estimate=True)
+            data_val = self._transformed_frame(data_val)
+            transformed_train = data_train
             data_train = _ensure_dummies(data_train, self.group_col_, self.date_col_)
             data_val = _ensure_dummies(data_val, self.group_col_, self.date_col_)
             
-            temp_model = StaticTAM(self.formula_, self.group_col_, self.date_col_)
+            temp_model = StaticTAM(self.formula_, self.group_col_, self.date_col_, loss=self.loss_, loss_kwargs=self._loss_kwargs_)
             temp_model.features_config_ = self.features_config_
             temp_model.target_col_ = self.target_col_
             
@@ -870,18 +1069,79 @@ class StaticTAM(BaseTAM):
                 formula=self.formula_, 
                 group_col=self.group_col_,
                 date_col=self.date_col_,
+                loss=self.loss_,
+                loss_kwargs=self._loss_kwargs_,
+                target_transform=self._plain_transform_ if self._transform_active() else None,
+                transform_kwargs=self._plain_kwargs_,
                 _internal_effects_list=optimal_params_combo['effects_list'],
                 _internal_features_config=self.features_config_ 
             )
             
             model.coefficients_ = optimal_coeffs
+            model.validation_rmse_ = float(min_global_rmse)
+            model.dispersion_ = getattr(self._reweighting_strategy_, "dispersion", None)
             model.target_col_ = self.target_col_ 
             model.norm_params_ = temp_model.norm_params_
+            model._vocabulary_ = getattr(temp_model, "_vocabulary_", {})
             model.unique_groups_ = unique_groups
+            model._offset_features_ = list(getattr(self, "_offset_features_", []))
+            if self._transform_active():
+                model._plain_params_ = self._plain_params_
+                model._finish_transform_fit(transformed_train)
 
             return model
 #: </grid_search_logic>
     
+    def _auto_fit_reweighted(self, x_train, y_train, loss_L, alpha_p_bounds, number_of_steps, alpha_p_list, gamma, verbose, criterion="gcv"):
+        """Working-weight GCV of a GLM loss: fit, score the working system, repeat until the smoothing parameters settle.
+
+        One pass fits the reweighted model at the current smoothing parameters, takes its working response z and Fisher
+        weights w, and lets the GCV search choose the parameters of the weighted system (sqrt(w) Phi, sqrt(w) z). The final
+        fit is the reweighted fit at the selected parameters, so ``coefficients_`` and ``dispersion_`` are those of ``fit()``.
+        """
+        strategy = self._reweighting_strategy_
+        previous = np.array([c for e in self.effects_list_ for c in e.penalty_coordinates()], dtype=np.float64)
+        best_lambda_ps, gcv_score = previous, float("nan")
+        for _ in range(_GCV_REWEIGHTING_PASSES):
+            self._solve_prepared(x_train, y_train)
+            eta = _linear_predictor(self, x_train, self.coefficients_)
+            working_response, weights = strategy.working_response_and_weights(y_train.to(torch.get_default_dtype()), eta)
+            mean_weight = float(weights.mean())
+            weights = weights / weights.mean().clamp_min(_TINY)
+            offset = self._offset_of(x_train)
+            if offset is not None:
+                working_response = working_response - offset.to(working_response.dtype)
+            if criterion == "reml":
+                # Poisson, binomial and negative binomial have a known scale 1: after the unit-mean normalisation of the weights it is 1 / mean(w)
+                known = 1.0 / max(mean_weight, 1e-300) if getattr(strategy, "name", "") in ("poisson", "binomial", "negative_binomial") else None
+                _, best_lambda_ps, gcv_score = smart_solve_reml(
+                    x_data=x_train, y_data=working_response, effects_list=self.effects_list_, loss_matrix=loss_L,
+                    alpha_p_bounds=alpha_p_bounds, alpha_p_list=alpha_p_list, sample_weights=weights, known_scale=known, verbose=verbose,
+                )
+                moved = float(np.max(np.abs(np.log10(best_lambda_ps) - np.log10(previous))))
+                previous = np.asarray(best_lambda_ps, dtype=np.float64)
+                if moved < _GCV_REWEIGHTING_TOL:
+                    break
+                continue
+            _, best_lambda_ps, gcv_score = smart_solve_gcv(
+                x_data=x_train,
+                y_data=working_response,
+                effects_list=self.effects_list_,
+                loss_matrix=loss_L,
+                alpha_p_bounds=alpha_p_bounds,
+                number_of_steps=number_of_steps,
+                alpha_p_list=alpha_p_list,
+                gamma=gamma,
+                verbose=verbose,
+                sample_weights=weights,
+            )
+            moved = float(np.max(np.abs(np.log10(best_lambda_ps) - np.log10(previous))))
+            previous = np.asarray(best_lambda_ps, dtype=np.float64)
+            if moved < _GCV_REWEIGHTING_TOL:
+                break
+        self._solve_prepared(x_train, y_train)
+        return best_lambda_ps, gcv_score
+
 #: <auto_fit>
     def auto_fit(
         self, 
@@ -890,7 +1150,8 @@ class StaticTAM(BaseTAM):
         number_of_steps: int = 10,
         alpha_p_list: Optional[List[float]] = None,
         gamma: float = 1.4,
-        verbose: bool = False
+        verbose: bool = False,
+        criterion: str = "gcv"
     ) -> 'StaticTAM':
         """
         Automatically trains the model by finding the optimal regularization per effect.
@@ -911,12 +1172,20 @@ class StaticTAM(BaseTAM):
                    (typically 1.4 to 1.5) force smoother models, preventing GCV 
                    from overfitting when data has autocorrelated errors.
             verbose: print verbose details if True
-            
+            criterion: ``"gcv"`` (default) or ``"reml"``. ``"reml"`` maximises the Laplace restricted marginal likelihood by L-BFGS on
+                log(lambda) (analytic gradient): less prone than GCV to undersmooth on autocorrelated or clustered data. ``gamma`` is not used.
+                The fitted model keeps ``smoothing_criterion_`` and, with ``"reml"``, ``reml_score_``.
+
         Returns:
             self: The trained model instance with optimal lambda_ps applied.
         """
-        print("--- Auto-Fitting with MSP-GCV (Multiple Smoothing Parameters) ---")
+        if criterion not in ("gcv", "reml"):
+            raise ValueError(f"criterion must be 'gcv' or 'reml'; got {criterion!r}")
+        print(f"--- Auto-Fitting with MSP-{criterion.upper()} (Multiple Smoothing Parameters) ---")
+        self.smoothing_criterion_, self.reml_score_ = criterion, None
 
+        data_train = self._transformed_frame(data_train, estimate=True)
+        transformed_train = data_train
         data_train = _ensure_dummies(data_train, self.group_col_, self.date_col_)
         
         _, balanced_data = _balance_groups(
@@ -928,19 +1197,40 @@ class StaticTAM(BaseTAM):
         
         loss_L = self._build_loss_matrix()
         
-        self.coefficients_, best_lambda_ps, gcv_score = smart_solve_gcv(
-            x_data=x_train,
-            y_data=y_train,
-            effects_list=self.effects_list_,
-            loss_matrix=loss_L,
-            alpha_p_bounds=alpha_p_bounds,
-            number_of_steps=number_of_steps,
-            alpha_p_list=alpha_p_list,
-            gamma=gamma,
-            verbose=verbose
-        )
+        if getattr(self, "_reweighting_strategy_", None) is not None:
+            best_lambda_ps, gcv_score = self._auto_fit_reweighted(
+                x_train, y_train, loss_L, alpha_p_bounds, number_of_steps, alpha_p_list, gamma, verbose, criterion
+            )
+        elif criterion == "reml":
+            offset = self._offset_of(x_train)
+            self.coefficients_, best_lambda_ps, gcv_score = smart_solve_reml(
+                x_data=x_train,
+                y_data=y_train if offset is None else y_train - offset.to(y_train.dtype),
+                effects_list=self.effects_list_,
+                loss_matrix=loss_L,
+                alpha_p_bounds=alpha_p_bounds,
+                alpha_p_list=alpha_p_list,
+                verbose=verbose,
+            )
+        else:
+            offset = self._offset_of(x_train)
+            self.coefficients_, best_lambda_ps, gcv_score = smart_solve_gcv(
+                x_data=x_train,
+                y_data=y_train if offset is None else y_train - offset.to(y_train.dtype),
+                effects_list=self.effects_list_,
+                loss_matrix=loss_L,
+                alpha_p_bounds=alpha_p_bounds,
+                number_of_steps=number_of_steps,
+                alpha_p_list=alpha_p_list,
+                gamma=gamma,
+                verbose=verbose
+            )
         
-        print(f"\nFinal GCV Score: {gcv_score:.4f}")
+        if criterion == "reml":
+            self.reml_score_ = float(gcv_score)
+            print(f"\nFinal REML criterion: {gcv_score:.4f}")
+        else:
+            print(f"\nFinal GCV Score: {gcv_score:.4f}")
         print("Optimal lambda_ps found per effect (per margin for a tensor product):")
         position = 0
         for effect in self.effects_list_:
@@ -949,11 +1239,15 @@ class StaticTAM(BaseTAM):
             position += count
             effect.set_penalty_coordinates([float(v) for v in values])
             if isinstance(effect, TensorProductEffect):
-                for margin, value in zip(effect.effects, values):
-                    print(f" - te({', '.join(m.feature_name for m in effect.effects)})[{margin.feature_name}]: {value:.2e} (log10 = {np.log10(value):.2f})")
+                for label, value in zip(effect.coordinate_labels(), values):
+                    print(f" - te({', '.join(m.feature_name for m in effect.effects)})[{label}]: {value:.2e} (log10 = {np.log10(value):.2f})")
             else:
-                print(f" - {effect.feature_name}: {values[0]:.2e} (log10 = {np.log10(values[0]):.2f})")
-        
+                for part, value in enumerate(values):
+                    label = effect.feature_name if len(values) == 1 else f"{effect.feature_name}#{part + 1}"
+                    print(f" - {label}: {value:.2e} (log10 = {np.log10(value):.2f})")
+
+        if self._transform_active():
+            self._finish_transform_fit(transformed_train)
         return self
 #: </auto_fit>
     
@@ -968,13 +1262,13 @@ class StaticTAM(BaseTAM):
                 "Token": "l(x)", 
                 "Effect": "Linear / Ridge", 
                 "Syntax Example": "l(trend, scaled=3.14)",
-                "Specific Params": "scaled (data scaling)"
+                "Specific Params": "scaled (data scaling), raw (True: unnormalised covariate, effect exactly 0 at 0; own column)"
             },
             {
                 "Token": "s(x)", 
                 "Effect": "P-Spline", 
                 "Syntax Example": "s(temp, k=12, deg=3, p=2)",
-                "Specific Params": "k (knots), deg (degree), p (penalty order)"
+                "Specific Params": "k (knots), deg (degree), p (penalty order), m_pen (locally adaptive penalty, m smoothing parameters)"
             },
             {
                 "Token": "f(x)", 
@@ -983,10 +1277,17 @@ class StaticTAM(BaseTAM):
                 "Specific Params": "m (harmonics), s (smoothness), cyclic (bool), period (None: training range; 'auto': first to last value + one step; (low, high): given)"
             },
             {
+                "Token": "offset(x)",
+                "Effect": "Exposure offset (fixed coefficient 1)",
+                "Syntax Example": "offset(log_exposure)",
+                "Specific Params": "none (raw column, no parameter)",
+                "Usage": "Rates: counts over a variable effort, with loss='poisson' or 'negative_binomial'"
+            },
+            {
                 "Token": "c(x)", 
                 "Effect": "Categorical", 
                 "Syntax Example": "c(day, topo='ordinal', p_order=1)",
-                "Specific Params": "n_cat (auto-inferred), topo ('nominal'/'ordinal'), p_order"
+                "Specific Params": "n_cat (auto-inferred), topo ('nominal'/'ordinal'/'fourier'/'graph' with coords='x:y', k_neighbors), p_order, unseen ('edge' default, 'mean' of the levels, or 'zero')"
             },
             {
                 "Token": "p(x)", 
@@ -999,19 +1300,19 @@ class StaticTAM(BaseTAM):
                 "Token": "rbf(x)", 
                 "Effect": "RBF / Matérn Kernel", 
                 "Syntax Example": "rbf(Lat, others='Lon', n_centers=50)",
-                "Specific Params": "n_centers, gamma, nu, others (multivariate)"
+                "Specific Params": "n_centers, gamma, nu, others (multivariate), kernel ('tps': thin-plate spline), m, ap_null"
             },
             {
                 "Token": "n(x)", 
                 "Effect": "Neural Network", 
                 "Syntax Example": "n(Income, others='Age', n_neurons=500, seed=42)",
-                "Specific Params": "n_neurons, act ('relu'/'cos'/'tanh'), n_hidden_layers, seed, others"
+                "Specific Params": "n_neurons, act ('relu'/'cos'/'tanh'), n_hidden_layers, seed, others, orthogonalize (True: only what the other terms cannot explain)"
             },
             {
                 "Token": "te(a, b)", 
                 "Effect": "Tensor Product", 
                 "Syntax Example": "te(s(Temp), f(Hour))",
-                "Specific Params": "List of functional sub-effects"
+                "Specific Params": "List of functional sub-effects, mode ('shared', or 'per_level': one smoothing parameter per level of a nominal c())"
             },
             {
                 "Token": "w(x)", 
@@ -1035,7 +1336,7 @@ class StaticTAM(BaseTAM):
                 "Token": "t(x)", 
                 "Effect": "Tree / Random Forest", 
                 "Syntax Example": "t(x, n_trees=50, sp_alpha=0.5, split_strategy='quantile')",
-                "Specific Params": "n_trees, max_depth, max_leaves, sp_alpha, split_strategy, seed, others"
+                "Specific Params": "n_trees, max_depth, max_leaves, sp_alpha, split_strategy, seed, others, orthogonalize"
             },
             {
                 "Token": "lt(x)", 

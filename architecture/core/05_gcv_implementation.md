@@ -57,6 +57,16 @@ The loop naturally terminates early if a full cycle completes without any parame
 
 **Penalty parity.** Step 3 does not rescale a block built once from the formula's own `lambda_p`. `sync_penalty_blocks` assigns $\lambda_p = 10^{\alpha}$ to the effect and asks the effect to rebuild its block, so the matrix being scored is the one `_build_penalty_matrix()` reassembles from the selected weights: on the default `loss="l2"` path, `auto_fit()` followed by `fit()` returns the same estimator. That is the contract AutoTAM depends on when `refit_on_full_train=True` puts a champion back on the full training window. At most two blocks are rebuilt per candidate, the coordinate under test, plus the previous one when its own search settled on a value other than the last one tried, and the trial weight is written on the effect only for the duration of that rebuild, so a search that raises leaves the caller's effects as the formula declared them.
 
+**Non-Gaussian losses.** When the model has a reweighting strategy (`poisson`, `gamma`, `binomial`, `negative_binomial`, `tweedie`), `auto_fit()` calls `_auto_fit_reweighted`: it fits the model, takes the working response and Fisher weights at the fitted linear predictor, and passes them to `smart_solve_gcv(..., sample_weights=w)`, which scales $\Phi$ and $z$ by $\sqrt w$ before forming the covariances (`Y_sq` and the trace follow from them). The fit and the search alternate until the selected $\log_{10}\lambda$ moves by less than 0.25, with at most four passes, and a last reweighted fit at the selected parameters sets `coefficients_` and `dispersion_`. `grid_search_fit()` follows the same rule for its candidates: each is fitted by the reweighted loop and scored on the response scale (inverse link applied); the returned model keeps the loss and carries the winning score in `validation_rmse_`.
+
+**REML.** `auto_fit(criterion='reml')` calls `smart_solve_reml` (`_reml.py`) instead. `PenaltyBasis` writes the penalty of the effects as `S0 + sum_c lambda_c Q_c`, one `Q_c` per smoothing coordinate, by evaluating each effect's penalty at weights 1 and 2 (every penalty of the library is linear in its weights, so this covers `m_pen`, the margins of a `te()`, `mode='per_level'` and the second weight of a thin-plate spline), and the subspace where the penalty acts (its null space, of dimension `null_dim`, is fixed by the structure and not by the current weights). `reml_objective` returns minus the criterion summed over the groups and its analytic gradient in `log(lambda)`; `smart_solve_reml` starts from the best common weight of a 12-point grid and runs L-BFGS-B inside the bounds of `alpha_p_bounds` (`alpha_p_list` narrows them). It builds the dense design of a group at once (no sample chunking) and a dense Cholesky of the `D x D` system, with `D <= 7500`. For a GLM loss `_auto_fit_reweighted` passes the working response and weights, and the known scale `1 / mean(w)` for Poisson, binomial and negative binomial (the weights are normalised to unit mean). The fitted model keeps `smoothing_criterion_` and `reml_score_`.
+
+```{literalinclude} ../../../../src/tam/model/_reml.py
+:language: python
+:pyobject: reml_objective
+:caption: src/tam/model/_reml.py (REML criterion and gradient)
+```
+
 ```{literalinclude} ../../../../src/tam/model/_dispatcher_gcv.py
 :language: python
 :pyobject: smart_solve_gcv

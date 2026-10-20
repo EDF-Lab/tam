@@ -53,6 +53,14 @@ $$\hat{\theta}_{adapt, t} = \left( \Phi_{adapt, W}^\top \Lambda_{W}^\top \Lambda
 
 By flattening the group and window dimensions into a single massive 3D tensor batch, the framework computes these dynamic corrector weights simultaneously across all groups and time steps.  This isolates the regularization scale for each distinct topological window and neutralizes concept drift, bypassing the computational overhead typically associated with rolling dense matrix inversions.
 
+### Corrector on the Link Scale (Non-Gaussian Expert)
+
+When the long-term expert is a GLM with link $g$ and variance $V$ (counts, positive means), an additive correction of the mean, $\hat y_t=\hat\mu_{0,t}+\hat\epsilon_t$, ignores the variance function and can leave the support of the family: after a stretch of zeros a negative drift gives $\hat y_t<0$. The window is instead a GLM whose offset is the linear predictor of the expert, $\eta_{0,t}=g(\hat\mu_{0,t})$:
+
+$$ \eta_t=\eta_{0,t}+\Phi(x_t)^\top\theta,\qquad \hat y_t=g^{-1}(\eta_t),\qquad \operatorname{Var}(Y_t)=\phi\,V(\hat y_t), $$
+
+and $\theta$ is the penalized iteratively reweighted least-squares solution of the window, with working response $z_s=\eta_s+(y_s-\mu_s)\,g'(\mu_s)$ and weights $w_s=1/\big(g'(\mu_s)^2V(\mu_s)\big)$, started at $\theta=0$ (the expert). A drift is then multiplicative for a log link, $\hat y_t=\hat\mu_{0,t}\,e^{\Phi^\top\theta}$, so the forecast is non-negative by construction, and an observation at a large mean no longer dominates the window as it does in the squared error. For the Gaussian identity link the system is the one above.
+
 ### Online Scale for Quantile Forecasts
 
 When the long-term expert is a location-scale law with location $\mu_0$ and scale $\sigma_0$, the corrected location $\hat\mu_t=\mu_0+\hat\epsilon_t$ moves with the data but the scale does not, so the intervals do not follow a change of variance. The standardized residual $r_s=(y_s-\hat\mu_s)/\sigma_{0,s}$ has unit scale when the expert is calibrated; its root mean square over the most recent training window,

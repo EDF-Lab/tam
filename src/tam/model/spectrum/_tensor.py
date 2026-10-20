@@ -4,11 +4,13 @@
 
 r"""Implements Tensor Product effects (Interactions)."""
 
+import numpy as np
 import torch
 import functools
 from typing import List, Optional
 from tam.common.utils import TORCH_DEVICE
 from ._base_effects import BaseEffect
+from ._categorical import CategoricalEffect
 
 #: <init_tensor>
 class TensorProductEffect(BaseEffect):
@@ -25,7 +27,7 @@ class TensorProductEffect(BaseEffect):
         effects (List[BaseEffect]): The list of sub-effects to cross.
     """
 
-    def __init__(self, effects: List[BaseEffect], lambda_p: float, extrapolate: str, fold_weight: bool = True):
+    def __init__(self, effects: List[BaseEffect], lambda_p: float, extrapolate: str, fold_weight: bool = True, mode: str = "shared"):
         r"""
         Initializes the tensor product effect.
         
@@ -36,6 +38,16 @@ class TensorProductEffect(BaseEffect):
                 it as the single weight of the tensor product, as a ``LinearTreeEffect`` needs for its slope surface.
 
         """
+        if mode not in ("shared", "per_level"):
+            raise ValueError(f"mode must be 'shared' or 'per_level'; got {mode!r}")
+        self.mode = mode
+        if mode == "per_level":
+            factors = [i for i, e in enumerate(effects) if isinstance(e, CategoricalEffect) and e.topology == "nominal"]
+            if len(effects) != 2 or len(factors) != 1 or isinstance(effects[1 - factors[0]], TensorProductEffect) \
+                    or effects[1 - factors[0]].n_penalty_coordinates != 1:
+                raise ValueError("mode='per_level' needs exactly two margins: one smooth effect with a single smoothing parameter and one "
+                                 "nominal categorical effect, e.g. te(s(x), c(group), mode='per_level').")
+            self._factor_index, self._smooth_index = factors[0], 1 - factors[0]
         # Name example: "te_s_temp_x_f_hour"
         name = "te_" + "_x_".join([e.feature_name for e in effects])
         # One smoothing parameter per margin (mgcv semantics): the weight of the tensor product itself, formula default or te-level
@@ -44,30 +56,69 @@ class TensorProductEffect(BaseEffect):
             for margin in effects:
                 if margin.n_penalty_coordinates == 1:
                     margin.lambda_p = float(lambda_p) * margin.lambda_p
+                else:
+                    margin.set_penalty_coordinates([float(lambda_p) * c for c in margin.penalty_coordinates()])
             lambda_p = 1.0
         super().__init__(name, "tensor_product", lambda_p, extrapolate)
         self.effects = effects
         self._fold_weight = fold_weight
+        if mode == "per_level":
+            # one smoothing parameter of the smooth per level of the factor, all starting at the weight the formula gave the smooth
+            self._level_lambdas = [float(effects[self._smooth_index].lambda_p)] * effects[self._factor_index].n_categories
+
+    keeps_feature_dim = True
+
+    @property
+    def required_features(self) -> list:
+        return [name for margin in self.effects for name in margin.required_features]
+
+    def summary_details(self) -> str:
+        return f"Interaction ({len(self.effects)} terms)" + (", per level" if self.mode == "per_level" else "")
+
+    def coordinate_labels(self) -> list:
+        r"""A name for each smoothing coordinate, in the order of ``penalty_coordinates()``."""
+        if self.mode == "per_level":
+            smooth, factor = self.effects[self._smooth_index], self.effects[self._factor_index]
+            return [f"{smooth.feature_name}|{factor.feature_name}={level}" for level in range(factor.n_categories)] + [f"{factor.feature_name} ridge"]
+        labels = []
+        for margin in self.effects:
+            count = margin.n_penalty_coordinates
+            labels += [margin.feature_name if count == 1 else f"{margin.feature_name}#{part + 1}" for part in range(count)]
+        return labels
 
     def penalty_coordinates(self) -> list:
         r"""The smoothing weight of each margin: ``sum_i lambda_i (I x ... x P_i x ... x I)``."""
         if not self._fold_weight:
             return [self.lambda_p]
+        if self.mode == "per_level":
+            return list(self._level_lambdas) + [float(self.effects[self._factor_index].lambda_p)]
         coordinates = []
         for margin in self.effects:
-            if margin.n_penalty_coordinates != 1:
+            if isinstance(margin, TensorProductEffect):
                 raise NotImplementedError("A tensor product nested in a tensor product has no per-margin smoothing coordinates.")
-            coordinates.append(margin.lambda_p)
+            coordinates.extend(margin.penalty_coordinates())
         return coordinates
 
     def set_penalty_coordinates(self, values) -> None:
         values = list(values)
         if not self._fold_weight:
             return super().set_penalty_coordinates(values)
-        if len(values) != len(self.effects):
-            raise ValueError(f"The tensor product {self.feature_name} has {len(self.effects)} penalty coordinates, got {len(values)}.")
-        for margin, value in zip(self.effects, values):
-            margin.lambda_p = float(value)
+        if self.mode == "per_level":
+            if len(values) != len(self._level_lambdas) + 1:
+                raise ValueError(f"The tensor product {self.feature_name} has {len(self._level_lambdas) + 1} penalty coordinates, got {len(values)}.")
+            self._level_lambdas = [float(v) for v in values[:-1]]
+            self.effects[self._factor_index].lambda_p = float(values[-1])
+            positive = [max(v, 1e-300) for v in self._level_lambdas]
+            self.effects[self._smooth_index].lambda_p = float(np.exp(np.mean(np.log(positive))))  # stands for the smooth where one weight is read
+            return
+        expected = sum(margin.n_penalty_coordinates for margin in self.effects)
+        if len(values) != expected:
+            raise ValueError(f"The tensor product {self.feature_name} has {expected} penalty coordinates, got {len(values)}.")
+        start = 0
+        for margin in self.effects:
+            count = margin.n_penalty_coordinates
+            margin.set_penalty_coordinates(values[start:start + count])
+            start += count
 
     def initialize(self, x_cols: torch.Tensor) -> None:
         r"""Initialises each margin from its columns, sliced as in ``build_feature_map``."""
@@ -113,14 +164,14 @@ class TensorProductEffect(BaseEffect):
         col_idx = 0
         for effect in self.effects:
             # Determine how many columns this sub-effect needs
-            n_cols = len(getattr(effect, 'input_features', [effect.feature_name]))
-            
+            n_cols = len(effect.required_features)
+
             # Slice the exact number of columns required
             x_cols = x_data[..., col_idx : col_idx + n_cols]
             
             # Only squeeze the tensor for legacy 1D math effects. 
             # Spatial kernels strictly require the feature dimension to remain intact.
-            if n_cols == 1 and effect.__class__.__name__ not in ['TreeEffect', 'LinearTreeEffect', 'RBFEffect', 'NeuralEffect']:
+            if n_cols == 1 and not effect.keeps_feature_dim:
                 x_cols = x_cols.squeeze(-1)
                 
             phi_list.append(effect.transform(x_cols))
@@ -142,8 +193,22 @@ class TensorProductEffect(BaseEffect):
         coordinate, so GCV tunes one smoothing parameter per margin.
         """
         dims = [e.get_n_coeffs() for e in self.effects]
+        if self.mode == "per_level":
+            smooth, factor = self.effects[self._smooth_index], self.effects[self._factor_index]
+            saved = smooth.penalty_coordinates()
+            smooth.set_penalty_coordinates([1.0])
+            unit_smooth = smooth.build_penalty_matrix()  # the penalty of the smooth at weight 1, the weight of each level multiplies it
+            smooth.set_penalty_coordinates(saved)
+            levels = torch.diag(torch.tensor(self._level_lambdas, device=TORCH_DEVICE, dtype=torch.get_default_dtype()))
+            ridge = factor.build_penalty_matrix()
+            eye_smooth = torch.eye(dims[self._smooth_index], device=TORCH_DEVICE, dtype=torch.get_default_dtype())
+            if self._smooth_index == 0:
+                total = torch.kron(unit_smooth, levels) + torch.kron(eye_smooth, ridge)
+            else:
+                total = torch.kron(levels, unit_smooth) + torch.kron(ridge, eye_smooth)
+            return total * self.lambda_p
         penalties = [e.build_penalty_matrix() for e in self.effects]
-        
+
         P_total = 0
         
         for i in range(len(self.effects)):

@@ -24,6 +24,10 @@ This direct projection corresponds precisely to the homogeneous Dot Product Kern
 
 By equipping the standard Euclidean space with the strictly positive definite penalty norm induced by $\lambda I$, the coefficients are rigorously bounded. This guarantees that the linear mapping satisfies Mercer's conditions, formally operating as a valid, finite-dimensional Reproducing Kernel Hilbert Space (RKHS). The framework mathematically ensures the strict invertibility of the global covariance matrix $\left( \Phi^\top \Lambda^\top \Lambda \Phi + n P \right)$. This stabilizes the global matrix resolution, entirely preventing numerical singularities without artificially suppressing the linear signal.
 
+## Raw Covariates and Varying Coefficients
+
+Every feature is normalised to $[-1,1]$ before it reaches an effect. For a covariate $z$ that multiplies a smooth, $f(x)\,z$ (a varying coefficient {cite:p}`hastie1993varying`: the slope in $z$ depends on $x$), this normalisation replaces $z$ by $\tilde z=az+b$, and the term becomes $f(x)\,(az+b)=a\,f(x)z+b\,f(x)$: the shift $b$ adds a copy of $f(x)$ that the model has to separate from the main effect of $x$, and the surface is no longer zero where $z=0$. Keeping $z$ as it is, $\phi_{lin}(z)=z$, makes the interaction exactly $f(x)\,z$, so that it vanishes with $z$ and the coefficient function $f$ is the slope in the units of $z$. The price is that the penalty on the slope is no longer scale free: it acts on the raw units of $z$.
+
 ## The Offset (Intercept) Integration
 
 A critical distinction of the TAM framework lies in its handling of the global bias (the Intercept). 

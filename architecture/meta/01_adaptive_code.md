@@ -96,6 +96,16 @@ The `grid_search_fit()` method implements the "Multi-Start" hyperparameter solve
 :caption: src/tam/model/adaptative.py (Coordinate Descent Algorithm for Hyperparameters)
 ```
 
+## Corrector on the Link Scale of a GLM Base
+
+When the `base_model` is a plain `StaticTAM` with a non-Gaussian loss (`poisson`, `gamma`, `binomial`, `negative_binomial`, `tweedie`), the constructor sets `glm_strategy_` to the strategy of the base and appends `offset(__eta_base__)` to the adaptive formula (see the exposure offset of `StaticTAM`). `prepare_simulation` and `predict` add two columns: `__eta_base__`, the link of the base forecast, which the offset reads raw (the feature is normalised on (-1, 1) in every window), and the response itself as the target of the windows. The three places that solved a window (`simulation`, `_save_final_state`, `_evaluate_adaptive_config`) go through `_solve_windows`, which calls `batched_reweighted_solve` (`statistics/estimation/_batched_glm.py`): the reweighted loop of `StaticTAM` on all the windows at once, started at the base (`theta = 0`), with weights normalised to unit mean per window and a step-halving per window on its penalized deviance. `_forecast_windows` returns `g^-1(offset + Phi theta) - g^-1(offset)`, so `Estimated<target>` stays the correction and `AdaptedEstimated<target>` is the adapted mean. The dispersion of a negative binomial or Tweedie base is the one of the base model. `clip_to_train_range` is refused for such a base. `predict_quantiles` of a base with a quantile function (`poisson`, `negative_binomial`, `tweedie`) returns the quantiles of the family at the adapted mean.
+
+```{literalinclude} ../../../../src/tam/model/statistics/estimation/_batched_glm.py
+:language: python
+:pyobject: batched_reweighted_solve
+:caption: src/tam/model/statistics/estimation/_batched_glm.py (reweighted fit of every window)
+```
+
 ## Online Quantiles from a Distributional Base
 
 `AdaptiveTAM(base_model=...)` also accepts a fitted distributional `StaticTAM` (a dict formula). The correction is then fitted on the model scale of its location sub-model (the target `__mu__`, the target after its transform): the constructor redirects the base to that sub-model, maps `Residual<target>` in `adaptive_formula` to `Residual__mu__`, and `_with_model_target` adds the model-scale column to any frame that holds the target. The forecasts of a plain base are untouched.

@@ -33,6 +33,7 @@ References:
     - [Adaptive Filtering] Sayed, A. H. (2008). Adaptive Filters. John Wiley & Sons.
 """
 
+import re
 import torch
 import pandas as pd
 import numpy as np
@@ -220,6 +221,8 @@ class KalmanTAM:
                 instead of the first rows; then every row of the online data can be scored. ``calibration_steps`` is
                 ignored.
         """
+        if re.search(r"\boffset\s*\(", kalman_formula):
+            raise ValueError("offset(...) is read by StaticTAM only; put it in the formula of the base_model, whose predictions the filter starts from.")
         if base_model is not None and getattr(base_model, 'coefficients_', None) is None:
             raise ValueError("The base_model must be fitted before initializing KalmanTAM.")
         

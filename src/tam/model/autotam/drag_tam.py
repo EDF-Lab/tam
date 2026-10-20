@@ -14,6 +14,7 @@ inform component sampling, and execute parsimonious pruning of bloated genomes.
 #: <dragtam_imports>
 import pandas as pd
 import numpy as np
+from tam.evaluation.metrics import deviance_metric
 from typing import List, Dict, Any, Tuple, Callable
 import re
 
@@ -95,6 +96,8 @@ class DragTAM:
             denom = np.abs(y_t)
             denom[denom == 0] = 1e-9
             return np.mean(np.abs((y_t - y_p) / denom)) * 100.0
+        elif deviance_metric(metric, y_t, y_p) is not None:
+            return deviance_metric(metric, y_t, y_p)
         else:
             return np.sqrt(np.mean((y_t - y_p)**2))
 #: </dragtam_metric_calculator>
