@@ -228,7 +228,7 @@ class EnsembleSelector:
                 if cv_score < best_rmse_global:
                     best_rmse_global, best_expert_global = cv_score, exp_record
             except Exception as e:
-                print(f"Warning: Evaluation failed for {name} | Error: {e}")
+                logger.warning(f"Evaluation failed for {name} | Error: {e}")
 
         df_p = pd.DataFrame(preds_dict).dropna()
 
@@ -325,7 +325,7 @@ class EnsembleSelector:
                     floor = ("no quality floor" if self.apex_quality_ratio is None else
                              f"{len(dynamic_only) - len(admitted)} above {self.apex_quality_ratio:g}x "
                              f"the best validation error excluded")
-                    print(f"Apex membership: {len(dynamic_only)} dynamic experts (adaptive/kalman), "
+                    logger.info(f"Apex membership: {len(dynamic_only)} dynamic experts (adaptive/kalman), "
                           f"{len(valid_experts) - len(dynamic_only)} static experts excluded; {floor}; "
                           f"aggregating the remaining {len(admitted)} (no top-n truncation).")
 
@@ -338,7 +338,7 @@ class EnsembleSelector:
             elif top_apex_names: weights_top10 = {top_apex_names[0]: 1.0}
             self.apex_members_ = top_apex_names
             if len(top_apex_names) > 1:
-                print(f"Apex: predict_online() aggregates all {len(top_apex_names)} pool members; frozen predict() "
+                logger.info(f"Apex: predict_online() aggregates all {len(top_apex_names)} pool members; frozen predict() "
                       f"averages the {len(weights_top10)} kept by the sparsity rule (final weight >= "
                       f"{self.ensemble_sparsity_threshold:g}, or >= 1/n when none reaches it).")
         else:
@@ -350,7 +350,7 @@ class EnsembleSelector:
                 p_full = self._get_expert_predictions(exp, exp["model"], df_cont_val, ctx, expander, return_full=True)
                 oof_predictions[exp["name"]] = p_full
             except Exception as e:
-                print(f"Warning: OOF Intercept failed for {exp['name']} | Error: {e}")
+                logger.warning(f"OOF Intercept failed for {exp['name']} | Error: {e}")
 
         for alias, real_name in island_aliases.items():
             if real_name in oof_predictions:
@@ -382,9 +382,9 @@ class EnsembleSelector:
                         base_m.fit(full_train_clean) 
                         refitted_bases.add(base_m)
                 except Exception as e: 
-                    print(f"Warning: Native Refit failed for base model of {exp['name']} | Error: {e}")
+                    logger.warning(f"Native Refit failed for base model of {exp['name']} | Error: {e}")
         else:
-            print("EnsembleSelector: Skipping historical refit (refit_on_full_train=False). Base models are frozen on Fit set.")
+            logger.info("EnsembleSelector: Skipping historical refit (refit_on_full_train=False). Base models are frozen on Fit set.")
             
         return trained_experts, league_weights, weights_top10, island_aliases, oof_predictions
 #: </evaluate_and_refit>

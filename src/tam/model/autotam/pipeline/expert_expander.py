@@ -25,6 +25,7 @@ from tam.model.additive import StaticTAM
 from tam.model.kalman import KalmanTAM
 from tam.model.adaptative import AdaptiveTAM
 from tam.model.autotam.failures import log_failure
+from tam.model.autotam.search_preset import FAST_ADAPTIVE_WINDOW_COUNT, FAST_KALMAN_RATE_COUNT
 
 logger = logging.getLogger(__name__)
 #: </expert_expander_imports>
@@ -149,7 +150,7 @@ class ExpertExpander:
             dfs_to_concat.append(ctx.df_val)
         df_cont_all = pd.concat(dfs_to_concat)
         
-        print(f"ExpertExpander: Exploding {sum(len(f) for f in island_champions.values())} Formulas into Dynamic States...")
+        logger.info(f"ExpertExpander: Exploding {sum(len(f) for f in island_champions.values())} Formulas into Dynamic States...")
 
         global_best_static = None
         global_best_cv = float('inf')
@@ -270,6 +271,8 @@ class ExpertExpander:
                             offset_boost = getattr(ctx, "kalman_priors", {}).get("offset_boost", 100.0)
                             
                             dynamic_rates = [0, obs_noise * 1e-4, obs_noise * 1e-2, obs_noise, obs_noise * 10, obs_noise * 100]
+                            if ctx.fast_search:
+                                dynamic_rates = [0, obs_noise * 1e-2, obs_noise][:FAST_KALMAN_RATE_COUNT]
                             
                             for rate in dynamic_rates:
                                 try:
@@ -363,16 +366,24 @@ class ExpertExpander:
         d_meta[f'Residual{ctx.target}_calc'] = d_meta[ctx.target] - terms[f"Estimated{ctx.target}"].values
         
         ctx.steps_per_period = 1
+        daily_or_finer = False
         if ctx.date_col and ctx.date_col in d_meta.columns:
             temp_df = d_meta.sort_values(by=[ctx.group_col, ctx.date_col]) if ctx.group_col else d_meta.sort_values(by=ctx.date_col)
             deltas = temp_df.groupby(ctx.group_col)[ctx.date_col].diff().dropna() if ctx.group_col else temp_df[ctx.date_col].diff().dropna()
             if not deltas.empty:
                 median_delta = deltas.median()
+                daily_or_finer = bool(pd.notnull(median_delta) and 0 < median_delta.total_seconds() <= 86400)
                 if pd.notnull(median_delta) and median_delta.total_seconds() > 0 and median_delta < pd.Timedelta(hours=23):
                     ctx.steps_per_period = max(1, int(round(pd.Timedelta(days=1) / median_delta)))
 
-        ctx.adaptive_lags = ctx.lags if ctx.lags else [1 * ctx.steps_per_period, 7 * ctx.steps_per_period]
-        ctx.inferred_horizon = min(ctx.adaptive_lags) if ctx.adaptive_lags else 1
+        asked = ctx.requested_horizon
+        if ctx.lags:
+            ctx.adaptive_lags = ctx.lags
+        elif asked:
+            ctx.adaptive_lags = sorted({asked, max(asked, 7 * ctx.steps_per_period)}) if daily_or_finer else [asked]
+        else:
+            ctx.adaptive_lags = [1 * ctx.steps_per_period, 7 * ctx.steps_per_period]
+        ctx.inferred_horizon = asked or (min(ctx.adaptive_lags) if ctx.adaptive_lags else 1)
 
         for lag in ctx.adaptive_lags:
             col_name = f'Residual{ctx.target}_lag_{lag}'
@@ -395,6 +406,8 @@ class ExpertExpander:
         
         max_allowed = max(5, est_train_len // 2)
         ctx.candidate_windows = [w for w in base_windows if w <= max_allowed] or [max_allowed]
+        if ctx.fast_search:
+            ctx.candidate_windows = ctx.candidate_windows[:FAST_ADAPTIVE_WINDOW_COUNT]
         return d_meta
 #: </expert_expander_prepare_data>
 

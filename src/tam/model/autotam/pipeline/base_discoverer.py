@@ -19,6 +19,9 @@ from tam.model.autotam.drag_tam import DragTAM
 from tam.model.autotam.population_nodes import get_island_objects
 from tam.model.autotam.guards import guard_violation, monotone_features
 from tam.model.autotam.seeding import rank_key
+from tam.model.autotam.search_preset import FULL_GENERATIONS
+import logging
+logger = logging.getLogger(__name__)
 #: </base_discoverer_imports>
 
 #: <base_discoverer_class>
@@ -26,7 +29,10 @@ class BaseDiscoverer:
     """Executes the evolutionary search and extracts the top formulas per Island."""
     
 #: <base_discoverer_init>
-    def __init__(self, pop_size: int = 64, eta: float = 0.1, mandatory_terms: Optional[List[str]] = None, mandatory_variables: Optional[List[str]] = None):
+    def __init__(self, pop_size: int = 64, eta: float = 0.1, mandatory_terms: Optional[List[str]] = None, mandatory_variables: Optional[List[str]] = None,
+                 islands: Optional[List[str]] = None, n_generations: int = FULL_GENERATIONS):
+        self.islands = list(islands) if islands else None  # names of the islands searched, None for all
+        self.n_generations = n_generations
         self.pop_size = pop_size
         self.eta = eta
         self.mandatory_terms = mandatory_terms or []
@@ -78,13 +84,13 @@ class BaseDiscoverer:
         """
         Runs the DragTAM optimizer and categorizes the best performing models.
         """
-        print("BaseDiscoverer: Starting Evolutionary Search...")
+        logger.info("BaseDiscoverer: Starting Evolutionary Search...")
         
-        draga = DragTAM(target_col=ctx.target, population_size=self.pop_size,
+        draga = DragTAM(target_col=ctx.target, population_size=self.pop_size, n_generations=self.n_generations,
                         group_col=ctx.group_col, date_col=ctx.date_col,
                         mandatory_terms=getattr(ctx, 'mandatory_terms', None) or self.mandatory_terms,
                         mandatory_variables=getattr(ctx, 'mandatory_variables', None) or self.mandatory_variables)
-        islands = get_island_objects()
+        islands = [i for i in get_island_objects() if self.islands is None or type(i).__name__ in self.islands]
 
         draga.optimize(
             cv_folds=ctx.cv_folds,
@@ -149,9 +155,9 @@ class BaseDiscoverer:
                 top_5 = unique.iloc[order].head(5)
                 island_champions[island] = top_5["Formula"].tolist()
         else:
-            print("Warning: No formulas survived the evolutionary evaluation. Check for hidden NaNs or Inf values.")
+            logger.warning("No formulas survived the evolutionary evaluation. Check for hidden NaNs or Inf values.")
 
-        print(f"BaseDiscoverer: Extracted {sum(len(v) for v in island_champions.values())} Top Formulas across {len(island_champions)} Islands.")
+        logger.info(f"BaseDiscoverer: Extracted {sum(len(v) for v in island_champions.values())} Top Formulas across {len(island_champions)} Islands.")
         return island_champions, draga
 #: </base_discoverer_search>
 #: </base_discoverer_class>

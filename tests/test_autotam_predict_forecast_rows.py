@@ -76,7 +76,7 @@ def test_predict_on_the_forecast_rows_equals_the_tail_of_predict_on_past_and_fut
         np.testing.assert_allclose(alone[column].to_numpy(), full[column].to_numpy(), rtol=0, atol=1e-9, err_msg=column)
 
 
-def test_a_frame_that_overlaps_the_training_rows_is_used_as_given(fitted, monkeypatch):
+def test_a_frame_inside_the_training_rows_gets_the_rows_before_it(fitted, monkeypatch):
     model, past, future = fitted
     seen = []
     original = model.data_manager.transform_test_data
@@ -88,7 +88,8 @@ def test_a_frame_that_overlaps_the_training_rows_is_used_as_given(fitted, monkey
     monkeypatch.setattr(model.data_manager, "transform_test_data", spy)
     frame = pd.concat([past.tail(40), future])
     out = model.predict(frame, date_col="ds")
-    assert seen == [len(frame)] and len(out) == len(frame)
+    assert seen == [len(frame) + len(past) - 40]   # the training rows before the first date of the frame are put in front of it
+    assert len(out) == len(frame)                  # and the output has exactly the rows given
 
 
 def test_predict_online_on_the_forecast_rows_returns_exactly_those_rows(fitted):

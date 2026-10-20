@@ -15,7 +15,7 @@ import logging
 import re
 import pandas as pd
 import numpy as np
-from typing import Optional, List, Dict, Any, Tuple
+from typing import Optional, List, Dict, Any, Tuple, Union
 from .context import PipelineContext
 
 from tam.common.utils import split_args_respecting_parentheses
@@ -97,6 +97,36 @@ def add_past_covariate_lags(df: pd.DataFrame, past_covariates: Dict[str, List[in
                 df[f"{column}_lag_{lag}"] = df[column].shift(lag)
 #: </data_manager_past_covariates>
 
+#: <data_manager_missing_target>
+def keep_forecast_targets_missing(df_aug: pd.DataFrame, df_observed: pd.DataFrame, ctx: PipelineContext) -> pd.DataFrame:
+    """Puts back the missing target on the rows after the last observed one.
+
+    The continuity step of the data profiler forward-fills at most three missing values of every column, the target included: the first three
+    forecast rows of a frame whose target is not known would carry an invented target, and the Kalman and adaptive experts would take it for an
+    observation. The rows dated after the last observed target (over all groups) get their missing target back.
+
+    Args:
+        df_aug: The augmented frame, after the continuity step.
+        df_observed: The frame before it, with the target as it was given.
+        ctx: The pipeline context (target and date column).
+
+    Returns:
+        ``df_aug``, with a missing target on the forecast rows.
+    """
+    target, date_col = ctx.target, ctx.date_col
+    if not date_col or target not in df_aug.columns or target not in df_observed.columns or date_col not in df_aug.columns or date_col not in df_observed.columns:
+        return df_aug
+    observed = df_observed.loc[df_observed[target].notna(), date_col]
+    if observed.empty:
+        return df_aug
+    after = pd.to_datetime(df_aug[date_col]) > pd.to_datetime(observed).max()
+    if not after.any():
+        return df_aug
+    out = df_aug.copy()
+    out.loc[after, target] = np.nan
+    return out
+#: </data_manager_missing_target>
+
 #: <data_manager_class>
 class DataManager:
     """
@@ -111,7 +141,8 @@ class DataManager:
         lags: Optional[List[int]] = None,
         mandatory_variables: Optional[List[str]] = None,
         train_fraction: float = 0.70,
-        dev_fraction: float = 0.15
+        dev_fraction: float = 0.15,
+        horizon: Optional[int] = None,
     ):
         """
         Initializes the DataManager, parsing the user formula and populating mandatory terms.
@@ -123,7 +154,11 @@ class DataManager:
             mandatory_variables (Optional[List[str]]): Variables required in all models.
             train_fraction (float): Proportion of training data allocated to model fitting.
             dev_fraction (float): Proportion of training data allocated to hyperparameter tuning.
+            horizon (Optional[int]): Steps ahead to forecast; ``None`` takes the smallest lag. Lags shorter than it are refused at ``prepare``.
         """
+        if horizon is not None and (int(horizon) != horizon or horizon < 1):
+            raise ValueError(f"horizon must be a positive whole number of steps, got {horizon!r}.")
+        self.horizon = None if horizon is None else int(horizon)
         self.formula = formula
         self.user_lags = lags or []
         if isinstance(mandatory_variables, str):
@@ -151,7 +186,7 @@ class DataManager:
         group_col: Optional[str] = None,
         validation_strategy: str = 'auto',
         past_covariates: Optional[Dict[str, List[int]]] = None,
-        seasonal_anchor: bool = False,
+        seasonal_anchor: Union[bool, str] = False,
         season: Optional[int] = None,
         replace_sentinels: bool = False
     ) -> PipelineContext:
@@ -266,8 +301,17 @@ class DataManager:
         
         parsed_lags = list(ctx.formula_config.get("lags", {}).values())
         ctx.lags = list(set(self.user_lags + parsed_lags))
+        ctx.requested_horizon = self.horizon
+        if self.horizon is not None:
+            too_short = sorted(lag for lag in ctx.lags if lag < self.horizon)
+            if too_short:
+                raise ValueError(
+                    f"horizon={self.horizon} is not compatible with the lags {too_short} of the target: a lag shorter than the horizon is not "
+                    f"known that many steps ahead. Use lags of at least {self.horizon}, or drop the horizon argument."
+                )
+        horizon_orders = [self.horizon] if self.horizon is not None else ctx.lags  # the smallest of them is the horizon
         ctx.past_covariates = normalize_past_covariates(
-            past_covariates, ref_df.columns, ctx.target, date_col, group_col, ctx.formula_config["features"], ctx.lags
+            past_covariates, ref_df.columns, ctx.target, date_col, group_col, ctx.formula_config["features"], horizon_orders
         )
         for column, lags in ctx.past_covariates.items():
             for lag in lags:
@@ -322,8 +366,13 @@ class DataManager:
         _, ctx.metadata = self.profiler.profile_and_clean(raw_fit, ctx.formula_config, date_col, group_col)
 
         if seasonal_anchor:
-            ctx.anchor_season = resolve_season(season, ctx.metadata.get("delta_t", "1D"), ctx.lags)
-            if anchor_column(ctx.anchor_season) not in ctx.formula_config["features"]:
+            try:
+                ctx.anchor_season = resolve_season(season, ctx.metadata.get("delta_t", "1D"), horizon_orders)
+            except ValueError as exc:
+                if seasonal_anchor != "auto":   # "auto": the anchor was switched on by a preset, so no usable season only means no anchor
+                    raise
+                logger.info("Seasonal anchor not used: %s", exc)
+            if ctx.anchor_season and anchor_column(ctx.anchor_season) not in ctx.formula_config["features"]:
                 ctx.formula_config["features"].append(anchor_column(ctx.anchor_season))
 
         if date_col:
@@ -502,6 +551,7 @@ class DataManager:
 
         df_clean = self.profiler.transform(df_combined, ctx.formula_config, ctx.date_col) if hasattr(self.profiler, 'transform') else df_combined
         df_aug = self.engineer.engineer_features(df_clean, ctx.formula_config, ctx.metadata, ctx.date_col)
+        df_aug = keep_forecast_targets_missing(df_aug, df_combined, ctx)
 
         # Tz-safe left-merge to perfectly realign predictions with df_test's original row order.
         date_col, group_col = ctx.date_col, ctx.group_col

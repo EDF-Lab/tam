@@ -24,7 +24,7 @@ from tam.model.autotam.auto_tam import AutoTAM
 
 def test_the_constructor_has_defaulted_anchor_arguments():
     parameters = inspect.signature(AutoTAM.__init__).parameters
-    assert parameters["seasonal_anchor"].default is False
+    assert parameters["seasonal_anchor"].default is None      # off, except with search="fast"; True and False are explicit
     assert parameters["season"].default is None
 
 

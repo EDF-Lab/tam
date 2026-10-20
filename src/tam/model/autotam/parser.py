@@ -20,6 +20,8 @@ import ast
 import itertools
 from typing import Dict, Any, List, Tuple, Optional, Union
 from tam.common.utils import split_args_respecting_parentheses
+import logging
+logger = logging.getLogger(__name__)
 #: </parser_imports>
 
 __all__ = [
@@ -596,7 +598,7 @@ class FormulaParser:
         mandatory_terms = self._validate_mandatory_terms(non_macro_tokens, pipeline_type)
 
         if lags and pipeline_type in ["AdTAM", "StaticTAM"]:
-            print(f"AutoTAM Parser Warning: Lags detected ({lags}), but pipeline '{pipeline_type}' "
+            logger.warning(f"AutoTAM Parser Warning: Lags detected ({lags}), but pipeline '{pipeline_type}' "
                   f"is static. Consider using 'AdaptTAM', 'KalmanTAM', or 'AutoPipe' for native state-space tracking.")
         
         if date_col and date_col in features:

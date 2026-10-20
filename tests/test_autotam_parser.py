@@ -219,11 +219,12 @@ def test_target_excluded_from_features():
     assert "Load" not in config["features"]
 
 
-def test_static_pipeline_with_lags_warns(capsys):
+def test_static_pipeline_with_lags_warns(caplog, capsys):
     parser = FormulaParser()
-    parser.parse("Load ~ StaticTAM(Temp, Load@7)")
-    captured = capsys.readouterr()
-    assert "Lags detected" in captured.out
+    with caplog.at_level("WARNING"):
+        parser.parse("Load ~ StaticTAM(Temp, Load@7)")
+    assert "Lags detected" in caplog.text
+    assert capsys.readouterr().out == ""
 
 
 def test_parse_requires_tilde():

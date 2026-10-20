@@ -16,7 +16,7 @@ import logging
 import pandas as pd
 import numpy as np
 import re
-from typing import Tuple, Optional, List, Dict
+from typing import Tuple, Optional, List, Dict, Union
 
 from .pipeline.data_manager import DataManager
 from .pipeline.base_discoverer import BaseDiscoverer
@@ -32,8 +32,63 @@ from tam.model.autotam.failures import log_failure
 from tam.common.utils import parse_formula_to_terms
 from tam.model.autotam.anchor import ANCHOR_ISLAND, anchor_formula
 from tam.model.autotam.seeding import seeded_method
+from tam.model.autotam.search_preset import (
+    FAST_GENERATIONS, FAST_ISLANDS, FAST_N_EXPERTS, FAST_POP_SIZE, FULL_GENERATIONS, check_search_mode)
 logger = logging.getLogger(__name__)
 #: </auto_tam_imports>
+
+#: <auto_tam_forecast_rows>
+def split_forecast_rows(df: pd.DataFrame, target: str, group_col: Optional[str]) -> Tuple[pd.DataFrame, pd.DataFrame]:
+    """Splits a time-ordered frame into the rows whose target is observed and the forecast rows.
+
+    A forecast row has no target and no observed target after it (inside its group): these are the rows after the last observation. A row
+    with a missing target followed by an observation is a gap, neither observed nor a forecast row.
+
+    Args:
+        df: Frame in time order, with the target column.
+        target: Name of the target column.
+        group_col: Name of the group column, or ``None``.
+
+    Returns:
+        The observed rows and the forecast rows.
+    """
+    observed = df[target].notna()
+    reversed_observed = observed.iloc[::-1]
+    if group_col and group_col in df.columns:
+        later = reversed_observed.groupby(df[group_col].iloc[::-1]).cummax().iloc[::-1]
+    else:
+        later = reversed_observed.cummax().iloc[::-1]
+    return df[observed], df[~later.astype(bool)]
+#: </auto_tam_forecast_rows>
+
+#: <auto_tam_finite_mix>
+def finite_weighted_mix(frame: pd.DataFrame, weights: Dict[str, float]) -> Tuple[pd.Series, int]:
+    """Weighted mean of the experts of an ensemble, over the experts that are finite on each row.
+
+    On a row where every member is finite the result is the plain weighted mean (the weights divided by their sum, as before). On a row where a
+    member is missing it is dropped and the weights of the others are renormalised, so one expert that cannot forecast a row does not make the
+    ensemble missing there. A row where no member is finite stays missing.
+
+    Args:
+        frame: Predictions, one column per expert.
+        weights: Weight of each member, by column name; every member must be a column of ``frame``.
+
+    Returns:
+        The mixed series, and the number of (row, expert) values that were left out.
+    """
+    total = sum(weights.values())
+    plain = sum(frame[name] * (weight / total) for name, weight in weights.items())
+    values = frame[list(weights)]
+    finite = values.notna()
+    complete = finite.all(axis=1)
+    if complete.all():
+        return plain, 0
+    weight_row = pd.Series(weights)
+    numerator = (values.fillna(0.0) * weight_row).sum(axis=1)
+    denominator = (finite * weight_row).sum(axis=1)
+    mixed = (numerator / denominator).where(denominator > 0)
+    return plain.where(complete, mixed), int((~finite).to_numpy().sum())
+#: </auto_tam_finite_mix>
 
 #: <auto_tam_class>
 class AutoTAM:
@@ -54,26 +109,41 @@ class AutoTAM:
         formula: str, 
         lags: Optional[List[int]] = None, 
         mandatory_variables: Optional[List[str]] = None,
-        n_experts: int = 15, 
-        pop_size: int = 64, 
+        n_experts: Optional[int] = None, 
+        pop_size: Optional[int] = None, 
         use_opera: bool = True, 
         eta: float = 0.1, 
         complexity_penalty: float = 1.0,
         export_dir: str = "AutoTAM_exports", 
         extrapolation_guards: bool = False,
-        seasonal_anchor: bool = False,
+        seasonal_anchor: Optional[bool] = None,
         season: Optional[int] = None,
         replace_sentinels: bool = False,
         seed: Optional[int] = None,
+        horizon: Optional[int] = None,
+        search: str = "full",
         **kwargs
     ):
         """
         Initializes the AutoTAM director.
 
+        Warnings and progress messages go through ``logging`` (logger ``tam.model.autotam``): see the progress with
+        ``logging.basicConfig(level=logging.INFO)``, silence it with ``logging.getLogger('tam.model.autotam').setLevel(logging.ERROR)``. The
+        reports (``summary()``, ``print_performance_board()``, ``print_model_recipe()``) still print.
+
         Args:
             formula (str): High-level AutoTAM formula with embedded mandatory terms and a
                 pipeline macro (e.g., 'load ~ s(temp, k=10) + AutoPipe(temp, humidity)').
             lags (Optional[List[int]]): Explicit lag orders to evaluate during feature engineering.
+            search (str): ``"full"`` (default) is the search as it always was. ``"fast"`` is a preset for series that do not need the whole
+                search: the linear, spline, Fourier and Chebyshev islands only (no neural, RBF, tree, wavelet or mixed islands), a population of
+                16 over 8 generations instead of 64 over 20, 8 experts kept, three Kalman noise rates and two adaptive windows, and the seasonal
+                anchor on. ``pop_size``, ``n_experts`` and ``seasonal_anchor`` given by the caller win over the preset. It is a screening preset,
+                about twice as fast: it leaves out the islands that hourly prices need, so it is not meant for final forecasts.
+            horizon (Optional[int]): Number of steps ahead the model is asked to forecast. By default it is the smallest lag (the target is
+                known up to that many steps before a forecast row). When given, every lag of the target must be at least the horizon (a
+                shorter lag is not known that far ahead): ``fit()`` raises a ``ValueError`` otherwise. Without explicit lags, the lags of the
+                dynamic experts become the horizon and, for steps of a day or less, one week.
             seed (Optional[int]): Makes the search reproducible. With an integer, ``fit()`` seeds the global generators of ``random``, ``numpy`` and
                 ``torch``, runs, and restores them: the same seed on the same data gives the same experts, whatever was drawn before and the hash seed
                 of the interpreter; the seed is written in the export next to the run. ``None`` (default) draws from the global generators as before.
@@ -81,8 +151,9 @@ class AutoTAM:
             replace_sentinels (bool): Opt-in. Values that repeat at an extreme of the training target, far outside its robust spread (a
                 missing-value code such as -9999), are always reported (``target_profile_['sentinels']``, with a warning); with ``True`` they are
                 replaced by missing values before the fit, otherwise they are fitted as values.
-            seasonal_anchor (bool): Opt-in anchor: an expert that regresses the target on its value one season earlier is added to the pool
-                (island ``Anchor``, expanded like any champion), so the ensembles can always fall back on the last season repeated.
+            seasonal_anchor (Optional[bool]): Opt-in anchor: an expert that regresses the target on its value one season earlier is added to the pool
+                (island ``Anchor``, expanded like any champion), so the ensembles can always fall back on the last season repeated. ``None``
+                (default) is off, except with ``search="fast"``, which turns it on; ``True`` and ``False`` are always obeyed.
             season (Optional[int]): Number of steps of one season for the anchor; by default the natural season of the sampling step (24 hourly,
                 7 daily, 52 weekly, 12 monthly, 4 quarterly). It must be at least the horizon (the smallest lag of the target).
             extrapolation_guards (bool): Opt-in rules against extrapolation. Champions with more coefficients than half the fit rows, a neural or
@@ -102,6 +173,12 @@ class AutoTAM:
         """
         if "mandatory_terms" in kwargs:
             raise TypeError("AutoTAM.__init__() got an unexpected keyword argument 'mandatory_terms'")
+        self.search = check_search_mode(search)
+        fast = self.search == "fast"
+        n_experts = n_experts if n_experts is not None else (FAST_N_EXPERTS if fast else 15)
+        pop_size = pop_size if pop_size is not None else (FAST_POP_SIZE if fast else 64)
+        self.anchor_from_preset = seasonal_anchor is None and fast   # then a step without a natural season only means no anchor
+        seasonal_anchor = seasonal_anchor if seasonal_anchor is not None else fast
         self.formula = formula
         self.n_experts = n_experts
         self.complexity_penalty = complexity_penalty
@@ -113,13 +190,16 @@ class AutoTAM:
             formula=formula,
             lags=lags,
             mandatory_variables=self.mandatory_variables,
+            horizon=horizon,
         )
         self.mandatory_terms = self.data_manager.mandatory_terms
         self.discoverer = BaseDiscoverer(
             pop_size=pop_size, 
             eta=eta, 
             mandatory_terms=self.mandatory_terms,
-            mandatory_variables=self.mandatory_variables
+            mandatory_variables=self.mandatory_variables,
+            islands=FAST_ISLANDS if fast else None,
+            n_generations=FAST_GENERATIONS if fast else FULL_GENERATIONS,
         )
         self.expander = ExpertExpander()
         self.selector = EnsembleSelector(use_opera=use_opera)
@@ -143,6 +223,7 @@ class AutoTAM:
         self.season = season
         self.clipped_rows_ = {}  # with the guards: rows clipped, by expert, set by predict()
         self.final_model_column_ = None  # set by fit(): the column of predict() that holds the final model
+        self.architectures_ = {}  # set by fit(): the champion formulas by island, to pass as architectures= to a later fit
         self.history_ = None  # set by fit(): the training rows, put in front of a frame that starts after them
         self.extrapolating_features_ = []
 #: </auto_tam_init>
@@ -162,7 +243,8 @@ class AutoTAM:
         optimization_metric: str = 'rmse',
         refit_on_full_train: bool = False,
         past_covariates: Optional[Dict[str, List[int]]] = None,
-        seed_formulas: Optional[List[str]] = None
+        seed_formulas: Optional[List[str]] = None,
+        architectures: Optional[Union['AutoTAM', Dict[str, List[str]]]] = None
     ):
         """Fits the search on the given data.
 
@@ -183,6 +265,12 @@ class AutoTAM:
             seed_formulas: Formulas the user already trusts, ``["y ~ l(x1) + s(x2, k=10)"]``. Each is expanded like a champion of the search (prior,
                 Kalman and adaptive experts) under the island name ``Seed``, so it competes in the leagues and in the Apex pool; the experts
                 are named ``..._Seed_R<k>_...``. A formula with another target, an unknown column or a syntax error raises a ``ValueError``.
+            architectures: A fitted ``AutoTAM`` or its ``architectures_`` (``{island: [formulas]}``). The evolutionary search is skipped: the
+                champion formulas of that earlier search are expanded and refitted on the given rows (new coefficients, same experts), which is how
+                one search serves many windows of a task. A formula that names a column absent from the new data is dropped with a warning; if
+                none is left, a ``ValueError`` is raised. Use a new ``AutoTAM`` for the refit (same formula and settings as the first). It saves the
+                search only: the expansion of the experts (prior, Kalman, adaptive) and their scoring, which take most of the time of a fit, still run,
+                and a new search for each window was the more accurate in a measurement on weekly order counts and hourly prices.
 
         Returns:
             The fitted model.
@@ -190,7 +278,8 @@ class AutoTAM:
         Raises:
             ValueError: Invalid ``past_covariates``, an empty split, or no expert survives the search.
         """
-        print("AutoTAM: Starting Pipeline...")
+        logger.info("AutoTAM: Starting Pipeline...")
+        self.chronological_test_log = []
         self.expander.expansions = expansions or {"prior": True, "autofit": True, "kalman": True, "adaptive": True, "grid": False}
         
         self.ctx = self.data_manager.prepare(
@@ -202,7 +291,7 @@ class AutoTAM:
             group_col=group_col,
             validation_strategy=validation_strategy,
             past_covariates=past_covariates,
-            seasonal_anchor=self.seasonal_anchor,
+            seasonal_anchor="auto" if (self.seasonal_anchor and self.anchor_from_preset) else self.seasonal_anchor,
             season=self.season,
             replace_sentinels=self.replace_sentinels
         )
@@ -210,17 +299,24 @@ class AutoTAM:
         self.history_ = self._training_rows(df_train, df_fit, df_dev, df_val)
         seed_champions = self._seed_champions(seed_formulas)
         self.ctx.extrapolation_guards = self.extrapolation_guards
+        self.ctx.fast_search = self.search == "fast"
         self.ctx.optimization_metric = optimization_metric
         self.ctx.complexity_penalty = self.complexity_penalty
         
         # The search fits and scores hundreds of models: their extrapolation warnings are collected, not raised one by one.
+        kept_architectures = self._kept_architectures(architectures)
         with collect_extrapolation() as extrapolating:
-            island_champions, draga_engine = self.discoverer.search(self.ctx)
+            if kept_architectures is None:
+                island_champions, draga_engine = self.discoverer.search(self.ctx)
+            else:
+                island_champions, draga_engine = kept_architectures, None
             if seed_champions:
                 island_champions = {**island_champions, "Seed": seed_champions}
             if self.ctx.anchor_season:
                 island_champions = {**island_champions, ANCHOR_ISLAND: [anchor_formula(self.ctx.target, self.ctx.anchor_season)]}
-            self.reporter.export_evolutionary_diagnostics(draga_engine)
+            self.architectures_ = {island: list(formulas) for island, formulas in island_champions.items()}
+            if draga_engine is not None:
+                self.reporter.export_evolutionary_diagnostics(draga_engine)
 
             candidate_pool = self.expander.generate_experts(island_champions, self.ctx, self.chronological_test_log, self.reporter)
 
@@ -244,6 +340,52 @@ class AutoTAM:
         self.reporter.export_collinearity_purge_log(self.data_manager.engineer.purge_log)
         return self
 #: </auto_tam_fit>
+
+#: <auto_tam_architectures>
+    def _kept_architectures(self, architectures) -> Optional[Dict[str, List[str]]]:
+        """The champion formulas of an earlier search, checked against the columns of the data given to this ``fit()``.
+
+        Args:
+            architectures: ``None`` (search as usual), a fitted ``AutoTAM`` or its ``architectures_`` dictionary.
+
+        Returns:
+            ``None`` when no architectures are given, else ``{island: [formulas]}`` without the formulas that name a missing column.
+
+        Raises:
+            ValueError: ``architectures`` is not a fitted ``AutoTAM`` or a dictionary of formula lists, or no formula can be used on the data.
+        """
+        if architectures is None:
+            return None
+        if isinstance(architectures, AutoTAM):
+            architectures = getattr(architectures, "architectures_", None)
+            if not architectures:
+                raise ValueError("architectures: the AutoTAM given is not fitted (it has no architectures_).")
+        if not isinstance(architectures, dict) or not all(isinstance(f, (list, tuple)) for f in architectures.values()):
+            raise ValueError("architectures must be a fitted AutoTAM or a dictionary {island: [formulas]}.")
+        columns = set(self.ctx.df_all_aug.columns)
+        kept: Dict[str, List[str]] = {}
+        dropped = 0
+        for island, formulas in architectures.items():
+            for formula in formulas:
+                _, terms = parse_formula_to_terms(formula)
+                names = set()
+                for term in terms:
+                    if term.get("type") == "te":
+                        for key in term.get("params", {}):
+                            names.update(re.findall(r"\(\s*([A-Za-z_]\w*)", str(key)))
+                    else:
+                        names.add(term.get("feature"))
+                if any(n and n not in columns for n in names):
+                    dropped += 1
+                else:
+                    kept.setdefault(island, []).append(formula)
+        if dropped:
+            logger.warning("architectures: %d formula(s) of the earlier search name a column that is not in the data and were dropped.", dropped)
+        if not kept:
+            raise ValueError("architectures: no formula of the earlier search can be used on these data (their columns are missing).")
+        logger.info("AutoTAM: refitting %d formulas of an earlier search, no evolutionary search.", sum(len(v) for v in kept.values()))
+        return kept
+#: </auto_tam_architectures>
 
 #: <auto_tam_seed_formulas>
     def _seed_champions(self, seed_formulas: Optional[List[str]]) -> List[str]:
@@ -308,8 +450,9 @@ class AutoTAM:
         """Puts the training rows in front of a frame that starts after them.
 
         The adaptive and Kalman experts rebuild their windows and their state from the frame they are given, so the
-        forecast of a row depends on the rows that precede it. A frame that starts after the training data gets the
-        training rows in front of it; a frame that overlaps them is used as given.
+        forecast of a row depends on the rows that precede it. A frame gets the training rows that precede its first
+        date in front of it, whether it starts after the training data or inside it (a frame that starts with the
+        first training row gets nothing).
 
         Args:
             df_test: Frame to forecast.
@@ -322,11 +465,12 @@ class AutoTAM:
         history = self.history_
         if history is None or not date_col or date_col not in df_test.columns or date_col not in history.columns or df_test.empty:
             return df_test, 0
-        if pd.to_datetime(df_test[date_col]).min() <= pd.to_datetime(history[date_col]).max():
+        earlier = history[pd.to_datetime(history[date_col]) < pd.to_datetime(df_test[date_col]).min()]
+        if earlier.empty:
             return df_test, 0
-        columns = [c for c in df_test.columns if c in history.columns]
-        missing = [c for c in history.columns if c not in df_test.columns]
-        front = history[columns + [c for c in missing if c == self.ctx.target]]
+        columns = [c for c in df_test.columns if c in earlier.columns]
+        missing = [c for c in earlier.columns if c not in df_test.columns]
+        front = earlier[columns + [c for c in missing if c == self.ctx.target]]
         return pd.concat([front, df_test], ignore_index=True), len(front)
 #: </auto_tam_history>
 
@@ -357,7 +501,8 @@ class AutoTAM:
             try:
                 base_m = m if m_type == "static" else getattr(m, '_saved_base_model', getattr(m, 'base_model_', None))
                 f_ref = getattr(base_m, 'formula_', '')
-                req_cols = sorted(set([c for c in re.findall(r'[a-zA-Z0-9_]+', f_ref) if c in df_aug.columns]))
+                # The target names the formula but is not a feature: a forecast row has none, and must not be dropped for it.
+                req_cols = sorted(set([c for c in re.findall(r'[a-zA-Z0-9_]+', f_ref) if c in df_aug.columns and c != self.ctx.target]))
                 df_aug_clean = df_aug.dropna(subset=req_cols).copy()
                 
                 if m_type == "static": 
@@ -381,8 +526,14 @@ class AutoTAM:
                         P_init_diag=p_init,
                         process_noise_var=exp["params"]["process_noise_var"] 
                     )
-                    p_all = fresh_kalman.predict_online(df_aug_clean)
-                    raw_preds = pd.Series(p_all[f"KalmanAdapted_{self.ctx.target}"].values, index=df_aug_clean.index)
+                    # The filter follows the rows whose target is observed; the rows after the last observation are forecast with its final state.
+                    kalman_col = f"KalmanAdapted_{self.ctx.target}"
+                    observed_rows, forecast_rows = split_forecast_rows(df_aug_clean, self.ctx.target, self.ctx.group_col)
+                    p_all = fresh_kalman.predict_online(observed_rows)
+                    raw_preds = pd.Series(p_all[kalman_col].values, index=observed_rows.index)
+                    if len(forecast_rows):
+                        p_ahead = fresh_kalman.predict(forecast_rows)
+                        raw_preds = pd.concat([raw_preds, pd.Series(p_ahead[kalman_col].values, index=forecast_rows.index)]).sort_index()
                     predictions[name] = self._align_prediction_to_test(raw_preds, df_aug_clean, df_test_clean)
                 
                 elif m_type == "adaptive":
@@ -408,7 +559,7 @@ class AutoTAM:
                     predictions[name] = self._align_prediction_to_test(raw_preds, d_adapt, df_test_clean)
                     
             except Exception as e: 
-                print(f"Warning: Prediction failed for {name}: {e}")
+                logger.warning(f"Prediction failed for {name}: {e}")
                 
         preds_df = pd.DataFrame(predictions, index=df_test_clean.index)
 
@@ -452,10 +603,11 @@ class AutoTAM:
         sequentially, which matters a great deal across regime shifts.
 
         Args:
-            df_test: Frame to forecast, with the features of the fit. It may hold the forecast rows alone: when it
-                starts after the training data, the training rows kept by ``fit()`` (``history_``) are put in front of
-                it for the adaptive and Kalman experts, and the output has exactly the rows given. A frame that
-                overlaps the training data is used as given.
+            df_test: Frame to forecast, with the features of the fit. It may hold the forecast rows alone, with a
+                missing target: the training rows kept by ``fit()`` (``history_``) that precede its first date are put in
+                front of it for the adaptive and Kalman experts, and the output has exactly the rows given, with every
+                expert and ensemble complete up to the horizon (the smallest lag of the target). An ensemble mixes the
+                experts that are finite on a row.
             date_col: Name of the date column, when the frame has one.
 
         Returns:
@@ -469,16 +621,18 @@ class AutoTAM:
         for league_name, weights in self.league_weights.items():
             if weights:
                 valid_weights = {m: w for m, w in weights.items() if m in preds_df}
-                w_sum = sum(valid_weights.values())
-                if w_sum > 0:
+                if sum(valid_weights.values()) > 0:
                     final_name = league_name if league_name.startswith("Ensemble_") else f"Ensemble_{league_name}"
-                    preds_df[final_name] = sum(preds_df[m] * (w / w_sum) for m, w in valid_weights.items())
+                    preds_df[final_name], left_out = finite_weighted_mix(preds_df, valid_weights)
+                    if left_out:
+                        logger.info("%s: %d expert values missing on some rows were left out and the weights renormalised", final_name, left_out)
 
         if self.weights_top10:
             valid_apex = {e: w for e, w in self.weights_top10.items() if e in preds_df}
-            apex_sum = sum(valid_apex.values())
-            if apex_sum > 0:
-                preds_df[self.FINAL_MODEL_COLUMN] = sum(preds_df[e] * (w / apex_sum) for e, w in valid_apex.items())
+            if sum(valid_apex.values()) > 0:
+                preds_df[self.FINAL_MODEL_COLUMN], left_out = finite_weighted_mix(preds_df, valid_apex)
+                if left_out:
+                    logger.info("%s: %d expert values missing on some rows were left out and the weights renormalised", self.FINAL_MODEL_COLUMN, left_out)
 
         target = self.ctx.target
         if target in df_test.columns and df_test[target].notna().all():
@@ -545,7 +699,7 @@ class AutoTAM:
                 result = opera.predict_online(frame)
                 aggregated = pd.to_numeric(result["prediction_opera"], errors="coerce").to_numpy()
                 if len(aggregated) != len(preds_df):
-                    print(f"Warning: online aggregation for {out_name} returned {len(aggregated)} rows "
+                    logger.warning(f"online aggregation for {out_name} returned {len(aggregated)} rows "
                           f"for {len(preds_df)} test rows; skipped.")
                     return
                 preds_df[out_name] = aggregated
@@ -553,7 +707,7 @@ class AutoTAM:
                 if weight_cols:
                     self.online_weights_[out_name] = result[weight_cols].reset_index(drop=True)
             except Exception as exc:
-                print(f"Warning: online aggregation failed for {out_name}: {exc}")
+                logger.warning(f"online aggregation failed for {out_name}: {exc}")
 
         for league_name, weights in self.league_weights.items():
             if weights:

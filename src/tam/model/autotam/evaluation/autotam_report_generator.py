@@ -20,6 +20,8 @@ from typing import Tuple
 
 import pandas as pd
 import numpy as np
+import logging
+logger = logging.getLogger(__name__)
 #: </autotam_report_generator_imports>
 
 #: <autotam_report_generator_helpers>
@@ -97,14 +99,14 @@ def generate_autotam_report(export_path: str = "", run_id: str = None, metric: s
     try:
         import matplotlib.pyplot as plt
     except ImportError:
-        print("Skipping the AutoTAM report: matplotlib is required (pip install matplotlib).")
+        logger.warning("Skipping the AutoTAM report: matplotlib is required (pip install matplotlib).")
         return
 
     export_dir = Path(export_path or ".").resolve()
     if run_id is None:
         run_id = get_latest_run_id(str(export_dir))
         if not run_id:
-            print("No evaluation logs found in the specified directory.")
+            logger.warning("No evaluation logs found in the specified directory.")
             return
     run_id = _safe_run_id(run_id)
 

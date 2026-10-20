@@ -245,6 +245,22 @@ The adaptive and Kalman experts rebuild their windows and their state from the f
 :caption: src/tam/model/autotam/auto_tam.py (Training Rows in Front of the Forecast Rows)
 ```
 
+The dynamic experts forecast rows whose target is not known, so three details matter. The target is named on the left of every formula but is not a feature: a forecast row is not dropped because its target is missing. The continuity step of the data profiler forward-fills at most three missing values, the target included, which would give the first three forecast rows an invented target that a Kalman or adaptive expert takes for an observation: the rows dated after the last observed target get their missing target back. And an ensemble mixes the experts that are finite on a row, with the weights renormalised, so one expert that cannot forecast a row (a residual lag shorter than the horizon, for instance) does not make the ensemble missing there; on a row where every member is finite the result is the plain weighted mean, bit for bit:
+
+```{literalinclude} ../../../../src/tam/model/autotam/pipeline/data_manager.py
+:language: python
+:start-after: "#: <data_manager_missing_target>"
+:end-before: "#: </data_manager_missing_target>"
+:caption: src/tam/model/autotam/pipeline/data_manager.py (Missing Target of the Forecast Rows)
+```
+
+```{literalinclude} ../../../../src/tam/model/autotam/auto_tam.py
+:language: python
+:start-after: "#: <auto_tam_finite_mix>"
+:end-before: "#: </auto_tam_finite_mix>"
+:caption: src/tam/model/autotam/auto_tam.py (Mix of the Finite Experts)
+```
+
 When the search keeps no expert (too few rows for any formula to be estimated), `fit()` raises a `ValueError` that names the rows of each split and says what to change; an empty `df_fit`, `df_dev` or `df_val` is rejected before the search with the row counts of the three splits. `df_train` is split by fractions, so it works from 12 rows on the one-feature test case; explicit splits from 5 fit rows with 2 dev and 2 val rows:
 
 ```{literalinclude} ../../../../src/tam/model/autotam/auto_tam.py
@@ -270,6 +286,24 @@ Seed formulas (`fit(seed_formulas=["y ~ l(x1) + s(x2, k=10)"])`) are formulas th
 :start-after: "#: <auto_tam_seed_formulas>"
 :end-before: "#: </auto_tam_seed_formulas>"
 :caption: src/tam/model/autotam/auto_tam.py (Seed Formulas)
+```
+
+Architectures (`fit(architectures=<fitted AutoTAM>)`) let one search serve many windows of a task. The champion formulas of a fit are kept in `architectures_` (`{island: [formulas]}`); a later `fit` that is given them skips the evolutionary search, drops the formulas that name a column the new data no longer has (a feature purged or not built on the new rows), warns about them, and expands and refits the rest like any champion. The experts are the same architectures with coefficients fitted on the new rows. The refit is made with a new `AutoTAM` built with the same formula and settings:
+
+```{literalinclude} ../../../../src/tam/model/autotam/auto_tam.py
+:language: python
+:start-after: "#: <auto_tam_architectures>"
+:end-before: "#: </auto_tam_architectures>"
+:caption: src/tam/model/autotam/auto_tam.py (Architectures)
+```
+
+The fast search (`AutoTAM(..., search="fast")`) is a documented bundle of values of existing settings, not a second code path. `search="full"` (default) is the search as it was. The preset keeps the linear, spline, Fourier and Chebyshev islands, a population of 16 over 8 generations, 8 experts, three Kalman noise rates and two adaptive windows, and switches the seasonal anchor on (on a step without a natural season it only means no anchor). `pop_size`, `n_experts` and `seasonal_anchor` given by the caller win over the preset. The values are a first choice, to be tuned on the benchmark:
+
+```{literalinclude} ../../../../src/tam/model/autotam/search_preset.py
+:language: python
+:start-after: "#: <search_preset>"
+:end-before: "#: </search_preset>"
+:caption: src/tam/model/autotam/search_preset.py
 ```
 
 The extrapolation guards (`AutoTAM(extrapolation_guards=True)`, off by default) keep the worst extrapolations out of the search. A champion is refused when it has more coefficients than half the fit rows, a neural or PID term on fewer than 1,000 rows, or a linear term on a counter (a monotone column such as a trend index); the reasons are counted in the context (`guard_rejections`). The forecast bounds keep the training range plus a 15 % margin and are floored at zero for a target that was never negative; the rows each expert had to be clipped on are counted against it in the selection and reported by `AutoTAM.clipped_rows_` after a prediction. The thresholds are constants of the module, to be tuned on the multi-seed measurement before the guards become the default:

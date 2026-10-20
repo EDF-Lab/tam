@@ -29,6 +29,8 @@ import json
 import os
 import re
 from typing import Dict, List, Any
+import logging
+logger = logging.getLogger(__name__)
 #: </evolution_reporter_imports>
 
 #: <evolution_reporter_class>
@@ -79,7 +81,7 @@ class EvolutionReporter:
         df = df[[c for c in cols if c in df.columns] + [c for c in df.columns if c not in cols]]
         
         df.to_csv(filepath, index=False)
-        print(f"Chronological test log exported to: {filepath}")
+        logger.info(f"Chronological test log exported to: {filepath}")
 #: </reporter_export_chronological>
 
 #: <reporter_export_feature_stats>
@@ -118,7 +120,7 @@ class EvolutionReporter:
             filepath = os.path.join(self.export_dir, f"AutoTAM_feature_statistics_{self.run_timestamp}.csv")
             df = pd.DataFrame(feature_stats).sort_values(by="Total_Activations", ascending=False)
             df.to_csv(filepath, index=False)
-            print(f"Feature statistics exported to: {filepath}")
+            logger.info(f"Feature statistics exported to: {filepath}")
 #: </reporter_export_feature_stats>
 
 #: <reporter_export_island_stats>
@@ -160,7 +162,7 @@ class EvolutionReporter:
         df = pd.DataFrame(list(island_counts.items()), columns=['Island_Name', 'Total_Proposals'])
         df = df[df['Total_Proposals'] > 0].sort_values(by='Total_Proposals', ascending=False)
         df.to_csv(filepath, index=False)
-        print(f"Island statistics exported to: {filepath}")
+        logger.info(f"Island statistics exported to: {filepath}")
 #: </reporter_export_island_stats>
 
 #: <reporter_export_advanced_mlops>
@@ -172,7 +174,7 @@ class EvolutionReporter:
             return
         filepath = os.path.join(self.export_dir, f"AutoTAM_collinearity_purge_log_{self.run_timestamp}.csv")
         pd.DataFrame(purge_log).to_csv(filepath, index=False)
-        print(f"Collinearity purge log exported to: {filepath}")
+        logger.info(f"Collinearity purge log exported to: {filepath}")
 
     def export_opera_weights_trajectory(self, weights_df: pd.DataFrame, league_name: str) -> None:
         """
@@ -182,7 +184,7 @@ class EvolutionReporter:
             return
         filepath = os.path.join(self.export_dir, f"AutoTAM_opera_weights_{league_name}_{self.run_timestamp}.csv")
         weights_df.to_csv(filepath, index=False)
-        print(f"OPERA weights trajectory ({league_name}) exported to: {filepath}")
+        logger.info(f"OPERA weights trajectory ({league_name}) exported to: {filepath}")
 
     def export_pdp_variance(self, pdp_df: pd.DataFrame, model_name: str) -> None:
         """
@@ -193,7 +195,7 @@ class EvolutionReporter:
             return
         filepath = os.path.join(self.export_dir, f"AutoTAM_pdp_variance_{model_name}_{self.run_timestamp}.csv")
         pdp_df.to_csv(filepath, index=False)
-        print(f"Partial Dependence (PDP) variance exported to: {filepath}")
+        logger.info(f"Partial Dependence (PDP) variance exported to: {filepath}")
 #: </reporter_export_advanced_mlops>
 
 #: <reporter_export_diagnostics>
@@ -204,7 +206,7 @@ class EvolutionReporter:
         if hasattr(draga_engine, 'history') and draga_engine.history:
             filepath = os.path.join(self.export_dir, f"AutoTAM_history_{self.run_timestamp}.csv")
             pd.DataFrame(draga_engine.history).to_csv(filepath, index=False)
-            print(f"Evolutionary trail exported to: {filepath}")
+            logger.info(f"Evolutionary trail exported to: {filepath}")
             
         self.export_feature_statistics(draga_engine)
         self.export_island_statistics(draga_engine)
@@ -238,7 +240,7 @@ class EvolutionReporter:
             
         filepath = os.path.join(self.export_dir, f"AutoTAM_final_architectures_{self.run_timestamp}.csv")
         pd.DataFrame(csv_data).to_csv(filepath, index=False)
-        print(f"Final architecture CSV exported to: {filepath}")
+        logger.info(f"Final architecture CSV exported to: {filepath}")
 #: </reporter_export_architectures>
 
 #: <reporter_print_summary>

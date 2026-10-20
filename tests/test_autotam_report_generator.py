@@ -50,7 +50,8 @@ def test_driver_scores_fall_back_to_variance_shares_for_old_exports():
     np.testing.assert_allclose(drivers["Score"], [0.75, 0.25])
 
 
-def test_report_is_skipped_without_matplotlib(monkeypatch, capsys, tmp_path):
+def test_report_is_skipped_without_matplotlib(monkeypatch, caplog, tmp_path):
     monkeypatch.setitem(sys.modules, "matplotlib.pyplot", None)
-    assert generate_autotam_report(str(tmp_path), run_id="20260915_072620") is None
-    assert "matplotlib is required" in capsys.readouterr().out
+    with caplog.at_level("WARNING"):
+        assert generate_autotam_report(str(tmp_path), run_id="20260915_072620") is None
+    assert "matplotlib is required" in caplog.text
