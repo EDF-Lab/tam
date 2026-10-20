@@ -27,7 +27,7 @@ from tam.model.adaptative import AdaptiveTAM
 from tam.model.autotam.failures import log_failure
 from tam.model.autotam.alignment import aligned_values
 from tam.model.autotam.native_quantiles import NativeQuantileExpert
-from tam.model.autotam.effect_groups import HOLIDAY_FLAGS, group_columns, with_effect_groups
+from tam.model.autotam.effect_groups import HOLIDAY_FLAGS, calendar_flags, group_columns, with_effect_groups
 from tam.model.autotam.quantile_loss import is_wql, parse_levels, wql
 from tam.model.autotam.search_preset import FAST_ADAPTIVE_WINDOW_COUNT, FAST_KALMAN_RATE_COUNT, VARIANT_KALMAN_RATES, VARIANT_WINDOW_PERIODS
 
@@ -338,6 +338,9 @@ class ExpertExpander:
                                 formulas_to_test["AR_Forecast"] = f"Residual{ctx.target} ~ " + " + ".join([f"l({c})" for c in lag_cols]) + f" + {forecast_term}"
                                 if effect_cols:
                                     formulas_to_test["ECM_Forecast"] = f"{formulas_to_test['Full_ECM']} + {forecast_term}"
+                                    flags = [c for c in calendar_flags(d_meta.columns) if d_meta[c].nunique() > 1]
+                                    if flags:   # form C: the forecast and the effects, and the days the calendar marks as different
+                                        formulas_to_test["ECM_Flags"] = formulas_to_test["ECM_Forecast"] + " + " + " + ".join(f"c({c}, n_cat=2, topo='nominal')" for c in flags)
 
                             for variant_name, dyn_form in formulas_to_test.items():
                                 combined_formula = f"{dyn_form} + {getattr(best_static_model, 'formula_', '')}"
@@ -504,7 +507,10 @@ class ExpertExpander:
                 
         d_meta[f'Residual{ctx.target}'] = d_meta[f'Residual{ctx.target}_calc']
 
-        est_train_len = (len(d_meta) * 2) // 3
+        rows = len(d_meta)
+        if ctx.cycle_windows and ctx.group_col in d_meta.columns:
+            rows = rows // max(1, d_meta[ctx.group_col].nunique())   # a window of a derived group reaches back in the cycles of that group
+        est_train_len = (rows * 2) // 3
         
         scaled_windows = [
             7 * ctx.steps_per_period, 
@@ -516,12 +522,18 @@ class ExpertExpander:
         
         max_allowed = max(5, est_train_len // 2)
         ctx.candidate_windows = [w for w in base_windows if w <= max_allowed] or [max_allowed]
+        if ctx.cycle_windows:
+            skipped = [w for w in base_windows if w > max_allowed]
+            if skipped:
+                logger.warning("Adaptive windows of %s cycles are skipped: a group has %d cycles of history and a window may use half of its training part.", skipped, rows)
         if ctx.fast_search:
             ctx.candidate_windows = ctx.candidate_windows[:FAST_ADAPTIVE_WINDOW_COUNT]
         if ctx.online_variants:
             long_window = VARIANT_WINDOW_PERIODS * ctx.steps_per_period
             if long_window <= max_allowed and long_window not in ctx.candidate_windows:   # the bound of the other windows: half the training rows
                 ctx.candidate_windows = sorted(ctx.candidate_windows + [long_window])
+            elif long_window > max_allowed:
+                logger.warning("The adaptive window of %d periods (online_variants) is skipped: it needs at most %d periods of history.", long_window, max_allowed)
         return d_meta
 #: </expert_expander_prepare_data>
 

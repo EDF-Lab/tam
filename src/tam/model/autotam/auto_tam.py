@@ -13,6 +13,7 @@ search, state-space expansions (Kalman/Adaptive), and Minimax aggregation (OPERA
 
 #: <auto_tam_imports>
 import logging
+import time
 import pandas as pd
 import numpy as np
 import pathlib
@@ -33,8 +34,11 @@ from tam.model.autotam.failures import log_failure
 from tam.common.utils import parse_formula_to_terms
 from tam.model.autotam.anchor import ANCHOR_ISLAND, anchor_formula
 from tam.model.autotam.floor import FLOOR_ISLAND, floor_formula
-from tam.model.autotam.group_search import GROUP_COLUMN, add_group, derived_group, sample_groups
+from tam.model.autotam.group_search import GROUP_COLUMN, add_group, covariates_in_cycles, derived_group, formula_in_cycles, sample_groups, to_cycles
 from tam.model.autotam.alignment import aligned_values
+from tam.model.autotam.expert_ids import experts_table, identifiers
+from tam.model.autotam.series_guard import GUARD_ISLANDS, apply_guard, guarded_series
+from tam.model.autotam.external_experts import look_up, normalise_external
 from tam.model.autotam.seeding import seeded_method
 from tam.model.autotam.differencing import add_back, difference_test, difference_training
 from tam.model.autotam.target_profile import profile_target
@@ -150,12 +154,15 @@ class AutoTAM:
         rolling_folds: Optional[int] = None,
         pooled_floor: bool = False,
         group_search: bool = False,
+        group_search_by: str = "validation",
         online_variants: bool = False,
         crossover: bool = False,
         native_quantiles: bool = False,
         crisis_calendar: Any = None,
         guided_search: bool = False,
         bounded_rewards: bool = False,
+        apex_prune: Optional[float] = None,
+        series_guard: bool = False,
         **kwargs
     ):
         """
@@ -235,6 +242,15 @@ class AutoTAM:
                 100 for a good model against an exploration term below 1, so the best island is drawn almost every time. ``True`` uses the bounded
                 reward ``1 / (1 + scaled error)`` in (0, 1] and a smaller exploration constant (0.1), so the islands keep being tried in proportion
                 to their results. ``False`` (default) is the search as it was.
+            apex_prune (Optional[float]): Opt-in. A member of the Apex pool whose online weight stays below this value (for example 0.02) on the
+                last 10 updates of the validation rows is dropped, the aggregation is run again on the rest, and an expert that no ensemble uses any
+                more is no longer predicted, which cuts the cost of ``fit`` and ``predict``. The experts of ``seed_floor`` / ``pooled_floor`` are never
+                dropped; the names dropped are in ``apex_pruned_``. ``None`` (default) keeps the pool as it was.
+            series_guard (bool): Opt-in, for panels of series (a ``group_col``, or a derived group) and for a single series. After the fit, each
+                group whose validation RMSE is smaller for a guard expert than for the final model is forecast by that expert, in the final model's
+                column of ``predict()`` and ``predict_online()``. The guard experts are those of the pooled floor (``pooled_floor=True``) and of the
+                seasonal anchor (``seasonal_anchor=True``): at least one is needed. ``guarded_series_`` lists the groups. The floors bound the final
+                model over all the rows together; this bounds it series by series. ``False`` (default) leaves the final model as it was.
             crisis_calendar (Any): Opt-in dated events as features, known in advance like holidays: ``True`` or ``"all"`` (the presets
                 ``covid19``, ``recession_2008``, ``energy_2022``: worldwide windows, approximate), a preset name, or a list of preset names and of
                 your own events ``{"name": "strike", "start": "2023-03-07", "end": "2023-04-20"}``. Each event that overlaps the data adds
@@ -264,6 +280,10 @@ class AutoTAM:
                 more search, and the lags and the horizon (given in rows) become that many cycles when they are whole numbers of them, else the series is not
                 searched; a fit given a ``group_col``, ``architectures`` or ``difference`` is not searched. ``predict()`` adds the group column to the
                 frame it is given. Dates that allow no grouping (irregular or coarser steps, more than 96 periods, too few days) leave the fit as it was.
+            group_search_by (str): How ``group_search=True`` compares the two versions: ``"validation"`` (default) on the errors of the final models on
+                the development and validation dates, or ``"rolling"`` on the rolling folds (needs ``rolling_folds``): the error of the best static
+                expert of each version on the last horizons of the training rows, each predicted from everything before it. The validation error did
+                not rank the versions on the hourly day-ahead load; the rolling folds average several horizons. ``group_choice_`` says which was used.
             rolling_folds (Optional[int]): Opt-in. The experts and the champions are scored on ``rolling_folds`` rolling origins instead of the usual
                 folds: the last ``rolling_folds`` horizons of the training rows (the horizon is ``horizon``, else the smallest lag, else 1 date),
                 each predicted by a model trained on everything before it. A selection on one horizon of data is noisy; the mean of several is
@@ -314,6 +334,8 @@ class AutoTAM:
         pop_size = pop_size if pop_size is not None else (FAST_POP_SIZE if fast else 64)
         self.anchor_from_preset = seasonal_anchor is None and fast   # then a step without a natural season only means no anchor
         seasonal_anchor = seasonal_anchor if seasonal_anchor is not None else fast
+        if series_guard and not (pooled_floor or seasonal_anchor):
+            raise ValueError("series_guard needs a guard expert: set pooled_floor=True (a seasonal profile) or seasonal_anchor=True (the last season).")
         self.formula = formula
         self.n_experts = n_experts
         self.complexity_penalty = complexity_penalty
@@ -348,7 +370,7 @@ class AutoTAM:
             bounded_rewards=bool(bounded_rewards),
         )
         self.expander = ExpertExpander()
-        self.selector = EnsembleSelector(use_opera=use_opera, apex_quality_ratio=apex_quality_ratio, weight_average=frozen_weights, seed_floor=seed_floor, pooled_floor=pooled_floor)
+        self.selector = EnsembleSelector(use_opera=use_opera, apex_quality_ratio=apex_quality_ratio, weight_average=frozen_weights, seed_floor=seed_floor, pooled_floor=pooled_floor, apex_prune=apex_prune)
         self.reporter = EvolutionReporter(export_dir=export_dir)
         
         self.export_directory = export_dir
@@ -374,6 +396,10 @@ class AutoTAM:
         if search_sample not in ("level", "level_volatility"):
             raise ValueError(f"search_sample must be 'level' or 'level_volatility'; got {search_sample!r}")
         self.search_sample = search_sample
+        if group_search_by not in ("validation", "rolling"):
+            raise ValueError(f"group_search_by must be 'validation' or 'rolling'; got {group_search_by!r}")
+        self.group_search_by = group_search_by
+        self.group_choice_ = None        # set by fit() with group_search=True: how the versions were compared, 'validation' or 'rolling'
         if group_search not in (True, False, None, "always"):
             raise ValueError(f"group_search must be False, True or 'always'; got {group_search!r}")
         self.group_search = "always" if group_search == "always" else bool(group_search)
@@ -399,6 +425,11 @@ class AutoTAM:
         self.target_diagnostics_ = {}    # set by fit() with diagnostics=True
         self.residual_profile_ = {}      # set by fit() with diagnostics=True
         self.search_sample_ = []  # set by fit() with search_groups: the groups the search ran on
+        self.series_guard = bool(series_guard)
+        self.guarded_series_ = {}  # set by fit() with series_guard: {group: guard expert} for the groups the final model loses on
+        self.apex_pruned_ = []  # set by fit() with apex_prune: the Apex members dropped for keeping no weight
+        self.timings_ = {}     # set by fit(): seconds of the search, the expansion and the selection, and per series (group)
+        self.experts_ = pd.DataFrame()  # set by fit(): one row per trained expert, with its stable identifier and its Apex weight
         self.architectures_ = {}  # set by fit(): the champion formulas by island, to pass as architectures= to a later fit
         self.history_ = None  # set by fit(): the training rows, put in front of a frame that starts after them
         self.extrapolating_features_ = []
@@ -420,7 +451,8 @@ class AutoTAM:
         refit_on_full_train: bool = False,
         past_covariates: Optional[Dict[str, List[int]]] = None,
         seed_formulas: Optional[List[str]] = None,
-        architectures: Optional[Union['AutoTAM', Dict[str, List[str]]]] = None
+        architectures: Optional[Union['AutoTAM', Dict[str, List[str]]]] = None,
+        external_experts: Optional[Dict[str, Any]] = None
     ):
         """Fits the search on the given data.
 
@@ -450,15 +482,29 @@ class AutoTAM:
                 search only: the expansion of the experts (prior, Kalman, adaptive) and their scoring, which take most of the time of a fit, still run,
                 and a new search for each window was the more accurate in a measurement on weekly order counts and hourly prices.
 
+            external_experts: Forecasts made outside AutoTAM, ``{name: forecast}``, that join the Apex pool and are aggregated with the experts
+                by the same Opera (the caller's rules model, a baseline). A forecast is a ``pd.Series`` indexed by date (or by ``(date, group)``)
+                or a ``pd.DataFrame`` with the date column, the group column when there is one, and ``forecast``; it must cover every validation
+                row (the rows are looked up by date, so the split need not be known). They are never refitted. Their identifier is their name.
+                Needs ``date_col`` and ``use_opera=True``; not available with ``difference`` or a derived group (``group_search``).
+
         Returns:
             The fitted model.
 
         Raises:
             ValueError: Invalid ``past_covariates``, an empty split, or no expert survives the search.
         """
+        if external_experts:
+            if self.difference is not None or (self.group_search and not group_col):
+                raise NotImplementedError("external_experts is not available with difference=... or group_search (the rows they forecast change with the version).")
+            if not self.selector.use_opera:
+                raise ValueError("external_experts needs use_opera=True: the Apex aggregation is what weights them.")
         if self.group_search and not group_col and date_col and architectures is None and self.difference is None and not self._choosing_group:
-            return self._fit_choosing_group(df_train, df_fit, df_dev, df_val, date_col, expansions, validation_strategy, optimization_metric,
-                                            refit_on_full_train, past_covariates, seed_formulas)
+            started_search = time.perf_counter()
+            fitted = self._fit_choosing_group(df_train, df_fit, df_dev, df_val, date_col, expansions, validation_strategy, optimization_metric,
+                                              refit_on_full_train, past_covariates, seed_formulas)
+            fitted.timings_ = {**fitted.timings_, "group_search_total": time.perf_counter() - started_search}   # every version fitted, not only the kept one
+            return fitted
         if self.search_groups and architectures is None and group_col:
             architectures = self._search_on_a_sample(df_train, df_fit, df_dev, df_val, date_col, group_col, expansions, validation_strategy,
                                                      optimization_metric, refit_on_full_train, past_covariates, seed_formulas)
@@ -493,6 +539,7 @@ class AutoTAM:
         self.ctx.extrapolation_guards = self.extrapolation_guards
         self.ctx.fast_search = self.search == "fast"
         self.ctx.dynamic_top = self.dynamic_top
+        self.ctx.cycle_windows = group_col == GROUP_COLUMN   # a derived group steps by cycle: the adaptive windows are counted in cycles of one group
         self.ctx.online_variants = self.online_variants
         self.ctx.native_quantiles = self.native_quantiles
         self.ctx.family_losses = candidate_losses(self.ctx.target_profile) if self.family == "auto" else []
@@ -503,6 +550,7 @@ class AutoTAM:
         
         # The search fits and scores hundreds of models: their extrapolation warnings are collected, not raised one by one.
         kept_architectures = self._kept_architectures(architectures)
+        started = time.perf_counter()
         with collect_extrapolation() as extrapolating:
             if kept_architectures is None:
                 island_champions, draga_engine = self.discoverer.search(self.ctx)
@@ -514,20 +562,28 @@ class AutoTAM:
                 island_champions = {**island_champions, ANCHOR_ISLAND: [anchor_formula(self.ctx.target, self.ctx.anchor_season)]}
             if self.ctx.floor:
                 island_champions = {**island_champions, FLOOR_ISLAND: [floor_formula(self.ctx.target, self.ctx.floor["count"])]}
+            searched = time.perf_counter()
             self.architectures_ = {island: list(formulas) for island, formulas in island_champions.items()}
             if draga_engine is not None:
                 self.reporter.export_evolutionary_diagnostics(draga_engine)
 
             candidate_pool = self.expander.generate_experts(island_champions, self.ctx, self.chronological_test_log, self.reporter)
 
+            expanded = time.perf_counter()
             if not candidate_pool:
                 raise ValueError(self._no_expert_message())
 
             self.trained_experts, self.league_weights, self.weights_top10, self.island_aliases, self.oof_predictions_ = self.selector.evaluate_and_refit(
-                candidate_pool, self.ctx, self.chronological_test_log, self.reporter, self.expander, refit_on_full_train=refit_on_full_train
+                candidate_pool, self.ctx, self.chronological_test_log, self.reporter, self.expander, refit_on_full_train=refit_on_full_train,
+                external=normalise_external(external_experts, self.ctx.date_col, self.ctx.group_col, taken=list(candidate_pool))
             )
+        selected = time.perf_counter()
         self.apex_members_ = list(getattr(self.selector, "apex_members_", []))
+        self.timings_ = self._timings(started, searched, expanded, selected)
+        self.apex_pruned_ = list(self.selector.apex_pruned_)
         self.final_model_column_ = self.FINAL_MODEL_COLUMN if self.weights_top10 else None
+        self.experts_ = experts_table(self.trained_experts, self.weights_top10)
+        self.guarded_series_ = self._guard_choice() if self.series_guard else {}
         if self.diagnostics:
             self.residual_profile_ = self._residual_profile()
         if self.guided_search:
@@ -541,14 +597,56 @@ class AutoTAM:
 
         self.reporter.export_final_architectures(self.trained_experts)
         if self.seed is not None:
-            self.reporter.export_run_info(
-                self.seed, {"diagnostics": {"target": self.target_diagnostics_, "residuals": self.residual_profile_}} if self.diagnostics else None)
+            extra = {"experts": self.experts_.to_dict(orient="records"), "timings": self.timings_}
+            if self.series_guard:
+                extra["guarded_series"] = {str(k): v for k, v in self.guarded_series_.items()}
+            if self.diagnostics:
+                extra["diagnostics"] = {"target": self.target_diagnostics_, "residuals": self.residual_profile_}
+            self.reporter.export_run_info(self.seed, extra)
         self.reporter.export_chronological_tests(self.chronological_test_log)
         self.reporter.export_collinearity_purge_log(self.data_manager.engineer.purge_log)
         return self
 #: </auto_tam_fit>
 
 #: <auto_tam_diagnostics>
+    def _timings(self, started: float, searched: float, expanded: float, selected: float) -> Dict[str, float]:
+        """Seconds of the phases of the last ``fit()``, and the cost per series (the groups, or 1)."""
+        group_col = self.ctx.group_col
+        frames = [f for f in (self.ctx.df_fit, self.ctx.df_dev, self.ctx.df_val) if f is not None]
+        series = max(1, int(pd.concat(frames)[group_col].nunique())) if group_col and frames and group_col in frames[0].columns else 1
+        total = selected - started
+        return {"search": searched - started, "expansion": expanded - searched, "selection": selected - expanded, "total": total,
+                "series": series, "seconds_per_series": total / series}
+
+    def _guard_choice(self) -> Dict[Any, str]:
+        """The groups whose validation RMSE is smaller for a guard expert (``Floor`` and ``Anchor`` islands) than for the final model."""
+        names = [e["name"] for e in self.trained_experts if e.get("island") in GUARD_ISLANDS and e["name"] in self.oof_predictions_]
+        column = self.final_model_column_
+        if not names:
+            raise ValueError("series_guard needs a guard expert: set pooled_floor=True (a seasonal profile) or seasonal_anchor=True (the last season).")
+        if column is None or column not in self.oof_predictions_:
+            return {}
+        val = self.ctx.df_val
+        tail = lambda name: np.asarray(self.oof_predictions_[name], dtype=float)[-len(val):]
+        group_col = self.ctx.group_col
+        groups = val[group_col].to_numpy() if group_col and group_col in val.columns else None
+        chosen = guarded_series(val[self.ctx.target].to_numpy(dtype=float), tail(column), {n: tail(n) for n in names}, groups)
+        if chosen:
+            logger.info("AutoTAM series guard: %d group(s) are forecast by a guard expert (it beat the final model on their validation rows).", len(chosen))
+        return chosen
+
+    def _guard_columns(self, preds_df: pd.DataFrame, df_test_clean: pd.DataFrame) -> pd.DataFrame:
+        """Replaces the final model's columns by the guard expert's on the rows of the guarded groups."""
+        if not self.guarded_series_:
+            return preds_df
+        group_col = self.ctx.group_col
+        groups = df_test_clean[group_col].to_numpy() if group_col and group_col in df_test_clean.columns else None
+        if groups is not None and len(groups) != len(preds_df):
+            return preds_df
+        for column in (self.FINAL_MODEL_COLUMN, self.FINAL_MODEL_COLUMN_ONLINE):
+            preds_df = apply_guard(preds_df, column, self.guarded_series_, groups)
+        return preds_df
+
     def _guided_hints(self) -> Dict[str, Any]:
         """What the diagnostics of the training rows say before the search: the verdict, the hints applied, the weak features."""
         target = self.ctx.target
@@ -709,24 +807,46 @@ class AutoTAM:
         if lags:
             cycles = sorted({int(lag) // count for lag in lags if int(lag) % count == 0 and int(lag) >= count})
             if not cycles:
-                logger.info("AutoTAM group search: no lag in %s is a whole number of cycles of %d rows; the ungrouped fit is kept.", list(lags), count)
+                logger.warning("AutoTAM group search: no lag in %s is a whole number of cycles of %d rows; the ungrouped fit is kept.", list(lags), count)
                 return fit_ungrouped()
             arguments_child["lags"] = cycles
         if horizon:
             if int(horizon) % count or int(horizon) < count:
-                logger.info("AutoTAM group search: the horizon of %d rows is not a whole number of cycles of %d rows; the ungrouped fit is kept.", horizon, count)
+                logger.warning("AutoTAM group search: the horizon of %d rows is not a whole number of cycles of %d rows; the ungrouped fit is kept.", horizon, count)
                 return fit_ungrouped()
             arguments_child["horizon"] = int(horizon) // count
+        child_arguments = dict(arguments)
+        season = self._constructor_args.get("season")
+        if season:
+            cycles = to_cycles(season, count)
+            if cycles is None:
+                logger.warning("AutoTAM group search: the season of %d rows is not a whole number of cycles of %d rows; the ungrouped fit is kept.", season, count)
+                return fit_ungrouped()
+            arguments_child["season"] = cycles
+        if seed_formulas:
+            carried = [(formula, formula_in_cycles(formula, count)) for formula in seed_formulas]
+            for formula, converted in carried:
+                if converted is None:
+                    logger.warning("AutoTAM group search: the seed formula %r has a lag that is not a whole number of cycles of %d rows; it is left out of the grouped fit.", formula, count)
+            child_arguments["seed_formulas"] = [converted for _, converted in carried if converted is not None]
+            if not child_arguments["seed_formulas"]:
+                logger.warning("AutoTAM group search: no seed formula can be written in cycles; the ungrouped fit is kept.")
+                return fit_ungrouped()
+        if past_covariates:
+            child_arguments["past_covariates"] = covariates_in_cycles(past_covariates, count)
+            if not child_arguments["past_covariates"]:
+                logger.warning("AutoTAM group search: no past-covariate order is a whole number of cycles of %d rows; the ungrouped fit is kept.", count)
+                return fit_ungrouped()
         grouped = [None if f is None else add_group(f, date_col, kind, count) for f in frames]
         child = type(self)(**arguments_child)
         try:
-            child.fit(*grouped, group_col=GROUP_COLUMN, **arguments)
+            child.fit(*grouped, group_col=GROUP_COLUMN, **child_arguments)
         except Exception as exc:
             log_failure(logger, f"the fit with the derived group ({kind}, {count} groups)", exc)
             return fit_ungrouped()
 
         def adopt():
-            kept = {k: getattr(self, k) for k in ("_constructor_args", "group_search", "export_directory", "reporter", "group_scores_", "_choosing_group")}
+            kept = {k: getattr(self, k) for k in ("_constructor_args", "group_search", "group_search_by", "export_directory", "reporter", "group_scores_", "group_choice_", "_choosing_group")}
             self.__dict__.update(child.__dict__)
             self.__dict__.update(kept)
             self.derived_group_ = {"column": GROUP_COLUMN, "kind": kind, "count": count}
@@ -736,10 +856,20 @@ class AutoTAM:
             adopt()
             return self
         fit_ungrouped()
+        self.group_choice_ = "validation"
+        if self.group_search_by == "rolling":
+            scores = self._rolling_scores(self, child, kind)
+            if scores is not None:
+                self.group_scores_, self.group_choice_ = scores, "rolling"
+                logger.info("AutoTAM group search (best static expert on the same rolling folds): ungrouped %.5g, %s (%d groups) %.5g.",
+                            scores["ungrouped"], kind, count, scores[kind])
+                if scores[kind] < scores["ungrouped"]:
+                    adopt()
+                return self
         ungrouped, derived = self._validation_errors_by_date(self), self._validation_errors_by_date(child)
         common = ungrouped.index.intersection(derived.index)
         if len(common) < 5:
-            logger.info("AutoTAM group search: too few common validation dates (%d) to compare; the ungrouped fit is kept.", len(common))
+            logger.warning("AutoTAM group search: too few common validation dates (%d) to compare; the ungrouped fit is kept.", len(common))
             return self
         scores = {"ungrouped": float(np.sqrt(np.mean(ungrouped.loc[common] ** 2))), kind: float(np.sqrt(np.mean(derived.loc[common] ** 2)))}
         self.group_scores_ = scores
@@ -748,6 +878,31 @@ class AutoTAM:
         if scores[kind] < scores["ungrouped"]:
             adopt()
         return self
+
+    @staticmethod
+    def _rolling_scores(ungrouped: "AutoTAM", grouped: "AutoTAM", kind: str) -> Optional[Dict[str, float]]:
+        """The two versions compared on their rolling folds: the error of the best static expert of each, on folds that hold the same dates.
+
+        The folds are cut from the last dates of the training rows, so the two versions are scored on the same period when both have rolling
+        folds of the same size; ``None`` (with a warning) when one of them has none, or they differ: the comparison on the validation rows is used.
+        """
+        versions = {"ungrouped": ungrouped, kind: grouped}
+        dates, scores = {}, {}
+        for label, model in versions.items():
+            folds = model.ctx.cv_folds or []
+            date_col = model.ctx.date_col
+            if not folds or not model.data_manager.rolling_folds or not date_col:
+                logger.warning("AutoTAM group search: group_search_by='rolling' needs rolling_folds and a date column; the validation rows decide.")
+                return None
+            dates[label] = frozenset(pd.to_datetime(pd.concat([f[1] for f in folds])[date_col]).dt.floor("D").unique())   # a derived group steps by day
+            static = [e["cv_rmse"] for e in model.trained_experts if e["type"] == "static" and pd.notna(e.get("cv_rmse"))]
+            if not static:
+                return None
+            scores[label] = float(min(static))
+        if dates["ungrouped"] != dates[kind]:
+            logger.warning("AutoTAM group search: the rolling folds of the two versions do not hold the same dates; the validation rows decide.")
+            return None
+        return scores
 
     @staticmethod
     def _validation_errors_by_date(model: "AutoTAM") -> pd.Series:
@@ -950,7 +1105,7 @@ class AutoTAM:
 #: </auto_tam_history>
 
 #: <auto_tam_predict>
-    def _expert_predictions(self, df_test: pd.DataFrame, date_col: Optional[str] = None):
+    def _expert_predictions(self, df_test: pd.DataFrame, date_col: Optional[str] = None, external_experts: Optional[Dict[str, Any]] = None):
         """Run every trained expert on df_test -> (expert prediction frame, df_test_clean).
 
         Shared by predict() and predict_online() so the dynamic-expert row alignment
@@ -967,6 +1122,7 @@ class AutoTAM:
                 )
 
         n_rows = len(df_test)
+        external = normalise_external(external_experts, self.ctx.date_col or date_col, self.ctx.group_col)
         self._native_quantiles_ = {}
         df_test, n_history = self._with_history(df_test, date_col)
         df_test_clean, df_aug = self.data_manager.transform_test_data(df_test, self.ctx)
@@ -974,6 +1130,10 @@ class AutoTAM:
         
         for exp in self.trained_experts:
             m, name, m_type = exp["model"], exp["name"], exp["type"]
+            if m_type == "external":
+                if name in external:
+                    predictions[name] = look_up(df_test_clean, external[name], self.ctx.date_col)
+                continue
             try:
                 base_m = m if m_type == "static" else getattr(m, '_saved_base_model', getattr(m, 'base_model_', None))
                 f_ref = getattr(base_m, 'formula_', '')
@@ -1072,9 +1232,11 @@ class AutoTAM:
             df_test_clean = df_test_clean.iloc[-n_rows:].reset_index(drop=True)
             self._native_quantiles_ = {name: values[-n_rows:] for name, values in self._native_quantiles_.items()}
 
+        self._note_complete(preds_df)
         return preds_df, df_test_clean
 
-    def predict(self, df_test: pd.DataFrame, date_col: Optional[str] = None) -> pd.DataFrame:
+    def predict(self, df_test: pd.DataFrame, date_col: Optional[str] = None, by_identifier: bool = False,
+                external_experts: Optional[Dict[str, Any]] = None) -> pd.DataFrame:
         """Frozen-weight inference (production path).
 
         League/apex weights learned on D_val during fit are applied unchanged across the whole
@@ -1089,6 +1251,10 @@ class AutoTAM:
                 expert and ensemble complete up to the horizon (the smallest lag of the target). An ensemble mixes the
                 experts that are finite on a row.
             date_col: Name of the date column, when the frame has one.
+            by_identifier: Name the expert columns by their stable identifier (``experts_['identifier']``) instead of their name. The
+                ensembles and the final model keep their names.
+            external_experts: The forecasts of the external experts given to ``fit()``, on the rows of ``df_test`` (same forms). An external
+                expert not given here is left out and the final model mixes the others.
 
         Returns:
             One row per row of ``df_test`` and one column per model, in this order: the experts, in search
@@ -1098,8 +1264,8 @@ class AutoTAM:
         """
         df_test = self._with_derived_group(df_test)
         if self.difference_ and not self._differenced_input:
-            return self._predict_levels(df_test, date_col)
-        preds_df, df_test_clean = self._expert_predictions(df_test, date_col)
+            return self._named(self._predict_levels(df_test, date_col), by_identifier)
+        preds_df, df_test_clean = self._expert_predictions(df_test, date_col, external_experts)
 
         for league_name, weights in self.league_weights.items():
             if weights:
@@ -1117,13 +1283,29 @@ class AutoTAM:
                 if left_out:
                     logger.info("%s: %d expert values missing on some rows were left out and the weights renormalised", self.FINAL_MODEL_COLUMN, left_out)
 
+        preds_df = self._guard_columns(preds_df, df_test_clean)
+
         target = self.ctx.target
         if target in df_test.columns and df_test[target].notna().all():
             print("Hint: df_test carries a realized target, so this is a backtest. predict() applies "
                   "FROZEN league/apex weights learned on D_val; call predict_online() to let MLpol "
                   "re-weight the experts chronologically across regime shifts.")
 
-        return preds_df
+        return self._named(preds_df, by_identifier)
+
+    def _named(self, preds_df: pd.DataFrame, by_identifier: bool) -> pd.DataFrame:
+        """The columns of the experts renamed by identifier when asked."""
+        if not by_identifier:
+            return preds_df
+        return preds_df.rename(columns=identifiers(self.trained_experts))
+
+    def _note_complete(self, preds_df: pd.DataFrame) -> None:
+        """Records in ``experts_`` which experts were finite on every row of the last prediction."""
+        if self.experts_ is None or self.experts_.empty:
+            return
+        flags = {name: bool(np.isfinite(pd.to_numeric(preds_df[name], errors="coerce").to_numpy()).all()) if name in preds_df else False
+                 for name in self.experts_["name"]}
+        self.experts_["complete"] = self.experts_["name"].map(flags)
 
 #: <auto_tam_quantiles>
     def predict_quantiles(self, df_test: pd.DataFrame, taus: Sequence[float] = (0.1, 0.5, 0.9), date_col: Optional[str] = None,
@@ -1269,7 +1451,8 @@ class AutoTAM:
             self._differenced_input = False
         return add_back(forecast, df_test, self._levels, target, date_col, group_col, self.difference_)
 
-    def predict_online(self, df_test: pd.DataFrame, date_col: Optional[str] = None) -> pd.DataFrame:
+    def predict_online(self, df_test: pd.DataFrame, date_col: Optional[str] = None, by_identifier: bool = False,
+                       external_experts: Optional[Dict[str, Any]] = None) -> pd.DataFrame:
         """Sequential inference: MLpol re-weights the experts chronologically.
 
         Mirrors OperaTAM.predict_online at the orchestrator level. Requires the realized target in
@@ -1285,6 +1468,8 @@ class AutoTAM:
             df_test: Frame to forecast, with the features of the fit and the realized target. As for ``predict()``, a
                 frame that starts after the training data gets the training rows in front of it internally.
             date_col: Name of the date column, when the frame has one.
+            by_identifier: As for ``predict()``.
+            external_experts: As for ``predict()``; the online Apex aggregates the ones given.
 
         Returns:
             The same columns as ``predict()`` (experts, then ``Ensemble_<league>``) plus the online versions
@@ -1297,7 +1482,7 @@ class AutoTAM:
         df_test = self._with_derived_group(df_test)
         if self.difference_:
             raise NotImplementedError("predict_online() is not available for a model fitted on increments (difference=...): use predict().")
-        preds_df, df_test_clean = self._expert_predictions(df_test, date_col)
+        preds_df, df_test_clean = self._expert_predictions(df_test, date_col, external_experts)
         target = self.ctx.target
 
         y_series = pd.to_numeric(df_test_clean[target], errors="coerce") if target in df_test_clean.columns else None
@@ -1352,7 +1537,7 @@ class AutoTAM:
         if apex_members:
             _aggregate_online(apex_members, self.FINAL_MODEL_COLUMN_ONLINE)
 
-        return preds_df
+        return self._named(self._guard_columns(preds_df, df_test_clean), by_identifier)
 
     def _align_prediction_to_test(self, raw_preds, source_df, df_test_clean):
         """Realign dynamic expert predictions (augmented history + test) back

@@ -11,7 +11,8 @@ dates allow and ``add_group`` writes the column. A daily series is split by day 
 on its own phase (the data profiler keeps such groups as they are).
 """
 
-from typing import List, Optional, Tuple
+import re
+from typing import Dict, List, Optional, Tuple
 
 import numpy as np
 import pandas as pd
@@ -59,6 +60,38 @@ def add_group(frame: pd.DataFrame, date_col: str, kind: str, count: int) -> pd.D
     else:
         seconds = (stamps.dt.hour * 3600 + stamps.dt.minute * 60 + stamps.dt.second).to_numpy(dtype=float)
         out[GROUP_COLUMN] = np.minimum((seconds / (86400.0 / count)).astype(int), count - 1)
+    return out
+
+
+def to_cycles(rows: int, count: int) -> Optional[int]:
+    """``rows`` rows of a series of ``count`` periods a cycle as cycles: ``None`` unless it is a whole number of cycles, at least one."""
+    rows = int(rows)
+    return rows // count if rows >= count and rows % count == 0 else None
+
+
+def formula_in_cycles(formula: str, count: int) -> Optional[str]:
+    """The formula with the lags of its columns (``y_lag_168``) given in cycles instead of rows (``y_lag_7`` for 24 rows a cycle).
+
+    Inside a group one step is one cycle, so a lag written in rows names a column the grouped fit does not build. ``None`` when a lag is
+    not a whole number of cycles (the formula cannot be carried over).
+    """
+    converted = []
+    for match in re.finditer(r"_lag_(\d+)", formula):
+        cycles = to_cycles(int(match.group(1)), count)
+        if cycles is None:
+            return None
+        converted.append(cycles)
+    values = iter(converted)
+    return re.sub(r"_lag_(\d+)", lambda _: f"_lag_{next(values)}", formula)
+
+
+def covariates_in_cycles(past_covariates: Dict[str, List[int]], count: int) -> Dict[str, List[int]]:
+    """``{column: [orders]}`` with the orders in cycles; an order that is not a whole number of cycles is left out (and a column with none)."""
+    out = {}
+    for column, orders in past_covariates.items():
+        kept = sorted({c for c in (to_cycles(o, count) for o in orders) if c is not None})
+        if kept:
+            out[column] = kept
     return out
 
 

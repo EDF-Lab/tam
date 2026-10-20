@@ -52,7 +52,7 @@ def model(tmp_path, monkeypatch):
     auto.league_weights = {}
     auto.weights_top10 = {"e0": 0.6, "e1": 0.4}
     auto.apex_members_ = ["e0", "e1", "e2", "e3"]
-    auto._expert_predictions = lambda df, date_col=None: (preds.copy(), df_test)
+    auto._expert_predictions = lambda df, date_col=None, external_experts=None: (preds.copy(), df_test)
     return auto, df_test, preds
 
 

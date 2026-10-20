@@ -27,6 +27,7 @@ from tam.model.autotam.guards import guard_bounds
 from tam.model.autotam.seeding import rank_key
 from tam.model.autotam.quantile_loss import is_wql, parse_levels, wql
 from tam.model.autotam.floor import FLOOR_ISLAND
+from tam.model.autotam.external_experts import look_up
 logger = logging.getLogger(__name__)
 #: </ensemble_selector_imports>
 
@@ -56,6 +57,7 @@ def sparse_league_weights(final_weights: Dict[str, float], threshold: float) -> 
 SEED_ISLAND = "Seed"   # the island of the formulas given to fit(seed_formulas=...)
 
 #: <ensemble_selector_frozen_weight>
+APEX_PRUNE_UPDATES = 10   # the last updates of the validation rows on which a weight must stay below apex_prune for the member to be dropped
 WEIGHT_AVERAGES = {"snapshot": None, "mean_7": 7, "mean_30": 30, "full": 0}   # days averaged; 0 is the whole validation part
 #: </ensemble_selector_frozen_weight>
 
@@ -66,7 +68,7 @@ class EnsembleSelector:
 #: <ensemble_selector_init>
     def __init__(self, use_opera: bool = True, n_apex_experts: int = 5, ensemble_sparsity_threshold: float = 0.01,
                  apex_quality_ratio: Optional[float] = 1.5, weight_average: str = "snapshot", seed_floor: bool = False,
-                 pooled_floor: bool = False):
+                 pooled_floor: bool = False, apex_prune: Optional[float] = None):
         """
         Initializes the ensemble aggregator.
 
@@ -81,6 +83,9 @@ class EnsembleSelector:
                 the final model (logged).
             pooled_floor (bool): Opt-in. The same guard for the experts of the island ``Floor`` (the pooled seasonal profile): they always join the
                 Apex pool, and the frozen final model is never worse than the best of them on the validation rows.
+            apex_prune (Optional[float]): Opt-in. A member of the Apex pool whose online weight stays below this value on the last
+                ``APEX_PRUNE_UPDATES`` updates of the validation rows is dropped, the aggregation is run again on the rest, and an expert that no
+                ensemble uses any more is no longer predicted. The members of the guard islands are never dropped. ``None`` (default) keeps the pool.
             weight_average (str): What the frozen ``predict()`` takes as the weight of an expert: ``"snapshot"`` (default) the last weight of
                 the online aggregation on the validation rows, ``"mean_7"`` / ``"mean_30"`` the mean over the last 7 or 30 days of them, or
                 ``"full"`` the mean over the whole validation part.
@@ -95,6 +100,10 @@ class EnsembleSelector:
         self.weight_average = weight_average
         self.seed_floor = bool(seed_floor)
         self.pooled_floor = bool(pooled_floor)
+        if apex_prune is not None and not 0.0 <= apex_prune < 1.0:
+            raise ValueError(f"apex_prune must be None or in [0, 1), got {apex_prune!r}")
+        self.apex_prune = apex_prune
+        self.apex_pruned_ = []
         self.use_opera = use_opera
         self.n_apex_experts = n_apex_experts
         self.ensemble_sparsity_threshold = ensemble_sparsity_threshold
@@ -178,7 +187,8 @@ class EnsembleSelector:
         test_log: list, 
         reporter, 
         expander, 
-        refit_on_full_train: bool = False
+        refit_on_full_train: bool = False,
+        external: Optional[Dict[str, pd.DataFrame]] = None
     ) -> Tuple[list, dict, dict, dict, dict]:
         """
         Evaluates the generated experts, constructs logical sub-ensembles based on 
@@ -188,6 +198,7 @@ class EnsembleSelector:
         the returned Apex weights keep only the members still weighted at the end of validation.
         """
         self.apex_members_ = []
+        self.apex_pruned_ = []
         # Ensure disjoint, unique indices across partitions so df_cont_val and reindexing never collide
         splits = [s for s in [ctx.df_fit, ctx.df_dev, ctx.df_val] if s is not None]
         has_overlap = False
@@ -299,9 +310,23 @@ class EnsembleSelector:
             except Exception as e:
                 logger.warning(f"Evaluation failed for {name} | Error: {e}")
 
+        external_oof = {}
+        for name, forecast in (external or {}).items():
+            values = look_up(ctx.df_val, forecast, ctx.date_col)
+            if not np.isfinite(values).all():
+                raise ValueError(f"external expert {name!r}: its forecast is missing on {int((~np.isfinite(values)).sum())} of the {len(values)} validation rows "
+                                 f"({ctx.df_val[ctx.date_col].min()} to {ctx.df_val[ctx.date_col].max()}).")
+            preds_dict[name] = values
+            score = self._calculate_error(y_true, values, opt_metric)
+            trained_experts.append({"name": name, "type": "external", "model": None, "island": None, "val_rmse": score, "cv_rmse": score,
+                                    "complexity": 0, "penalized_score": score})
+            external_oof[name] = np.concatenate([np.full(len(df_cont_val) - len(values), np.nan), values])
+
         df_p = pd.DataFrame(preds_dict).dropna()
 
         if self.use_opera and trained_experts:
+            last_trajectory = {}
+
             def run_single_opera(league_name, model_names):
                 valid_models = [m for m in model_names if m in df_p.columns]
                 if len(valid_models) <= 1: return {}
@@ -317,6 +342,7 @@ class EnsembleSelector:
                 
                 cols = [ctx.target] + ([ctx.date_col] if ctx.date_col in df_p.columns else []) + valid_models
                 res = opera.predict_online(df_p[cols])
+                last_trajectory[league_name] = res
                 
                 weights_df = res[[c for c in res.columns if c.startswith('weight_')]].copy()
                 if ctx.date_col and ctx.date_col in df_p.columns: weights_df.insert(0, ctx.date_col, df_p[ctx.date_col].values)
@@ -377,7 +403,8 @@ class EnsembleSelector:
                     df_p[top_name] = df_p[best_exp["name"]]
                 league_weights["Island_Federation"] = run_single_opera("Ensemble_Island_Federation", list(island_aliases.keys()))
 
-            valid_experts = [e for e in trained_experts if pd.notna(e["cv_rmse"]) and e["name"] in df_p.columns]
+            external_names = set(external or {})
+            valid_experts = [e for e in trained_experts if pd.notna(e["cv_rmse"]) and e["name"] in df_p.columns and e["name"] not in external_names]
 
             # Populate Apex exclusively with dynamic experts using a validation-error ratio floor, keeping the pool large for optimal OPERA arbitrage.
             expansions_cfg = getattr(expander, "expansions", {}) or {}
@@ -404,10 +431,27 @@ class EnsembleSelector:
             if self._guard_islands():
                 members = {e["name"] for e in apex_pool}
                 apex_pool = list(apex_pool) + [e for e in valid_experts if e.get("island") in self._guard_islands() and e["name"] not in members]
-            top_apex_names = [e["name"] for e in apex_pool]
+            top_apex_names = [e["name"] for e in apex_pool] + [n for n in (external or {}) if n in df_p.columns]
 
             if len(top_apex_names) > 1: weights_top10 = run_single_opera("AutoTAM_Apex_Ensemble", top_apex_names)
             elif top_apex_names: weights_top10 = {top_apex_names[0]: 1.0}
+            if self.apex_prune is not None and len(top_apex_names) > 2 and "AutoTAM_Apex_Ensemble" in last_trajectory:
+                protected = {e["name"] for e in valid_experts if e.get("island") in self._guard_islands()}
+                for _ in range(len(top_apex_names)):
+                    res = last_trajectory["AutoTAM_Apex_Ensemble"]
+                    tail = res.tail(APEX_PRUNE_UPDATES)
+                    low = [m for m in top_apex_names if m not in protected and f"weight_{m}" in res.columns and float(tail[f"weight_{m}"].max()) < self.apex_prune]
+                    if not low or len(low) >= len(top_apex_names):
+                        break
+                    self.apex_pruned_ += low
+                    top_apex_names = [m for m in top_apex_names if m not in low]
+                    logger.info("Apex pruning: %d member(s) below %g on the last %d updates dropped (%s); %d left.", len(low), self.apex_prune,
+                                APEX_PRUNE_UPDATES, ", ".join(low), len(top_apex_names))
+                    if len(top_apex_names) > 1:
+                        weights_top10 = run_single_opera("AutoTAM_Apex_Ensemble", top_apex_names)
+                    else:
+                        weights_top10 = {top_apex_names[0]: 1.0}
+                        break
             if self._guard_islands():
                 weights_top10 = self._apply_seed_floor(weights_top10, valid_experts, df_p, ctx, opt_metric)
             self.apex_members_ = top_apex_names
@@ -418,8 +462,15 @@ class EnsembleSelector:
         else:
             trained_experts = [best_expert_global] if best_expert_global else []
 
+        if self.apex_pruned_:
+            used = set(weights_top10) | set(self.apex_members_) | set(island_aliases.values()) | {m for w in league_weights.values() for m in w}
+            trained_experts = [e for e in trained_experts if e["name"] in used or e["name"] not in self.apex_pruned_]
+
         oof_predictions = {}
         for exp in trained_experts:
+            if exp["type"] == "external":
+                oof_predictions[exp["name"]] = external_oof[exp["name"]]
+                continue
             try:
                 p_full = self._get_expert_predictions(exp, exp["model"], df_cont_val, ctx, expander, return_full=True)
                 oof_predictions[exp["name"]] = p_full

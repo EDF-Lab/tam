@@ -29,6 +29,12 @@ CALENDAR_FEATURES = frozenset({
 HOLIDAY_FLAGS = ("holiday", "bridge_day")
 
 
+def calendar_flags(columns: Iterable[str]) -> List[str]:
+    """The 0/1 calendar columns an adaptive stage may switch on: the holiday flags and the ``crisis_<name>`` indicators (not their ages)."""
+    names = list(columns)
+    return [c for c in HOLIDAY_FLAGS if c in names] + [c for c in names if str(c).startswith("crisis_") and not str(c).endswith("_age")]
+
+
 def effect_kind(feature: str, calendar: Iterable[str] = ()) -> str:
     """The kind of an effect: ``autoregressive`` (a lag of the target or of a covariate), ``calendar``, else ``exogenous``.
 
