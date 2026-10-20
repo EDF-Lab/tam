@@ -7,8 +7,8 @@ Candidate group columns derived from the date column, for a series given without
 
 A sub-daily series is often modelled as one sequence per period of the day (24, 48 or 96 groups, one step being one day): each group sees
 one observation a day, so its lags, its adaptive windows and its Kalman state follow the daily rhythm. ``derived_group`` says which grouping the
-dates allow and ``add_group`` writes the column. A daily series is not split by day of week: the data profiler puts every group on the weekly
-grid of the first one, so the groups of another weekday would be filled from their neighbours.
+dates allow and ``add_group`` writes the column. A daily series is split by day of week, one group a weekday, each group stepping by seven days
+on its own phase (the data profiler keeps such groups as they are).
 """
 
 from typing import List, Optional, Tuple
@@ -29,9 +29,9 @@ def derived_group(dates: pd.Series) -> Optional[Tuple[str, int]]:
         dates: The dates of the series (one row per date).
 
     Returns:
-        ``("time_of_day", n)`` for a regular sub-daily step that divides the day into ``n`` periods (2 to ``MAX_GROUPS``), ``None`` when the
-        dates are not unique, the step is irregular, a day or coarser, the day would be cut in more than ``MAX_GROUPS`` periods, or there
-        are fewer than ``MIN_CYCLES`` days.
+        ``("time_of_day", n)`` for a regular sub-daily step that divides the day into ``n`` periods (2 to ``MAX_GROUPS``), ``("day_of_week", 7)``
+        for a daily step, ``None`` when the dates are not unique, the step is irregular or coarser than a day, the day would be cut in more
+        than ``MAX_GROUPS`` periods, or there are too few cycles (``MIN_CYCLES`` days, four weeks for a daily step).
     """
     stamps = pd.to_datetime(pd.Series(dates)).dropna().drop_duplicates().sort_values()
     if len(stamps) != pd.Series(dates).notna().sum() or len(stamps) < 3:
@@ -40,7 +40,9 @@ def derived_group(dates: pd.Series) -> Optional[Tuple[str, int]]:
     step = float(np.median(seconds))
     if step <= 0 or float(np.mean(seconds == step)) < 0.9:
         return None
-    if step >= 0.9 * 86400:
+    if 0.9 * 86400 <= step <= 1.1 * 86400:
+        return ("day_of_week", 7) if len(stamps) >= 7 * 4 else None
+    if step >= 86400:
         return None
     count = 86400.0 / step
     if abs(count - round(count)) > 1e-6 or not 2 <= round(count) <= MAX_GROUPS:

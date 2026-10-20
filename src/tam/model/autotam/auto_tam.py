@@ -34,6 +34,7 @@ from tam.common.utils import parse_formula_to_terms
 from tam.model.autotam.anchor import ANCHOR_ISLAND, anchor_formula
 from tam.model.autotam.floor import FLOOR_ISLAND, floor_formula
 from tam.model.autotam.group_search import GROUP_COLUMN, add_group, derived_group, sample_groups
+from tam.model.autotam.alignment import aligned_values
 from tam.model.autotam.seeding import seeded_method
 from tam.model.autotam.differencing import add_back, difference_test, difference_training
 from tam.model.autotam.target_profile import profile_target
@@ -258,11 +259,11 @@ class AutoTAM:
                 period of the day as the group): on the hourly day-ahead load it was better on the hold-out on 3 of 3 seeds and cost about 0.6 of
                 the plain fit, while the comparison of ``True`` chose the ungrouped fit on 2 of 3 seeds, wrongly (validation error does not rank
                 the two). ``True`` is as follows. ``fit()`` also fits the model with a group column derived from the
-                dates (one group per period of the day on sub-daily data, one step being one day; nothing for daily or coarser data) and keeps
+                dates (one group per period of the day on sub-daily data, one step being one day; one per day of the week on a daily series) and keeps
                 the version with the smaller error on the development and validation dates both have (``group_scores_``; the ungrouped one on a tie). It costs one
                 more search, and the lags and the horizon (given in rows) become that many cycles when they are whole numbers of them, else the series is not
                 searched; a fit given a ``group_col``, ``architectures`` or ``difference`` is not searched. ``predict()`` adds the group column to the
-                frame it is given. Dates that allow no grouping (irregular, daily or coarser steps, more than 96 periods, too few days) leave the fit as it was.
+                frame it is given. Dates that allow no grouping (irregular or coarser steps, more than 96 periods, too few days) leave the fit as it was.
             rolling_folds (Optional[int]): Opt-in. The experts and the champions are scored on ``rolling_folds`` rolling origins instead of the usual
                 folds: the last ``rolling_folds`` horizons of the training rows (the horizon is ``horizon``, else the smallest lag, else 1 date),
                 each predicted by a model trained on everything before it. A selection on one horizon of data is noisy; the mean of several is
@@ -699,7 +700,7 @@ class AutoTAM:
         known = [f for f in frames if f is not None and date_col in f.columns]
         choice = derived_group(pd.concat(known)[date_col]) if known else None
         if choice is None:
-            logger.info("AutoTAM group search: the dates allow no derived group (irregular, daily or coarser step, too many periods or too few days).")
+            logger.info("AutoTAM group search: the dates allow no derived group (irregular or coarser step, too many periods or too few days).")
             return fit_ungrouped()
         kind, count = choice
         arguments_child = {**self._constructor_args, "group_search": False, "export_dir": str(pathlib.Path(self.export_directory) / "group_search")}
@@ -981,7 +982,8 @@ class AutoTAM:
                 df_aug_clean = df_aug.dropna(subset=req_cols).copy()
                 
                 if m_type == "static": 
-                    predictions[name] = base_m.predict(df_test_clean)[f"Estimated{self.ctx.target}"].values
+                    static_out = base_m.predict(df_test_clean)
+                    predictions[name] = aligned_values(static_out, df_test_clean, f"Estimated{self.ctx.target}", self.ctx.date_col, self.ctx.group_col)
                     if self._native_levels and hasattr(base_m, "predict_quantiles"):
                         self._native_quantiles_[name] = base_m.predict_quantiles(df_test_clean, self._native_levels).to_numpy(dtype=float)
                 

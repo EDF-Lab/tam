@@ -25,12 +25,13 @@ def _dates(periods, freq):
     (24 * 90, "h", ("time_of_day", 24)),
     (96 * 90, "15min", ("time_of_day", 96)),
     (48 * 90, "30min", ("time_of_day", 48)),
+    (200, "D", ("day_of_week", 7)),
 ])
 def test_the_grouping_the_dates_allow(periods, freq, expected):
     assert derived_group(_dates(periods, freq)) == expected
 
 
-@pytest.mark.parametrize("periods, freq", [(200, "D"), (200, "W"), (60, "MS"), (1440 * 5, "min"), (24 * 10, "h"), (10, "D")])
+@pytest.mark.parametrize("periods, freq", [(200, "W"), (60, "MS"), (1440 * 5, "min"), (24 * 10, "h"), (10, "D")])
 def test_no_grouping_for_a_coarse_fine_or_short_series(periods, freq):
     assert derived_group(_dates(periods, freq)) is None
 
@@ -151,3 +152,35 @@ def test_always_falls_back_to_the_plain_fit_when_the_dates_allow_no_group(tmp_pa
 def test_an_unknown_group_search_value_is_refused(tmp_path):
     with pytest.raises(ValueError, match="group_search"):
         AutoTAM("y ~ AutoPipe(x1)", group_search="sometimes", export_dir=str(tmp_path))
+
+
+def test_a_daily_series_is_also_fitted_with_a_group_per_day_of_the_week(tmp_path):
+    """The grouped fit used to fail on daily data (the data profiler lost six of the seven groups): both versions are now scored."""
+    rng = np.random.default_rng(6)
+    n = 420
+    day = np.arange(n)
+    x1 = rng.normal(size=n)
+    slope = np.array([1.0, 3.0, 0.5, -2.0, 2.0, 4.0, -1.0])[day % 7]
+    frame = pd.DataFrame({"ds": pd.date_range("2022-01-03", periods=n), "x1": x1, "y": 30 + slope * x1 + rng.normal(scale=0.3, size=n)})
+    model = AutoTAM("y ~ AutoPipe(x1)", n_experts=1, pop_size=4, use_opera=False, seed=5, group_search=True, export_dir=str(tmp_path))
+    model.fit(frame.iloc[:330], date_col="ds", expansions=EXPANSIONS)
+    assert set(model.group_scores_) == {"ungrouped", "day_of_week"}
+    if model.derived_group_ is not None:
+        assert model.derived_group_["kind"] == "day_of_week" and model.derived_group_["count"] == 7
+    out = model.predict(frame.iloc[330:350], date_col="ds")
+    assert len(out) == 20 and np.isfinite(out[model.trained_experts[0]["name"]].to_numpy()).all()
+
+
+def test_calendar_columns_that_are_constant_inside_each_group_are_not_added(tmp_path):
+    """A group per weekday makes `dow` constant inside every group: a per-group fit with it is singular, so it is left out."""
+    rng = np.random.default_rng(8)
+    n = 420
+    x1 = rng.normal(size=n)
+    frame = pd.DataFrame({"ds": pd.date_range("2022-01-03", periods=n), "x1": x1})
+    frame["y"] = 20 + 2 * x1 + np.sin(2 * np.pi * np.arange(n) / 7) + rng.normal(scale=0.3, size=n)
+    model = AutoTAM("y ~ AutoPipe(x1)", n_experts=2, pop_size=4, use_opera=True, seed=5, calendar_features=True, group_search="always",
+                    export_dir=str(tmp_path))
+    model.fit(frame.iloc[:330], date_col="ds", expansions=EXPANSIONS)
+    assert model.derived_group_ is not None and model.derived_group_["kind"] == "day_of_week"
+    assert "dow" not in model.ctx.df_all_aug.columns and "toy" in model.ctx.df_all_aug.columns
+    assert "dow" not in model.ctx.calendar["columns"] and model.trained_experts

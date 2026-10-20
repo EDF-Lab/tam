@@ -22,6 +22,7 @@ from typing import Dict, Any, List, Optional, Tuple
 from .context import PipelineContext
 from tam.model.opera import OperaTAM
 from tam.model.autotam.failures import log_failure
+from tam.model.autotam.alignment import aligned_values
 from tam.model.autotam.guards import guard_bounds
 from tam.model.autotam.seeding import rank_key
 from tam.model.autotam.quantile_loss import is_wql, parse_levels, wql
@@ -510,11 +511,11 @@ class EnsembleSelector:
                 df_val_clean = ctx.df_val.dropna(subset=req_cols)
                 preds = m_ref.predict(df_val_clean)
                 col = f"Estimated{ctx.target}"
-                values = preds[col].reindex(ctx.df_val.index).values
+                values = pd.Series(aligned_values(preds, df_val_clean, col, ctx.date_col, ctx.group_col), index=df_val_clean.index).reindex(ctx.df_val.index).values
             else:
                 preds = m_ref.predict(df_cv_clean)
                 col = f"Estimated{ctx.target}"
-                values = preds[col].reindex(df_cont_val.index).values
+                values = pd.Series(aligned_values(preds, df_cv_clean, col, ctx.date_col, ctx.group_col), index=df_cv_clean.index).reindex(df_cont_val.index).values
         elif exp["type"] == "kalman": 
             preds = m_ref.predict_online(df_cv_clean)
             col = f"KalmanAdapted_{ctx.target}"

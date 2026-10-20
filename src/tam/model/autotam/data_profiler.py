@@ -214,11 +214,18 @@ class DataProfiler:
         if group_col and group_col in data.columns:
             # Select the value columns explicitly: resampling the grouping column itself is deprecated in pandas 2.2+.
             value_cols = [c for c in data.columns if c != group_col]
-            resampled = data.groupby(group_col)[value_cols].resample(freq).asfreq()
-            
-            if group_col in resampled.index.names:
-                resampled = resampled.drop(columns=[group_col], errors='ignore')
-            data = resampled.reset_index()
+            if self._groups_are_regular(data, group_col):
+                # Every group already steps by one constant interval. Re-indexing the groups onto one common grid would keep only the rows whose
+                # timestamp sits on that grid and drop the groups on another phase of it (a group per day of the week of a daily series).
+                data = data.reset_index()
+                data = data[[group_col, date_col] + [c for c in value_cols if c != date_col]]
+                data = data.sort_values(by=[group_col, date_col], kind="stable").reset_index(drop=True)
+            else:
+                resampled = data.groupby(group_col)[value_cols].resample(freq).asfreq()
+
+                if group_col in resampled.index.names:
+                    resampled = resampled.drop(columns=[group_col], errors='ignore')
+                data = resampled.reset_index()
 
             # Restore grouping column dropped by pandas groupby().ffill().
             group_keys = data[group_col]
@@ -233,6 +240,25 @@ class DataProfiler:
             data = data.sort_values(by=sort_cols).reset_index(drop=True)
             
         return data
+
+    @staticmethod
+    def _groups_are_regular(data: pd.DataFrame, group_col: str) -> bool:
+        """Whether every group has unique timestamps with one constant step, the same for all the groups (``data`` is indexed by the dates)."""
+        keys = data[group_col].to_numpy()
+        dates = data.index.to_numpy()
+        step = None
+        for key in pd.unique(keys):
+            own = np.sort(dates[keys == key])
+            if len(own) < 2:
+                continue
+            deltas = np.diff(own)
+            if (deltas <= np.timedelta64(0, "ns")).any() or (deltas != deltas[0]).any():
+                return False
+            if step is None:
+                step = deltas[0]
+            elif deltas[0] != step:
+                return False
+        return step is not None
 
     def _learn_group_bounds(self, data: pd.DataFrame, feature_cols: List[str], group_col: Optional[str]) -> Dict[str, Dict[str, Tuple[float, float]]]:
         """

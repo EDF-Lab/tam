@@ -25,6 +25,7 @@ from tam.model.additive import StaticTAM
 from tam.model.kalman import KalmanTAM
 from tam.model.adaptative import AdaptiveTAM
 from tam.model.autotam.failures import log_failure
+from tam.model.autotam.alignment import aligned_values
 from tam.model.autotam.native_quantiles import NativeQuantileExpert
 from tam.model.autotam.effect_groups import HOLIDAY_FLAGS, group_columns, with_effect_groups
 from tam.model.autotam.quantile_loss import is_wql, parse_levels, wql
@@ -128,7 +129,8 @@ class ExpertExpander:
         scores = []
         for fold_index, (fold_train, fold_val) in enumerate(cv_folds):
             try:
-                preds = model.predict(fold_val)[f"Estimated{target_col}"].values
+                preds = aligned_values(model.predict(fold_val), fold_val, f"Estimated{target_col}", getattr(model, "date_col_", None),
+                                       getattr(model, "group_col_", None))
                 y_true = fold_val[target_col].values
                 score = self._calculate_error(y_true, preds, metric)
                 scores.append(score)

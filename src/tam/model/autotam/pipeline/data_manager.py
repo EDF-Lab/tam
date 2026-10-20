@@ -601,6 +601,16 @@ class DataManager:
         features = list(ctx.formula_config["features"])
         among = [c for c in df_aug.columns if any(c == f or c.startswith(f"{f}_") for f in features)] if features else None
         added = add_calendar(df_aug, ctx.date_col, ctx.calendar, skip_equivalent=True, among=among)
+        group_col = ctx.group_col
+        if group_col and group_col in df_aug.columns and added:
+            # A calendar column that never changes inside a group (the day of the week of a group per weekday, the time of day of a group per
+            # period) carries nothing a per-group model can learn, and makes its fit singular: it is left out.
+            constant = [name for name in added if int(df_aug.groupby(group_col)[name].nunique().max()) <= 1]
+            if constant:
+                df_aug = df_aug.drop(columns=constant)
+                added = [name for name in added if name not in constant]
+                ctx.calendar["keep"] = list(added)
+                logger.info("Calendar columns constant inside each group are not added: %s.", ", ".join(constant))
         for name in added:
             if name not in ctx.formula_config["features"]:
                 ctx.formula_config["features"].append(name)
