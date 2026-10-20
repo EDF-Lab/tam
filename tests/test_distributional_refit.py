@@ -23,6 +23,9 @@ from tam.common.utils import _balance_groups, _ensure_dummies
 
 _LOSS = {"mu": "l2", "sigma": "gamma"}
 
+# One round is not asked to converge in the Monte Carlo tests; the test of the warning itself uses pytest.warns.
+pytestmark = pytest.mark.filterwarnings("ignore:The weighted refit of the location did not converge")
+
 
 def _data(n=800, seed=0, location="spline"):
     """z = mu(x) + sigma(x) eps with sigma(x) = 0.3 exp(1.6 x) (ratio 5, log-linear: the scale model is well specified)."""

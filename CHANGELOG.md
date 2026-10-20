@@ -15,7 +15,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > **[0.0.6]** corresponds to the legacy `weakl` package available on PyPI.
 
 ---
-## [Unreleased]
+## [1.5.0] - 2026-10-20
+
+Minor release for the non-Gaussian losses and for richer effects. New arguments and options are appended after the existing ones and their defaults keep the previous behaviour, so existing calls give the same forecasts. The exceptions are fixes: `auto_fit()` and `grid_search_fit()` on a non-Gaussian loss now use that loss (they used to score the raw response with an identity link), and `phys(x, basis='neural')` no longer crashes at fit.
 
 ### Added
 - **`auto_fit(criterion='reml')`**: the smoothing parameters maximise the Laplace restricted marginal likelihood (analytic gradient, L-BFGS on `log(lambda)`) instead of the GCV score, for the Gaussian and the GLM losses and for every smoothing coordinate (`m_pen`, `te()` margins, `mode='per_level'`). On a sine with AR(1) noise (300 rows, 25 knots, 12 seeds) the error against the true curve is 0.131 against 0.157 with GCV. The fitted model keeps `smoothing_criterion_` and `reml_score_`. The default stays `'gcv'`, unchanged.
@@ -350,7 +352,8 @@ This version introduced the Formula API and the first object-oriented refactorin
 ### Added
 * Initial project setup based on the original `weakl` v0.0.6 package.
 
-[Unreleased]: https://github.com/EDF-Lab/tam/compare/v1.4.1...HEAD
+[Unreleased]: https://github.com/EDF-Lab/tam/compare/v1.5.0...HEAD
+[1.5.0]: https://github.com/EDF-Lab/tam/releases/tag/v1.5.0
 [1.4.1]: https://github.com/EDF-Lab/tam/releases/tag/v1.4.1
 [1.4.0]: https://github.com/EDF-Lab/tam/releases/tag/v1.4.0
 [1.3.4]: https://github.com/EDF-Lab/tam/releases/tag/v1.3.4
