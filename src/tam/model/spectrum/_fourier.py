@@ -49,6 +49,9 @@ class FourierEffect(BaseEffect):
         self.cyclic = cyclic
         self.period = period if period is None or isinstance(period, str) else (float(period[0]), float(period[1]))
 
+    def summary_details(self) -> str:
+        return f"m={self.m}, Sobolev(s={self.s})"
+
     def get_n_coeffs(self) -> int:
         return 2 * self.m
 #: </init_fourier>

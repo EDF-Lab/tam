@@ -58,7 +58,7 @@ class SplineEffect(BaseEffect):
             self.lambda_p = values[0]
             return
         self._part_lambdas = values
-        self.lambda_p = float(np.exp(np.mean(np.log(values))))  # the geometric mean stands for the effect where one weight is read
+        self.lambda_p = float(np.exp(np.mean(np.log([max(v, 1e-300) for v in values]))))  # the geometric mean stands for the effect where one weight is read
 
     def _part_weights(self, n_rows: int) -> torch.Tensor:
         r"""Weights ``W`` of the ``m_pen`` parts over the ``n_rows`` differences of the penalty: B-splines of degree ``min(3, m_pen - 1)``
@@ -78,6 +78,9 @@ class SplineEffect(BaseEffect):
         r"""Sets the knots from the full training tensor, so that the memory probe (one row per group) never decides them."""
         if self._cached_knots is None:
             self._get_knots(x_cols)
+
+    def summary_details(self) -> str:
+        return f"Knots={self.n_knots}, Diff(d={self.penalty_order})" + (f", m_pen={self.m_pen}" if self.m_pen > 1 else "")
 
     def get_n_coeffs(self) -> int:
         return self._n_coeffs

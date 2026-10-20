@@ -65,6 +65,9 @@ class CategoricalEffect(BaseEffect):
             self.m = self.n_categories // 2 + self.n_categories % 2
             self.s = 0
 
+    def summary_details(self) -> str:
+        return f"Cats={self.n_categories}, Topo={self.topology}, Unseen={self.unseen}"
+
     def get_n_coeffs(self) -> int:
         if self.topology == 'fourier':
             return 2 * self.m

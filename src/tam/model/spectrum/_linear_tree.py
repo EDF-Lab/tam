@@ -21,6 +21,8 @@ class LinearTreeEffect(BaseEffect):
     y = Tree_Base(X) + (Tree_Slope(X) * X_linear)
     """
 
+    keeps_feature_dim = True
+
     def __init__(
         self, 
         feature_name: str, 

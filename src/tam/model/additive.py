@@ -606,6 +606,7 @@ class StaticTAM(BaseTAM):
                 "nominal": "Their effect is regularized to 0.",
                 "ordinal": "Their effect follows from their neighbours through the smoothness penalty.",
                 "fourier": "They have no estimate of their own (the effect is a smooth periodic curve).",
+                "graph": "They have no centroid, so no neighbour: they keep the zero effect.",
             }[effect.topology]
             warnings.warn(
                 f"TAM [Info]: the categorical feature '{effect.feature_name}' is configured with {n} categories, but "
@@ -626,42 +627,10 @@ class StaticTAM(BaseTAM):
         summary_data = []
         
         for effect in self.effects_list_:
-            eff_type_raw = effect.__class__.__name__.replace('Effect', '')
+            eff_type_raw = effect.summary_type()
             name = effect.feature_name
             complexity = effect.get_n_coeffs()
-            details = ""
-            
-            if isinstance(effect, OffsetEffect):
-                details = "Global Bias"
-            elif isinstance(effect, LinearEffect):
-                details = "Slope (Ridge)"
-            elif isinstance(effect, FourierEffect):
-                details = f"m={effect.m}, Sobolev(s={effect.s})"
-            elif isinstance(effect, SplineEffect) and not isinstance(effect, UniversalPhysicsEffect):
-                details = f"Knots={effect.n_knots}, Diff(d={effect.penalty_order})"
-            elif isinstance(effect, CategoricalEffect):
-                details = f"Cats={effect.n_categories}, Topo={effect.topology}, Unseen={effect.unseen}"
-            elif isinstance(effect, NeuralEffect):
-                details = f"Neurons={effect.n_neurons}, Act={effect.activation}"
-            elif isinstance(effect, UniversalPhysicsEffect):
-                ops = [f"{k}={v}" for k, v in effect.diff_weights.items()]
-                details = f"Basis={effect.basis_type}, PDE[{', '.join(ops)}]"
-                eff_type_raw = "Physics"
-            elif isinstance(effect, WaveletEffect):
-                details = f"Scales={effect.n_scales}, Locs={effect.n_locations}"
-            elif isinstance(effect, RBFEffect):
-                if effect.kernel == 'tps':
-                    details = f"TPS(m={effect.m}), Centers={effect.n_centers}"
-                else:
-                    details = f"Centers={effect.n_centers}" + (f", Gamma={effect.gamma:.2f}" if effect.gamma else "")
-            elif isinstance(effect, ChebyshevEffect):
-                details = f"Deg={effect.degree}, Sobolev(s={effect.s})"
-            elif isinstance(effect, TensorProductEffect):
-                details = f"Interaction ({len(effect.effects)} terms)"
-            elif isinstance(effect, TreeEffect):
-                details = f"Trees={effect.n_trees}, MaxDepth={effect.max_depth}"
-            else:
-                details = "Custom"
+            details = effect.summary_details()
 
             coordinates = effect.penalty_coordinates()
             logs = [round(float(np.log10(c)), 2) if c > 0 else -np.inf for c in coordinates]

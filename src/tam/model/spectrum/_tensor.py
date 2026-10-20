@@ -66,6 +66,15 @@ class TensorProductEffect(BaseEffect):
             # one smoothing parameter of the smooth per level of the factor, all starting at the weight the formula gave the smooth
             self._level_lambdas = [float(effects[self._smooth_index].lambda_p)] * effects[self._factor_index].n_categories
 
+    keeps_feature_dim = True
+
+    @property
+    def required_features(self) -> list:
+        return [name for margin in self.effects for name in margin.required_features]
+
+    def summary_details(self) -> str:
+        return f"Interaction ({len(self.effects)} terms)" + (", per level" if self.mode == "per_level" else "")
+
     def coordinate_labels(self) -> list:
         r"""A name for each smoothing coordinate, in the order of ``penalty_coordinates()``."""
         if self.mode == "per_level":
@@ -155,14 +164,14 @@ class TensorProductEffect(BaseEffect):
         col_idx = 0
         for effect in self.effects:
             # Determine how many columns this sub-effect needs
-            n_cols = len(getattr(effect, 'input_features', [effect.feature_name]))
-            
+            n_cols = len(effect.required_features)
+
             # Slice the exact number of columns required
             x_cols = x_data[..., col_idx : col_idx + n_cols]
             
             # Only squeeze the tensor for legacy 1D math effects. 
             # Spatial kernels strictly require the feature dimension to remain intact.
-            if n_cols == 1 and effect.__class__.__name__ not in ['TreeEffect', 'LinearTreeEffect', 'RBFEffect', 'NeuralEffect']:
+            if n_cols == 1 and not effect.keeps_feature_dim:
                 x_cols = x_cols.squeeze(-1)
                 
             phi_list.append(effect.transform(x_cols))

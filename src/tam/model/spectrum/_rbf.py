@@ -36,6 +36,8 @@ class RBFEffect(BaseEffect):
         input_features (List[str]): List of all input feature names consumed by this effect.
     """
 
+    keeps_feature_dim = True
+
     def __init__(
         self, 
         feature_name: str, 
@@ -103,6 +105,11 @@ class RBFEffect(BaseEffect):
                 self._init_tps(x_in)
             else:
                 self._init_params(x_in, is_dummy=False)
+
+    def summary_details(self) -> str:
+        if self.kernel == 'tps':
+            return f"TPS(m={self.m}), Centers={self.n_centers}"
+        return f"Centers={self.n_centers}" + (f", Gamma={self.gamma:.2f}" if self.gamma else "")
 
     def get_n_coeffs(self) -> int:
         if self.kernel == 'tps':

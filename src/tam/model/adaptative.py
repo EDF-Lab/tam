@@ -867,6 +867,9 @@ class AdaptiveTAM:
         
         dummy_x = x_flat[0:1].to(run_device)
         try:
+            # centres, projections, neural weights... are set from the training windows before the penalty is built
+            initialize_effects(x_stacked.reshape(-1, x_stacked.shape[2], x_stacked.shape[3]), effects_list,
+                               feature_columns=self.adaptive_model_.features_config_['features'])
             dummy_phi = build_phi_from_effects(dummy_x, effects_list)
             n_coeffs = dummy_phi.shape[-1]
             del dummy_x, dummy_phi

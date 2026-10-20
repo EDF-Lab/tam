@@ -593,11 +593,6 @@ def _estimate_projections(x_data: torch.Tensor, effects_list: List[BaseEffect], 
         effect._projection = torch.linalg.lstsq(base.cpu(), deep.cpu(), driver='gelsd').solution.to(components[i].dtype)
 
 
-def _reads_several(effect) -> bool:
-    """A categorical effect with a graph topology reads its level column and the coordinate columns of the levels."""
-    return isinstance(effect, CategoricalEffect) and len(getattr(effect, 'input_features', [None])) > 1
-
-
 #: <build_phi>
 def initialize_effects(
     x_data: torch.Tensor,
@@ -618,21 +613,13 @@ def initialize_effects(
     for effect in effects_list:
         if isinstance(effect, OffsetEffect):
             continue
-        if isinstance(effect, (TensorProductEffect, NeuralEffect, RBFEffect, TreeEffect, LinearTreeEffect, SplineEffect, CategoricalEffect)):
-            if isinstance(effect, TensorProductEffect):
-                req_features = []
-                for e in effect.effects:
-                    req_features.extend(getattr(e, 'input_features', [e.feature_name]))
-            else:
-                req_features = getattr(effect, 'input_features', [effect.feature_name])
-            if name_to_idx:
-                x_cols = x_data[..., [name_to_idx[name] for name in req_features]]
-            else:
-                x_cols = x_data[..., col_idx : col_idx + len(req_features)]
-                col_idx += len(req_features)
-            effect.initialize(x_cols)
-        elif not name_to_idx:
-            col_idx += 1
+        required = effect.required_features
+        if name_to_idx:
+            x_cols = x_data[..., [name_to_idx[name] for name in required]]
+        else:
+            x_cols = x_data[..., col_idx : col_idx + len(required)]
+            col_idx += len(required)
+        effect.initialize(x_cols)  # a no-op for an effect without data-dependent state
     _estimate_projections(x_data, effects_list, feature_columns)
 
 
@@ -656,15 +643,8 @@ def build_phi_from_effects(
         if isinstance(effect, OffsetEffect):
             phi_components.append(effect.transform(x_data))
             
-        elif isinstance(effect, (TensorProductEffect, NeuralEffect, RBFEffect, TreeEffect, LinearTreeEffect)) or _reads_several(effect):
-
-            if isinstance(effect, TensorProductEffect):
-                req_features = []
-                for e in effect.effects:
-                    req_features.extend(getattr(e, 'input_features', [e.feature_name]))
-            else:
-                req_features = getattr(effect, 'input_features', [effect.feature_name])
-
+        elif effect.multi_input:
+            req_features = effect.required_features
             if name_to_idx:
                 try:
                     indices = [name_to_idx[name] for name in req_features]

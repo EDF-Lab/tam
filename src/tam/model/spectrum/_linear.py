@@ -21,6 +21,9 @@ class OffsetEffect(BaseEffect):
     def __init__(self, lambda_p: float, extrapolate: str):
         super().__init__("offset", "offset", lambda_p, extrapolate)
 
+    def summary_details(self) -> str:
+        return "Global Bias"
+
     def get_n_coeffs(self) -> int:
         return 1
 
@@ -44,6 +47,9 @@ class LinearEffect(BaseEffect):
         self.scaled = scaled
         # raw: the covariate enters unnormalised and unscaled (the model reads it as it is), so the effect is exactly zero at 0
         self.raw = bool(raw)
+
+    def summary_details(self) -> str:
+        return "Slope (Ridge)" if not self.raw else "Raw slope (Ridge)"
 
     def get_n_coeffs(self) -> int:
         return 1

@@ -83,6 +83,24 @@ class UniversalPhysicsEffect(BaseEffect):
         else:
             raise ValueError(f"Unknown basis type for physics effect: {basis_type}")
 
+    keeps_feature_dim = property(lambda self: self.base_effect.keeps_feature_dim)
+
+    @property
+    def required_features(self) -> list:
+        return self.base_effect.required_features
+
+    def summary_type(self) -> str:
+        return "Physics"
+
+    def summary_details(self) -> str:
+        ops = [f"{k}={v}" for k, v in self.diff_weights.items()]
+        return f"Basis={self.basis_type}, PDE[{', '.join(ops)}]"
+
+    def initialize(self, x_cols: torch.Tensor) -> None:
+        r"""Initialises the basis (knots, grid, network weights) on the training tensor; the penalty of a neural basis reads its weights."""
+        self.base_effect.initialize(x_cols)
+        self.n_coeffs_val = self.base_effect.get_n_coeffs()
+
     def get_n_coeffs(self) -> int:
         return self.n_coeffs_val
 

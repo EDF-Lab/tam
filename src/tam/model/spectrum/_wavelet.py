@@ -43,6 +43,14 @@ class WaveletEffect(BaseEffect):
         self.locations = None
         self.real_scales = None
 
+    def summary_details(self) -> str:
+        return f"Scales={self.n_scales}, Locs={self.n_locations}"
+
+    def initialize(self, x_cols: torch.Tensor) -> None:
+        r"""Sets the time-scale grid from the full training tensor, not from the first chunk or a one-row memory probe."""
+        if self.locations is None:
+            self._init_grid(x_cols, is_dummy=False)
+
     def get_n_coeffs(self) -> int:
         return self.n_scales * self.n_locations
 
