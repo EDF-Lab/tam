@@ -41,6 +41,7 @@ from tam.model.autotam.inactivity import InactivityGate, drop_leading_zeros
 from tam.model.autotam.covariate_ranking import rank_covariates
 from tam.model.autotam.tokens import formula_columns, term_columns
 from tam.model.autotam.structure_columns import with_offset
+from tam.model.safety import SafetyTAM
 from tam.model.autotam.series_guard import GUARD_ISLANDS, apply_guard, guarded_series
 from tam.model.autotam.external_experts import look_up, normalise_external
 from tam.model.autotam.seeding import seeded_method
@@ -1517,6 +1518,40 @@ class AutoTAM:
         self.experts_["complete"] = self.experts_["name"].map(flags)
 
 #: <auto_tam_quantiles>
+    def predict_intervals(self, df_test: pd.DataFrame, alpha: float = 0.1, date_col: Optional[str] = None) -> pd.DataFrame:
+        """Split-conformal prediction intervals around the final model, distribution-free.
+
+        The absolute errors of the final model on the validation rows (rows the search did not fit) calibrate ``SafetyTAM``; the radius is their
+        ``1 - alpha`` conformal quantile, the same for every row, so the coverage is the nominal one when the future errors look like the
+        validation ones. ``predict_quantiles`` follows the shape of the errors (a quantile each side, per group); this is the symmetric band with
+        the finite-sample guarantee.
+
+        Args:
+            df_test: Frame to forecast, as for ``predict()``.
+            alpha: Miscoverage level in (0, 1): the interval covers the truth with probability ``1 - alpha``.
+            date_col: Name of the date column, when the frame has one.
+
+        Returns:
+            A frame with ``Predicted``, ``Lower`` and ``Upper`` on the rows of ``df_test``.
+
+        Raises:
+            ValueError: ``alpha`` outside (0, 1), or no final model.
+        """
+        if not 0.0 < alpha < 1.0:
+            raise ValueError(f"alpha must lie in (0, 1); got {alpha!r}")
+        column = self.final_model_column_ or (self.trained_experts[0]["name"] if self.trained_experts else None)
+        if column is None or column not in self.oof_predictions_:
+            raise ValueError("predict_intervals needs a fitted model with a final model (use_opera=True) or at least one expert.")
+        val = self.ctx.df_val
+        calibration = np.asarray(self.oof_predictions_[column], dtype=float)[-len(val):]
+        truth = pd.to_numeric(val[self.ctx.target], errors="coerce").to_numpy(dtype=float)
+        keep = np.isfinite(truth) & np.isfinite(calibration)
+        engine = SafetyTAM(alpha).calibrate(truth[keep], calibration[keep], verbose=False)
+        point = self.predict(df_test, date_col)[column].to_numpy(dtype=float)
+        bands = engine.predict_intervals(point)
+        return pd.DataFrame({"Predicted": bands["Predicted"].to_numpy(), "Lower": bands["Lower"].to_numpy(), "Upper": bands["Upper"].to_numpy()},
+                            index=df_test.index if len(df_test) == len(point) else None)
+
     def predict_quantiles(self, df_test: pd.DataFrame, taus: Sequence[float] = (0.1, 0.5, 0.9), date_col: Optional[str] = None,
                           aggregation: str = "empirical") -> pd.DataFrame:
         """Quantile forecasts of the final model: its point forecast plus the quantiles of its validation errors.

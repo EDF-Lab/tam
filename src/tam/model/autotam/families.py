@@ -16,6 +16,7 @@ from typing import Any, Dict, List
 #: <families>
 FAMILY_MODES = ("gaussian", "auto")
 HEAVY_TAIL_KURTOSIS = 6.0
+VERY_HEAVY_TAIL_KURTOSIS = 12.0
 
 
 def check_family_mode(family: str) -> str:
@@ -33,7 +34,7 @@ def candidate_losses(profile: Dict[str, Any]) -> List[str]:
 
     Returns:
         Loss names of ``StaticTAM(loss=...)``: ``binomial`` (a 0/1 outcome or a proportion), ``gamma`` (positive target), ``tweedie`` (non-negative with zeros), ``poisson`` and
-        ``negative_binomial`` (counts), ``huber`` (heavy tails).
+        ``negative_binomial`` (counts), ``huber`` and, for very heavy symmetric tails, ``student_t``.
     """
     if not profile or profile.get("n", 0) < 20 or profile.get("sentinels"):
         return []
@@ -49,5 +50,7 @@ def candidate_losses(profile: Dict[str, Any]) -> List[str]:
         losses.append("gamma")    # positive and skewed: the profile's hint is a log link
     if profile.get("kurtosis", 0.0) > HEAVY_TAIL_KURTOSIS and "cumulative" not in hints:
         losses.append("huber")
+        if profile.get("kurtosis", 0.0) > VERY_HEAVY_TAIL_KURTOSIS and abs(profile.get("skewness", 0.0)) < 1.0:   # a symmetric heavy tail; a skewed one is a Gamma
+            losses.append("student_t")   # a Student-t likelihood down-weights the outliers by their size, where Huber only caps them
     return losses
 #: </families>
