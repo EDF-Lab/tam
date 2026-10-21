@@ -22,6 +22,7 @@ from tam.evaluation.metrics import deviance_metric
 import re
 from tam.model.autotam.tokens import formula_columns
 from tam.model.autotam.tensor_penalty import with_tensor_outer_penalty
+from tam.model.autotam.structure_columns import with_offset
 
 from .knowledge_graph import KnowledgeGraph, term_members
 from .parser import canonicalize_term, terms_are_equivalent, term_subsumes
@@ -154,6 +155,7 @@ class DragTAM:
         bounded_rewards: bool = False,
         tensor_margin_penalty: bool = False,
         loss: str = "l2",
+        offset_col: Optional[str] = None,
     ):
         """
         Initializes the Evolutionary Engine.
@@ -179,6 +181,7 @@ class DragTAM:
         # Island reward: 1 / scaled error is unbounded (it reaches 10 to 100 for a good model, against an exploration term below 1), so the best
         # Island is drawn until the budget is spent. The bounded reward 1 / (1 + scaled error) lies in (0, 1], on the scale of the exploration term.
         self.bounded_rewards = bool(bounded_rewards)
+        self.offset_col = offset_col   # exposure column: ``offset(<col>)`` is written into every candidate that is fitted
         self.loss = loss   # the loss the candidates are fitted with: "l2" (identity link) or the family of a ``family_search``
         self.tensor_margin_penalty = bool(tensor_margin_penalty)   # fit te() terms with the margin penalties the search wrote (see tensor_penalty.py)
         self.ucb_E = 0.1 if self.bounded_rewards else 2.0   # Mutant-UCB exploration parameter E in mu_k + sqrt(E / N_k)
@@ -400,7 +403,7 @@ class DragTAM:
             try:
                 model = StaticTAM(self._fit_formula(candidate_formula), group_col=self.group_col, date_col=self.date_col, **self._loss_kwargs())
 
-                req_cols = self._required_columns(candidate_formula, fold_train.columns)
+                req_cols = self._required_columns(self._fit_formula(candidate_formula), fold_train.columns)
 
                 train_clean = fold_train[req_cols].copy()
                 val_clean = fold_val[req_cols].copy()
@@ -442,7 +445,7 @@ class DragTAM:
         if mean_rmse != float('inf'):
             try:
                 last_train = cv_folds[-1][0]
-                req_cols = self._required_columns(candidate_formula, last_train.columns)
+                req_cols = self._required_columns(self._fit_formula(candidate_formula), last_train.columns)
 
                 train_clean = last_train[req_cols].copy()
                 train_clean.replace([np.inf, -np.inf], np.nan, inplace=True)
@@ -668,7 +671,8 @@ class DragTAM:
 
     def _fit_formula(self, formula: str) -> str:
         """The formula to fit: with ``tensor_margin_penalty`` every ``te()`` gets ``ap=0.0`` so its margins keep their own penalty."""
-        return with_tensor_outer_penalty(formula) if self.tensor_margin_penalty else formula
+        formula = with_tensor_outer_penalty(formula) if self.tensor_margin_penalty else formula
+        return with_offset(formula, self.offset_col)
 
 
     def _term_to_str(self, t: Dict[str, Any]) -> str:

@@ -21,6 +21,7 @@ from tam.model.autotam.guards import guard_violation, monotone_features
 from tam.model.autotam.seeding import rank_key
 from tam.model.autotam.expert_ids import normalise_formula
 from tam.model.autotam.tensor_penalty import with_tensor_outer_penalty
+from tam.model.autotam.structure_columns import with_offset
 from tam.model.autotam.search_preset import FULL_GENERATIONS
 import logging
 logger = logging.getLogger(__name__)
@@ -98,7 +99,8 @@ class BaseDiscoverer:
                         mandatory_terms=getattr(ctx, 'mandatory_terms', None) or self.mandatory_terms,
                         mandatory_variables=getattr(ctx, 'mandatory_variables', None) or self.mandatory_variables,
                         bounded_rewards=self.bounded_rewards, tensor_margin_penalty=self.tensor_margin_penalty,
-                        loss=ctx.family_losses[0] if getattr(ctx, "family_search", False) and ctx.family_losses else "l2")
+                        loss=ctx.family_losses[0] if getattr(ctx, "family_search", False) and ctx.family_losses else "l2",
+                        offset_col=getattr(ctx, "offset_col", None))
         islands = [i for i in get_island_objects() if self.islands is None or type(i).__name__ in self.islands]
         for island in islands:
             island.extended_mutations = self.extended
@@ -163,6 +165,8 @@ class BaseDiscoverer:
             island_champions = self.top_formulas(evaluated)
             if self.tensor_margin_penalty:   # the champions are fitted as they were searched
                 island_champions = {i: [with_tensor_outer_penalty(f) for f in forms] for i, forms in island_champions.items()}
+            if getattr(ctx, "offset_col", None):
+                island_champions = {i: [with_offset(f, ctx.offset_col) for f in forms] for i, forms in island_champions.items()}
         else:
             logger.warning("No formulas survived the evolutionary evaluation. Check for hidden NaNs or Inf values.")
 

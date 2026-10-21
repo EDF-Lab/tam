@@ -33,6 +33,7 @@ from tam.model.autotam.crisis_calendar import active_events, add_crisis, resolve
 from tam.model.autotam.floor import FLOOR_COLUMN, season_position
 from tam.model.autotam.target_profile import mask_sentinels, profile_target
 from tam.model.autotam.sentinel_cleaning import SentinelCleaner
+from tam.model.autotam.structure_columns import random_effect_columns, spatial_pairs
 logger = logging.getLogger(__name__)
 #: </data_manager_imports>
 
@@ -191,6 +192,9 @@ class DataManager:
         max_cv_folds: Optional[int] = None,
         clean_sentinels: bool = False,
         calendar_guards: bool = False,
+        offset_col: Optional[str] = None,
+        spatial_pairs: bool = False,
+        random_effects: bool = False,
         smooth_monotonic: bool = False,
         cross_sectional: bool = False,
         physical_bounds: Optional[Dict[str, Tuple[float, float]]] = None,
@@ -223,6 +227,9 @@ class DataManager:
         self.clean_sentinels = bool(clean_sentinels)
         self.calendar_guards = bool(calendar_guards)
         self.cross_sectional = bool(cross_sectional)
+        self.offset_col = offset_col
+        self.find_spatial_pairs = bool(spatial_pairs)
+        self.find_random_effects = bool(random_effects)
         self.physical_bounds = dict(physical_bounds or {})
         self.country = country
         self.subdivision = subdivision
@@ -470,6 +477,7 @@ class DataManager:
             add_anchor_lag(df_all_raw, ctx.target, ctx.anchor_season, group_col)
 
         df_all_clean = self.profiler.transform(df_all_raw, ctx.formula_config, date_col) if hasattr(self.profiler, 'transform') else df_all_raw
+        self._declare_structure_columns(df_all_clean, ctx, date_col, group_col)
         df_all_aug = self.engineer.engineer_features(df_all_clean, ctx.formula_config, ctx.metadata, date_col)
         
         df_all_aug = self._add_calendar_columns(df_all_aug, ctx)
@@ -508,7 +516,10 @@ class DataManager:
         else:
             ctx.historical_tail = df_all_aug.tail(max_look + 1).copy()
 
+        ctx.formula_config["random_effect_columns"] = list(ctx.random_effect_columns)
         ctx.search_space = self.selector.build_search_space(ctx.df_fit, ctx.formula_config, ctx.metadata)
+        if ctx.offset_col:
+            ctx.search_space.pop(ctx.offset_col, None)   # the exposure is not a feature: it enters every formula as offset()
         ctx.search_space["mandatory_terms"] = ctx.mandatory_terms
         ctx.search_space["mandatory_variables"] = ctx.mandatory_variables
 
@@ -618,6 +629,32 @@ class DataManager:
             
         return folds
 #: </data_manager_cv>
+
+#: <data_manager_structure>
+    def _declare_structure_columns(self, frame: pd.DataFrame, ctx: PipelineContext, date_col: Optional[str], group_col: Optional[str]) -> None:
+        """Finds the exposure, the coordinate pairs and the identifiers, and tells the feature engineer to leave them alone."""
+        reserved = {ctx.target, date_col, group_col}
+        ctx.offset_col = self.offset_col
+        if self.offset_col:
+            if self.offset_col not in frame.columns:
+                raise ValueError(f"offset_col '{self.offset_col}' is not a column of the data.")
+            self.engineer.no_ratio.add(self.offset_col)
+            self.engineer.do_not_smooth_features.add(self.offset_col)
+        features = [c for c in frame.columns if c not in reserved and c != self.offset_col]
+        if self.find_spatial_pairs:
+            ctx.spatial_pairs = spatial_pairs(features)
+            for pair in ctx.spatial_pairs:
+                self.engineer.no_ratio.update(pair)
+            if ctx.spatial_pairs:
+                logger.info("Spatial coordinate pairs found: %s.", ", ".join(f"{a}/{b}" for a, b in ctx.spatial_pairs))
+        if self.find_random_effects:
+            ctx.random_effect_columns = random_effect_columns(frame[features])
+            for column in ctx.random_effect_columns:
+                self.engineer.no_ratio.add(column)
+                self.engineer.do_not_smooth_features.add(column)
+            if ctx.random_effect_columns:
+                logger.info("Identifier columns with many levels (random effects): %s.", ", ".join(ctx.random_effect_columns))
+#: </data_manager_structure>
 
 #: <data_manager_calendar>
     def _add_calendar_columns(self, df_aug: pd.DataFrame, ctx: PipelineContext) -> pd.DataFrame:

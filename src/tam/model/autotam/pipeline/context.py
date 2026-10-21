@@ -203,6 +203,9 @@ class PipelineContext:
     family_losses: List[str] = field(default_factory=list)  # non-Gaussian losses offered with family='auto' (see families.py)
     dynamic_top: Optional[int] = None  # dynamic experts only for the champions ranked at most this in their island, None for all
     native_quantiles: bool = False  # distributional experts that forecast their own quantiles (see native_quantiles.py)
+    offset_col: Optional[str] = None  # exposure column: every candidate carries ``offset(<col>)``, the column is no feature
+    spatial_pairs: List[Any] = field(default_factory=list)  # pairs of coordinate columns found among the features
+    random_effect_columns: List[str] = field(default_factory=list)  # identifiers with many levels
     family_search: bool = False  # the search fits its candidates under the first family of ``family_losses`` instead of the identity link
     sentinel_cleaner: Any = None  # the learned rules that mask and impute missing-data codes (see sentinel_cleaning.py), None when off
     cycle_windows: bool = False  # the group is derived from the dates (group_search): the history of a window is the cycles of one group

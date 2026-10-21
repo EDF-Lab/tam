@@ -40,6 +40,7 @@ from tam.model.autotam.expert_ids import experts_table, identifiers
 from tam.model.autotam.inactivity import InactivityGate, drop_leading_zeros
 from tam.model.autotam.covariate_ranking import rank_covariates
 from tam.model.autotam.tokens import formula_columns, term_columns
+from tam.model.autotam.structure_columns import with_offset
 from tam.model.autotam.series_guard import GUARD_ISLANDS, apply_guard, guarded_series
 from tam.model.autotam.external_experts import look_up, normalise_external
 from tam.model.autotam.seeding import seeded_method
@@ -177,6 +178,9 @@ class AutoTAM:
         max_covariates: Optional[int] = None,
         physical_bounds: Optional[Dict[str, Tuple[float, float]]] = None,
         family_search: bool = False,
+        offset_col: Optional[str] = None,
+        spatial_pairs: bool = False,
+        random_effects: bool = False,
         **kwargs
     ):
         """
@@ -212,6 +216,17 @@ class AutoTAM:
                 binomial, Tweedie). The evolutionary search itself fits its candidates under the first family of the profile (a log or logit link)
                 instead of the identity link: on a multiplicative process the identity link needs interaction terms that an additive model on the
                 link scale does not, and the champions are then fitted again under the family. ``False`` (default) searches on the identity link.
+            offset_col (Optional[str]): Opt-in. The column of a known exposure or effort (the log of an area, of a volume, of the observation time),
+                with a fixed coefficient of one. Every candidate the search fits and every expert carries ``offset(<col>)``; the column is not a
+                feature (no ratio, no curve, no tensor product with it). The engine refuses an offset in the Kalman and adaptive stages, so
+                they are not built. The column must be in the frames given to ``predict()``.
+            spatial_pairs (bool): Opt-in. Pairs of coordinate columns among the features (``lon``/``lat``, ``x``/``y``, ``e``/``n``...) are found:
+                no ratio is made from them, and two seed experts are added, a thin-plate surface ``rbf(a, others='b', kernel='tps')`` and a tensor
+                product ``te(s(a), s(b))``, so a spatial surface competes from the start. ``spatial_pairs_`` lists the pairs.
+            random_effects (bool): Opt-in. Identifier columns with many levels (text with 16 to 500 levels, or whole numbers with 16 to 250 that
+                repeat and are named like an identifier or are perfectly balanced) get a ridge-shrunk ``c(id, ap=-2)`` as their only effect, are
+                left out of ratios and smoothing, and are offered as the partner of a factor smooth ``te(s(x), c(id))``.
+                ``random_effect_columns_`` lists them.
             search_groups (Optional[int]): For data with thousands of groups: ``fit()`` searches on this many groups, taken evenly spaced by the
                 level of their target, then fits the architectures found on every group (the way ``architectures=`` does). ``None`` (default)
                 searches on all groups; it has no effect without a ``group_col`` or when there are not more groups than this number. The groups
@@ -391,6 +406,9 @@ class AutoTAM:
         self.search = check_search_mode(search)
         self.family = check_family_mode(family)
         self.family_search = bool(family_search)
+        self.offset_col = offset_col
+        self.spatial_pairs_ = []          # set by fit() with spatial_pairs: the coordinate pairs found
+        self.random_effect_columns_ = []  # set by fit() with random_effects: the identifier columns found
         if guided_search and self.family == "gaussian":
             self.family = "auto"
         fast = self.search == "fast"
@@ -417,6 +435,9 @@ class AutoTAM:
             max_cv_folds=max_cv_folds if max_cv_folds is not None else (FAST_MAX_CV_FOLDS if fast else None),
             clean_sentinels=clean_sentinels,
             calendar_guards=calendar_guards,
+            offset_col=offset_col,
+            spatial_pairs=spatial_pairs,
+            random_effects=random_effects,
             smooth_monotonic=smooth_monotonic,
             cross_sectional=cross_sectional,
             physical_bounds=physical_bounds,
@@ -598,6 +619,8 @@ class AutoTAM:
         self.chronological_test_log = []
         if expansions is None and self.cross_sectional and not date_col:
             expansions = {"prior": True, "autofit": True, "kalman": False, "adaptive": False, "grid": False}
+        if self.offset_col and expansions is None:
+            expansions = {"prior": True, "autofit": True, "kalman": False, "adaptive": False, "grid": False}   # the engine refuses an offset in the online stages
         self.expander.expansions = expansions or {"prior": True, "autofit": True, "kalman": True, "adaptive": True, "grid": False}
         
         if self.inactivity_gate:
@@ -624,6 +647,8 @@ class AutoTAM:
         seed_champions = self._seed_champions(seed_formulas)
         if self.data_manager.calendar_features:
             seed_champions = list(seed_champions) + self._calendar_seeds()
+        if self.ctx.spatial_pairs:
+            seed_champions = list(seed_champions) + self._spatial_seeds()
         self.ctx.extrapolation_guards = self.extrapolation_guards
         self.ctx.fast_search = self.search == "fast"
         self.ctx.dynamic_top = self.dynamic_top
@@ -634,6 +659,7 @@ class AutoTAM:
         self.ctx.native_quantiles = self.native_quantiles
         self.ctx.family_losses = candidate_losses(self.ctx.target_profile) if self.family == "auto" else []
         self.ctx.family_search = self.family_search
+        self.spatial_pairs_, self.random_effect_columns_ = list(self.ctx.spatial_pairs), list(self.ctx.random_effect_columns)
         if self.guided_search:
             self.guided_hints_ = self._guided_hints()
         self.ctx.optimization_metric = optimization_metric
@@ -767,6 +793,15 @@ class AutoTAM:
         table["offered"] = table["feature"].isin([f for f in table["feature"] if f in ctx.search_space])
         self.covariate_ranking_ = table
         logger.info("AutoTAM covariate ranking: %s", ", ".join(f"{f} {s:.2f}" for f, s in zip(table["feature"], table["score"])))
+
+    def _spatial_seeds(self) -> List[str]:
+        """Seed formulas for the coordinate pairs found: a thin-plate surface and a tensor product of two smooths, with the exposure offset."""
+        seeds = []
+        for first, second in self.ctx.spatial_pairs:
+            for surface in (f"rbf({first}, others='{second}', n_centers=30, kernel='tps', ap=-2.0)",
+                            f"te(s({first}, k=8, ap=-2.0), s({second}, k=8, ap=-2.0), ap=0.0)"):
+                seeds.append(with_offset(f"{self.ctx.target} ~ {surface}", self.ctx.offset_col))
+        return seeds
 
     def _gated(self, values: pd.DataFrame, frame: pd.DataFrame) -> pd.DataFrame:
         """``values`` with the rows of the inactive series set to zero (one row of ``values`` per row of ``frame``)."""

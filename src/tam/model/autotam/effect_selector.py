@@ -81,6 +81,7 @@ class EffectSelector:
         """
         targets = config.get("targets", [])
         explicit_features = config.get("features", [])
+        identifiers = set(config.get("random_effect_columns", []))
         date_col = metadata.get("date_col", None)
         group_col = metadata.get("group_col", None)
         
@@ -185,6 +186,16 @@ class EffectSelector:
                 # A regime number is a label, not a quantity: only a categorical effect is offered.
                 feature_space["eligible_effects"] = ["c"]
                 feature_space["grids"]["c"] = {"n_cat": [int(df[col].nunique())], "topo": ["nominal"], "p_order": [1]}
+                search_space[col] = feature_space
+                continue
+
+            if col in identifiers:
+                # An identifier with many levels: a ridge-shrunk random intercept (and the partner of a factor smooth), never a curve over the
+                # identifier numbers.
+                feature_space["topology"] = "discrete"
+                feature_space["eligible_effects"] = ["c"]
+                feature_space["random_effect"] = True
+                feature_space["grids"]["c"] = {"n_cat": [int(df[col].max()) + 1], "topo": ["nominal"], "p_order": [1], "ap": [-2.0]}
                 search_space[col] = feature_space
                 continue
 

@@ -55,6 +55,7 @@ class FeatureEngineer:
         self.purge_log: List[Dict[str, Any]] = []
         self.do_not_smooth_features: Set[str] = set()
         self.learned_temporal_params: Dict[str, Dict[str, Any]] = {}
+        self.no_ratio: Set[str] = set()   # exposure, spatial coordinates and identifiers: never divided by or into another column
 #: </feature_engineer_init>
 
 #: <engineer_features_method>
@@ -266,6 +267,7 @@ class FeatureEngineer:
         Generates static mathematical interactions between the primary continuous features.
         Includes a safety constant to prevent zero-division errors.
         """
+        numeric_cols = [c for c in numeric_cols if c not in self.no_ratio]
         if len(numeric_cols) >= 2:
             col1, col2 = numeric_cols[0], numeric_cols[1]
             df[f"{col1}_div_{col2}"] = df[col1] / (df[col2].abs() + 1e-6)
