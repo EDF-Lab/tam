@@ -10,10 +10,13 @@ or an underscore turns it into ``day``, ``of`` and ``year``, none of which is a 
 fails, and scores as infinite, so the search quietly drops the feature. ``identifier_tokens`` keeps the dots inside a name.
 """
 
+import logging
 import re
 from typing import Any, Dict, Iterable, List
 
 from tam.common.utils import parse_formula_to_terms
+
+logger = logging.getLogger(__name__)
 
 #: <identifier_tokens>
 IDENTIFIER = r"[A-Za-z0-9_][A-Za-z0-9_.]*"
@@ -54,7 +57,8 @@ def term_columns(terms: List[Dict[str, Any]]) -> List[str]:
                 if margin and "(" in str(margin):
                     try:
                         _, sub_terms = parse_formula_to_terms(f"DUMMY ~ {str(margin).strip()}")
-                    except Exception:
+                    except Exception as exc:
+                        logger.debug("margin %r of a tensor term could not be parsed: %s", margin, exc)
                         continue
                     for name in term_columns(sub_terms):
                         add(name)
@@ -70,7 +74,8 @@ def formula_columns(formula: str, available: Iterable[str]) -> List[str]:
     try:
         target, terms = parse_formula_to_terms(formula)
         names = ([target] if target else []) + term_columns(terms)
-    except Exception:
+    except Exception as exc:
+        logger.debug("formula %r could not be parsed, its words are used: %s", formula, exc)
         names = identifier_tokens(formula)
     present = set(available)
     return [n for n in dict.fromkeys(names) if n in present]
