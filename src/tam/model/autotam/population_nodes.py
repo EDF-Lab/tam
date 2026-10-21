@@ -260,9 +260,10 @@ class BaseIsland:
 
         elif op == 'crossover':
             branch = random.choice(branches)
-            if len(genome) >= self.max_terms and deletable_indices:
+            cap = min(self.max_terms, search_space.get('max_terms', self.max_terms))   # a small sample supports few terms
+            if len(genome) >= cap and deletable_indices:
                 genome.pop(random.choice(deletable_indices))
-            if len(genome) < self.max_terms:
+            if len(genome) < cap:
                 genome.append({'type': branch['type'], 'feature': branch.get('feature'), 'params': dict(branch.get('params', {}))})
 
         elif op == 'insert_te':
@@ -707,7 +708,7 @@ def _one_tree_architecture(params: Dict[str, Any], keep_depth: bool) -> Dict[str
 def _draw_features(available_features: List[str], search_space: Dict[str, Any], max_terms: int) -> List[str]:
     """The features of a candidate: a uniform draw, or, when ``rank_covariates`` gave the features an importance, a draw without replacement
     with probability proportional to ``IMPORTANCE_FLOOR + importance`` (the floor keeps the weak ones in play)."""
-    count = min(len(available_features), random.randint(1, max_terms))
+    count = min(len(available_features), random.randint(1, min(max_terms, search_space.get("max_terms", max_terms))))
     weights = [search_space.get(f, {}).get("importance") for f in available_features]
     if all(w is None for w in weights):
         return random.sample(available_features, count)

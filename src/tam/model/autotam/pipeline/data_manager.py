@@ -194,6 +194,7 @@ class DataManager:
         calendar_guards: bool = False,
         offset_col: Optional[str] = None,
         strong_regularization: bool = False,
+        small_sample: bool = False,
         spatial_pairs: bool = False,
         random_effects: bool = False,
         smooth_monotonic: bool = False,
@@ -228,6 +229,7 @@ class DataManager:
         self.clean_sentinels = bool(clean_sentinels)
         self.calendar_guards = bool(calendar_guards)
         self.cross_sectional = bool(cross_sectional)
+        self.small_sample = bool(small_sample)   # fewer folds when the sample is tiny (see generate_cv_folds)
         self.offset_col = offset_col
         self.find_spatial_pairs = bool(spatial_pairs)
         self.find_random_effects = bool(random_effects)
@@ -616,11 +618,12 @@ class DataManager:
             
         folds = []
         indices = np.random.RandomState(seed=42).permutation(df_pool.index)
-        fold_size = max(1, len(indices) // 5)
+        k = 3 if (self.small_sample and len(indices) < 30) else 5   # a fold of a handful of rows is no ground for a choice
+        fold_size = max(1, len(indices) // k)
         
-        for i in range(5):
+        for i in range(k):
             start_idx = i * fold_size
-            end_idx = start_idx + fold_size if i < 4 else len(indices)
+            end_idx = start_idx + fold_size if i < k - 1 else len(indices)
             val_idx = indices[start_idx:end_idx]
             train_idx = np.setdiff1d(indices, val_idx)
             

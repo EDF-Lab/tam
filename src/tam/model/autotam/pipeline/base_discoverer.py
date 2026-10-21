@@ -100,7 +100,7 @@ class BaseDiscoverer:
                         mandatory_variables=getattr(ctx, 'mandatory_variables', None) or self.mandatory_variables,
                         bounded_rewards=self.bounded_rewards, tensor_margin_penalty=self.tensor_margin_penalty,
                         loss=ctx.family_losses[0] if getattr(ctx, "family_search", False) and ctx.family_losses else "l2",
-                        offset_col=getattr(ctx, "offset_col", None))
+                        offset_col=getattr(ctx, "offset_col", None), aicc_rows=getattr(ctx, "small_sample_rows", None))
         islands = [i for i in get_island_objects() if self.islands is None or type(i).__name__ in self.islands]
         for island in islands:
             island.extended_mutations = self.extended

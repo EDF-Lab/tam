@@ -182,6 +182,7 @@ class AutoTAM:
         spatial_pairs: bool = False,
         random_effects: bool = False,
         strong_regularization: bool = False,
+        small_sample: Union[bool, str] = False,
         **kwargs
     ):
         """
@@ -233,6 +234,11 @@ class AutoTAM:
                 and, from 100 rows, the weak one (-6); the margins of a tensor product take -3, -1 or 0; and a champion whose cross-validated R2
                 is above 0.92 is also fitted with more knots and the locally adaptive penalty ``m_pen=4`` (the experts ``..._HighSNR_...``).
                 ``False`` (default) is the search space as it was.
+            small_sample (Union[bool, str]): Opt-in, for data with no date column and few rows. ``True``, or ``"auto"`` when there is no date column
+                and fewer than 150 rows: the candidates are scored on 5 folds (3 under 30 rows) of the training rows and their error is multiplied
+                by the corrected-AIC factor ``1 + 2k / (n - k - 1)`` (k the coefficients), a formula has at most ``n // 8`` terms, and a heavily
+                regularised linear model of the first three features is an expert the final model cannot be worse than (the seed floor).
+                ``is_small_sample_`` says whether it was on. ``False`` (default) is the search as it was.
             search_groups (Optional[int]): For data with thousands of groups: ``fit()`` searches on this many groups, taken evenly spaced by the
                 level of their target, then fits the architectures found on every group (the way ``architectures=`` does). ``None`` (default)
                 searches on all groups; it has no effect without a ``group_col`` or when there are not more groups than this number. The groups
@@ -414,6 +420,10 @@ class AutoTAM:
         self.family_search = bool(family_search)
         self.offset_col = offset_col
         self.strong_regularization = bool(strong_regularization)
+        if small_sample not in (True, False, "auto"):
+            raise ValueError(f"small_sample must be False, True or 'auto'; got {small_sample!r}")
+        self.small_sample = small_sample
+        self.is_small_sample_ = False   # set by fit(): whether the small-sample protocol was used
         self.spatial_pairs_ = []          # set by fit() with spatial_pairs: the coordinate pairs found
         self.random_effect_columns_ = []  # set by fit() with random_effects: the identifier columns found
         if guided_search and self.family == "gaussian":
@@ -444,6 +454,7 @@ class AutoTAM:
             calendar_guards=calendar_guards,
             offset_col=offset_col,
             strong_regularization=strong_regularization,
+            small_sample=small_sample is True,
             spatial_pairs=spatial_pairs,
             random_effects=random_effects,
             smooth_monotonic=smooth_monotonic,
@@ -668,6 +679,13 @@ class AutoTAM:
         self.ctx.family_losses = candidate_losses(self.ctx.target_profile) if self.family == "auto" else []
         self.ctx.family_search = self.family_search
         self.ctx.strong_regularization = self.strong_regularization
+        rows = sum(len(f) for f in (self.ctx.df_fit, self.ctx.df_dev, self.ctx.df_val) if f is not None)
+        self.is_small_sample_ = self.small_sample is True or (self.small_sample == "auto" and not self.ctx.date_col and rows < 150)
+        if self.is_small_sample_:
+            self.ctx.small_sample_rows = rows
+            self.ctx.search_space["max_terms"] = max(1, rows // 8)
+            self.selector.seed_floor = True
+            seed_champions = list(seed_champions) + self._small_sample_baseline()
         self.spatial_pairs_, self.random_effect_columns_ = list(self.ctx.spatial_pairs), list(self.ctx.random_effect_columns)
         if self.guided_search:
             self.guided_hints_ = self._guided_hints()
@@ -811,6 +829,14 @@ class AutoTAM:
                             f"te(s({first}, k=8, ap=-2.0), s({second}, k=8, ap=-2.0), ap=0.0)"):
                 seeds.append(with_offset(f"{self.ctx.target} ~ {surface}", self.ctx.offset_col))
         return seeds
+
+    def _small_sample_baseline(self) -> List[str]:
+        """The floor of a small sample: a heavily regularised line in each of the first three numeric features (a seed expert the final model
+        is never worse than on the validation rows)."""
+        ctx = self.ctx
+        names = [c for c in ctx.formula_config.get("features", []) if c in ctx.df_fit.columns and c not in (ctx.target, ctx.date_col, ctx.group_col)
+                 and pd.api.types.is_numeric_dtype(ctx.df_fit[c])][:3]
+        return [f"{ctx.target} ~ " + " + ".join(f"l({c}, ap=0.0)" for c in names)] if names else []
 
     def _gated(self, values: pd.DataFrame, frame: pd.DataFrame) -> pd.DataFrame:
         """``values`` with the rows of the inactive series set to zero (one row of ``values`` per row of ``frame``)."""

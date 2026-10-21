@@ -156,6 +156,7 @@ class DragTAM:
         tensor_margin_penalty: bool = False,
         loss: str = "l2",
         offset_col: Optional[str] = None,
+        aicc_rows: Optional[int] = None,
     ):
         """
         Initializes the Evolutionary Engine.
@@ -181,6 +182,7 @@ class DragTAM:
         # Island reward: 1 / scaled error is unbounded (it reaches 10 to 100 for a good model, against an exploration term below 1), so the best
         # Island is drawn until the budget is spent. The bounded reward 1 / (1 + scaled error) lies in (0, 1], on the scale of the exploration term.
         self.bounded_rewards = bool(bounded_rewards)
+        self.aicc_rows = aicc_rows   # small sample: the error is multiplied by 1 + 2 k / (n - k - 1), k the coefficients of the candidate
         self.offset_col = offset_col   # exposure column: ``offset(<col>)`` is written into every candidate that is fitted
         self.loss = loss   # the loss the candidates are fitted with: "l2" (identity link) or the family of a ``family_search``
         self.tensor_margin_penalty = bool(tensor_margin_penalty)   # fit te() terms with the margin penalties the search wrote (see tensor_penalty.py)
@@ -240,6 +242,17 @@ class DragTAM:
         unique_terms.sort()
         rhs_clean = " + ".join(unique_terms)
         return f"{self.target_col} ~ {rhs_clean}" if rhs_clean else f"{self.target_col} ~ "
+
+    def _cap_terms(self, rhs: str, search_space: Dict[str, Any]) -> str:
+        """The right-hand side with at most ``search_space['max_terms']`` terms (the first ones; the mandatory terms are always kept): a small
+        sample supports few terms, and a feature can carry two of them."""
+        cap = search_space.get("max_terms")
+        parts = _split_rhs_terms(rhs)
+        if not cap or len(parts) <= cap:
+            return rhs
+        mandatory = [t for t in parts if t.replace(" ", "") in {m.replace(" ", "") for m in (self.mandatory_terms or [])}]
+        others = [t for t in parts if t not in mandatory]
+        return " + ".join(mandatory + others[: max(0, cap - len(mandatory))])
 
     def _ensure_mandatory_constraints(self, rhs: str, island: Any, search_space: Optional[Dict[str, Any]] = None) -> str:
         """
@@ -508,7 +521,7 @@ class DragTAM:
             else:
                 rhs = isl.generate(self.kg, available_feats, search_space,
                                    complexity_cap=(random.random() < 0.20))
-            rhs = self._ensure_mandatory_constraints(rhs, isl, search_space)
+            rhs = self._cap_terms(self._ensure_mandatory_constraints(rhs, isl, search_space), search_space)
             rhs = rhs if rhs != "1" else ""
             return self._build_canonical_formula(rhs), island_name
 
@@ -518,7 +531,7 @@ class DragTAM:
             name = self.kg.select_island_ucb(island_names, self.ucb_E, self.ucb_epsilon, self.ucb_min_pulls)
             isl = island_by_name[name]
             rhs = isl.generate(self.kg, available_feats, search_space, complexity_cap=True)
-            rhs = self._ensure_mandatory_constraints(rhs, isl, search_space)
+            rhs = self._cap_terms(self._ensure_mandatory_constraints(rhs, isl, search_space), search_space)
             rhs = rhs if rhs != "1" else ""
             self.population.append((self._build_canonical_formula(rhs), name))
 
@@ -538,7 +551,7 @@ class DragTAM:
                 rmse, model, parsed_terms, penalties = self.evaluation_cache[formula]
 
                 total_penalty = sum(penalties.values()) if penalties else 0.0
-                penalized = rmse * (1.0 + (active_alpha * total_penalty))
+                penalized = rmse * (1.0 + (active_alpha * total_penalty)) * self._small_sample_factor(model)
 
                 # Credit evidence only on first evaluation to prevent cached elites from artificially inflating their island's UCB reward.
                 if is_new:
@@ -573,10 +586,11 @@ class DragTAM:
                     'island': island_name,
                     'pruned_terms': pruned_terms,
                     'rmse': rmse,
-                    'total_penalty': total_penalty
+                    'total_penalty': total_penalty,
+                    'small_factor': self._small_sample_factor(model)
                 })
 
-            evaluated_population.sort(key=lambda x: x['rmse'] * (1.0 + (active_alpha * x['total_penalty'])))
+            evaluated_population.sort(key=lambda x: x['rmse'] * (1.0 + (active_alpha * x['total_penalty'])) * x['small_factor'])
 
             best_gen = evaluated_population[0]
             self.history.append({
@@ -665,6 +679,17 @@ class DragTAM:
 #: </dragtam_optimize>
 
 #: <dragtam_reconstruct>
+    def _small_sample_factor(self, model) -> float:
+        """The corrected-AIC factor ``1 + 2 k / (n - k - 1)`` of a candidate on a small sample (1 when the option is off or the model unknown)."""
+        if not self.aicc_rows or model is None:
+            return 1.0
+        coefficients = getattr(model, "coefficients_", None)
+        if coefficients is None:
+            return 1.0
+        k = int(np.asarray(coefficients.detach().cpu() if hasattr(coefficients, "detach") else coefficients).shape[-1])
+        room = self.aicc_rows - k - 1
+        return 1.0 + 2.0 * k / room if room > 0 else 10.0
+
     def _loss_kwargs(self) -> Dict[str, Any]:
         """``{"loss": ...}`` for a candidate fitted under a family, nothing for the default Gaussian loss."""
         return {} if self.loss in (None, "l2") else {"loss": self.loss}
