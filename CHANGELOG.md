@@ -8,12 +8,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > Source repository: https://github.com/EDF-Lab/tam
 
-> The first official open-source release of the TAM framework under this structure is **[1.2.3]**. (Versions 1.1.1 - 1.2.2 correspond to internal development milestones and were not publicly released.)
+> The first official open-source release of the TAM framework under this structure is **[1.2.3]**.
+
+> ⚠️ Note: Versions 1.1.1–1.2.2 correspond to internal development milestones and were not publicly released.
 
 > **[0.0.6]** corresponds to the legacy `weakl` package available on PyPI.
 
 ---
-
 ## [Unreleased]
 
 ### Added
@@ -126,6 +127,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Clear Errors on Short Histories:** `AutoTAM.fit()` with too few rows used to return an empty model after a printed warning (the error came later, at `predict()`: "Model not fitted"), and an empty `df_fit` stopped in the data profiler ("received an empty or None DataFrame"). `fit()` now raises a `ValueError` that names the rows of each split (`fit=`, `dev=`, `val=`) and the cross-validation folds, or, for an empty split, says which of `df_fit`, `df_dev` and `df_val` is empty and suggests `df_train=` so that the splits are sized from the data. Searches that kept an expert are unchanged. This is a change of behaviour on purpose: code that relied on the empty model has to handle the error.
 
 ---
+
+## [1.5.0] - 2026-10-20
+
+Minor release for the non-Gaussian losses and for richer effects. New arguments and options are appended after the existing ones and their defaults keep the previous behaviour, so existing calls give the same forecasts. The exceptions are fixes: `auto_fit()` and `grid_search_fit()` on a non-Gaussian loss now use that loss (they used to score the raw response with an identity link), and `phys(x, basis='neural')` no longer crashes at fit.
+
+### Added
+- **`auto_fit(criterion='reml')`**: the smoothing parameters maximise the Laplace restricted marginal likelihood (analytic gradient, L-BFGS on `log(lambda)`) instead of the GCV score, for the Gaussian and the GLM losses and for every smoothing coordinate (`m_pen`, `te()` margins, `mode='per_level'`). On a sine with AR(1) noise (300 rows, 25 knots, 12 seeds) the error against the true curve is 0.131 against 0.157 with GCV. The fitted model keeps `smoothing_criterion_` and `reml_score_`. The default stays `'gcv'`, unchanged.
+- **`n(..., orthogonalize=True)` and `t(..., orthogonalize=True)`**: the neural or tree block is projected on the orthogonal complement of the rest of the design (intercept, splines, linear terms), estimated once on the training rows, so that it explains only what the interpretable terms cannot. On `y = sin(x1) + x2^2 + 1.5 x1 x2`, the spline of `x1` is 0.81 off the true main effect without the projection and 0.06 with it, at the same total error. Default `False`: unchanged.
+- **`te(s(x), c(group), mode='per_level')`** (factor-smooth with one smoothing parameter per level, plus the ridge of the factor, for `auto_fit`) **and `l(z, raw=True)`** (varying-coefficient slope on the raw covariate: the interaction `te(s(x), l(z, raw=True))` is exactly zero where `z = 0`). `mode='shared'` (the default) and `l(z)` are unchanged.
+- **`c(..., unseen='edge' | 'mean' | 'zero')`**: what a code that is none of the levels takes. `'edge'` (the default, the behaviour so far) is the effect of the nearest edge level; `'mean'` is the mean of the level effects weighted by their training rows, the proxy of an average level; `'zero'` is no categorical effect (intercept and other terms only). Such a code never raises.
+- **Distributional `StaticTAM`: weighted refit of the location, debiased scale, and a record of the fit** (`dist_kwargs`): `refit_rounds` refits the location with the inverse-variance weights of the scale model and alternates until the fitted location moves by less than `refit_tol` (the efficient estimator under a heteroscedastic noise; a line over a noise whose spread varies five times loses about 40% of its error, a 25-knot spline gains almost nothing); `scale_correction="leverage"` (or `"edf"`) divides the squared residuals of the scale model by `1 - h` (the leverage of the location), which removes the downward bias of the scale and the too-narrow intervals of a flexible location on a small sample (the variance of the scale was 17% too low at 150 rows, within 2% with the correction). `StaticTAM.leverage(data)` returns the leverage of each row. The fit records `refit_history_`, `n_refits_`, `converged_` and `log_likelihood_`. The defaults (`refit_rounds=0`, `scale_correction="none"`) are the previous fit, bit for bit.
+- **`c(region, topo='graph', coords='x:y', k_neighbors=6)` spatial levels**: a Markov random field over the levels, with the k nearest centroids (mean of the coordinates of the rows of each level) as neighbours and the graph Laplacian as penalty, so a region with few observations borrows strength from the regions around it. A region without any training row has no centroid and keeps the zero effect.
+- **`rbf(x1, others='x2', kernel='tps')` thin-plate spline**: parameter-free radial basis on data-driven centres, bending-energy penalty $Z^\top E Z$ on the radial part, polynomial part of degree below `m` (default `m=2`, `2m > d`), isotropic, with the optional `ap_null` as a second smoothing parameter for `auto_fit`. The default extrapolation of this kernel is `linear`. The Gaussian and Matérn kernels are unchanged.
+- **`s(x, m_pen=m)` locally adaptive penalty**: the roughness penalty of a P-spline is split in `m` locally weighted parts (smooth B-spline weights that add up to one), each with its own smoothing parameter for `auto_fit`, so a curve that is flat over most of its range and sharply curved in a narrow window is not oversmoothed there. `m_pen=1` (the default) is the ordinary penalty, unchanged; equal parameters give it back exactly; `te(...)` margins with several coordinates are supported.
+- **`AdaptiveTAM` on the base of a non-Gaussian loss** (`poisson`, `negative_binomial`, `tweedie`, `gamma`, `binomial`): the windows are fitted as GLMs on the linear predictor, with the link of the base forecast as an offset, so the adapted forecast keeps the support of the family (no negative counts after a stretch of zeros) and a multiplicative drift is tracked on the log scale. `Estimated<target>` is still the correction and `AdaptedEstimated<target>` the adapted mean. `predict_quantiles` returns the quantiles of the family at the adapted mean for the count and Tweedie bases. `clip_to_train_range` is refused for such a base. The Gaussian base is unchanged.
+- **`offset(col)` in a formula**: an exposure term with the raw column and a fixed coefficient 1 (no parameter, no extra column in the design matrix), `eta = offset + Phi theta`, for the Gaussian fit, the reweighted fit of the GLM losses, `auto_fit`, `grid_search_fit`, `predict` and `decompose_prediction` (column `effect_offset_<col>`). A rate model is `y ~ offset(log_E) + s(x)` with `loss="poisson"`; doubling the exposure of a row doubles its predicted mean exactly. Another term may not read the same column; `AdaptiveTAM`, `KalmanTAM` and the mixture mode do not read offsets.
+- **`c(col)` without `n_cat` takes the distinct integer codes of the training rows as its levels** (`nominal` and `ordinal` topologies): a code set such as `{10, 50, 1000}` gives three columns instead of 1001, and the order of the rows or the gaps between codes change nothing. A feature that another effect also reads (`l(g) + c(g)`) and `grid_search_fit` keep the previous level range `0 .. max code`.
+- **`target_transform` on a plain `StaticTAM`** (`"log"`, `"log1p"`, `"asinh"`, `"logit"`, `"boxcox"`, with `transform_kwargs` for the shift, the Box-Cox exponent, the centre and scale, the bounds, and `mean_correction=True`): the model is fitted on $g(y)$, `predict` returns the response scale and `predict_quantiles` inverts the quantiles of the model-scale residuals, so the quantiles are exact and a `"logit"` target stays inside its bounds. `log1p` and `boxcox` are also available in `dist_kwargs={"target_transform": ...}` of the distributional mode. A GLM loss, a dict formula and a mixture refuse the argument.
+- **Proper scores for the non-Gaussian families**: `tam.evaluation.unit_deviance`, `deviance_explained` (the proportion of deviance explained $D^2$, equal to $R^2$ for the Gaussian family) and `deviance_metric`; `calculate_regression_metrics(..., family=...)` adds `Deviance` and `D2` (its keys are unchanged without a family). `DragTAM`, `ExpertExpander` and `EnsembleSelector` accept the metric names `poisson_deviance`, `gamma_deviance`, `binomial_deviance` / `logloss`, `negative_binomial_deviance` and `tweedie_deviance`.
+
+### Changed
+- **A term `c()` with a single level** (a flag that is constant in the training rows) keeps that level for every row, as before.
+- **Faster fits for the non-Gaussian losses** (`poisson`, `gamma`, `binomial`, `negative_binomial`, `tweedie`): the iteratively reweighted loop builds the design matrix once per fit instead of once per pass and per step-halving, and the dispersion refits of the negative binomial and Tweedie losses share it. Same coefficients to $10^{-10}$; about seven times faster on 30 000 rows. When the matrix does not fit in memory the loop builds it by blocks as before.
+
+### Fixed
+- **`phys(x, basis='neural')` crashed at fit** (`'NoneType' object has no attribute 'flatten'`: the penalty read the network weights before they existed). The neural weights, the wavelet grid and the basis of a `phys()` term are now set from the whole training tensor before the penalty is built; `grid_search_fit` (static and adaptive) does the same for its candidate effects, so a thin-plate, graph or orthogonalised candidate is no longer built on an identity penalty. A graph term with a missing level only warns.
+- **`auto_fit()` and `grid_search_fit()` on the non-Gaussian losses** (`poisson`, `gamma`, `binomial`, `negative_binomial`, `tweedie`): both ignored the loss. `auto_fit()` scored the raw response with an identity link, so the coefficients were least-squares ones that `predict()` then passed through the inverse link, which could explode; `grid_search_fit()` scored the validation set without the inverse link and returned a model without the loss. `auto_fit()` now runs a working-weight GCV (the search scores the working response and Fisher weights of the reweighted fit, and the final fit is the reweighted fit at the selected parameters), and `grid_search_fit()` fits each candidate by the reweighted loop, scores it on the response scale, keeps the loss on the returned model and stores the winning score in `validation_rmse_`. The Gaussian path is unchanged.
+- **Two display equations of the theory pages were shown as raw text** (the section on counts and zero-inflated targets of `math/statistics/01_reweighted_estimation.md`, and the list of conformal steps of `math/statistics/04_risk_conformal_evt.md`): a display equation needs a blank line before and after it, also inside a list item. `tests/test_docs_math_blocks.py` checks it on every page of `math/` and `architecture/`.
 
 ## [1.4.1] - 2026-10-08
 
@@ -436,7 +465,8 @@ This version introduced the Formula API and the first object-oriented refactorin
 ### Added
 * Initial project setup based on the original `weakl` v0.0.6 package.
 
-[Unreleased]: https://github.com/EDF-Lab/tam/compare/v1.4.1...HEAD
+[Unreleased]: https://github.com/EDF-Lab/tam/compare/v1.5.0...HEAD
+[1.5.0]: https://github.com/EDF-Lab/tam/releases/tag/v1.5.0
 [1.4.1]: https://github.com/EDF-Lab/tam/releases/tag/v1.4.1
 [1.4.0]: https://github.com/EDF-Lab/tam/releases/tag/v1.4.0
 [1.3.4]: https://github.com/EDF-Lab/tam/releases/tag/v1.3.4

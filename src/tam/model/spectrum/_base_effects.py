@@ -28,6 +28,32 @@ class BaseEffect(ABC):
                            Options: 'continue', 'constant', 'linear'.
     """
 
+    #: Whether ``build_feature_map`` keeps a trailing feature dimension (..., d) even when d == 1 (kernels, trees, networks, tensor products).
+    keeps_feature_dim: bool = False
+
+    @property
+    def required_features(self) -> list:
+        """The physical feature columns this effect reads, in order (the routers slice the feature tensor with it)."""
+        return list(getattr(self, 'input_features', None) or [self.feature_name])
+
+    @property
+    def multi_input(self) -> bool:
+        """True when the effect needs the (..., d) layout: it reads several columns or keeps the feature dimension."""
+        return bool(self.keeps_feature_dim or len(self.required_features) > 1)
+
+    def summary_details(self) -> str:
+        """The structure of the effect as ``StaticTAM.summary()`` shows it."""
+        return "Custom"
+
+    def summary_type(self) -> str:
+        """The name of the effect type in ``StaticTAM.summary()``."""
+        return self.__class__.__name__.replace('Effect', '')
+
+    #: ``orthogonalize=True`` (set from the formula on ``n()`` and ``t()``): the block is projected on the orthogonal complement of the
+    #: rest of the design; ``_projection`` is the (rest columns x block columns) regression matrix estimated on the training rows.
+    orthogonalize: bool = False
+    _projection = None
+
     def __init__(self, feature_name: str, effect_type: str, lambda_p: float, extrapolate: str):
         """Initializes the base effect."""
         self.feature_name = feature_name
@@ -80,13 +106,11 @@ class BaseEffect(ABC):
         x_bound = torch.clamp(x_col, min=k_min, max=k_max)
         
         # 2. Determine if the effect processes multi-dimensional feature coordinates natively
-        if self.__class__.__name__ == 'TreeEffect':
+        if hasattr(self, 'is_oblivious_binary'):
             # Dynamically read the tree's internal architecture!
             is_multivariate = self.is_oblivious_binary
         else:
-            is_multivariate = self.__class__.__name__ in [
-                'NeuralEffect', 'RBFEffect', 'TensorProductEffect', 'LinearTreeEffect'
-            ]
+            is_multivariate = self.multi_input
 
         is_ood_mask = (x_col != x_bound)
         if is_multivariate:

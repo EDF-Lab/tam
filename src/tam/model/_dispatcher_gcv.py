@@ -30,7 +30,8 @@ def smart_solve_gcv(
     number_of_steps: int = 10,
     alpha_p_list: Optional[List[float]] = None,
     gamma: float = 1.4,
-    verbose: bool = False
+    verbose: bool = False,
+    sample_weights: Optional[torch.Tensor] = None
 ) -> Tuple[torch.Tensor, np.ndarray, float]:
     r"""
     Memory-safe Generalized Cross Validation (GCV) solver.
@@ -43,6 +44,9 @@ def smart_solve_gcv(
     The search runs over one coordinate per smoothing parameter: one per effect, and one per margin
     for a tensor product (`effect.penalty_coordinates()`). The returned `best_lambda_ps` is the flat
     vector of all coordinates, effect after effect; `effect.n_penalty_coordinates` splits it.
+
+    `sample_weights` (shape (n_groups, n_samples, 1), non-negative) scores the weighted system: with the working
+    response and the Fisher weights of a GLM it is the working-weight GCV of one reweighting pass. None is the plain path.
     """
     run_device = x_data.device
     num_samples = x_data.shape[1]
@@ -118,7 +122,7 @@ def smart_solve_gcv(
     total_bytes = bytes_per_group * n_groups
     available_mem = hw.get_available_memory()
     
-    def _get_chunked_covs(x_subset: torch.Tensor, y_subset: torch.Tensor):
+    def _get_chunked_covs(x_subset: torch.Tensor, y_subset: torch.Tensor, w_subset: Optional[torch.Tensor] = None):
         nonlocal run_device
         n_groups_in_subset = x_subset.shape[0]
         num_samples_in_subset = x_subset.shape[1]
@@ -141,6 +145,10 @@ def smart_solve_gcv(
                 x_chunk = x_subset[g_start:g_end, :, :].to(run_device)
                 y_chunk = y_subset[g_start:g_end, :, :].to(run_device)
                 phi_chunk = build_phi_from_effects(x_chunk, effects_list)
+                if w_subset is not None:
+                    root_w = w_subset[g_start:g_end].to(device=run_device, dtype=phi_chunk.dtype).clamp_min(0).sqrt()
+                    phi_chunk = phi_chunk * root_w
+                    y_chunk = y_chunk.to(phi_chunk.dtype) * root_w
                 
                 if loss_matrix.shape[0] == 1:
                     L_sqrt = loss_matrix[0, 0].sqrt()
@@ -188,7 +196,7 @@ def smart_solve_gcv(
     if total_bytes < available_mem * 0.3:
         if verbose:
             print("[GCV Engine] VRAM footprint < 30%. Caching covariances globally on GPU.")
-        cov_X, cov_XY, Y_sq = _get_chunked_covs(x_data, y_data)
+        cov_X, cov_XY, Y_sq = _get_chunked_covs(x_data, y_data, sample_weights)
         current_penalty = torch.zeros((total_d, total_d), dtype=torch.get_default_dtype(), device=run_device)
         applied_alpha_ps = np.full(n_coords, np.nan, dtype=np.float64)
 
@@ -264,7 +272,7 @@ def smart_solve_gcv(
             
         cov_X_list, cov_XY_list, Y_sq_list = [], [], []
         for g in range(n_groups):
-            cx, cxy, y_sq = _get_chunked_covs(x_data[g:g+1], y_data[g:g+1])
+            cx, cxy, y_sq = _get_chunked_covs(x_data[g:g+1], y_data[g:g+1], None if sample_weights is None else sample_weights[g:g+1])
             cov_X_list.append(cx.cpu())
             cov_XY_list.append(cxy.cpu())
             Y_sq_list.append(y_sq.cpu())

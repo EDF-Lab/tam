@@ -16,6 +16,7 @@ apex ensembles resilient to structural breaks in time-series data.
 import logging
 import pandas as pd
 import numpy as np
+from tam.evaluation.metrics import deviance_metric
 import re
 import datetime
 from typing import Dict, Any, List, Optional, Tuple
@@ -176,6 +177,8 @@ class EnsembleSelector:
             denom = np.abs(y_t)
             denom[denom == 0] = 1e-9
             return np.mean(np.abs((y_t - y_p) / denom)) * 100.0
+        elif deviance_metric(metric, y_t, y_p) is not None:
+            return deviance_metric(metric, y_t, y_p)
         else:
             return np.sqrt(np.mean((y_t - y_p)**2))
 #: </ensemble_selector_metric_calculator>

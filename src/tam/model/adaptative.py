@@ -50,6 +50,7 @@ from ._math import (
     decomposition_names,
     solve_linear_system
 )
+from .statistics.estimation._batched_glm import batched_reweighted_solve
 from .spectrum import (
     BaseEffect,
     create_effects_from_parsed_terms,
@@ -61,6 +62,10 @@ from .spectrum import (
     build_phi_from_effects,
     build_penalty_from_effects
 )
+
+#: Column that carries the link of the base forecast to the windows of a non-Gaussian base (read as an offset).
+_ETA_BASE = "__eta_base__"
+
 
 def rolling_windows(
     data: pd.DataFrame,
@@ -215,6 +220,8 @@ class AdaptiveTAM:
         Raises:
             ValueError: If the base_model has not been fitted.
         """
+        if re.search(r"\boffset\s*\(", adaptive_formula):
+            raise ValueError("offset(...) is read by StaticTAM only; put it in the formula of the base_model, whose predictions the correction starts from.")
         self.distributional_base_ = None
         if base_model is not None and getattr(base_model, '_mode_', 'plain') == 'distributional':
             # The correction is fitted on the model scale of the location sub-model (target ``__mu__``); the scale of the
@@ -227,7 +234,18 @@ class AdaptiveTAM:
 
         if base_model is not None and getattr(base_model, 'coefficients_', None) is None:
             raise ValueError("The base_model must be fitted before initializing AdaptiveTAM.")
-        
+
+        # The base of a non-Gaussian loss: the windows are GLMs on the link scale, with the base predictions as an offset.
+        self.glm_strategy_ = None
+        strategy = getattr(base_model, '_reweighting_strategy_', None)
+        if base_model is not None and getattr(strategy, 'is_glm', False) and getattr(base_model, '_mode_', 'plain') == 'plain':
+            if clip_to_train_range:
+                raise ValueError("clip_to_train_range is not available with the base of a non-Gaussian loss: the forecast keeps the support of the family.")
+            self.glm_strategy_ = strategy
+            # The correction column must not be the base target itself: `Estimated<target>` is the base forecast.
+            base_target = base_model.target_col_
+            adaptive_formula = re.sub(rf"^\s*{re.escape(base_target)}\s*~", f"Residual{base_target} ~", adaptive_formula, count=1)
+                
         if add_base_effects and base_model is not None:
             # Column names as decompose_prediction emits them (shared features are basis-prefixed).
             for name in decomposition_names(base_model.effects_list_):
@@ -236,7 +254,9 @@ class AdaptiveTAM:
                     adaptive_formula += f" + l({effect_col})"
 
         self.base_model_ = base_model
-        self.adaptive_formula_ = adaptive_formula
+        self.adaptive_formula_ = adaptive_formula  # as the user gave it (a new AdaptiveTAM can be built from it)
+        if self.glm_strategy_ is not None:
+            adaptive_formula += f" + offset({_ETA_BASE})"  # internal: the link of the base forecast, read as an offset
         self.update_interval_periods_ = update_interval_periods
         self.training_window_periods_ = training_window_periods
         self.steps_per_period_ = steps_per_period
@@ -281,6 +301,27 @@ class AdaptiveTAM:
 #: </init_adaptive>
 
 #: <prepare_sim>
+    def _link_of_base(self, mean: np.ndarray) -> np.ndarray:
+        r"""The linear predictor of the base forecast, ``g(mu)``, for the base of a non-Gaussian loss."""
+        link = torch.as_tensor(np.array(mean, dtype=float), dtype=torch.get_default_dtype())
+        return self.glm_strategy_.link.link(link).numpy().astype(float)
+
+    def _solve_windows(self, phi: torch.Tensor, y: torch.Tensor, x: torch.Tensor, penalty: torch.Tensor,
+                       loss_matrix: torch.Tensor, num_samples: int) -> torch.Tensor:
+        r"""The coefficients of a batch of windows: the penalized least squares of the residuals, or the reweighted fit on the link scale."""
+        if self.glm_strategy_ is None:
+            cov_X, cov_XY = _compute_weighted_covariances(phi, y, loss_matrix)
+            return solve_linear_system(cov_X, cov_XY, penalty, num_samples)
+        return batched_reweighted_solve(phi, y, self.adaptive_model_._offset_of(x), self.glm_strategy_, penalty, loss_matrix, num_samples)
+
+    def _forecast_windows(self, phi_pred: torch.Tensor, coefficients: torch.Tensor, x_pred: torch.Tensor) -> torch.Tensor:
+        r"""The correction the windows forecast: a residual, or ``g^-1(offset + Phi theta) - g^-1(offset)`` on the mean scale of a GLM base."""
+        correction = _predict_from_coeffs(phi_pred, coefficients)
+        if self.glm_strategy_ is None:
+            return correction
+        offset = self.adaptive_model_._offset_of(x_pred).to(device=correction.device, dtype=correction.dtype)
+        return self.glm_strategy_.inverse_link(correction + offset) - self.glm_strategy_.inverse_link(offset)
+
     def _with_model_target(self, data: pd.DataFrame) -> pd.DataFrame:
         r"""Adds the model-scale target column of a distributional base (``__mu__``) when ``data`` holds the target."""
         base = self.distributional_base_
@@ -326,7 +367,11 @@ class AdaptiveTAM:
 
         default_res_col = f'Residual{target_col_bm}'
         data_bm[default_res_col] = data_bm[target_col_bm] - data_bm[est_col_name]
-        
+        if self.glm_strategy_ is not None:
+            # The windows are fitted on the response itself, with the link of the base forecast as the offset.
+            data_bm[_ETA_BASE] = self._link_of_base(data_bm[est_col_name].to_numpy(dtype=float))
+            data_bm[self.target_col_] = data_bm[target_col_bm]
+                
         adaptive_features_config = self.adaptive_model_.features_config_
         
         if 'features' not in adaptive_features_config or not isinstance(adaptive_features_config['features'], list):
@@ -368,7 +413,8 @@ class AdaptiveTAM:
             horizon_steps=self.horizon_steps_,
             date_col=self.date_col_,
             categorical_levels=categorical_ranges(self.adaptive_model_.effects_list_),
-            fixed_ranges=_resolve_fixed_ranges(real_data, fixed_ranges(self.adaptive_model_.effects_list_))
+            fixed_ranges={**_resolve_fixed_ranges(real_data, fixed_ranges(self.adaptive_model_.effects_list_)),
+                          **{name: (-1.0, 1.0) for name in self.adaptive_model_._offset_features_}}
         )
         # Data-dependent state (spline knots) comes from the training windows, never from a memory probe.
         initialize_effects(
@@ -455,15 +501,14 @@ class AdaptiveTAM:
 
                 phi_batch = self.adaptive_model_._build_design_matrix(batch_x)
 
-                cov_X, cov_XY = _compute_weighted_covariances(phi_batch, batch_y, loss_L_star_L)
-                coeffs_batch = solve_linear_system(cov_X, cov_XY, sobolev_matrix, num_samples_train)
-                
+                coeffs_batch = self._solve_windows(phi_batch, batch_y, batch_x, sobolev_matrix, loss_L_star_L, num_samples_train)
+
                 phi_pred_batch = self.adaptive_model_._build_design_matrix(batch_x_pred)
-                preds_batch = _predict_from_coeffs(phi_pred_batch, coeffs_batch)
-                
+                preds_batch = self._forecast_windows(phi_pred_batch, coeffs_batch, batch_x_pred)
+
                 all_predictions.append(preds_batch.detach().cpu())
-                
-                del batch_x, batch_y, batch_x_pred, phi_batch, cov_X, cov_XY, coeffs_batch, phi_pred_batch, preds_batch
+
+                del batch_x, batch_y, batch_x_pred, phi_batch, coeffs_batch, phi_pred_batch, preds_batch
                 start_idx += safe_batch_size
                 
             except (torch.OutOfMemoryError, MemoryError):
@@ -601,8 +646,7 @@ class AdaptiveTAM:
         sobolev_matrix = self.adaptive_model_._build_penalty_matrix().to(run_device)
 
         phi_train = self.adaptive_model_._build_design_matrix(x_last)
-        cov_X, cov_XY = _compute_weighted_covariances(phi_train, y_last, loss_L_star_L)
-        final_coeffs = solve_linear_system(cov_X, cov_XY, sobolev_matrix, num_samples_train)
+        final_coeffs = self._solve_windows(phi_train, y_last, x_last, sobolev_matrix, loss_L_star_L, num_samples_train)
 
         self.last_state_dict_, self.norm_params_, self.final_target_range_ = {}, {}, {}
         for n, (i, k) in enumerate(zip(with_state, last)):
@@ -649,6 +693,20 @@ class AdaptiveTAM:
         Raises:
             ValueError: If the base model is not a distributional StaticTAM, or a level is outside (0, 1).
         """
+        if self.glm_strategy_ is not None:
+            if not hasattr(self.glm_strategy_, 'quantiles'):
+                raise ValueError("predict_quantiles needs a base of a count or Tweedie loss (poisson, negative_binomial, tweedie) or a "
+                                 "distributional StaticTAM; the loss of this base has no quantile function.")
+            from .statistics.estimation._count_families import _check_levels
+            levels = _check_levels(taus)
+            frame = self.predict_online(data)
+            adapted = frame[f"AdaptedEstimated{self.base_model_.target_col_}"].to_numpy(dtype=float)
+            finite = np.isfinite(adapted)
+            quantiles = np.full((len(adapted), len(levels)), np.nan)
+            if finite.any():  # a row without forecast stays NaN (the Tweedie inversion would turn a NaN mean into 0)
+                quantiles[finite] = self.glm_strategy_.quantiles(adapted[finite], levels)
+            return pd.DataFrame({f"q{tau}": quantiles[:, j] for j, tau in enumerate(levels)}, index=frame.index)
+
         base = self.distributional_base_
         if base is None:
             raise ValueError("predict_quantiles needs a distributional StaticTAM as base_model (a dict formula, such as "
@@ -731,6 +789,8 @@ class AdaptiveTAM:
         est_col_name = f'Estimated{target_col_bm}'
         if est_col_name not in data_bm.columns:
             data_bm[est_col_name] = data_pred.get(est_col_name, 0.0)
+        if self.glm_strategy_ is not None:
+            data_bm[_ETA_BASE] = self._link_of_base(data_bm[est_col_name].to_numpy(dtype=float))
 
         mask, balanced_data = _balance_groups(
             dataset=data_bm, group_col=self.group_col_, date_col=self.date_col_, method="fill"
@@ -754,7 +814,7 @@ class AdaptiveTAM:
 
         # --- 3. Frozen Coefficient Tensor ---
         coeffs_tensor = torch.stack([self.last_state_dict_[g] for g in groups_stacked]).to(device=run_device, dtype=phi_pred.dtype)
-        res_pred_tensor = _predict_from_coeffs(phi_pred, coeffs_tensor)
+        res_pred_tensor = self._forecast_windows(phi_pred, coeffs_tensor, x_pred)
         if self.clip_to_train_range_:
             for i, g in enumerate(groups_stacked):
                 low, high = self.final_target_range_[g]
@@ -807,6 +867,9 @@ class AdaptiveTAM:
         
         dummy_x = x_flat[0:1].to(run_device)
         try:
+            # centres, projections, neural weights... are set from the training windows before the penalty is built
+            initialize_effects(x_stacked.reshape(-1, x_stacked.shape[2], x_stacked.shape[3]), effects_list,
+                               feature_columns=self.adaptive_model_.features_config_['features'])
             dummy_phi = build_phi_from_effects(dummy_x, effects_list)
             n_coeffs = dummy_phi.shape[-1]
             del dummy_x, dummy_phi
@@ -843,17 +906,13 @@ class AdaptiveTAM:
 
                     phi_train = build_phi_from_effects(batch_x, effects_list)
                     phi_val = build_phi_from_effects(batch_x_pred, effects_list)
-                    
-                    cov_X, cov_XY = _compute_weighted_covariances(phi_train, batch_y, loss_L_star_L)
-                    
-                    adaptive_coeffs = solve_linear_system(
-                        cov_X, cov_XY, penalty_M_star_M, num_samples_train
-                    )
-                    
-                    batch_preds = _predict_from_coeffs(phi_val, adaptive_coeffs)
+
+                    adaptive_coeffs = self._solve_windows(phi_train, batch_y, batch_x, penalty_M_star_M, loss_L_star_L, num_samples_train)
+
+                    batch_preds = self._forecast_windows(phi_val, adaptive_coeffs, batch_x_pred)
                     all_preds_cpu.append(batch_preds.detach().cpu())
-                    
-                    del batch_x, batch_y, batch_x_pred, phi_train, phi_val, cov_X, cov_XY, adaptive_coeffs
+
+                    del batch_x, batch_y, batch_x_pred, phi_train, phi_val, adaptive_coeffs
                     start_idx += safe_batch_size
                     
                 except (torch.OutOfMemoryError, MemoryError):

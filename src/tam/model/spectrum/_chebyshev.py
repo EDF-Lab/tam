@@ -41,6 +41,9 @@ class ChebyshevEffect(BaseEffect):
         self.degree = degree
         self.s = s
 
+    def summary_details(self) -> str:
+        return f"Deg={self.degree}, Sobolev(s={self.s})"
+
     def get_n_coeffs(self) -> int:
         return self.degree
 #: </init_chebyshev>

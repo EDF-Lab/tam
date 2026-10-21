@@ -42,6 +42,15 @@ If an evolutionary algorithm proposes a mathematically unstable formula, this mo
 :caption: src/tam/evaluation/metrics.py (NaN-Safe Metric Vectorization)
 ```
 
+**Deviance scores.** `unit_deviance`, `deviance_explained` and `deviance_metric` (same module) score the non-Gaussian families on the response scale. The means are clipped away from the edge of the domain of the family, so a prediction outside it costs a large deviance and never a `NaN`. `calculate_regression_metrics(..., family=...)` adds `Deviance` and `D2`; without a family its keys are unchanged. The model-selection code of AutoTAM (`DragTAM`, `ExpertExpander`, `EnsembleSelector`) accepts the metric names `poisson_deviance`, `gamma_deviance`, `binomial_deviance` (or `logloss`), `negative_binomial_deviance` and `tweedie_deviance`, so that experts of different families are compared on one proper score; any other name keeps the RMSE fallback.
+
+```{literalinclude} ../../../../src/tam/evaluation/metrics.py
+:language: python
+:start-after: "#: <deviance_scores>"
+:end-before: "#: </deviance_scores>"
+:caption: src/tam/evaluation/metrics.py (Deviance scores)
+```
+
 ---
 
 ## MLOps Diagnostics: Residuals and Degradation

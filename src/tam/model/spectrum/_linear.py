@@ -21,6 +21,9 @@ class OffsetEffect(BaseEffect):
     def __init__(self, lambda_p: float, extrapolate: str):
         super().__init__("offset", "offset", lambda_p, extrapolate)
 
+    def summary_details(self) -> str:
+        return "Global Bias"
+
     def get_n_coeffs(self) -> int:
         return 1
 
@@ -39,16 +42,21 @@ class OffsetEffect(BaseEffect):
 class LinearEffect(BaseEffect):
     r"""Implements a simple Linear effect mapping directly to the scaled input space."""
 
-    def __init__(self, feature_name: str, scaled: float, lambda_p: float, extrapolate: str):
+    def __init__(self, feature_name: str, scaled: float, lambda_p: float, extrapolate: str, raw: bool = False):
         super().__init__(feature_name, "linear", lambda_p, extrapolate)
         self.scaled = scaled
+        # raw: the covariate enters unnormalised and unscaled (the model reads it as it is), so the effect is exactly zero at 0
+        self.raw = bool(raw)
+
+    def summary_details(self) -> str:
+        return "Slope (Ridge)" if not self.raw else "Raw slope (Ridge)"
 
     def get_n_coeffs(self) -> int:
         return 1
 
     def build_feature_map(self, x_col: torch.Tensor) -> torch.Tensor:
         r"""Reshapes the input data to be a column vector."""
-        x_scaled = x_col * self.scaled
+        x_scaled = x_col if self.raw else x_col * self.scaled
         return x_scaled.unsqueeze(-1)
 
     def build_penalty_matrix(self) -> torch.Tensor:

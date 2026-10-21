@@ -18,6 +18,7 @@ import pandas as pd
 import numpy as np
 import random
 from typing import List, Dict, Any, Tuple, Callable, Optional, Set
+from tam.evaluation.metrics import deviance_metric
 import re
 from tam.model.autotam.tokens import formula_columns
 from tam.model.autotam.tensor_penalty import with_tensor_outer_penalty
@@ -367,6 +368,8 @@ class DragTAM:
             denom = np.abs(y_t)
             denom[denom == 0] = 1e-9
             return np.mean(np.abs((y_t - y_p) / denom)) * 100.0
+        elif deviance_metric(metric, y_t, y_p) is not None:
+            return deviance_metric(metric, y_t, y_p)
         else:
             return np.sqrt(np.mean((y_t - y_p)**2))
 #: </dragtam_metric_calculator>

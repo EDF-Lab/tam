@@ -45,6 +45,8 @@ class TreeEffect(BaseEffect):
         seed (int): Random seed for deterministic partition generation.
     """
 
+    keeps_feature_dim = True
+
     def __init__(
         self, 
         feature_name: str, 
@@ -100,6 +102,9 @@ class TreeEffect(BaseEffect):
         if self.split_features is None:
             x_in = x_cols if x_cols.dim() >= 3 else x_cols.unsqueeze(-1)
             self._init_forest(x_in, is_dummy=False)
+
+    def summary_details(self) -> str:
+        return f"Trees={self.n_trees}, MaxDepth={self.max_depth}"
 
     def get_n_coeffs(self) -> int:
         r"""

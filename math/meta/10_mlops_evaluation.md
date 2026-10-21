@@ -47,6 +47,18 @@ In industrial datasets (e.g., varying smart meters), targets exist on vastly dif
 
   To construct a mathematically safe environment for the AutoTAM orchestrator, the framework relies heavily on SMAPE {cite:p}`hyndman2006another`. By dividing by the average of the true and predicted values, SMAPE bounds the error of any single observation by $200\%$, a bound approached as $\varepsilon \to 0$. The constant $\varepsilon$ removes the $0/0$ singularity when $Y_i = \hat{Y}_i = 0$: such an observation contributes $0$ instead of an undefined value. This guarantees that a single zero-target anomaly cannot destabilize the global fitness function during evolutionary hyperparameter search.
 
+### Scoring rules of the non-Gaussian families (deviance)
+
+The squared error is the right score only when the variance does not depend on the mean. For a count ($V(\mu)=\mu$), a positive skewed target ($V(\mu)=\mu^2$) or a bounded one, an observation at a large mean carries a much larger error without being worse predicted, and a few spikes decide the RMSE and the $R^2$. The proper score of an exponential dispersion family is its **unit deviance**
+
+$$ d(y,\mu)=2\Bigl[\ell(y;y)-\ell(y;\mu)\Bigr]\ \ge 0, \qquad d(y,y)=0, $$
+
+where $\ell$ is the log-likelihood of the family at the given mean. It is the squared error for the Gaussian family, $2\bigl[y\log(y/\mu)-(y-\mu)\bigr]$ for Poisson, $2\bigl[-\log(y/\mu)+(y-\mu)/\mu\bigr]$ for Gamma and $2\bigl[y\log(y/\mu)+(1-y)\log\frac{1-y}{1-\mu}\bigr]$ for the binomial, whose half is the log-loss. The **proportion of deviance explained** compares the model with the intercept-only prediction $\bar y$:
+
+$$ D^2 = 1-\frac{\sum_i d(y_i,\hat\mu_i)}{\sum_i d(y_i,\bar y)}. $$
+
+For the Gaussian family $D^2=R^2$ exactly; for the others it is the likelihood-ratio pseudo-$R^2$ that `mgcv` reports. Because the deviance is a strictly proper score, the true conditional mean has the smallest expected deviance, which the squared error does not guarantee when the variance grows with the mean {cite:p}`gneiting2007strictly`. A prediction outside the domain of the family (a negative count) costs a very large deviance, where the squared error may prefer it.
+
 ---
 
 ## 2. Temporal Degradation Tracking

@@ -117,7 +117,7 @@ Executes the recursive Cox-de Boor algorithm dynamically on the GPU.
 ```
 
 **3. Penalty Matrix**
-Constructs the structural penalty natively using consecutive finite difference matrices `torch.diff(I)`.
+Constructs the structural penalty natively using consecutive finite difference matrices `torch.diff(I)`. With `m_pen=m` in the formula (`s(x, k=30, m_pen=5)`), `_part_weights` evaluates `m` B-splines (degree `min(3, m - 1)`) at the position of each difference, the penalty is the sum of `m` weighted difference penalties, and the effect exposes `m` penalty coordinates (`penalty_coordinates`, `set_penalty_coordinates`) that `auto_fit` tunes one by one; inside `te(...)` the coordinates of the margin are listed in order, margin after margin. `m_pen=1` (the default) is the ordinary penalty, bit for bit.
 ```{literalinclude} ../../../../src/tam/model/spectrum/_spline.py
 :language: python
 :start-after: "#: <penalty_matrix>"
@@ -153,6 +153,16 @@ Applies a diagonal smoothness penalty mirroring the Fourier Sobolev norm.
 
 ---
 
+## The contract of an effect with the routers
+
+The routers (`initialize_effects`, `build_phi_from_effects`, the tensor product, the extrapolation wrapper) do not test class names. An effect declares what it reads with `required_features` (its `input_features`, else its feature name; a tensor product concatenates those of its margins), whether it keeps the trailing feature dimension with `keeps_feature_dim` (kernels, trees, networks, tensor products, and the physics effect through its basis), and `multi_input` follows from both. `initialize(x_cols)` is called on every effect with the columns it reads (a no-op by default) before any penalty or design is built; `summary_details()` and `summary_type()` give the row of `StaticTAM.summary()`. A new effect or topology plugs in by setting these, without touching the routers.
+
+## Exposure offset
+
+`offset(col)` is a term of the formula that is **not an effect**: `StaticTAM` takes it out of `parsed_terms_`, keeps the column in `features_config_['features']` after every column an effect reads (the solvers route the columns to the effects by position), and normalises it on the range (-1, 1), which leaves the raw value in the feature tensor. `_offset_of(x_data)` sums the offset columns; it is subtracted from the working response in `_solve_pwls_step` and in the cached solve of the reweighted loop, and added to the linear predictor in `_linear_predictor`, in the chunked predictions of `BaseTAM`, in the diagnostics, in the `auto_fit` and `grid_search_fit` scoring, and as the column `effect_offset_<col>` of `decompose_prediction` (the intercept stays `effect_offset`). The design matrix has no extra column. Another term of the formula may not read the same column; `AdaptiveTAM`, `KalmanTAM` (their own formula) and the mixture mode refuse an offset; a base model with an offset can feed them, but `add_base_effects=True` lists the effects of the base (`effects_list_`) and the offset is not one of them.
+
+---
+
 ## Categorical
 
 **1. Factory Parsing**
@@ -163,7 +173,7 @@ Applies a diagonal smoothness penalty mirroring the Fourier Sobolev norm.
 ```
 
 **2. Feature Map**
-Utilizes native one-hot embedding routing.
+Utilizes native one-hot embedding routing. `topo='graph'` (with `coords='x:y'`, `k_neighbors=6`) is a categorical effect that reads several columns, like `rbf(x, others=...)`: its `input_features` are the level column followed by the coordinate columns (the formula parser adds them to the model features, the routing of `build_phi_from_effects` and `initialize_effects` treats it as a multi-input effect), the feature map is the one-hot of the first column, and `initialize` computes the centroid of every level from the training tensor (coordinates are min-max normalised like any feature), the symmetrised k-nearest-neighbour adjacency and the Laplacian that `build_penalty_matrix` scales by `lambda` and regularises with `1e-4 I`. A level with no training row has no neighbour and keeps the zero effect. A code outside `0 .. n_cat - 1` once normalised never raises. With `unseen='edge'` (default) it is clamped to the nearest edge level; with `unseen='mean'` its row is the vector of the shares of training rows of the levels (`_level_weights`, computed by `initialize`), so its effect is the frequency-weighted mean of the level effects; `unseen='zero'` gives the zero row. When `n_cat` is omitted and the topology is `nominal` or `ordinal`, the levels are the distinct integer codes of the training rows: `StaticTAM._get_data_info(..., with_levels=True)` counts them, the factory sets `n_cat` to that count and flags the effect `vocabulary`, `resolve_vocabulary` keeps the flag only when no other effect reads the feature (otherwise the term goes back to the level range `0 .. max code`), and `StaticTAM._apply_vocabulary` replaces the codes by their level index before the normalisation (a code not in the training vocabulary gets the index past the last level, which is the zero row). `grid_search_fit` keeps the level range `0 .. max code` for an omitted `n_cat`. String levels are encoded as integers by the caller before the model.
 ```{literalinclude} ../../../../src/tam/model/spectrum/_categorical.py
 :language: python
 :start-after: "#: <feature_map>"
@@ -198,7 +208,7 @@ Computes pairwise Euclidean distances to centroids natively via `torch.cdist` be
 ```
 
 **3. Penalty Matrix**
-Applies an isotropic identity penalty over the spatial prototypes.
+Applies an isotropic identity penalty over the spatial prototypes. With `kernel='tps'` the effect is the thin-plate spline instead: `_init_tps` picks distinct centres from the training tensor (every distinct point when there are fewer than `n_centers`), `_prepare_basis` builds the constraint basis `Z` (QR of the monomials at the centres) and the bending energy `Z' E Z` (negative round-off eigenvalues set to zero), `build_feature_map` returns `[eta(|x - c|) Z, polynomials of degree 1 .. m-1]` (`n_centers - 1` columns: the constant is the model intercept), and the penalty is `blockdiag(lambda Z'EZ, lambda_null I)`. `ap_null=...` in the formula makes `lambda_null` a second penalty coordinate for `auto_fit` (otherwise a fixed ridge of 1e-9); `m` is the order (default 2, with `2m > d`); the default extrapolation is `linear`. The coordinates are min-max normalised feature by feature before the effect, so the isotropy holds in the normalised coordinates: give both coordinates a common unit (or the same range) when the aspect of the map matters.
 ```{literalinclude} ../../../../src/tam/model/spectrum/_rbf.py
 :language: python
 :start-after: "#: <penalty_matrix>"
@@ -235,6 +245,8 @@ Enforces the sparsity prior via a scale-dependent diagonal "whitening" penalty t
 ---
 
 ## Neural
+
+`orthogonalize=True` on `n()` or `t()` (flag read by the factory, stored on the effect as `orthogonalize`): after every effect is initialised, `initialize_effects` builds the training design block by block (`build_phi_from_effects(..., return_components=True)`), regresses each flagged block on the concatenation of the unflagged blocks (`torch.linalg.lstsq`, SVD driver, on at most 200 000 rows) and stores the matrix `B` as the private attribute `_projection`; `build_phi_from_effects` then returns `block - rest @ B` for these blocks. Because `B` is fixed, the chunked solvers, the prediction in batches or row by row, and the adaptive windows all see the same projection. The penalty of the block is unchanged.
 
 **1. Factory Parsing**
 ```{literalinclude} ../../../../src/tam/model/spectrum/_factory.py
@@ -316,7 +328,7 @@ Generates the interaction surface using row-wise Kronecker products via `torch.e
 ```
 
 **3. Penalty Matrix**
-Preserves marginal regularization independence via the Kronecker sum.
+Preserves marginal regularization independence via the Kronecker sum. With `mode='per_level'` (`te(s(x), c(group), mode='per_level')`: exactly one smooth margin with a single smoothing parameter and one nominal categorical margin) the penalty is `kron(P_smooth_at_1, diag(lambda_g)) + kron(I, ridge)`; the effect exposes `n_cat + 1` penalty coordinates (one per level, then the ridge of the factor), `coordinate_labels()` names them, and `auto_fit` tunes them one by one (a finer `number_of_steps` helps to separate levels). `l(z, raw=True)` makes the linear effect read the covariate unnormalised and unscaled: `fixed_ranges` gives such a feature the identity range (-1, 1), like the offset, and refuses a raw covariate that another term also reads.
 ```{literalinclude} ../../../../src/tam/model/spectrum/_tensor.py
 :language: python
 :start-after: "#: <penalty_matrix>"

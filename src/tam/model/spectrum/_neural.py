@@ -33,6 +33,8 @@ class NeuralEffect(BaseEffect):
         input_features (List[str]): List of all input feature names consumed by this effect.
     """
 
+    keeps_feature_dim = True
+
     def __init__(
         self, 
         feature_name: str, 
@@ -76,6 +78,14 @@ class NeuralEffect(BaseEffect):
         # Legacy pointers for UniversalPhysicsEffect compatibility
         self.weights = None
         self.bias = None
+
+    def summary_details(self) -> str:
+        return f"Neurons={self.n_neurons}, Act={self.activation}"
+
+    def initialize(self, x_cols: torch.Tensor) -> None:
+        r"""Draws the random weights from the number of input columns (so that a penalty built from them exists before the first design matrix)."""
+        if self.weights_list is None:
+            self._init_random_weights(int(x_cols.shape[-1]))
 
     def get_n_coeffs(self) -> int:
         r"""Returns the dimension of the finite Primal feature space (number of neurons)."""
