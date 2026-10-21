@@ -52,7 +52,7 @@ def profile_target(y: pd.Series) -> Dict[str, Any]:
     Returns:
         A dictionary: ``n``, ``sentinels`` (list), ``bounds`` (``(low, high)`` or ``None``), ``monotone_share``, ``integer_share``, ``zero_share``,
         ``negative_share``, ``skewness``, ``kurtosis`` and ``hints``, a one-item list among ``cumulative``, ``bounded``, ``count``, ``tweedie``,
-        ``log``, ``asinh`` and ``gaussian`` (the family hints of the model of the target).
+        ``log``, ``asinh``, ``binomial`` (a target that only takes 0 and 1) and ``gaussian`` (the family hints of the model of the target).
     """
     values = pd.to_numeric(y, errors="coerce").dropna().to_numpy(dtype=float)
     profile: Dict[str, Any] = {"n": int(values.size), "sentinels": [], "bounds": None, "monotone_share": 0.0, "integer_share": 0.0,
@@ -75,8 +75,13 @@ def profile_target(y: pd.Series) -> Dict[str, Any]:
     elif low >= 0.0 and high == 100.0:
         profile["bounds"] = (0.0, 100.0)
 
-    if monotone >= MONOTONE_SHARE:
+    binary = bool(np.isin(values, (0.0, 1.0)).all()) and np.unique(values).size <= 2
+    if binary:
+        profile["bounds"] = (0.0, 1.0)
+    if monotone >= MONOTONE_SHARE and not binary:
         hint = "cumulative"
+    elif binary:
+        hint = "binomial"          # a 0/1 target is a Bernoulli outcome, not a count: a log link would forecast above one
     elif profile["bounds"] is not None:
         hint = "bounded"
     elif integer_share >= INTEGER_SHARE and low >= 0.0:

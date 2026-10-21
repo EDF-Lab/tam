@@ -176,6 +176,7 @@ class AutoTAM:
         rank_covariates: bool = False,
         max_covariates: Optional[int] = None,
         physical_bounds: Optional[Dict[str, Tuple[float, float]]] = None,
+        family_search: bool = False,
         **kwargs
     ):
         """
@@ -207,6 +208,10 @@ class AutoTAM:
                 losses the profile of the training target allows (Gamma for a positive skewed target, Tweedie for a non-negative target with zeros,
                 Poisson and negative binomial for counts, Huber for heavy tails), scored in the response scale, so the family competes with the
                 Gaussian expert in the leagues. A log link is never proposed for a target with zeros or negative values.
+            family_search (bool): Opt-in, with ``family="auto"`` and a target the profile gives a family (binomial, Gamma, Poisson, negative
+                binomial, Tweedie). The evolutionary search itself fits its candidates under the first family of the profile (a log or logit link)
+                instead of the identity link: on a multiplicative process the identity link needs interaction terms that an additive model on the
+                link scale does not, and the champions are then fitted again under the family. ``False`` (default) searches on the identity link.
             search_groups (Optional[int]): For data with thousands of groups: ``fit()`` searches on this many groups, taken evenly spaced by the
                 level of their target, then fits the architectures found on every group (the way ``architectures=`` does). ``None`` (default)
                 searches on all groups; it has no effect without a ``group_col`` or when there are not more groups than this number. The groups
@@ -385,6 +390,7 @@ class AutoTAM:
         self._constructor_args = {**{k: v for k, v in locals().items() if k not in ("self", "kwargs", "__class__")}, **kwargs}
         self.search = check_search_mode(search)
         self.family = check_family_mode(family)
+        self.family_search = bool(family_search)
         if guided_search and self.family == "gaussian":
             self.family = "auto"
         fast = self.search == "fast"
@@ -627,6 +633,7 @@ class AutoTAM:
         self.ctx.online_variants = self.online_variants
         self.ctx.native_quantiles = self.native_quantiles
         self.ctx.family_losses = candidate_losses(self.ctx.target_profile) if self.family == "auto" else []
+        self.ctx.family_search = self.family_search
         if self.guided_search:
             self.guided_hints_ = self._guided_hints()
         self.ctx.optimization_metric = optimization_metric

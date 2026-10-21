@@ -97,7 +97,8 @@ class BaseDiscoverer:
                         group_col=ctx.group_col, date_col=ctx.date_col,
                         mandatory_terms=getattr(ctx, 'mandatory_terms', None) or self.mandatory_terms,
                         mandatory_variables=getattr(ctx, 'mandatory_variables', None) or self.mandatory_variables,
-                        bounded_rewards=self.bounded_rewards, tensor_margin_penalty=self.tensor_margin_penalty)
+                        bounded_rewards=self.bounded_rewards, tensor_margin_penalty=self.tensor_margin_penalty,
+                        loss=ctx.family_losses[0] if getattr(ctx, "family_search", False) and ctx.family_losses else "l2")
         islands = [i for i in get_island_objects() if self.islands is None or type(i).__name__ in self.islands]
         for island in islands:
             island.extended_mutations = self.extended

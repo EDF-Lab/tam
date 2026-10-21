@@ -276,6 +276,18 @@ class ExpertExpander:
                                            ctx.penalize_score(cv_score, base_form, n_samples), ctx.estimate_complexity(base_form))
                         except Exception as exc:
                             log_failure(logger, f"Family expert ({loss}) of {prefix}", exc, base_form)
+                        if self.expansions.get("autofit"):
+                            try:   # the smoothing parameters chosen by the working-weight GCV of the family, as the Gaussian auto_fit expert does
+                                m_family_auto = StaticTAM(formula=base_form, group_col=ctx.group_col, date_col=ctx.date_col, loss=loss)
+                                m_family_auto.auto_fit(df_fit_clean)
+                                cv_auto = self._evaluate_model_cv(m_family_auto, ctx.cv_folds, ctx.target, metric=opt_metric)
+                                if np.isfinite(cv_auto):
+                                    name = f"Static_{prefix}_FamilyAuto_{loss}"
+                                    candidate_pool[name] = {"type": "static", "model": m_family_auto, "island": island_name, "cv_rmse": cv_auto}
+                                    self._log_test(test_log, name, f"StaticTAM_{loss}_gcv", base_form, f"loss={loss}", cv_auto,
+                                                   ctx.penalize_score(cv_auto, base_form, n_samples), ctx.estimate_complexity(base_form))
+                            except Exception as exc:
+                                log_failure(logger, f"Auto-fitted family expert ({loss}) of {prefix}", exc, base_form)
                     
                     if best_static_cv < global_best_cv:
                         global_best_cv = best_static_cv

@@ -32,14 +32,16 @@ def candidate_losses(profile: Dict[str, Any]) -> List[str]:
         profile: A target profile (``zero_share``, ``negative_share``, ``integer_share``, ``skewness``, ``kurtosis``, ``hints``).
 
     Returns:
-        Loss names of ``StaticTAM(loss=...)``: ``gamma`` (positive target), ``tweedie`` (non-negative with zeros), ``poisson`` and
+        Loss names of ``StaticTAM(loss=...)``: ``binomial`` (a 0/1 outcome or a proportion), ``gamma`` (positive target), ``tweedie`` (non-negative with zeros), ``poisson`` and
         ``negative_binomial`` (counts), ``huber`` (heavy tails).
     """
     if not profile or profile.get("n", 0) < 20 or profile.get("sentinels"):
         return []
     hints = profile.get("hints", ["gaussian"])
     losses: List[str] = []
-    if "count" in hints:
+    if "binomial" in hints or ("bounded" in hints and tuple(profile.get("bounds") or ()) == (0.0, 1.0)):
+        losses.append("binomial")    # a 0/1 outcome or a proportion in [0, 1]: a logit link keeps the forecast inside the interval
+    elif "count" in hints:
         losses += ["poisson", "negative_binomial"]
     elif "tweedie" in hints:
         losses.append("tweedie")
