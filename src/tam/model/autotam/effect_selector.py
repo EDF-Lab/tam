@@ -37,7 +37,7 @@ class EffectSelector:
     
 #: <effect_selector_init>
     def __init__(self, categorical_threshold: int = 15, sparsity_threshold: float = 0.80, max_active_effects: int = 2, extended: bool = False,
-                 smooth_monotonic: bool = False, integer_discrete: bool = False):
+                 smooth_monotonic: bool = False, integer_discrete: bool = False, strong_regularization: bool = False):
         """
         Initializes the EffectSelector with strict empirical and structural thresholds.
 
@@ -62,6 +62,7 @@ class EffectSelector:
         self.max_active_effects = max_active_effects
         self.profiler = FeatureProfiler(smooth_monotonic=smooth_monotonic)
         self.integer_discrete = bool(integer_discrete)
+        self.strong_regularization = bool(strong_regularization)
 #: </effect_selector_init>
 
 #: <build_search_space>
@@ -154,7 +155,12 @@ class EffectSelector:
                 ext_k, ext_centers = [prof_k], [int(np.clip(prof_k, 10, 50))]
 
             def _ap(effect: str) -> List[float]:
-                return [FeatureProfiler.penalty_for(effect, col, prof_m, prof_k)]
+                base = FeatureProfiler.penalty_for(effect, col, prof_m, prof_k)
+                if self.strong_regularization and effect in ("s", "f", "p", "w"):
+                    # Strong penalties as well: a smooth with 1.5 to 3 degrees of freedom is what a small or noisy sample supports, and a
+                    # penalty of 1e-6 lets a very clean curve use its knots.
+                    return sorted({base, -5.0, -3.0, -1.0, 0.0} | ({-6.0} if dataset_size >= 100 else set()))
+                return [base]
 
             feature_space = {
                 "topology": topology,
@@ -232,6 +238,8 @@ class EffectSelector:
 
             search_space[col] = feature_space
 
+        if self.strong_regularization:
+            search_space["strong_regularization"] = True   # read by the tensor products of the population (margin penalties)
         return search_space
 #: </build_search_space>
 

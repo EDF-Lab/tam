@@ -203,6 +203,7 @@ class PipelineContext:
     family_losses: List[str] = field(default_factory=list)  # non-Gaussian losses offered with family='auto' (see families.py)
     dynamic_top: Optional[int] = None  # dynamic experts only for the champions ranked at most this in their island, None for all
     native_quantiles: bool = False  # distributional experts that forecast their own quantiles (see native_quantiles.py)
+    strong_regularization: bool = False  # strong smoothing penalties are searched, and a clean curve may use more knots (see expert_expander)
     offset_col: Optional[str] = None  # exposure column: every candidate carries ``offset(<col>)``, the column is no feature
     spatial_pairs: List[Any] = field(default_factory=list)  # pairs of coordinate columns found among the features
     random_effect_columns: List[str] = field(default_factory=list)  # identifiers with many levels

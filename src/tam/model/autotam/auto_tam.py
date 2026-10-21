@@ -181,6 +181,7 @@ class AutoTAM:
         offset_col: Optional[str] = None,
         spatial_pairs: bool = False,
         random_effects: bool = False,
+        strong_regularization: bool = False,
         **kwargs
     ):
         """
@@ -227,6 +228,11 @@ class AutoTAM:
                 repeat and are named like an identifier or are perfectly balanced) get a ridge-shrunk ``c(id, ap=-2)`` as their only effect, are
                 left out of ratios and smoothing, and are offered as the partner of a factor smooth ``te(s(x), c(id))``.
                 ``random_effect_columns_`` lists them.
+            strong_regularization (bool): Opt-in. The smoothing penalties searched for the curves (``s``, ``f``, ``p``, ``w``) include the strong
+                ones (``ap`` of -1 and 0, about 2 degrees of freedom, so a small or noisy sample can keep a smooth instead of falling back on a line)
+                and, from 100 rows, the weak one (-6); the margins of a tensor product take -3, -1 or 0; and a champion whose cross-validated R2
+                is above 0.92 is also fitted with more knots and the locally adaptive penalty ``m_pen=4`` (the experts ``..._HighSNR_...``).
+                ``False`` (default) is the search space as it was.
             search_groups (Optional[int]): For data with thousands of groups: ``fit()`` searches on this many groups, taken evenly spaced by the
                 level of their target, then fits the architectures found on every group (the way ``architectures=`` does). ``None`` (default)
                 searches on all groups; it has no effect without a ``group_col`` or when there are not more groups than this number. The groups
@@ -407,6 +413,7 @@ class AutoTAM:
         self.family = check_family_mode(family)
         self.family_search = bool(family_search)
         self.offset_col = offset_col
+        self.strong_regularization = bool(strong_regularization)
         self.spatial_pairs_ = []          # set by fit() with spatial_pairs: the coordinate pairs found
         self.random_effect_columns_ = []  # set by fit() with random_effects: the identifier columns found
         if guided_search and self.family == "gaussian":
@@ -436,6 +443,7 @@ class AutoTAM:
             clean_sentinels=clean_sentinels,
             calendar_guards=calendar_guards,
             offset_col=offset_col,
+            strong_regularization=strong_regularization,
             spatial_pairs=spatial_pairs,
             random_effects=random_effects,
             smooth_monotonic=smooth_monotonic,
@@ -659,6 +667,7 @@ class AutoTAM:
         self.ctx.native_quantiles = self.native_quantiles
         self.ctx.family_losses = candidate_losses(self.ctx.target_profile) if self.family == "auto" else []
         self.ctx.family_search = self.family_search
+        self.ctx.strong_regularization = self.strong_regularization
         self.spatial_pairs_, self.random_effect_columns_ = list(self.ctx.spatial_pairs), list(self.ctx.random_effect_columns)
         if self.guided_search:
             self.guided_hints_ = self._guided_hints()

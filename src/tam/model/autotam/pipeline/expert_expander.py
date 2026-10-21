@@ -19,6 +19,8 @@ from tam.evaluation.metrics import deviance_metric
 import datetime
 import re
 from tam.model.autotam.tokens import formula_columns
+
+HIGH_SNR_R2 = 0.92   # cross-validated R2 above which a champion also gets more knots and an adaptive penalty (strong_regularization)
 from tam.model.autotam.expert_ids import identifier_of
 from typing import Dict, Any, Tuple, List
 from .context import PipelineContext
@@ -248,6 +250,9 @@ class ExpertExpander:
                         except Exception as exc:
                             log_failure(logger, f"Grid-search expert of {prefix}", exc, base_form)
 
+                    if ctx.strong_regularization:
+                        self._high_snr_experts(candidate_pool, test_log, ctx, prefix, island_name, base_form, df_fit_clean, n_samples, opt_metric)
+
                     best_static_model, best_static_cv, min_penalized_cv = None, float('inf'), float('inf')
                     
                     for name, c_dict in candidate_pool.items():
@@ -436,6 +441,37 @@ class ExpertExpander:
             logger.info("ExpertExpander: %d expert(s) repeat another one (same formula and expansion) and are left out: %s", len(drop), ", ".join(drop))
         return {name: expert for name, expert in candidate_pool.items() if name not in drop}
 #: </expert_expander_generate>
+
+    def _high_snr_experts(self, candidate_pool, test_log, ctx, prefix, island_name, base_form, df_fit, n_samples, metric) -> None:
+        """More knots and ``m_pen=4`` for a champion that fits its folds almost perfectly (R2 above 0.92): the knot ceiling and the single
+        penalty of a clean curve (a physical or financial law) leave a bias that a stronger basis removes."""
+        if metric != "rmse" or n_samples < 60 or "s(" not in base_form:
+            return
+        base = candidate_pool.get(f"Static_{prefix}_Prior")
+        spread = float(np.nanstd(df_fit[ctx.target].to_numpy(dtype=float)))
+        if base is None or not np.isfinite(base["cv_rmse"]) or spread <= 0 or 1.0 - (base["cv_rmse"] / spread) ** 2 <= HIGH_SNR_R2:
+            return
+        knots = int(min(30, max(12, n_samples // 5)))
+
+        def widen(match):
+            args = re.sub(r"\bk\s*=\s*\d+", f"k={knots}", match.group(1)) if re.search(r"\bk\s*=", match.group(1)) else f"{match.group(1)}, k={knots}"
+            return f"s({args}{'' if 'm_pen' in args else ', m_pen=4'})"
+
+        wide = re.sub(r"(?<![A-Za-z_])s\(([^()]*)\)", widen, base_form)
+        for suffix, fit in (("Prior", lambda m: m.fit(df_fit)), ("Auto", lambda m: m.auto_fit(df_fit))):
+            if suffix == "Auto" and not self.expansions.get("autofit"):
+                continue
+            try:
+                model = StaticTAM(formula=wide, group_col=ctx.group_col, date_col=ctx.date_col)
+                fit(model)
+                cv_score = self._evaluate_model_cv(model, ctx.cv_folds, ctx.target, metric=metric)
+                if np.isfinite(cv_score):
+                    name = f"Static_{prefix}_HighSNR_{suffix}"
+                    candidate_pool[name] = {"type": "static", "model": model, "island": island_name, "cv_rmse": cv_score}
+                    self._log_test(test_log, name, f"StaticTAM_highsnr_{suffix}", wide, "k and m_pen=4", cv_score,
+                                   ctx.penalize_score(cv_score, wide, n_samples), ctx.estimate_complexity(wide))
+            except Exception as exc:
+                log_failure(logger, f"High-SNR expert ({suffix}) of {prefix}", exc, wide)
 
 #: <expert_expander_grouped_effects>
     def _grouped_effect_experts(self, candidate_pool, test_log, ctx, base_model, base_cv, df_fit, d_meta, prefix, island_name, n_samples):

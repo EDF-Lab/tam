@@ -33,6 +33,7 @@ MAX_INTERACTION_PARTNERS = 5
 # Share of deep-basis terms (n, rbf, t) drawn without partners, so plain terms stay reachable:
 # otherwise others= is attached whenever a categorical exists, and only a mutation can drop it.
 PLAIN_DEEP_TERM_PROBABILITY = 0.25
+STRONG_MARGIN_AP = (-3.0, -1.0, 0.0)   # margin penalties of a tensor product with ``strong_regularization``
 IMPORTANCE_FLOOR = 0.15   # added to the importance of a covariate when the candidates are drawn by importance
 
 # Fallback hyperparameter grids for tuning free parameters of basis effects
@@ -570,6 +571,8 @@ def _tensor_term(kg: KnowledgeGraph, search_space: Dict[str, Any], base: str, pa
             return None
         params = dict(CONTINUOUS_TENSOR_BASES[eff])
         grid_ap = _get_safe_params(kg, search_space, feat, eff, complexity_cap=True).get('ap')
+        if search_space.get("strong_regularization"):
+            grid_ap = random.choice(STRONG_MARGIN_AP)   # a surface has k1 x k2 parameters: its margins need a stronger penalty than a curve
         if grid_ap is not None:
             params['ap'] = grid_ap
         sides.append(_render_term(eff, feat, params))
