@@ -94,7 +94,8 @@ def term_complexity(term: Dict[str, Any], _depth: int = 0) -> int:
         # Use discounted additive surrogate to prevent penalizing interactions out of the search early.
         return max(1, int(min(product, sum(dims) + product ** 0.5)))
     if effect == "c":
-        return max(1, _int_param(params, "n_cat", 2) - 1)
+        # A spatial graph keeps every level as a column (the Markov random field is the penalty); the other topologies drop the reference level.
+        return max(1, _int_param(params, "n_cat", 2) - (0 if str(params.get("topo", "nominal")).strip("'\" ").lower() == "graph" else 1))
     if effect == "s":
         return max(1, _int_param(params, "k", 10) + _int_param(params, "deg", 3))
     if effect == "f":
@@ -103,7 +104,9 @@ def term_complexity(term: Dict[str, Any], _depth: int = 0) -> int:
     if effect == "p":
         return max(1, _int_param(params, "deg", 3))
     if effect == "rbf":
-        return max(1, _int_param(params, "n_centers", 10))
+        # A thin-plate spline keeps its centres minus the part of the polynomial null space.
+        thin_plate = str(params.get("kernel", "matern")).strip("'\" ").lower() == "tps"
+        return max(1, _int_param(params, "n_centers", 10) - (1 if thin_plate else 0))
     if effect == "t":
         # TreeEffect: max_leaves (a flat histogram) overrides max_depth (2**depth leaves per tree).
         leaves = _int_param(params, "max_leaves", 2 ** _int_param(params, "max_depth", 2))
@@ -203,6 +206,10 @@ class PipelineContext:
     family_losses: List[str] = field(default_factory=list)  # non-Gaussian losses offered with family='auto' (see families.py)
     dynamic_top: Optional[int] = None  # dynamic experts only for the champions ranked at most this in their island, None for all
     native_quantiles: bool = False  # distributional experts that forecast their own quantiles (see native_quantiles.py)
+    autofit_criterion: str = "gcv"  # the criterion of the auto_fit experts: "gcv" or "reml"
+    transform_experts: bool = False  # static experts on a transformed target when the profile of the target asks for it
+    family_adaptive: bool = False  # adaptive experts on the family expert that beats the Gaussian static model
+    extended_effects: bool = False  # more parameters of the effects are searched (see effect_selector)
     small_sample_rows: Optional[int] = None  # small cross-sectional sample: the number of training rows, which turns on the corrected-AIC factor
     strong_regularization: bool = False  # strong smoothing penalties are searched, and a clean curve may use more knots (see expert_expander)
     offset_col: Optional[str] = None  # exposure column: every candidate carries ``offset(<col>)``, the column is no feature

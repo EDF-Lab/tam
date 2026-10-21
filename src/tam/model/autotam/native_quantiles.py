@@ -19,7 +19,7 @@ from tam.common.utils import parse_formula_to_terms
 from tam.model.additive import StaticTAM
 
 #: <native_quantiles>
-DISTRIBUTION = {"log_target": False, "tail_family": "normal"}   # the target on its own scale, a normal tail
+DISTRIBUTION = {"log_target": False, "tail_family": "auto", "scale_correction": "leverage", "refit_rounds": 2}   # own scale, tail from the kurtosis, debiased scale, weighted location
 
 
 def scale_formula(target: str, location_formula: str) -> Optional[str]:

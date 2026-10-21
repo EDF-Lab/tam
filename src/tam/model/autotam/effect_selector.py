@@ -37,7 +37,8 @@ class EffectSelector:
     
 #: <effect_selector_init>
     def __init__(self, categorical_threshold: int = 15, sparsity_threshold: float = 0.80, max_active_effects: int = 2, extended: bool = False,
-                 smooth_monotonic: bool = False, integer_discrete: bool = False, strong_regularization: bool = False):
+                 smooth_monotonic: bool = False, integer_discrete: bool = False, strong_regularization: bool = False,
+                 extended_effects: bool = False):
         """
         Initializes the EffectSelector with strict empirical and structural thresholds.
 
@@ -63,6 +64,7 @@ class EffectSelector:
         self.profiler = FeatureProfiler(smooth_monotonic=smooth_monotonic)
         self.integer_discrete = bool(integer_discrete)
         self.strong_regularization = bool(strong_regularization)
+        self.extended_effects = bool(extended_effects)
 #: </effect_selector_init>
 
 #: <build_search_space>
@@ -171,18 +173,20 @@ class EffectSelector:
                     "l": {"ap": _ap("l")},
                     "f": {"m": [prof_m], "s": [2], "ap": _ap("f")},
                     "p": {"deg": [int(np.clip(prof_m, 5, 20))], "s": [2], "ap": _ap("p")},
-                    "s": {"k": ext_k, "deg": [3], "p": [2], "ap": _ap("s")},
+                    "s": {"k": ext_k, "deg": [3], "p": [2], "ap": _ap("s"), **({"m_pen": [1, 2, 4]} if self.extended_effects else {})},
                     "w": {"n_scales": [4], "n_locations": [int(np.clip(prof_k // 3, 10, 16))],
                           "ap": _ap("w")},
                     # A tree is an oblivious binary tree (max_depth) or a flat histogram
                     # (max_leaves); _get_safe_params keeps one of the two per term.
                     "t": {"n_trees": [10, 25], "max_depth": [1, 2], "max_leaves": [50],
-                          "split_strategy": ["quantile", "uniform"], "sp_alpha": [0.0, 1.0]},
+                          "split_strategy": ["quantile", "uniform"], "sp_alpha": [0.0, 1.0],
+                          **({"orthogonalize": [False, True]} if self.extended_effects else {})},
                     "lt": {"max_depth": [3, 5], "max_leaves": [50], "split_strategy": ["quantile", "uniform"],
                            "ap": _ap("lt")},
                     # Exclude 'cos' activation: extrapolates poorly across regime shifts.
-                    "n": {"n_neurons": [100], "n_hidden_layers": [1], "act": ["relu", "tanh"]},
-                    "rbf": {"n_centers": ext_centers, "ap": _ap("rbf")},
+                    "n": {"n_neurons": [100], "n_hidden_layers": [1], "act": ["relu", "tanh"],
+                          **({"orthogonalize": [False, True]} if self.extended_effects else {})},
+                    "rbf": {"n_centers": ext_centers, "ap": _ap("rbf"), **({"kernel": ["matern", "tps"]} if self.extended_effects else {})},
                     "pid": {"w": [3, 6, 7] if self.extended else [3, 7], "d_pen": [10.0], "ap": _ap("pid")}
                 },
                 "max_active_effects": self.max_active_effects
@@ -231,6 +235,8 @@ class EffectSelector:
             if topology == "discrete":
                 feature_space["eligible_effects"].extend(["c", "t"])
                 feature_space["grids"]["c"] = {"n_cat": [df[col].nunique()], "topo": ["nominal"], "p_order": [1]}
+                if self.extended_effects:
+                    feature_space["grids"]["c"].update({"topo": ["nominal", "ordinal"], "unseen": ["edge", "mean", "zero"]})
             elif topology == "sparse":
                 feature_space["eligible_effects"].extend(["t", "rbf", "n"])
             elif topology == "continuous":
@@ -238,6 +244,8 @@ class EffectSelector:
 
             search_space[col] = feature_space
 
+        if self.extended_effects:
+            search_space["extended_effects"] = True   # read by the tensor products of the population (per-level smoothing)
         if self.strong_regularization:
             search_space["strong_regularization"] = True   # read by the tensor products of the population (margin penalties)
         return search_space

@@ -183,6 +183,10 @@ class AutoTAM:
         random_effects: bool = False,
         strong_regularization: bool = False,
         small_sample: Union[bool, str] = False,
+        autofit_criterion: str = "gcv",
+        transform_experts: bool = False,
+        family_adaptive: bool = False,
+        extended_effects: bool = False,
         **kwargs
     ):
         """
@@ -239,6 +243,16 @@ class AutoTAM:
                 by the corrected-AIC factor ``1 + 2k / (n - k - 1)`` (k the coefficients), a formula has at most ``n // 8`` terms, and a heavily
                 regularised linear model of the first three features is an expert the final model cannot be worse than (the seed floor).
                 ``is_small_sample_`` says whether it was on. ``False`` (default) is the search as it was.
+            autofit_criterion (str): ``"gcv"`` (default) or ``"reml"``: what the ``auto_fit`` experts (the Gaussian ones and, with ``family="auto"``,
+                the family ones) minimise to choose their smoothing parameters. REML (Laplace restricted marginal likelihood) is less prone to
+                undersmoothing than GCV when the residuals are autocorrelated.
+            transform_experts (bool): Opt-in. Static experts on a transformed target, from the profile of the target (``log``, ``asinh``, ``logit``,
+                ``log1p``), forecast back on the scale of the target.
+            family_adaptive (bool): Opt-in, with ``family="auto"`` and the adaptive expansion. Adaptive experts on the family expert that beats the
+                Gaussian static expert on the folds (windows fitted on the link scale, so the forecast keeps the support of the family).
+            extended_effects (bool): Opt-in. Parameters of the effects that the search left fixed are searched too: the thin-plate kernel of
+                ``rbf``, the locally adaptive penalty ``m_pen`` of ``s``, ``orthogonalize`` for ``n`` and ``t``, the ``ordinal`` topology and
+                ``unseen`` of ``c``, and ``mode='per_level'`` of a tensor product with a factor.
             search_groups (Optional[int]): For data with thousands of groups: ``fit()`` searches on this many groups, taken evenly spaced by the
                 level of their target, then fits the architectures found on every group (the way ``architectures=`` does). ``None`` (default)
                 searches on all groups; it has no effect without a ``group_col`` or when there are not more groups than this number. The groups
@@ -420,6 +434,12 @@ class AutoTAM:
         self.family_search = bool(family_search)
         self.offset_col = offset_col
         self.strong_regularization = bool(strong_regularization)
+        if autofit_criterion not in ("gcv", "reml"):
+            raise ValueError(f"autofit_criterion must be 'gcv' or 'reml'; got {autofit_criterion!r}")
+        self.autofit_criterion = autofit_criterion
+        self.transform_experts = bool(transform_experts)
+        self.family_adaptive = bool(family_adaptive)
+        self.extended_effects = bool(extended_effects)
         if small_sample not in (True, False, "auto"):
             raise ValueError(f"small_sample must be False, True or 'auto'; got {small_sample!r}")
         self.small_sample = small_sample
@@ -454,6 +474,7 @@ class AutoTAM:
             calendar_guards=calendar_guards,
             offset_col=offset_col,
             strong_regularization=strong_regularization,
+            extended_effects=extended_effects,
             small_sample=small_sample is True,
             spatial_pairs=spatial_pairs,
             random_effects=random_effects,
@@ -679,6 +700,10 @@ class AutoTAM:
         self.ctx.family_losses = candidate_losses(self.ctx.target_profile) if self.family == "auto" else []
         self.ctx.family_search = self.family_search
         self.ctx.strong_regularization = self.strong_regularization
+        self.ctx.autofit_criterion = self.autofit_criterion
+        self.ctx.transform_experts = self.transform_experts
+        self.ctx.family_adaptive = self.family_adaptive
+        self.ctx.extended_effects = self.extended_effects
         rows = sum(len(f) for f in (self.ctx.df_fit, self.ctx.df_dev, self.ctx.df_val) if f is not None)
         self.is_small_sample_ = self.small_sample is True or (self.small_sample == "auto" and not self.ctx.date_col and rows < 150)
         if self.is_small_sample_:

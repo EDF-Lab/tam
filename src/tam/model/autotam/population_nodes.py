@@ -563,7 +563,8 @@ def _tensor_term(kg: KnowledgeGraph, search_space: Dict[str, Any], base: str, pa
             return None
         base_params = _get_safe_params(kg, search_space, base, eff, complexity_cap=True)
         partner_params = _get_safe_params(kg, search_space, partner, 'c', complexity_cap=True)
-        return f"te({_render_term(eff, base, base_params)}, {_render_term('c', partner, partner_params)})"
+        mode = ", mode='per_level'" if search_space.get("extended_effects") and random.random() < 0.5 else ""   # one smoothing parameter per level
+        return f"te({_render_term(eff, base, base_params)}, {_render_term('c', partner, partner_params)}{mode})"
 
     sides = []
     for feat in (base, partner):

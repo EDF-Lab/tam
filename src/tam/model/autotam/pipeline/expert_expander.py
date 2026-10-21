@@ -201,7 +201,7 @@ class ExpertExpander:
                     if self.expansions.get("autofit"):
                         try:
                             m_auto = StaticTAM(formula=base_form, group_col=ctx.group_col, date_col=ctx.date_col)
-                            m_auto.auto_fit(df_fit_clean)
+                            m_auto.auto_fit(df_fit_clean, **self._criterion(ctx))
                             cv_score = self._evaluate_model_cv(m_auto, ctx.cv_folds, ctx.target, metric=opt_metric)
                             comp = ctx.estimate_complexity(base_form)
                             pen_score = ctx.penalize_score(cv_score, base_form, n_samples)
@@ -253,6 +253,9 @@ class ExpertExpander:
                     if ctx.strong_regularization:
                         self._high_snr_experts(candidate_pool, test_log, ctx, prefix, island_name, base_form, df_fit_clean, n_samples, opt_metric)
 
+                    if ctx.transform_experts:
+                        self._transform_experts(candidate_pool, test_log, ctx, prefix, island_name, base_form, df_fit_clean, n_samples, opt_metric)
+
                     best_static_model, best_static_cv, min_penalized_cv = None, float('inf'), float('inf')
                     
                     for name, c_dict in candidate_pool.items():
@@ -284,7 +287,7 @@ class ExpertExpander:
                         if self.expansions.get("autofit"):
                             try:   # the smoothing parameters chosen by the working-weight GCV of the family, as the Gaussian auto_fit expert does
                                 m_family_auto = StaticTAM(formula=base_form, group_col=ctx.group_col, date_col=ctx.date_col, loss=loss)
-                                m_family_auto.auto_fit(df_fit_clean)
+                                m_family_auto.auto_fit(df_fit_clean, **self._criterion(ctx))
                                 cv_auto = self._evaluate_model_cv(m_family_auto, ctx.cv_folds, ctx.target, metric=opt_metric)
                                 if np.isfinite(cv_auto):
                                     name = f"Static_{prefix}_FamilyAuto_{loss}"
@@ -297,6 +300,8 @@ class ExpertExpander:
                     if best_static_cv < global_best_cv:
                         global_best_cv = best_static_cv
                         global_best_static = best_static_model
+
+                    family_base = self._best_family(candidate_pool, prefix, best_static_cv) if ctx.family_adaptive and self.expansions.get("adaptive") else None
 
                     if ctx.dynamic_top is not None and rank > ctx.dynamic_top:
                         continue   # the dynamic experts (Kalman, adaptive) are the cost of a fit: only the best champions of each island get them
@@ -382,6 +387,9 @@ class ExpertExpander:
                                     except Exception as exc:
                                         log_failure(logger, f"AdaptiveTAM expert {variant_name} ({periods} periods) of {prefix}", exc, dyn_form)
 
+                        if family_base is not None and not (ctx.dynamic_top is not None and rank > ctx.dynamic_top):
+                            self._family_adaptive_experts(candidate_pool, test_log, ctx, family_base, prefix, island_name, df_cont_all, n_samples)
+
                         if ctx.online_variants:
                             self._grouped_effect_experts(candidate_pool, test_log, ctx, best_static_model, best_static_cv, df_fit_clean, d_meta,
                                                          prefix, island_name, n_samples)
@@ -441,6 +449,67 @@ class ExpertExpander:
             logger.info("ExpertExpander: %d expert(s) repeat another one (same formula and expansion) and are left out: %s", len(drop), ", ".join(drop))
         return {name: expert for name, expert in candidate_pool.items() if name not in drop}
 #: </expert_expander_generate>
+
+    @staticmethod
+    def _criterion(ctx) -> Dict[str, Any]:
+        """``{"criterion": "reml"}`` for the auto_fit experts when the context asks for it, nothing otherwise (the engine's default is GCV)."""
+        return {"criterion": ctx.autofit_criterion} if getattr(ctx, "autofit_criterion", "gcv") != "gcv" else {}
+
+    def _transform_experts(self, candidate_pool, test_log, ctx, prefix, island_name, base_form, df_fit, n_samples, metric) -> None:
+        """Static experts on a transformed target, chosen from the profile of the target: ``log`` for a positive skewed target, ``asinh`` for a
+        heavy-tailed one with both signs, ``logit`` for a proportion strictly inside (0, 1), ``log1p`` for counts and non-negative targets with
+        zeros. The forecast is back on the scale of the target, so the expert competes with the others on the same error."""
+        hints = (ctx.target_profile or {}).get("hints", [])
+        wanted = {"log": "log", "asinh": "asinh", "bounded": "logit", "count": "log1p", "tweedie": "log1p"}
+        y = df_fit[ctx.target].to_numpy(dtype=float)
+        for hint in hints:
+            transform = wanted.get(hint)
+            if transform is None or (transform == "log" and not np.all(y > 0)) or (transform == "logit" and not (np.all(y > 0) and np.all(y < 1))):
+                continue
+            try:
+                model = StaticTAM(formula=base_form, group_col=ctx.group_col, date_col=ctx.date_col, target_transform=transform)
+                model.fit(df_fit)
+                cv_score = self._evaluate_model_cv(model, ctx.cv_folds, ctx.target, metric=metric)
+                if np.isfinite(cv_score):
+                    name = f"Static_{prefix}_Transform_{transform}"
+                    candidate_pool[name] = {"type": "static", "model": model, "island": island_name, "cv_rmse": cv_score}
+                    self._log_test(test_log, name, f"StaticTAM_{transform}", base_form, f"target_transform={transform}", cv_score,
+                                   ctx.penalize_score(cv_score, base_form, n_samples), ctx.estimate_complexity(base_form))
+            except Exception as exc:
+                log_failure(logger, f"Transform expert ({transform}) of {prefix}", exc, base_form)
+
+    @staticmethod
+    def _best_family(candidate_pool, prefix, gaussian_cv):
+        """The family expert of this champion (``..._Family_<loss>`` or ``..._FamilyAuto_<loss>``) with the smallest error when it beats the best
+        Gaussian static expert, as ``(model, loss, cv)``; ``None`` otherwise."""
+        best = None
+        for name, expert in candidate_pool.items():
+            if f"{prefix}_Family" in name and np.isfinite(expert["cv_rmse"]) and expert["cv_rmse"] < gaussian_cv:
+                if best is None or expert["cv_rmse"] < best[2]:
+                    best = (expert["model"], name.rsplit("_", 1)[-1], expert["cv_rmse"])
+        return best
+
+    def _family_adaptive_experts(self, candidate_pool, test_log, ctx, family_base, prefix, island_name, df_cont_all, n_samples) -> None:
+        """Adaptive experts on a non-Gaussian base: the windows are fitted on the link scale with the base forecast as offset, so the forecast
+        keeps the support of the family. The Kalman experts stay on the Gaussian base."""
+        model, loss, cv_score = family_base
+        try:
+            d_meta = self._prepare_meta_learning_data(df_cont_all, model, ctx)
+            lag_cols = [c for c in d_meta.columns if f"Residual{ctx.target}_lag_" in c]
+            if not lag_cols:
+                return
+            formula = f"Residual{ctx.target} ~ " + " + ".join(f"l({c})" for c in lag_cols)
+            for periods in ctx.candidate_windows:
+                adapt = AdaptiveTAM(base_model=model, adaptive_formula=formula, update_interval_periods=1, training_window_periods=periods,
+                                    steps_per_period=ctx.steps_per_period, horizon_steps=ctx.inferred_horizon)
+                adapt._saved_base_model = model
+                name = f"Adaptive_AR_Only_{periods}p_{prefix}_Family_{loss}"
+                params = {"training_window_periods": periods, "architecture": "AR_Only"}
+                candidate_pool[name] = {"type": "adaptive", "model": adapt, "params": params, "island": island_name, "dynamic_formula": formula, "cv_rmse": cv_score}
+                self._log_test(test_log, name, f"AdaptiveTAM_{loss}", formula, str(params), cv_score, ctx.penalize_score(cv_score, formula, n_samples),
+                               ctx.estimate_complexity(formula))
+        except Exception as exc:
+            log_failure(logger, f"Adaptive experts on the {loss} base of {prefix}", exc)
 
     def _high_snr_experts(self, candidate_pool, test_log, ctx, prefix, island_name, base_form, df_fit, n_samples, metric) -> None:
         """More knots and ``m_pen=4`` for a champion that fits its folds almost perfectly (R2 above 0.92): the knot ceiling and the single

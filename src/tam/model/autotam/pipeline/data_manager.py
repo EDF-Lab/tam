@@ -194,6 +194,7 @@ class DataManager:
         calendar_guards: bool = False,
         offset_col: Optional[str] = None,
         strong_regularization: bool = False,
+        extended_effects: bool = False,
         small_sample: bool = False,
         spatial_pairs: bool = False,
         random_effects: bool = False,
@@ -249,7 +250,8 @@ class DataManager:
         self.mandatory_terms = self.formula_config["mandatory_terms"]
         self.profiler = DataProfiler()
         self.engineer = FeatureEngineer(collinearity_threshold=0.95)  # spec I: bar |rho| > 0.95
-        self.selector = EffectSelector(extended=extended_search, smooth_monotonic=smooth_monotonic, integer_discrete=cross_sectional, strong_regularization=strong_regularization)
+        self.selector = EffectSelector(extended=extended_search, smooth_monotonic=smooth_monotonic, integer_discrete=cross_sectional, strong_regularization=strong_regularization,
+                                      extended_effects=extended_effects)
 #: </data_manager_init>
 
 #: <data_manager_prepare>
