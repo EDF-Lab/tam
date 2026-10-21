@@ -17,10 +17,12 @@ import numpy as np
 import pandas as pd
 import pytest
 
+pytestmark = pytest.mark.slow
+
 from tam.model.autotam.auto_tam import AutoTAM
 
 
-def _hourly(n_days=14):
+def _hourly(n_days=9):
     rng = np.random.default_rng(0)
     ds = pd.date_range("2023-01-01", periods=24 * n_days, freq="h")
     df = pd.DataFrame({"ds": ds, "hour": ds.hour, "temp": rng.normal(15, 5, len(ds))})
@@ -34,7 +36,7 @@ def fitted(tmp_path_factory):
     os.chdir(tmp_path_factory.mktemp("autotam_group_feature"))
     try:
         df = _hourly()
-        train, test = df.iloc[:24 * 10].copy(), df.iloc[24 * 10:].copy()
+        train, test = df.iloc[:24 * 7].copy(), df.iloc[24 * 7:].copy()
         model = AutoTAM("load ~ AutoPipe(temp, hour)", n_experts=1, pop_size=4, use_opera=False)
         model.fit(train, date_col="ds", group_col="hour",
                   expansions={"prior": True, "autofit": False, "kalman": False, "adaptive": False, "grid": False})

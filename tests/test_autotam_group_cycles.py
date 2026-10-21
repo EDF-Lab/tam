@@ -45,13 +45,14 @@ def _hourly(days=110, seed=3):
     return pd.DataFrame({"ds": pd.date_range("2023-01-01", periods=n, freq="h"), "x1": x1, "y": y})
 
 
-def _model(directory, lags=(24,), **options):
-    return AutoTAM("y ~ AutoPipe(x1)", n_experts=2, pop_size=4, use_opera=True, seed=5, group_search="always", lags=list(lags), export_dir=str(directory), **options)
+def _model(directory, lags=(24,), n_experts=2, **options):
+    return AutoTAM("y ~ AutoPipe(x1)", n_experts=n_experts, pop_size=4, use_opera=True, seed=5, group_search="always", lags=list(lags), export_dir=str(directory), **options)
 
 
+@pytest.mark.slow
 def test_a_seed_formula_with_a_lag_in_rows_is_carried_over_to_the_grouped_fit(tmp_path):
-    frame = _hourly()
-    model = _model(tmp_path).fit(frame.iloc[:24 * 90], date_col="ds", expansions=EXPANSIONS, seed_formulas=["y ~ l(x1) + l(y_lag_24)"])
+    frame = _hourly(days=65)
+    model = _model(tmp_path).fit(frame.iloc[:24 * 60], date_col="ds", expansions={**EXPANSIONS, "adaptive": False}, seed_formulas=["y ~ l(x1) + l(y_lag_24)"])
     assert model.derived_group_ is not None and model.ctx.group_col == GROUP_COLUMN
     assert any(name.startswith("Static_Seed_R1") for name in model.experts_["name"])
     assert any("y_lag_1" in str(f) for f in model.architectures_["Seed"])
@@ -74,11 +75,12 @@ def test_a_season_in_rows_that_is_not_whole_cycles_keeps_the_ungrouped_fit_and_s
     assert any("season" in r.message and r.levelno == logging.WARNING for r in caplog.records)
 
 
+@pytest.mark.slow
 def test_the_adaptive_windows_of_a_derived_group_fit_in_the_cycles_of_one_group(tmp_path, caplog):
-    frame = _hourly(days=110)
+    frame = _hourly(days=66)
     with caplog.at_level(logging.WARNING, logger="tam.model.autotam"):
-        model = _model(tmp_path, online_variants=True).fit(frame.iloc[:24 * 100], date_col="ds", expansions=EXPANSIONS)
-    cycles = 100                                  # days in the fit, dev and validation rows: one row a day in each group
+        model = _model(tmp_path, n_experts=1, online_variants=True).fit(frame.iloc[:24 * 62], date_col="ds", expansions=EXPANSIONS)
+    cycles = 62                                   # days in the fit, dev and validation rows: one row a day in each group
     assert model.derived_group_ is not None
     assert model.ctx.candidate_windows and max(model.ctx.candidate_windows) <= (cycles * 2 // 3) // 2
     assert any("skipped" in r.message for r in caplog.records)

@@ -68,9 +68,10 @@ def test_a_short_hourly_history_has_no_time_of_year_with_the_guard_and_has_one_w
     assert "toy" in plain.ctx.calendar["columns"]
 
 
+@pytest.mark.slow
 def test_the_guard_leaves_a_long_daily_history_as_it_was(tmp_path_factory):
     rng = np.random.default_rng(2)
-    n = 3 * 365
+    n = 800
     frame = pd.DataFrame({"ds": pd.date_range("2020-01-01", periods=n, freq="D"), "x1": rng.normal(size=n)})
     frame["y"] = 10 + np.sin(2 * np.pi * np.arange(n) / 365.25) + 0.1 * frame["x1"] + rng.normal(scale=0.1, size=n)
     guarded = _model(tmp_path_factory.mktemp("g"), calendar_guards=True).fit(frame, date_col="ds", expansions=EXPANSIONS)

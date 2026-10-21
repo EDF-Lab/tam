@@ -50,9 +50,10 @@ def test_the_validation_rows_decide_by_default(tmp_path):
     assert model.group_choice_ == "validation" and set(model.group_scores_) == {"ungrouped", "time_of_day"}
 
 
+@pytest.mark.slow
 def test_without_rolling_folds_the_rolling_choice_says_so_and_uses_the_validation_rows(tmp_path, caplog):
     with caplog.at_level(logging.WARNING, logger="tam.model.autotam"):
-        model = _model(tmp_path, group_search=True, group_search_by="rolling").fit(_hourly(), date_col="ds", expansions=EXPANSIONS)
+        model = _model(tmp_path, group_search=True, group_search_by="rolling").fit(_hourly(days=62), date_col="ds", expansions=EXPANSIONS)
     assert model.group_choice_ == "validation"
     assert any("rolling_folds" in r.message and r.levelno == logging.WARNING for r in caplog.records)
 

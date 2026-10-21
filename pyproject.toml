@@ -110,6 +110,7 @@ tam = ["data/*.csv"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts   = "-q"
+markers = ["slow: AutoTAM searches that take minutes (deselect with -m \"not slow\")"]
 filterwarnings = [
     # The PyTorch JIT deprecation warning (a DeprecationWarning on Python 3.14, a FutureWarning from torch 2.x)
     'ignore:.*torch\.jit\.script.*:DeprecationWarning',

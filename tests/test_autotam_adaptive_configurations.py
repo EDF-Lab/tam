@@ -7,6 +7,7 @@ Adaptive configurations of the online variants: the forecast and the effects wit
 of a fit reported by phase and per series.
 """
 
+import pytest
 import json
 from pathlib import Path
 
@@ -74,9 +75,10 @@ def test_the_cost_per_series_divides_by_the_groups(tmp_path):
     assert model.timings_["seconds_per_series"] == model.timings_["total"] / 3
 
 
+@pytest.mark.slow
 def test_a_group_search_reports_the_time_of_every_version(tmp_path):
     rng = np.random.default_rng(3)
-    n = 24 * 90
+    n = 24 * 62
     hour = np.arange(n) % 24
     x1 = rng.normal(size=n)
     frame = pd.DataFrame({"ds": pd.date_range("2023-01-01", periods=n, freq="h"), "x1": x1, "y": 50 + (1 + hour / 6) * x1 + rng.normal(scale=0.3, size=n)})

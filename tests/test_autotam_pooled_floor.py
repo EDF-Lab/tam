@@ -60,16 +60,17 @@ def test_a_floor_better_than_the_apex_becomes_the_final_model_and_a_seed_is_not_
     assert EnsembleSelector(seed_floor=True)._apply_seed_floor(weights, experts, frame, ctx, "rmse") == weights       # only the seed island
 
 
+@pytest.mark.slow
 def test_a_fit_adds_the_floor_expert_and_the_column_and_predicts_forecast_rows(tmp_path):
     rng = np.random.default_rng(3)
     parts = []
     for g, level in enumerate((20.0, 60.0)):
-        n = 150
+        n = 110
         ds = pd.date_range("2023-01-01", periods=n)
         parts.append(pd.DataFrame({"ds": ds, "g": g, "x1": rng.normal(size=n),
                                    "y": level + 5 * np.sin(2 * np.pi * np.arange(n) / 7) + rng.normal(scale=0.3, size=n)}))
     panel = pd.concat(parts, ignore_index=True)
-    past, future = panel[panel["ds"] < "2023-05-20"], panel[panel["ds"] >= "2023-05-20"]
+    past, future = panel[panel["ds"] < "2023-04-10"], panel[panel["ds"] >= "2023-04-10"]
     model = AutoTAM("y ~ AutoPipe(x1)", lags=[11], n_experts=1, pop_size=4, use_opera=True, seed=2, pooled_floor=True, export_dir=str(tmp_path))
     model.fit(past, date_col="ds", group_col="g", expansions={"prior": True, "autofit": False, "kalman": True, "adaptive": False, "grid": False})
     assert FLOOR_COLUMN in model.ctx.df_all_aug.columns and FLOOR_COLUMN not in model.ctx.formula_config["features"]

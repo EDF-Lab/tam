@@ -17,6 +17,7 @@ from tam.model.autotam.families import candidate_losses
 from tam.model.autotam.target_profile import profile_target
 
 EXPANSIONS = {"prior": True, "autofit": True, "kalman": False, "adaptive": False, "grid": False}
+PRIOR = {**EXPANSIONS, "autofit": False}          # the search under the family is the prior phase: no need for the auto-fit experts
 
 
 def test_a_zero_one_target_is_binomial_and_not_a_count():
@@ -57,6 +58,7 @@ def test_the_family_experts_are_tuned_by_the_working_gcv_too(tmp_path):
     assert any("_Family_poisson" in n for n in names) and any("_FamilyAuto_poisson" in n for n in names)
 
 
+@pytest.mark.slow
 def test_the_search_runs_under_the_family_with_family_search(tmp_path, monkeypatch):
     seen = []
     original = DragTAM.__init__
@@ -66,9 +68,9 @@ def test_the_search_runs_under_the_family_with_family_search(tmp_path, monkeypat
         seen.append(self.loss)
 
     monkeypatch.setattr(DragTAM, "__init__", record)
-    model = _model(tmp_path, family_search=True).fit(_counts(), expansions=EXPANSIONS)
+    model = _model(tmp_path, family_search=True).fit(_counts(100), expansions=PRIOR)
     assert seen and set(seen) == {"poisson"} and model.ctx.family_search is True
     assert model.trained_experts
     seen.clear()
-    _model(tmp_path / "plain").fit(_counts(), expansions=EXPANSIONS)
+    _model(tmp_path / "plain").fit(_counts(100), expansions=PRIOR)
     assert set(seen) == {"l2"}

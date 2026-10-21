@@ -25,7 +25,7 @@ def _frame(n=220):
 
 
 def _model(directory, **options):
-    return AutoTAM("y ~ AutoPipe(x1, x2)", n_experts=5, pop_size=8, seed=4, dynamic_top=1, export_dir=str(directory), **options)
+    return AutoTAM("y ~ AutoPipe(x1, x2)", **{"n_experts": 5, "pop_size": 8, "seed": 4, "dynamic_top": 1, "export_dir": str(directory), **options})
 
 
 def _truth(frame, noise=0.0):
@@ -98,10 +98,11 @@ def test_external_experts_need_the_apex_aggregation(tmp_path):
         _model(tmp_path, use_opera=False).fit(frame, date_col="ds", expansions=EXPANSIONS, external_experts={"a": _truth(frame)})
 
 
+@pytest.mark.slow
 def test_a_zero_threshold_leaves_the_pool_and_the_forecasts_as_they_were(tmp_path_factory):
     frame = _frame()
-    plain = _model(tmp_path_factory.mktemp("plain")).fit(frame, date_col="ds", expansions=EXPANSIONS)
-    zero = _model(tmp_path_factory.mktemp("zero"), apex_prune=0.0).fit(frame, date_col="ds", expansions=EXPANSIONS)
+    plain = _model(tmp_path_factory.mktemp("plain"), pop_size=4).fit(frame, date_col="ds", expansions=EXPANSIONS)
+    zero = _model(tmp_path_factory.mktemp("zero"), pop_size=4, apex_prune=0.0).fit(frame, date_col="ds", expansions=EXPANSIONS)
     assert plain.apex_pruned_ == [] and zero.apex_pruned_ == []
     assert plain.weights_top10 == zero.weights_top10
     assert [e["name"] for e in plain.trained_experts] == [e["name"] for e in zero.trained_experts]

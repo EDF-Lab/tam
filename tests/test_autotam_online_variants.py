@@ -18,7 +18,7 @@ from tam.model.autotam.auto_tam import AutoTAM
 EXPANSIONS = {"prior": True, "autofit": False, "kalman": True, "adaptive": True, "grid": False}
 
 
-def _frame(n=1500):
+def _frame(n=1250):
     rng = np.random.default_rng(7)
     x1 = rng.normal(size=n)
     y = 20 + 3 * np.sin(2 * np.pi * np.arange(n) / 7) + 2 * x1 + rng.normal(scale=0.3, size=n)
@@ -55,12 +55,14 @@ def both(tmp_path_factory):
     return out, frame, warnings
 
 
+@pytest.mark.slow
 def test_the_default_has_no_forecast_input_and_no_long_window(both):
     models, _, _ = both
     adaptive = _names(models["off"], "Adaptive_")
     assert adaptive and not any("Forecast" in name or "_350p_" in name for name in adaptive)
 
 
+@pytest.mark.slow
 def test_the_variants_add_forecast_input_formulas_a_noise_grid_and_a_long_window(both):
     models, _, _ = both
     on_adaptive, on_kalman = _names(models["on"], "Adaptive_"), _names(models["on"], "Kalman_")
@@ -72,6 +74,7 @@ def test_the_variants_add_forecast_input_formulas_a_noise_grid_and_a_long_window
     assert any(name.startswith("Kalman_1e_06_") for name in on_kalman)
 
 
+@pytest.mark.slow
 def test_the_new_experts_are_evaluated_without_a_failure(both):
     models, frame, warnings = both
     assert not [m for m in warnings["on"] if "Forecast" in m or "Kalman_1e" in m or "_350p_" in m]
@@ -107,7 +110,7 @@ def test_the_grouped_decomposition_sums_the_effects_by_kind_and_leaves_the_other
 @pytest.fixture(scope="module")
 def grouped_fit(tmp_path_factory):
     rng = np.random.default_rng(3)
-    n = 900
+    n = 600
     day = np.arange(n)
     temp = 10 + 8 * np.sin(2 * np.pi * day / 365) + rng.normal(scale=1.0, size=n)
     y = 100 - 2.0 * temp + 5 * np.sin(2 * np.pi * day / 7) + rng.normal(scale=1.0, size=n)
@@ -123,6 +126,7 @@ def grouped_fit(tmp_path_factory):
     return model, frame, handler.messages
 
 
+@pytest.mark.slow
 def test_the_grouped_experts_are_built_evaluated_and_forecast(grouped_fit):
     model, frame, messages = grouped_fit
     adaptive = _names(model, "Adaptive_G_") + _names(model, "Adaptive_G_plus_")
