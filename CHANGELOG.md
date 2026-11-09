@@ -15,7 +15,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > **[0.0.6]** corresponds to the legacy `weakl` package available on PyPI.
 
 ---
-## [Unreleased]
+## [1.5.1] - 2026-11-09
+
+Patch release, tagged on the repository (no package upload). It carries the hierarchical group axis merged after 1.5.0, a fix of the Kalman filter on missing targets and of the memory budget of the group chunks, and a wider CI. A series without missing targets, and a panel that fits in memory, give the same forecasts as 1.5.0.
 
 ### Added
 - **`HierarchicalTAM` with a `group_col`**: one hierarchical system per group (for instance per half-hour of the day). Every node keeps its group axis, all nodes must hold the same groups and the same number of rows per group, the global system is `(G, D, D)` and solved in one batched call; the dense CG and the matrix-free CG loop over the groups. The memory check counts the `G * D^2 * 8` bytes. A fit on G groups equals G separate fits, and a single group gives the same coefficients as before.
@@ -369,7 +371,8 @@ This version introduced the Formula API and the first object-oriented refactorin
 ### Added
 * Initial project setup based on the original `weakl` v0.0.6 package.
 
-[Unreleased]: https://github.com/EDF-Lab/tam/compare/v1.5.0...HEAD
+[Unreleased]: https://github.com/EDF-Lab/tam/compare/v1.5.1...HEAD
+[1.5.1]: https://github.com/EDF-Lab/tam/releases/tag/v1.5.1
 [1.5.0]: https://github.com/EDF-Lab/tam/releases/tag/v1.5.0
 [1.4.1]: https://github.com/EDF-Lab/tam/releases/tag/v1.4.1
 [1.4.0]: https://github.com/EDF-Lab/tam/releases/tag/v1.4.0
