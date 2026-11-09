@@ -136,11 +136,14 @@ def _kalman_block_loop_optimized(
         # Resilience: Skip updates for missing target values to prevent state corruption.
         nan_mask = torch.isnan(innovations)
         innovations = torch.where(nan_mask, torch.zeros_like(innovations), innovations)
+        # A row without a target brings no information: its regressors are zeroed in the gain and the covariance update,
+        # so the block update is the exact update on the observed rows. The forecast above keeps the full regressors.
+        X_obs = torch.where(nan_mask, torch.zeros_like(X_B), X_B)
         
         # Calculate Innovation Covariance.
         R_B = torch.eye(curr_B, device=device, dtype=dtype).unsqueeze(0).repeat(G, 1, 1) * observation_noise_var
-        P_X_T = torch.bmm(P_t, X_B.transpose(-2, -1))
-        S = R_B + torch.bmm(X_B, P_X_T)
+        P_X_T = torch.bmm(P_t, X_obs.transpose(-2, -1))
+        S = R_B + torch.bmm(X_obs, P_X_T)
         
         # Numerical Stability: Ensure matrix is positive-definite before Cholesky decomposition.
         jitter = torch.eye(curr_B, device=device, dtype=dtype).unsqueeze(0).repeat(G, 1, 1) * eps
@@ -152,7 +155,7 @@ def _kalman_block_loop_optimized(
         theta_t = theta_t + torch.bmm(K, innovations)
         
         # Update Covariance and inject Process Noise (Random Walk).
-        P_t = P_t - torch.bmm(K, torch.bmm(X_B, P_t))
+        P_t = P_t - torch.bmm(K, torch.bmm(X_obs, P_t))
         P_t = P_t + (Q_matrix * float(curr_B))
         P_t = (P_t + P_t.transpose(-2, -1)) * 0.5 # Maintain Symmetry.
 

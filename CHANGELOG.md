@@ -26,6 +26,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `HierarchicalTAM.fit` assembles the joint system in `_assemble_system` and solves it in `_solve` (no change of the results).
 - `HierarchicalTAM` with nodes that do not share the same dates now raises instead of silently comparing different dates (`align='inner'` keeps the previous convenience, restricted to the common dates).
 
+### Fixed
+- **`KalmanTAM` no longer becomes more confident on a missing target**: a row without a target left the state mean unchanged but still shrank the state covariance as if it had been observed, so after a run of missing days the filter was too sure of itself and reacted late when the truth came back. The regressors of the rows without a target are now zeroed in the gain and the covariance update (the block update equals the exact update on the observed rows), the process noise is still added at every step, and the forecast and its variance keep the full regressors. Series without missing targets give the same forecasts as before.
+
 ## [1.5.0] - 2026-10-20
 
 Minor release for the non-Gaussian losses and for richer effects. New arguments and options are appended after the existing ones and their defaults keep the previous behaviour, so existing calls give the same forecasts. The exceptions are fixes: `auto_fit()` and `grid_search_fit()` on a non-Gaussian loss now use that loss (they used to score the raw response with an identity link), and `phys(x, basis='neural')` no longer crashes at fit.

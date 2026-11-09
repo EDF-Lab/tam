@@ -19,6 +19,8 @@
 
 **Base-model components (verified by `tests/test_base_effect_columns.py`):** with `add_base_effects=True`, one `l(effect_<name>)` term per base-model component is appended to the Kalman formula, with the column names `decompose_prediction` emits (`decomposition_names()`).
 
+**Missing targets (verified by `tests/test_kalman_missing_target.py`):** a row whose target is NaN brings no information: its innovation is zero and its regressors are zeroed in the gain and in the covariance update, so the state mean is untouched, the covariance is not contracted, and a block that holds missing rows gives the exact update on its observed rows. The process noise is still added for every step, observed or not, and the forecast and its variance keep the full regressors (a missing target is not a missing forecast).
+
 ## Predictive quantiles
 
 The compiled loop can also return the predictive variance of every forecast row (`with_variance`, off by default: the filter and its outputs are then identical to before). Per block it adds one batched product `X P Xᵀ` on the a priori covariance, and for `horizon_steps > 1` the covariance of the delayed state grown by `(h - 1) Q`, written at the row it forecasts. `_run_filter` keeps it in `_predictive_variance_`; `_online` is the former body of `predict_online`, which now calls it, and `predict_quantiles` converts the standard deviation to the target scale with the reference scale and adds `z_tau` standard deviations to the online forecast:
