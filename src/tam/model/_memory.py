@@ -108,6 +108,39 @@ def get_safe_chunk_size(
     
     return safe_batch
 
+def get_safe_group_batch_size(
+    total_samples: int,
+    total_d: int,
+    allocatable_bytes: float,
+    dtype_size: int = 8,
+    design_factor: float = 5.0,
+    covariance_factor: float = 2.0
+) -> int:
+    r"""
+    Calculates how many groups the direct solver can hold at once.
+
+    The direct solver of a group chunk holds the design matrix ``Phi`` of shape
+    ``(B, N, D)`` (with its intermediates) and the covariance ``Phi^T Phi`` of shape
+    ``(B, D, D)`` (with the factorisation workspace). The covariance grows with
+    ``D^2`` whatever the number of samples, so a short series on many features
+    needs it in the budget as much as the design matrix.
+
+    Args:
+        total_samples (int): Number of samples ``N`` per group.
+        total_d (int): Total feature dimension ``D``.
+        allocatable_bytes (float): Memory the chunk may use.
+        dtype_size (int): Bytes per element (8 for float64).
+        design_factor (float): Multiple of ``N * D`` elements held for the design matrix.
+        covariance_factor (float): Multiple of ``D * D`` elements held for the covariance.
+
+    Returns:
+        int: The number of groups per chunk, at least 1.
+    """
+    bytes_per_group = (total_samples * total_d * design_factor + total_d * total_d * covariance_factor) * dtype_size
+    if bytes_per_group <= 0:
+        return 1
+    return max(1, int(allocatable_bytes // bytes_per_group))
+
 def get_safe_window_batch_size(
     num_samples_per_window: int, 
     total_d: int, 

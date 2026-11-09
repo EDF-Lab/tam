@@ -54,7 +54,7 @@ The decision to route between the exact chunked Direct Solver and the iterative 
 
 Before attempting to allocate the global covariance matrix, the orchestrator cross-references the topological complexity against the physical hardware limits using `can_fit_dense_matrix`. 
 
-1. **Safe VRAM (Direct Solver):** If direct inversion is deemed safe, it triggers `_run_chunked_direct_solver`. This function executes predictive Group Chunking by allocating up to 80% of available memory to calculate a `safe_group_batch`.
+1. **Safe VRAM (Direct Solver):** If direct inversion is deemed safe, it triggers `_run_chunked_direct_solver`. This function executes predictive Group Chunking by allocating up to 80% of available memory to calculate a `safe_group_batch`. The budget of a group counts its design matrix ($N 	imes D$) and its covariance ($D 	imes D$, which does not depend on $N$, so a short series on many features is bounded by it); `get_safe_group_batch_size` returns the number of groups per chunk. A panel that fits in the budget is solved in one chunk, as before.
 2. **Exhaustion Risk (CG Fallback):** If the feature dimension $D$ exceeds the safety threshold, `smart_solve` automatically routes to `_run_sparse_cg_solver` to prevent VRAM exhaustion. This function defines the `compute_Av(v)` closure on-the-fly, safely computing the matrix-vector products recursively across manageable data chunks.
 
 If an unexpected OOM exception is still encountered during extreme scaling, both solvers are wrapped in a robust `try/except` loop. This loop communicates with the hardware manager to iteratively reduce the `safe_group_batch` size, clearing the cache until the computation proceeds stably.
