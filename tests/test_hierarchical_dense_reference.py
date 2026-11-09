@@ -152,10 +152,10 @@ def test_the_assembled_system_is_the_definition(lam, monkeypatch):
     cov_x, cov_xy, pen, index = _textbook_system(model, df, lam)
     assert system.node_to_idx == index
     assert system.n_samples == 40
-    np.testing.assert_allclose(system.cov_X.cpu().numpy(), cov_x.numpy(), rtol=1e-10, atol=1e-10)
-    np.testing.assert_allclose(system.cov_XY.cpu().numpy(), cov_xy.numpy(), rtol=1e-10, atol=1e-10)
+    np.testing.assert_allclose(system.cov_X[0].cpu().numpy(), cov_x.numpy(), rtol=1e-10, atol=1e-10)
+    np.testing.assert_allclose(system.cov_XY[0].cpu().numpy(), cov_xy.numpy(), rtol=1e-10, atol=1e-10)
     np.testing.assert_allclose(system.P.cpu().numpy(), pen.numpy(), rtol=1e-10, atol=1e-12)
-    np.testing.assert_allclose(system.cov_X.cpu().numpy(), system.cov_X.cpu().numpy().T, atol=1e-10)
+    np.testing.assert_allclose(system.cov_X[0].cpu().numpy(), system.cov_X[0].cpu().numpy().T, atol=1e-10)
 
 
 def test_solving_the_assembled_system_is_fit(monkeypatch):
@@ -165,4 +165,4 @@ def test_solving_the_assembled_system_is_fit(monkeypatch):
     beta = model._solve(model._assemble_system(df))
     fitted = _coefficients(_model(lam=1.0).fit(df))
     for node, (a, b) in model._assemble_system(df).node_to_idx.items():
-        np.testing.assert_allclose(beta[a:b].cpu().numpy().ravel(), fitted[node], rtol=1e-10, atol=1e-12)
+        np.testing.assert_allclose(beta[0, a:b].cpu().numpy().ravel(), fitted[node], rtol=1e-10, atol=1e-12)

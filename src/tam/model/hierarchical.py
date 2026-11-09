@@ -30,7 +30,7 @@ _ADDITIVITY_TOLERANCE = 1e-3
 
 #: <hierarchical_system>
 class _HierarchicalSystem(NamedTuple):
-    r"""The assembled joint system: ``cov_X`` and ``P`` are ``None`` when only the matrix-free solve is possible."""
+    r"""The assembled joint system, one per group: ``cov_X`` is ``(G, D, D)``, ``cov_XY`` ``(G, D, 1)``, ``P`` ``(D, D)``; ``cov_X`` and ``P`` are ``None`` when only the matrix-free solve is possible."""
     node_data_dict: Dict[str, Any]
     node_to_idx: Dict[str, Any]
     penalty_blocks: List[torch.Tensor]
@@ -41,6 +41,7 @@ class _HierarchicalSystem(NamedTuple):
     cov_X: Optional[torch.Tensor]
     cov_XY: torch.Tensor
     P: Optional[torch.Tensor]
+    n_groups: int
 #: </hierarchical_system>
 
 #: <init_hierarchical>
@@ -131,7 +132,7 @@ class HierarchicalTAM:
 
         for node in self.nodes:
             start, end = system.node_to_idx[node]
-            self.sub_models[node].coefficients_ = beta_global[start:end, :].unsqueeze(0)
+            self.sub_models[node].coefficients_ = beta_global[:, start:end, :]
 
         return self
 
@@ -217,11 +218,12 @@ class HierarchicalTAM:
 
     def _assemble_system(self, data: pd.DataFrame) -> '_HierarchicalSystem':
         r"""
-        Assembles the global system :math:`(\Sigma_X, \Sigma_{XY}, P)` of the joint fit.
+        Assembles the global system :math:`(\Sigma_X, \Sigma_{XY}, P)` of the joint fit, one system per group.
 
-        The dense matrices ``cov_X`` (data terms plus the aggregation constraints) and ``P`` (block-diagonal node penalties)
-        are built when they fit in memory. Otherwise only ``cov_XY`` is accumulated and :meth:`_solve` applies the system
-        matrix-free from the node data.
+        Every node keeps its group axis, ``x`` of shape ``(G, T, F)``, and all nodes must hold the same groups and the same ``T`` rows per
+        group. The dense matrices ``cov_X`` of shape ``(G, D, D)`` (data terms plus the aggregation constraints, within each group) and ``P``
+        of shape ``(D, D)`` (block-diagonal node penalties, shared by the groups) are built when the ``G * D^2 * 8`` bytes fit in memory.
+        Otherwise only ``cov_XY`` is accumulated and :meth:`_solve` applies the system matrix-free from the node data, group by group.
         """
         data = _ensure_dummies(data, self.group_col, self.date_col)
         data = self._align_nodes(data)
@@ -230,6 +232,7 @@ class HierarchicalTAM:
         node_data_dict = {}
         node_to_idx = {}
         penalty_blocks = []
+        node_groups = {}
         current_idx = 0
 
         for node in self.nodes:
@@ -238,27 +241,42 @@ class HierarchicalTAM:
             x, y, _ = self.sub_models[node]._prepare_data(
                 node_data, target_col=self.sub_models[node].target_col_
             )
-            node_data_dict[node] = (x.squeeze(0), y.squeeze(0))
+            node_data_dict[node] = (x, y)
+            node_groups[node] = list(self.sub_models[node].unique_groups_)
 
-            dummy_phi = self.sub_models[node]._build_design_matrix(x[:, 0:1, :]).squeeze(0)
-            k = dummy_phi.shape[1]
+            dummy_phi = self.sub_models[node]._build_design_matrix(x[:, 0:1, :])
+            k = dummy_phi.shape[-1]
             node_to_idx[node] = (current_idx, current_idx + k)
             current_idx += k
             penalty_blocks.append(self.sub_models[node]._build_penalty_matrix())
             del dummy_phi
 
+        reference = self.nodes[0]
+        for node in self.nodes[1:]:
+            if node_groups[node] != node_groups[reference]:
+                raise ValueError(
+                    f"HierarchicalTAM: all nodes must hold the same groups ({self.group_col}); "
+                    f"{reference!r} has {node_groups[reference]}, {node!r} has {node_groups[node]}."
+                )
+            if node_data_dict[node][0].shape[1] != node_data_dict[reference][0].shape[1]:
+                raise ValueError(
+                    "HierarchicalTAM: all nodes must hold the same number of rows per group, "
+                    f"{reference!r} has {node_data_dict[reference][0].shape[1]}, {node!r} has {node_data_dict[node][0].shape[1]}."
+                )
+
         total_coeffs = current_idx
-        n_samples = node_data_dict[self.nodes[0]][0].shape[0]
+        n_groups = len(node_groups[reference])
+        n_samples = node_data_dict[reference][0].shape[1]
         run_device = TORCH_DEVICE
 
-        is_safe_for_direct = can_fit_dense_matrix(total_coeffs, run_device, batch_size=1)
-        cov_bytes = 1 * total_coeffs * total_coeffs * 8 # 8 bytes for float64
+        is_safe_for_direct = can_fit_dense_matrix(total_coeffs, run_device, batch_size=n_groups)
+        cov_bytes = n_groups * total_coeffs * total_coeffs * 8 # 8 bytes for float64
         available_bytes = hw.get_available_memory()
         is_safe_for_dense_cov = cov_bytes < (available_bytes * 0.4)
 
         if is_safe_for_direct or is_safe_for_dense_cov:
-            cov_X_global = torch.zeros((total_coeffs, total_coeffs), device=run_device, dtype=torch.get_default_dtype())
-            cov_XY_global = torch.zeros((total_coeffs, 1), device=run_device, dtype=torch.get_default_dtype())
+            cov_X_global = torch.zeros((n_groups, total_coeffs, total_coeffs), device=run_device, dtype=torch.get_default_dtype())
+            cov_XY_global = torch.zeros((n_groups, total_coeffs, 1), device=run_device, dtype=torch.get_default_dtype())
             P_global = torch.zeros((total_coeffs, total_coeffs), device=run_device, dtype=torch.get_default_dtype())
 
             for i, node in enumerate(self.nodes):
@@ -268,7 +286,7 @@ class HierarchicalTAM:
                     p_block = p_block.squeeze(0)
                 P_global[start:end, start:end] = p_block
 
-            safe_batch = max(256, get_safe_chunk_size(n_samples, total_coeffs, run_device))
+            safe_batch = max(256, get_safe_chunk_size(n_samples, total_coeffs, run_device, batch_size=n_groups))
             start_idx = 0
 
             print("Accumulating Block Matrices and Constraints...")
@@ -281,37 +299,37 @@ class HierarchicalTAM:
 
                     for node in self.nodes:
                         x_full, y_full = node_data_dict[node]
-                        x_chunk = x_full[start_idx:end_idx, :].to(run_device)
-                        y_chunks[node] = y_full[start_idx:end_idx, :].to(run_device)
-                        phi_chunks[node] = self.sub_models[node]._build_design_matrix(x_chunk.unsqueeze(0)).squeeze(0)
+                        x_chunk = x_full[:, start_idx:end_idx, :].to(run_device)
+                        y_chunks[node] = y_full[:, start_idx:end_idx, :].to(run_device)
+                        phi_chunks[node] = self.sub_models[node]._build_design_matrix(x_chunk)
 
                     for node in self.nodes:
                         start, end = node_to_idx[node]
                         phi_c = phi_chunks[node]
-                        cov_X_global[start:end, start:end] += phi_c.mT @ phi_c
-                        cov_XY_global[start:end, :] += phi_c.mT @ y_chunks[node]
+                        cov_X_global[:, start:end, start:end] += phi_c.mT @ phi_c
+                        cov_XY_global[:, start:end, :] += phi_c.mT @ y_chunks[node]
 
                     for parent, children in self.structure.items():
                         p_start, p_end = node_to_idx[parent]
                         phi_p = phi_chunks[parent]
 
-                        cov_X_global[p_start:p_end, p_start:p_end] += self.lambda_p_hier * (phi_p.mT @ phi_p)
+                        cov_X_global[:, p_start:p_end, p_start:p_end] += self.lambda_p_hier * (phi_p.mT @ phi_p)
 
                         for child in children:
                             c_start, c_end = node_to_idx[child]
                             phi_c = phi_chunks[child]
 
-                            cov_X_global[c_start:c_end, c_start:c_end] += self.lambda_p_hier * (phi_c.mT @ phi_c)
+                            cov_X_global[:, c_start:c_end, c_start:c_end] += self.lambda_p_hier * (phi_c.mT @ phi_c)
 
                             cross = -self.lambda_p_hier * (phi_p.mT @ phi_c)
-                            cov_X_global[p_start:p_end, c_start:c_end] += cross
-                            cov_X_global[c_start:c_end, p_start:p_end] += cross.mT
+                            cov_X_global[:, p_start:p_end, c_start:c_end] += cross
+                            cov_X_global[:, c_start:c_end, p_start:p_end] += cross.mT
 
                             for sibling in children:
                                 if sibling != child:
                                     s_start, s_end = node_to_idx[sibling]
                                     phi_s = phi_chunks[sibling]
-                                    cov_X_global[c_start:c_end, s_start:s_end] += self.lambda_p_hier * (phi_c.mT @ phi_s)
+                                    cov_X_global[:, c_start:c_end, s_start:s_end] += self.lambda_p_hier * (phi_c.mT @ phi_s)
 
                     del phi_chunks, y_chunks
                     start_idx += safe_batch
@@ -328,42 +346,46 @@ class HierarchicalTAM:
 
             return _HierarchicalSystem(
                 node_data_dict, node_to_idx, penalty_blocks, total_coeffs, n_samples, run_device,
-                is_safe_for_direct, cov_X_global, cov_XY_global, P_global,
+                is_safe_for_direct, cov_X_global, cov_XY_global, P_global, n_groups,
             )
 
-        print(f"Notice: Hierarchical D={total_coeffs} is massive. Routing to CG Solver.")
+        print(f"Notice: Hierarchical D={total_coeffs} (G={n_groups}) is massive. Routing to CG Solver.")
 
-        cov_XY_global = torch.zeros((total_coeffs, 1), device=run_device, dtype=torch.get_default_dtype())
+        cov_XY_global = torch.zeros((n_groups, total_coeffs, 1), device=run_device, dtype=torch.get_default_dtype())
         safe_batch = max(256, get_safe_chunk_size(n_samples, total_coeffs, run_device))
 
-        start_idx = 0
-        while start_idx < n_samples:
-            end_idx = min(start_idx + safe_batch, n_samples)
-            try:
-                for node in self.nodes:
-                    start, end = node_to_idx[node]
-                    x_chunk = node_data_dict[node][0][start_idx:end_idx, :].to(run_device)
-                    y_chunk = node_data_dict[node][1][start_idx:end_idx, :].to(run_device)
-                    phi_chunk = self.sub_models[node]._build_design_matrix(x_chunk.unsqueeze(0)).squeeze(0)
-                    cov_XY_global[start:end, :] += phi_chunk.mT @ y_chunk
-                start_idx += safe_batch
-            except (torch.OutOfMemoryError, MemoryError):
-                safe_batch, run_device = hw.handle_oom(
-                    current_batch=safe_batch,
-                    device=run_device,
-                    context="Hierarchical CG RHS computation",
-                    allow_cpu_fallback=False
-                )
-                continue
+        for g in range(n_groups):
+            start_idx = 0
+            while start_idx < n_samples:
+                end_idx = min(start_idx + safe_batch, n_samples)
+                try:
+                    for node in self.nodes:
+                        start, end = node_to_idx[node]
+                        x_chunk = node_data_dict[node][0][g, start_idx:end_idx, :].to(run_device)
+                        y_chunk = node_data_dict[node][1][g, start_idx:end_idx, :].to(run_device)
+                        phi_chunk = self.sub_models[node]._build_design_matrix(x_chunk.unsqueeze(0)).squeeze(0)
+                        cov_XY_global[g, start:end, :] += phi_chunk.mT @ y_chunk
+                    start_idx += safe_batch
+                except (torch.OutOfMemoryError, MemoryError):
+                    safe_batch, run_device = hw.handle_oom(
+                        current_batch=safe_batch,
+                        device=run_device,
+                        context="Hierarchical CG RHS computation",
+                        allow_cpu_fallback=False
+                    )
+                    continue
 
         return _HierarchicalSystem(
             node_data_dict, node_to_idx, penalty_blocks, total_coeffs, n_samples, run_device,
-            False, None, cov_XY_global, None,
+            False, None, cov_XY_global, None, n_groups,
         )
 
     def _solve(self, system: '_HierarchicalSystem') -> torch.Tensor:
         r"""
-        Solves the assembled global system: direct inversion, dense CG, or matrix-free CG, as chosen when it was assembled.
+        Solves the assembled global system, returning ``(G, D, 1)``.
+
+        Direct inversion is one batched solve over the groups. The two CG solvers (dense, or matrix-free from the node data) loop over
+        the groups, so that only one group's system is ever applied at a time.
         """
         node_data_dict, node_to_idx, penalty_blocks = system.node_data_dict, system.node_to_idx, system.penalty_blocks
         total_coeffs, n_samples, run_device = system.total_coeffs, system.n_samples, system.run_device
@@ -377,76 +399,85 @@ class HierarchicalTAM:
                 return hw.safe_solve(A, cov_XY_global)
 
             print("Notice: LAPACK workspace exceeded. Routing to Fast Dense CG solver...")
-            def compute_dense_hierarchical_Av(v: torch.Tensor) -> torch.Tensor:
+            def dense_hierarchical_Av(cov_g: torch.Tensor):
+                def compute_dense_hierarchical_Av(v: torch.Tensor) -> torch.Tensor:
+                    v = v.to(run_device)
+                    jitter_scale = 1e-6 * n_samples
+                    return (cov_g @ v) + n_samples * (P_global @ v) + (jitter_scale * v)
+                return compute_dense_hierarchical_Av
+
+            return torch.stack([
+                solve_sparse_cg(dense_hierarchical_Av(cov_X_global[g]), cov_XY_global[g], tol=1e-6, max_iter=5000)
+                for g in range(system.n_groups)
+            ])
+
+        def hierarchical_Av(g: int):
+            def compute_hierarchical_Av(v: torch.Tensor) -> torch.Tensor:
                 nonlocal run_device
-                v = v.to(run_device)
+                Av = torch.zeros_like(v)
+                local_start = 0
+                local_safe_batch = get_safe_chunk_size(n_samples, total_coeffs, run_device)
+
+                while local_start < n_samples:
+                    local_end = min(local_start + local_safe_batch, n_samples)
+
+                    try:
+                        phi_chunks = {}
+                        for node in self.nodes:
+                            x_chunk = node_data_dict[node][0][g, local_start:local_end, :].to(run_device)
+                            phi_chunks[node] = self.sub_models[node]._build_design_matrix(x_chunk.unsqueeze(0)).squeeze(0)
+
+                        for i, node in enumerate(self.nodes):
+                            start, end = node_to_idx[node]
+                            v_local = v[start:end, :]
+                            phi = phi_chunks[node]
+                            Av[start:end, :] += (phi.mT @ (phi @ v_local))
+
+                        for parent, children in self.structure.items():
+                            p_start, p_end = node_to_idx[parent]
+                            v_p = v[p_start:p_end, :]
+                            phi_p = phi_chunks[parent]
+
+                            constraint_diff = phi_p @ v_p
+                            for child in children:
+                                c_start, c_end = node_to_idx[child]
+                                phi_c = phi_chunks[child]
+                                constraint_diff -= (phi_c @ v[c_start:c_end, :])
+
+                            Av[p_start:p_end, :] += self.lambda_p_hier * (phi_p.mT @ constraint_diff)
+
+                            for child in children:
+                                c_start, c_end = node_to_idx[child]
+                                phi_c = phi_chunks[child]
+                                Av[c_start:c_end, :] -= self.lambda_p_hier * (phi_c.mT @ constraint_diff)
+
+                        local_start += local_safe_batch
+
+                    except (torch.OutOfMemoryError, MemoryError):
+                        local_safe_batch, run_device = hw.handle_oom(
+                            current_batch=local_safe_batch,
+                            device=run_device,
+                            context="Hierarchical Av computation",
+                            allow_cpu_fallback=False
+                        )
+                        continue
+
+                for i, node in enumerate(self.nodes):
+                    start, end = node_to_idx[node]
+                    v_local = v[start:end, :]
+                    P = penalty_blocks[i].to(run_device)
+                    if P.dim() == 3:
+                        P = P.squeeze(0)
+                    Av[start:end, :] += n_samples * (P @ v_local)
+
                 jitter_scale = 1e-6 * n_samples
-                return (cov_X_global @ v) + n_samples * (P_global @ v) + (jitter_scale * v)
+                return Av + (jitter_scale * v)
+            return compute_hierarchical_Av
 
-            return solve_sparse_cg(compute_dense_hierarchical_Av, cov_XY_global, tol=1e-6, max_iter=5000)
-
-        def compute_hierarchical_Av(v: torch.Tensor) -> torch.Tensor:
-            nonlocal run_device
-            Av = torch.zeros_like(v)
-            local_start = 0
-            local_safe_batch = get_safe_chunk_size(n_samples, total_coeffs, run_device)
-
-            while local_start < n_samples:
-                local_end = min(local_start + local_safe_batch, n_samples)
-
-                try:
-                    phi_chunks = {}
-                    for node in self.nodes:
-                        x_chunk = node_data_dict[node][0][local_start:local_end, :].to(run_device)
-                        phi_chunks[node] = self.sub_models[node]._build_design_matrix(x_chunk.unsqueeze(0)).squeeze(0)
-
-                    for i, node in enumerate(self.nodes):
-                        start, end = node_to_idx[node]
-                        v_local = v[start:end, :]
-                        phi = phi_chunks[node]
-                        Av[start:end, :] += (phi.mT @ (phi @ v_local))
-
-                    for parent, children in self.structure.items():
-                        p_start, p_end = node_to_idx[parent]
-                        v_p = v[p_start:p_end, :]
-                        phi_p = phi_chunks[parent]
-
-                        constraint_diff = phi_p @ v_p
-                        for child in children:
-                            c_start, c_end = node_to_idx[child]
-                            phi_c = phi_chunks[child]
-                            constraint_diff -= (phi_c @ v[c_start:c_end, :])
-
-                        Av[p_start:p_end, :] += self.lambda_p_hier * (phi_p.mT @ constraint_diff)
-
-                        for child in children:
-                            c_start, c_end = node_to_idx[child]
-                            phi_c = phi_chunks[child]
-                            Av[c_start:c_end, :] -= self.lambda_p_hier * (phi_c.mT @ constraint_diff)
-
-                    local_start += local_safe_batch
-
-                except (torch.OutOfMemoryError, MemoryError):
-                    local_safe_batch, run_device = hw.handle_oom(
-                        current_batch=local_safe_batch,
-                        device=run_device,
-                        context="Hierarchical Av computation",
-                        allow_cpu_fallback=False
-                    )
-                    continue
-
-            for i, node in enumerate(self.nodes):
-                start, end = node_to_idx[node]
-                v_local = v[start:end, :]
-                P = penalty_blocks[i].to(run_device)
-                if P.dim() == 3:
-                    P = P.squeeze(0)
-                Av[start:end, :] += n_samples * (P @ v_local)
-
-            jitter_scale = 1e-6 * n_samples
-            return Av + (jitter_scale * v)
-
-        return solve_sparse_cg(compute_hierarchical_Av, cov_XY_global, tol=1e-6, max_iter=5000)
+        return torch.stack([
+            solve_sparse_cg(hierarchical_Av(g), cov_XY_global[g], tol=1e-6, max_iter=5000)
+            for g in range(system.n_groups)
+        ])
 #: </fit_hierarchical>
 
     def predict(self, data: pd.DataFrame) -> pd.DataFrame:

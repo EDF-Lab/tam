@@ -18,6 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **`HierarchicalTAM` with a `group_col`**: one hierarchical system per group (for instance per half-hour of the day). Every node keeps its group axis, all nodes must hold the same groups and the same number of rows per group, the global system is `(G, D, D)` and solved in one batched call; the dense CG and the matrix-free CG loop over the groups. The memory check counts the `G * D^2 * 8` bytes. A fit on G groups equals G separate fits, and a single group gives the same coefficients as before.
 - **`HierarchicalTAM(align='strict' | 'inner')`**: the nodes are matched on `(group, date)` instead of on row position, and each node is sorted by `(group, date)`. `'strict'` (the default) raises when the nodes do not hold the same keys and lists the first missing keys per node; `'inner'` keeps the keys every node has and warns with the rows dropped per node. Without a `date_col` the nodes are matched by row position and must have the same number of rows.
 - **`HierarchicalTAM.additivity_gap_`**: after `fit`, per parent `max |Y_parent - sum Y_children| / mean |Y_parent|`. A parent further than 0.1 % from the sum of its children is reported once by a warning.
 
