@@ -21,7 +21,8 @@ class TensorProductEffect(BaseEffect):
     component effects.
 
     The penalty is anisotropic, meaning smoothness can be controlled
-    independently in each direction:
+    independently in each direction. The weight of the tensor product itself (the formula default ``ap=-9`` or an outer ``ap=``)
+    multiplies the weight of each margin, so an explicit outer ``ap=0`` keeps the margins' own weights:
 
     Attributes:
         effects (List[BaseEffect]): The list of sub-effects to cross.
