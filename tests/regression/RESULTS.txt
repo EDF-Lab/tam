@@ -2716,7 +2716,7 @@
 29_errors.formula.unknown_effect = ValueError: Unknown effect type identifier: 'zz'
 29_errors.formula.unknown_extrapolation = ValueError: Unknown extrapolation mode: 'explode'. Use 'continue', 'constant', 'linear', or 'saturatio
 29_errors.formula.unknown_topology = RuntimeError: Model has grid tokens. Call 'grid_search_fit()' first.
-29_errors.hierarchical.unknown_node = RuntimeError: The expanded size of the tensor (0) must match the existing size (2) at non-singleton dime
+29_errors.hierarchical.unknown_node = ValueError: HierarchicalTAM: the nodes do not share the same (group, date) keys (align='strict'). Keys
 29_errors.kalman.negative_noise = ValueError: process_noise_var must be finite and >= 0, got -1.0.
 29_errors.kalman.no_formula_effect = ValueError: Invalid formula. No terms found after '~'. Received: load ~
 29_errors.model.conformal_before_calibration = RuntimeError: Call calibrate_conformal() before predict_intervals().

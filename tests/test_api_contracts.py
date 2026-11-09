@@ -50,7 +50,7 @@ PINNED = {
     "OperaTAM.predict": [("self", "P", REQUIRED), ("df", "P", REQUIRED)],
     "OperaTAM.predict_online": [("self", "P", REQUIRED), ("df", "P", REQUIRED)],
     "HierarchicalTAM.__init__": [("self", "P", REQUIRED), ("structure", "P", REQUIRED), ("formulas", "P", REQUIRED), ("node_col", "P", REQUIRED),
-                                 ("group_col", "P", None), ("date_col", "P", None), ("lambda_p_hier", "P", 1.0)],
+                                 ("group_col", "P", None), ("date_col", "P", None), ("lambda_p_hier", "P", 1.0), ("align", "P", "strict")],
     "parse_formula_to_terms": [("formula_str", "P", REQUIRED)],
 }
 
