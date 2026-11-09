@@ -12,6 +12,8 @@ StaticTAM models simultaneously. It links them through aggregation constraints
 (Parent = sum(Children)) enforced via regularization in the global loss function.
 """
 
+import warnings
+
 import torch
 import pandas as pd
 import numpy as np
@@ -22,6 +24,9 @@ from tam.common.hardware import hw
 from .additive import StaticTAM
 from ._memory import can_fit_dense_matrix, get_safe_chunk_size
 from ._math import solve_sparse_cg
+
+#: Relative gap above which a parent is reported as not being the sum of its children: the data are not an exact hierarchy.
+_ADDITIVITY_TOLERANCE = 1e-3
 
 #: <hierarchical_system>
 class _HierarchicalSystem(NamedTuple):
@@ -51,6 +56,8 @@ class HierarchicalTAM:
         structure (Dict[str, List[str]]): Hierarchy definition {Parent: [Child1, Child2]}.
         sub_models (Dict[str, StaticTAM]): Dictionary of initialized sub-models per node.
         lambda_p_hier (float): Strength of the hierarchical constraint regularization.
+        align (str): How the nodes are matched on ``(group, date)`` at fit, ``"strict"`` or ``"inner"``.
+        additivity_gap_ (Dict[str, float]): After fit, per parent ``max |Y_p - sum Y_c| / mean |Y_p|``.
     """
     
     def __init__(
@@ -60,7 +67,8 @@ class HierarchicalTAM:
         node_col: str,
         group_col: Optional[str] = None,
         date_col: Optional[str] = None,
-        lambda_p_hier: float = 1.0
+        lambda_p_hier: float = 1.0,
+        align: str = "strict"
     ):
         r"""
         Initializes the HierarchicalTAM model.
@@ -73,7 +81,13 @@ class HierarchicalTAM:
             group_col: Optional column name used for 3D tensor batching (e.g., 'TimeOfDay').
             date_col: Optional column name for time indexing.
             lambda_p_hier: Regularization strength for the aggregation constraint.
+            align: ``"strict"`` raises when the nodes do not share the same ``(group, date)`` keys and lists the first missing keys
+                per node; ``"inner"`` keeps the keys every node has and warns with the rows dropped per node. Without a
+                ``date_col`` the nodes are matched by row position and must have the same number of rows.
         """
+        if align not in ("strict", "inner"):
+            raise ValueError(f"HierarchicalTAM: align must be 'strict' or 'inner', got {align!r}.")
+        self.align = align
         self.structure = structure
         self.node_col = node_col
         self.group_col = group_col or "__dummy_group__"
@@ -95,6 +109,7 @@ class HierarchicalTAM:
             )
             
         self.global_coeffs_ = None
+        self.additivity_gap_ = {}
 #: </init_hierarchical>
 
 #: <fit_hierarchical>
@@ -120,6 +135,86 @@ class HierarchicalTAM:
 
         return self
 
+    def _align_nodes(self, data: pd.DataFrame) -> pd.DataFrame:
+        r"""
+        Matches the nodes on ``(group, date)`` and sorts each node by ``(group, date)``.
+
+        Raises:
+            ValueError: ``"strict"``: the nodes do not hold the same keys (the first missing keys are listed per node).
+                ``"inner"``: no key is common to every node. Either mode: a node repeats a key, or, without a ``date_col``,
+                the nodes differ in row count.
+        """
+        frames = {node: data[data[self.node_col] == node] for node in self.nodes}
+
+        if self.date_col == "__dummy_date__":
+            counts = {node: len(frame) for node, frame in frames.items()}
+            if len(set(counts.values())) > 1:
+                raise ValueError(
+                    "HierarchicalTAM: without a date_col the nodes are matched by row position and must have the same row count, "
+                    f"got {counts}. Pass date_col to match them on (group, date)."
+                )
+            return pd.concat(list(frames.values()), ignore_index=True)
+
+        keys = {node: set(zip(frame[self.group_col], frame[self.date_col])) for node, frame in frames.items()}
+        union = set().union(*keys.values())
+        common = set.intersection(*keys.values())
+        label = (lambda k: str(pd.Timestamp(k[1]))) if self.group_col == "__dummy_group__" else (lambda k: f"({k[0]}, {pd.Timestamp(k[1])})")
+
+        if self.align == "strict":
+            missing = {node: sorted(union - keys[node]) for node in self.nodes if keys[node] != union}
+            if missing:
+                lines = [f"  {node}: {len(m)} missing, first: {[label(k) for k in m[:3]]}" for node, m in missing.items()]
+                raise ValueError(
+                    "HierarchicalTAM: the nodes do not share the same (group, date) keys (align='strict'). "
+                    "Keys that other nodes have and this node lacks:\n" + "\n".join(lines)
+                    + "\nUse align='inner' to keep the common keys."
+                )
+        else:
+            if not common:
+                raise ValueError("HierarchicalTAM: align='inner' found no common (group, date) key across the nodes.")
+            dropped = {node: len(frames[node]) - sum(k in common for k in zip(frames[node][self.group_col], frames[node][self.date_col]))
+                       for node in self.nodes}
+            dropped = {node: n for node, n in dropped.items() if n}
+            if dropped:
+                warnings.warn(
+                    f"HierarchicalTAM align='inner': kept {len(common)} common (group, date) keys; rows dropped per node: "
+                    + ", ".join(f"{node}: {n}" for node, n in dropped.items()),
+                    UserWarning, stacklevel=3,
+                )
+
+        aligned = []
+        for node in self.nodes:
+            frame = frames[node]
+            if self.align == "inner":
+                frame = frame[[k in common for k in zip(frame[self.group_col], frame[self.date_col])]]
+            frame = frame.sort_values([self.group_col, self.date_col], kind="stable")
+            if len(frame) != len(common if self.align == "inner" else union):
+                raise ValueError(f"HierarchicalTAM: node {node!r} repeats a (group, date) key; each node needs one row per key.")
+            aligned.append(frame)
+        return pd.concat(aligned, ignore_index=True)
+
+    def _check_additivity(self, data: pd.DataFrame) -> None:
+        r"""
+        Stores ``additivity_gap_`` per parent, :math:`\max |Y_p - \sum_c Y_c| / \operatorname{mean} |Y_p|`, and warns once when
+        a parent is further than ``_ADDITIVITY_TOLERANCE`` from the sum of its children (``data`` is aligned and sorted).
+        """
+        target = lambda node: data.loc[data[self.node_col] == node, self.sub_models[node].target_col_].to_numpy(dtype=float)
+        gaps = {}
+        for parent, children in self.structure.items():
+            y_parent = target(parent)
+            difference = np.abs(y_parent - sum(target(child) for child in children)).max()
+            scale = np.abs(y_parent).mean()
+            gaps[parent] = float(difference / scale) if scale > 0 else (0.0 if difference == 0 else float("inf"))
+        self.additivity_gap_ = gaps
+        off = {parent: gap for parent, gap in gaps.items() if gap > _ADDITIVITY_TOLERANCE}
+        if off:
+            warnings.warn(
+                "HierarchicalTAM: the target of a parent is not the sum of its children's "
+                f"(max |Y_parent - sum Y_children| / mean |Y_parent|, tolerance {_ADDITIVITY_TOLERANCE:g}): "
+                + ", ".join(f"{parent}: {gap:.4g}" for parent, gap in off.items()),
+                UserWarning, stacklevel=3,
+            )
+
     def _assemble_system(self, data: pd.DataFrame) -> '_HierarchicalSystem':
         r"""
         Assembles the global system :math:`(\Sigma_X, \Sigma_{XY}, P)` of the joint fit.
@@ -129,6 +224,8 @@ class HierarchicalTAM:
         matrix-free from the node data.
         """
         data = _ensure_dummies(data, self.group_col, self.date_col)
+        data = self._align_nodes(data)
+        self._check_additivity(data)
 
         node_data_dict = {}
         node_to_idx = {}

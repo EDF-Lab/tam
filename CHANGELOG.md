@@ -15,6 +15,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > **[0.0.6]** corresponds to the legacy `weakl` package available on PyPI.
 
 ---
+## [Unreleased]
+
+### Added
+- **`HierarchicalTAM(align='strict' | 'inner')`**: the nodes are matched on `(group, date)` instead of on row position, and each node is sorted by `(group, date)`. `'strict'` (the default) raises when the nodes do not hold the same keys and lists the first missing keys per node; `'inner'` keeps the keys every node has and warns with the rows dropped per node. Without a `date_col` the nodes are matched by row position and must have the same number of rows.
+- **`HierarchicalTAM.additivity_gap_`**: after `fit`, per parent `max |Y_parent - sum Y_children| / mean |Y_parent|`. A parent further than 0.1 % from the sum of its children is reported once by a warning.
+
+### Changed
+- `HierarchicalTAM.fit` assembles the joint system in `_assemble_system` and solves it in `_solve` (no change of the results).
+- `HierarchicalTAM` with nodes that do not share the same dates now raises instead of silently comparing different dates (`align='inner'` keeps the previous convenience, restricted to the common dates).
+
 ## [1.5.0] - 2026-10-20
 
 Minor release for the non-Gaussian losses and for richer effects. New arguments and options are appended after the existing ones and their defaults keep the previous behaviour, so existing calls give the same forecasts. The exceptions are fixes: `auto_fit()` and `grid_search_fit()` on a non-Gaussian loss now use that loss (they used to score the raw response with an identity link), and `phys(x, basis='neural')` no longer crashes at fit.
