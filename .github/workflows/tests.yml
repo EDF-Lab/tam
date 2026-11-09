@@ -49,3 +49,105 @@ jobs:
 
       - name: Run test suite
         run: pytest tests/ --tb=short -q
+
+  # The same suite on other numpy / pandas pairs, so a break is seen weeks before users see it.
+  # The oldest pair we declare must pass; the two others only warn at first (continue-on-error) while their warnings are cleared.
+  # numpy >= 2.5 with pandas 2.x raises "The 'generic' unit for NumPy timedelta is deprecated" from pandas itself (pandas 3 is clean).
+  compat:
+    name: Compat (${{ matrix.name }})
+    runs-on: ubuntu-latest
+    continue-on-error: ${{ matrix.experimental }}
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: oldest, numpy 2.0 + pandas 2.2.2
+            packages: "numpy==2.0.2 pandas==2.2.2"
+            strict: false
+            experimental: false
+          - name: pandas 2.3.3 + newest numpy
+            packages: "numpy pandas==2.3.3"
+            strict: true
+            experimental: true
+          - name: newest numpy + newest pandas
+            packages: "numpy pandas"
+            strict: true
+            experimental: true
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Upgrade pip
+        run: python -m pip install --upgrade pip
+
+      - name: Install CPU-only PyTorch
+        run: pip install torch --index-url https://download.pytorch.org/whl/cpu
+
+      - name: Install package with dev dependencies
+        run: pip install -e ".[dev]"
+
+      - name: Install the numpy and pandas of this job
+        run: pip install --upgrade ${{ matrix.packages }}
+
+      - name: Show the versions under test
+        run: python -c "import numpy, pandas; print('numpy', numpy.__version__, 'pandas', pandas.__version__)"
+
+      # Strict jobs turn the pandas FutureWarnings and the numpy "generic unit" DeprecationWarning into errors. A command-line -W
+      # comes after the filters of pyproject.toml, so the torch.jit.script notice they ignore is ignored here again.
+      - name: Run test suite
+        run: |
+          args=()
+          if [ "${{ matrix.strict }}" = "true" ]; then
+            args+=(-W error::FutureWarning)
+            args+=(-W "error:The 'generic' unit for NumPy timedelta:DeprecationWarning")
+            args+=(-W 'ignore:`torch.jit.script` is deprecated:FutureWarning')
+          fi
+          pytest tests/ --tb=short -q "${args[@]}"
+
+  # The built package, not the source tree: the wheel is installed into the runner and the suite runs from a copy of tests/,
+  # so a file missing from the wheel (a data file, a subpackage) fails here. Only the tests that need a repository checkout skip.
+  wheel:
+    name: Test the built wheel
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Upgrade pip
+        run: python -m pip install --upgrade pip
+
+      - name: Install CPU-only PyTorch
+        run: pip install torch --index-url https://download.pytorch.org/whl/cpu
+
+      - name: Build the wheel
+        run: pip wheel --no-deps --wheel-dir dist .
+
+      - name: Install the wheel and the test tools
+        run: pip install dist/*.whl "pyyaml>=6.0" "pytest>=8.0"
+
+      - name: Run the suite from a copy of tests/ against the installed package
+        run: |
+          mkdir "$RUNNER_TEMP/wheel_tests"
+          cp -r tests pyproject.toml "$RUNNER_TEMP/wheel_tests/"
+          cd "$RUNNER_TEMP/wheel_tests"
+          python -c "import tam, sys; print(tam.__file__); sys.exit(0 if 'site-packages' in tam.__file__ else 1)"
+          set -o pipefail
+          pytest tests/ --tb=short -q -rs | tee "$RUNNER_TEMP/wheel_tests.log"
+          # Expected: only the tests that need a repository checkout skip. Any other skip is flagged on the run.
+          other=$(grep '^SKIPPED' "$RUNNER_TEMP/wheel_tests.log" | grep -v 'not running from a repository checkout' || true)
+          if [ -n "$other" ]; then echo "::warning title=New skip in the wheel job::$(echo "$other" | head -5 | tr '\n' ' ')"; fi

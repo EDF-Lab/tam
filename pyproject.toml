@@ -50,6 +50,9 @@ classifiers = [
 
 # ---------------------------------------------------------------------------
 # Runtime dependencies
+# Lower bounds only. The CI runs the suite on numpy 2.0 + pandas 2.2.2 (oldest declared), pandas 2.3.3 and the newest
+# numpy and pandas (.github/workflows/tests.yml, job "compat"); numpy >= 2.5 with pandas 2.x warns about the 'generic'
+# timedelta unit, raised inside pandas (pandas 3 does not).
 # ---------------------------------------------------------------------------
 dependencies = [
     "torch>=2.3.1",
