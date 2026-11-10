@@ -292,8 +292,8 @@ class ExpertExpander:
             deltas = temp_df.groupby(ctx.group_col)[ctx.date_col].diff().dropna() if ctx.group_col else temp_df[ctx.date_col].diff().dropna()
             if not deltas.empty:
                 median_delta = deltas.median()
-                if pd.notnull(median_delta) and median_delta.total_seconds() > 0 and median_delta < pd.Timedelta(hours=23):
-                    ctx.steps_per_period = max(1, int(round(pd.Timedelta(days=1) / median_delta)))
+                if pd.notnull(median_delta) and median_delta.total_seconds() > 0 and median_delta < pd.Timedelta(23, unit="h"):
+                    ctx.steps_per_period = max(1, int(round(pd.Timedelta(1, unit="D") / median_delta)))
 
         ctx.adaptive_lags = ctx.lags if ctx.lags else [1 * ctx.steps_per_period, 7 * ctx.steps_per_period]
         ctx.inferred_horizon = min(ctx.adaptive_lags) if ctx.adaptive_lags else 1

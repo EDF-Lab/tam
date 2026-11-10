@@ -23,7 +23,7 @@ def _interleaved_panel(n_days: int = 60, seed: int = 0) -> pd.DataFrame:
     for d in range(n_days):
         for k, g in enumerate(["a", "b", "c"]):
             x = rng.normal()
-            rows.append({"date": pd.Timestamp("2024-01-01") + pd.Timedelta(days=d), "g": g, "x": x,
+            rows.append({"date": pd.Timestamp("2024-01-01") + pd.Timedelta(d, unit="D"), "g": g, "x": x,
                          "y": (k + 1) * 10 + 3 * x + rng.normal(0, 0.1)})
     return pd.DataFrame(rows)
 

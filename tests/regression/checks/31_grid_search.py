@@ -10,8 +10,8 @@ from common import DATE, GROUP, TARGET, frame
 
 def run(res):
     train, test = res.train, res.test
-    validation = train[train[DATE] >= train[DATE].max() - pd.Timedelta(days=60)]
-    fit = train[train[DATE] < train[DATE].max() - pd.Timedelta(days=60)]
+    validation = train[train[DATE] >= train[DATE].max() - pd.Timedelta(60, unit="D")]
+    fit = train[train[DATE] < train[DATE].max() - pd.Timedelta(60, unit="D")]
 
     def static_search():
         model = ta.StaticTAM(formula="load ~ s(temperature, k='knots', ap='penalty') + l(load_d1) + c(day_type_week, n_cat=7, topo='nominal')",
