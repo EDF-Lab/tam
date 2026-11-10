@@ -15,7 +15,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > **[0.0.6]** corresponds to the legacy `weakl` package available on PyPI.
 
 ---
-## [Unreleased]
+## [1.5.1] - 2026-11-09
+
+Patch release, tagged on the repository (no package upload). It carries the hierarchical group axis merged after 1.5.0, a fix of the Kalman filter on missing targets and of the memory budget of the group chunks, and a wider CI. A series without missing targets, and a panel that fits in memory, give the same forecasts as 1.5.0.
 
 ### Added
 - **`HierarchicalTAM` with a `group_col`**: one hierarchical system per group (for instance per half-hour of the day). Every node keeps its group axis, all nodes must hold the same groups and the same number of rows per group, the global system is `(G, D, D)` and solved in one batched call; the dense CG and the matrix-free CG loop over the groups. The memory check counts the `G * D^2 * 8` bytes. A fit on G groups equals G separate fits, and a single group gives the same coefficients as before.
@@ -25,6 +27,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - `HierarchicalTAM.fit` assembles the joint system in `_assemble_system` and solves it in `_solve` (no change of the results).
 - `HierarchicalTAM` with nodes that do not share the same dates now raises instead of silently comparing different dates (`align='inner'` keeps the previous convenience, restricted to the common dates).
+- **CI covers more numpy / pandas pairs and the built wheel**: `tests.yml` has a `compat` job (numpy 2.0 + pandas 2.2.2, the oldest declared pair, must pass; pandas 2.3.3 and the newest numpy + pandas run with the pandas `FutureWarning`s and the numpy "generic unit" `DeprecationWarning` turned into errors, allowed to fail while their warnings are cleared) and a `wheel` job that installs the built wheel and runs the suite from a copy of `tests/`. The "generic unit" warning comes from `pd.Timedelta(days=...)` itself with numpy >= 2.5 and pandas 2.x (pandas 3 is clean); no call of this package is at fault. `requirements.txt` has the same lower bounds as `pyproject.toml` (numpy 2.0, pandas 2.2.2, scipy 1.14, matplotlib 3.9); the dependencies stay lower-bounded only.
+- **Which arguments change the forecast is written down and tested** (`tests/test_parameters_with_effect.py`, effect pages of `architecture/core/06_the_spectrum_api.md`): the operator weights of `phys()`, the `scaled` factor of `l()` and the difference order of an ordinal `c()` are hidden by the default penalty (`ap=-9`) and act with an explicit one; `f()` has no `scaled` argument (a value given is ignored); a spline gives the same forecast with `extrapolate='continue'` and `'constant'`, a linear term with `'continue'` and `'linear'`. No result changes.
+
+### Fixed
+- **`StaticTAM` on a panel of many groups and many features ran out of memory** (`group_col` with, for instance, 4 000 groups of 80 rows and 4 000 features, a request of about 490 GB): the group chunk of the direct solver was sized on the design matrix `N x D` only and held every group at once, although the `D x D` covariance of each group is the larger tensor on a short series. The covariance is now part of the budget of a chunk (`get_safe_group_batch_size`), so the groups are solved in chunks that fit. A panel that fits in memory is solved in one chunk and gives the same coefficients as before; a panel that had to be split gives the same coefficients up to rounding (about 1e-11 relative).
+- **`KalmanTAM` no longer becomes more confident on a missing target**: a row without a target left the state mean unchanged but still shrank the state covariance as if it had been observed, so after a run of missing days the filter was too sure of itself and reacted late when the truth came back. The regressors of the rows without a target are now zeroed in the gain and the covariance update (the block update equals the exact update on the observed rows), the process noise is still added at every step, and the forecast and its variance keep the full regressors. Series without missing targets give the same forecasts as before.
 
 ## [1.5.0] - 2026-10-20
 
@@ -363,7 +371,8 @@ This version introduced the Formula API and the first object-oriented refactorin
 ### Added
 * Initial project setup based on the original `weakl` v0.0.6 package.
 
-[Unreleased]: https://github.com/EDF-Lab/tam/compare/v1.5.0...HEAD
+[Unreleased]: https://github.com/EDF-Lab/tam/compare/v1.5.1...HEAD
+[1.5.1]: https://github.com/EDF-Lab/tam/releases/tag/v1.5.1
 [1.5.0]: https://github.com/EDF-Lab/tam/releases/tag/v1.5.0
 [1.4.1]: https://github.com/EDF-Lab/tam/releases/tag/v1.4.1
 [1.4.0]: https://github.com/EDF-Lab/tam/releases/tag/v1.4.0

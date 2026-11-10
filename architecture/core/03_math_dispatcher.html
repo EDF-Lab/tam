@@ -7,7 +7,7 @@
         <link rel="prefetch" href="../../_static/logo.png" as="image">
 
     <!-- Generated with Sphinx 9.1.1 and Furo 2025.12.19 -->
-        <title>PyTorch Math Dispatcher &amp; Matrix-Free Solvers - TAM 1.5.0 documentation</title>
+        <title>PyTorch Math Dispatcher &amp; Matrix-Free Solvers - TAM 1.5.1 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=d111a655" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo-extensions.css?v=8dab3a3b" />
@@ -162,7 +162,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="../../index.html"><div class="brand">TAM 1.5.0 documentation</div></a>
+      <a href="../../index.html"><div class="brand">TAM 1.5.1 documentation</div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -186,7 +186,7 @@
     <img class="sidebar-logo" src="../../_static/logo.png" alt="Logo"/>
   </div>
   
-  <span class="sidebar-brand-text">TAM 1.5.0 documentation</span>
+  <span class="sidebar-brand-text">TAM 1.5.1 documentation</span>
   
 </a><form class="sidebar-search-container" method="get" action="../../search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
@@ -526,7 +526,7 @@
 <p>The decision to route between the exact chunked Direct Solver and the iterative Matrix-Free Conjugate Gradient is dynamically evaluated by the <code class="docutils literal notranslate"><span class="pre">smart_solve</span></code> function in <code class="docutils literal notranslate"><span class="pre">_dispatcher.py</span></code>.</p>
 <p>Before attempting to allocate the global covariance matrix, the orchestrator cross-references the topological complexity against the physical hardware limits using <code class="docutils literal notranslate"><span class="pre">can_fit_dense_matrix</span></code>.</p>
 <ol class="arabic simple">
-<li><p><strong>Safe VRAM (Direct Solver):</strong> If direct inversion is deemed safe, it triggers <code class="docutils literal notranslate"><span class="pre">_run_chunked_direct_solver</span></code>. This function executes predictive Group Chunking by allocating up to 80% of available memory to calculate a <code class="docutils literal notranslate"><span class="pre">safe_group_batch</span></code>.</p></li>
+<li><p><strong>Safe VRAM (Direct Solver):</strong> If direct inversion is deemed safe, it triggers <code class="docutils literal notranslate"><span class="pre">_run_chunked_direct_solver</span></code>. This function executes predictive Group Chunking by allocating up to 80% of available memory to calculate a <code class="docutils literal notranslate"><span class="pre">safe_group_batch</span></code>. The budget of a group counts its design matrix (<span class="math notranslate nohighlight">\(N 	imes D\)</span>) and its covariance (<span class="math notranslate nohighlight">\(D 	imes D\)</span>, which does not depend on <span class="math notranslate nohighlight">\(N\)</span>, so a short series on many features is bounded by it); <code class="docutils literal notranslate"><span class="pre">get_safe_group_batch_size</span></code> returns the number of groups per chunk. A panel that fits in the budget is solved in one chunk, as before.</p></li>
 <li><p><strong>Exhaustion Risk (CG Fallback):</strong> If the feature dimension <span class="math notranslate nohighlight">\(D\)</span> exceeds the safety threshold, <code class="docutils literal notranslate"><span class="pre">smart_solve</span></code> automatically routes to <code class="docutils literal notranslate"><span class="pre">_run_sparse_cg_solver</span></code> to prevent VRAM exhaustion. This function defines the <code class="docutils literal notranslate"><span class="pre">compute_Av(v)</span></code> closure on-the-fly, safely computing the matrix-vector products recursively across manageable data chunks.</p></li>
 </ol>
 <p>If an unexpected OOM exception is still encountered during extreme scaling, both solvers are wrapped in a robust <code class="docutils literal notranslate"><span class="pre">try/except</span></code> loop. This loop communicates with the hardware manager to iteratively reduce the <code class="docutils literal notranslate"><span class="pre">safe_group_batch</span></code> size, clearing the cache until the computation proceeds stably.</p>
@@ -639,7 +639,7 @@
       
     </aside>
   </div>
-</div><script src="../../_static/documentation_options.js?v=e0a75244"></script>
+</div><script src="../../_static/documentation_options.js?v=44dfd65d"></script>
     <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/scripts/furo.js?v=46bd48cc"></script>

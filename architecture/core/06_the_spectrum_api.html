@@ -7,7 +7,7 @@
         <link rel="prefetch" href="../../_static/logo.png" as="image">
 
     <!-- Generated with Sphinx 9.1.1 and Furo 2025.12.19 -->
-        <title>The Spectral Dictionary: PyTorch Implementations &amp; Factory Assembly - TAM 1.5.0 documentation</title>
+        <title>The Spectral Dictionary: PyTorch Implementations &amp; Factory Assembly - TAM 1.5.1 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=d111a655" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo-extensions.css?v=8dab3a3b" />
@@ -162,7 +162,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="../../index.html"><div class="brand">TAM 1.5.0 documentation</div></a>
+      <a href="../../index.html"><div class="brand">TAM 1.5.1 documentation</div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -186,7 +186,7 @@
     <img class="sidebar-logo" src="../../_static/logo.png" alt="Logo"/>
   </div>
   
-  <span class="sidebar-brand-text">TAM 1.5.0 documentation</span>
+  <span class="sidebar-brand-text">TAM 1.5.1 documentation</span>
   
 </a><form class="sidebar-search-container" method="get" action="../../search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
@@ -477,6 +477,7 @@ The linear effect applies direct spatial scaling, and its penalty is a standard 
         <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">([[</span><span class="bp">self</span><span class="o">.</span><span class="n">lambda_p</span><span class="p">]],</span> <span class="n">device</span><span class="o">=</span><span class="n">TORCH_DEVICE</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">get_default_dtype</span><span class="p">())</span>
 </pre></div>
 </div>
+<p><strong>Reading the parameters (verified by <code class="docutils literal notranslate"><span class="pre">tests/test_parameters_with_effect.py</span></code>).</strong> <code class="docutils literal notranslate"><span class="pre">scaled</span></code> (default <span class="math notranslate nohighlight">\(\pi\)</span>) multiplies the column before the ridge, so it only rescales the coefficient: with the default penalty (<code class="docutils literal notranslate"><span class="pre">ap=-9</span></code>) the forecast does not depend on it beyond the solver tolerance (about <span class="math notranslate nohighlight">\(10^{-6}\)</span>); with an explicit penalty (<code class="docutils literal notranslate"><span class="pre">l(z,</span> <span class="pre">ap=-2)</span></code>) the ridge acts on the scaled column and <code class="docutils literal notranslate"><span class="pre">scaled</span></code> changes the amount of shrinkage. <code class="docutils literal notranslate"><span class="pre">raw=True</span></code> removes the scaling. With <code class="docutils literal notranslate"><span class="pre">extrapolate='continue'</span></code> (default) the line goes on beyond the training range, which is also what <code class="docutils literal notranslate"><span class="pre">'linear'</span></code> gives; <code class="docutils literal notranslate"><span class="pre">'constant'</span></code> holds the edge value.</p>
 </section>
 <hr class="docutils" />
 <section id="fourier">
@@ -583,6 +584,7 @@ Builds the purely diagonal Sobolev norm penalty scaled by <span class="math notr
         <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">diag</span><span class="p">(</span><span class="n">diag_full</span><span class="p">)</span>
 </pre></div>
 </div>
+<p><strong>Reading the parameters (verified by <code class="docutils literal notranslate"><span class="pre">tests/test_parameters_with_effect.py</span></code>).</strong> <code class="docutils literal notranslate"><span class="pre">f()</span></code> has no <code class="docutils literal notranslate"><span class="pre">scaled</span></code> argument (the effect maps the feature to <span class="math notranslate nohighlight">\([-\pi, \pi]\)</span> itself): a <code class="docutils literal notranslate"><span class="pre">scaled=</span></code> written in the formula is ignored. Beyond the training range <code class="docutils literal notranslate"><span class="pre">extrapolate='continue'</span></code> (default) lets the waves go on, so the forecast differs from <code class="docutils literal notranslate"><span class="pre">'constant'</span></code>, which holds the edge value; <code class="docutils literal notranslate"><span class="pre">cyclic=True</span></code> or a declared <code class="docutils literal notranslate"><span class="pre">period</span></code> is the way to make the wave periodic on purpose.</p>
 </section>
 <hr class="docutils" />
 <section id="p-splines">
@@ -632,6 +634,7 @@ Constructs the structural penalty natively using consecutive finite difference m
         <span class="k">return</span> <span class="nb">sum</span><span class="p">(</span><span class="n">lambdas</span><span class="p">[</span><span class="n">r</span><span class="p">]</span> <span class="o">*</span> <span class="p">(</span><span class="n">D</span><span class="o">.</span><span class="n">T</span> <span class="o">@</span> <span class="p">(</span><span class="n">weights</span><span class="p">[:,</span> <span class="n">r</span><span class="p">:</span><span class="n">r</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="n">D</span><span class="p">))</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">m_pen</span><span class="p">))</span>
 </pre></div>
 </div>
+<p><strong>Extrapolation (verified by <code class="docutils literal notranslate"><span class="pre">tests/test_parameters_with_effect.py</span></code>).</strong> The B-spline basis is held at its edge value outside the knot range, so <code class="docutils literal notranslate"><span class="pre">extrapolate='continue'</span></code> and <code class="docutils literal notranslate"><span class="pre">'constant'</span></code> give the same forecast for a spline; <code class="docutils literal notranslate"><span class="pre">'linear'</span></code> (the default of <code class="docutils literal notranslate"><span class="pre">s()</span></code>) extends the edge slope and can be far from both on a trending input, and <code class="docutils literal notranslate"><span class="pre">'saturation'</span></code> is a damped version of it.</p>
 </section>
 <hr class="docutils" />
 <section id="chebyshev">
@@ -802,6 +805,7 @@ Routes structurally: isotropic Ridge for <code class="docutils literal notransla
         <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
 </pre></div>
 </div>
+<p><strong>Reading the parameters (verified by <code class="docutils literal notranslate"><span class="pre">tests/test_parameters_with_effect.py</span></code>).</strong> <code class="docutils literal notranslate"><span class="pre">topo='ordinal'</span></code> penalises the differences of order <code class="docutils literal notranslate"><span class="pre">p_order</span></code> between consecutive levels, but next to the default ridge (<code class="docutils literal notranslate"><span class="pre">ap=-9</span></code>) that penalty is negligible: <code class="docutils literal notranslate"><span class="pre">p_order=1</span></code>, <code class="docutils literal notranslate"><span class="pre">p_order=2</span></code> and <code class="docutils literal notranslate"><span class="pre">nominal</span></code> give the same forecast to about <span class="math notranslate nohighlight">\(10^{-8}\)</span>. With an explicit penalty (<code class="docutils literal notranslate"><span class="pre">c(g,</span> <span class="pre">topo='ordinal',</span> <span class="pre">p_order=2,</span> <span class="pre">ap=-2)</span></code>) the order acts.</p>
 </section>
 <hr class="docutils" />
 <section id="radial-basis-function-rbf">
@@ -1502,6 +1506,7 @@ Enforces the explicit linear differential operator by constructing the analytic 
         <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
 </pre></div>
 </div>
+<p><strong>Reading the parameters (verified by <code class="docutils literal notranslate"><span class="pre">tests/test_parameters_with_effect.py</span></code>).</strong> The operator weights <code class="docutils literal notranslate"><span class="pre">D0</span></code> to <code class="docutils literal notranslate"><span class="pre">D3</span></code> build the stiffness matrix <span class="math notranslate nohighlight">\(P\)</span> that the penalty multiplies. With the default penalty (<code class="docutils literal notranslate"><span class="pre">ap=-9</span></code>) the term is almost unpenalised and <code class="docutils literal notranslate"><span class="pre">D1</span></code>, <code class="docutils literal notranslate"><span class="pre">D2</span></code>, <code class="docutils literal notranslate"><span class="pre">D1</span></code>+<code class="docutils literal notranslate"><span class="pre">D2</span></code> and an added <code class="docutils literal notranslate"><span class="pre">D0</span></code> weight give the same forecast to about <span class="math notranslate nohighlight">\(10^{-6}\)</span>; with an explicit penalty (<code class="docutils literal notranslate"><span class="pre">phys(x,</span> <span class="pre">D2=1,</span> <span class="pre">ap=-2)</span></code>) each weight changes the fit, and <code class="docutils literal notranslate"><span class="pre">auto_fit</span></code> finds a penalty at which they matter.</p>
 </section>
 <section id="pid-autoregressive-control">
 <h2>PID (Autoregressive Control)<a class="headerlink" href="#pid-autoregressive-control" title="Link to this heading">¶</a></h2>
@@ -1576,7 +1581,7 @@ Constructs a <span class="math notranslate nohighlight">\(3 \times 3\)</span> di
 </pre></div>
 </div>
 <p><strong>Reading the parameters.</strong> <code class="docutils literal notranslate"><span class="pre">d_pen</span></code> multiplies the ridge penalty of the derivative term only, relative to the penalty <code class="docutils literal notranslate"><span class="pre">ap</span></code> of the effect. With the default penalty (1e-9) that ridge is already negligible, so <code class="docutils literal notranslate"><span class="pre">d_pen</span></code> changes nothing; it acts with an explicit penalty (<code class="docutils literal notranslate"><span class="pre">ap=-2</span></code>), where a large <code class="docutils literal notranslate"><span class="pre">d_pen</span></code> penalises the derivative out. <code class="docutils literal notranslate"><span class="pre">auto_fit</span></code> tunes that penalty, and on a formula that already holds the lag’s difference it often shrinks the whole effect, which leaves <code class="docutils literal notranslate"><span class="pre">d_pen</span></code> nothing to scale. The tests <code class="docutils literal notranslate"><span class="pre">test_d_pen_*</span></code> in <code class="docutils literal notranslate"><span class="pre">tests/spectrum/test_pid.py</span></code> pin this behaviour.</p>
-<p><strong>Frame dependence.</strong> The derivative and the rolling mean are computed along the rows of the frame given to <code class="docutils literal notranslate"><span class="pre">predict()</span></code>: the first <code class="docutils literal notranslate"><span class="pre">w</span></code> rows of each group of a frame get values that training never saw. Predict a frame that holds the history (the training rows, then the new rows) and slice the result; a short frame alone gives wrong PID features. With a trending lag that leaves the trained range, the P and I terms extrapolate the raw lag, and <code class="docutils literal notranslate"><span class="pre">extrapolate='linear'</span></code> can be much worse than the default.</p>
+<p><strong>Frame dependence.</strong> The derivative and the rolling mean are computed along the rows of the frame given to <code class="docutils literal notranslate"><span class="pre">predict()</span></code>: the first row of each group of a frame gets a derivative of its own value and the first <code class="docutils literal notranslate"><span class="pre">w-1</span></code> rows get a rolling mean that is partly zero padding, values that training never saw (a frame shorter than <code class="docutils literal notranslate"><span class="pre">w</span></code> also shortens the window). The lag is an input the caller already holds, so put at least <code class="docutils literal notranslate"><span class="pre">w</span></code> rows of it in front of the new rows (the training rows, then the new rows) and slice the result; a short frame alone gives different PID features and a different forecast for the same day. <code class="docutils literal notranslate"><span class="pre">test_pid_features_depend_on_the_frame_for_the_first_window_rows_only</span></code> pins this. With a trending lag that leaves the trained range, the P and I terms extrapolate the raw lag, and <code class="docutils literal notranslate"><span class="pre">extrapolate='linear'</span></code> can be much worse than the default.</p>
 </section>
 <section id="control-diagnostics-bode-stability">
 <h3>Control Diagnostics (Bode Stability)<a class="headerlink" href="#control-diagnostics-bode-stability" title="Link to this heading">¶</a></h3>
@@ -1944,7 +1949,7 @@ Constructs the block-diagonal encapsulation of the anisotropic sparsity-adaptive
       
     </aside>
   </div>
-</div><script src="../../_static/documentation_options.js?v=e0a75244"></script>
+</div><script src="../../_static/documentation_options.js?v=44dfd65d"></script>
     <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/scripts/furo.js?v=46bd48cc"></script>
