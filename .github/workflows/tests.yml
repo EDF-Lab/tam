@@ -147,7 +147,9 @@ jobs:
           cd "$RUNNER_TEMP/wheel_tests"
           python -c "import tam, sys; print(tam.__file__); sys.exit(0 if 'site-packages' in tam.__file__ else 1)"
           set -o pipefail
-          pytest tests/ --tb=short -q -rs | tee "$RUNNER_TEMP/wheel_tests.log"
+          # test_spdx_headers.py and test_regression_runner.py read the licence texts, REUSE.toml and the workflow files of the
+          # repository, which a wheel does not hold: they run in the jobs above, not here.
+          pytest tests/ --tb=short -q -rfEs --ignore=tests/test_spdx_headers.py --ignore=tests/test_regression_runner.py | tee "$RUNNER_TEMP/wheel_tests.log"
           # Expected: only the tests that need a repository checkout skip. Any other skip is flagged on the run.
           other=$(grep '^SKIPPED' "$RUNNER_TEMP/wheel_tests.log" | grep -v 'not running from a repository checkout' || true)
           if [ -n "$other" ]; then echo "::warning title=New skip in the wheel job::$(echo "$other" | head -5 | tr '\n' ' ')"; fi
