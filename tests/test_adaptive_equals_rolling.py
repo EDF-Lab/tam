@@ -105,7 +105,7 @@ def test_no_look_ahead_a_forecast_ignores_the_rows_after_it():
     model = _adaptive(FORMULAS["l+s+te"], -6.0, 1, 3)
     before = model.predict_online(df)["Estimatedy"].to_numpy()
     changed = df.copy()
-    late = changed["date"] > pd.Timestamp("2020-01-01") + pd.Timedelta(days=70)
+    late = changed["date"] > pd.Timestamp("2020-01-01") + pd.Timedelta(70, unit="D")
     rng = np.random.default_rng(1)
     changed.loc[late, ["x", "z", "y"]] = rng.normal(size=(int(late.sum()), 3)) * 50
     after = _adaptive(FORMULAS["l+s+te"], -6.0, 1, 3).predict_online(changed)["Estimatedy"].to_numpy()
@@ -128,7 +128,7 @@ def test_every_window_trains_on_the_full_normalised_range():
 @pytest.mark.parametrize("n_groups", [1, 3])
 def test_fit_then_predict_is_the_last_window_static_model(horizon, n_groups):
     df = _data(n_groups)
-    history = df[df["date"] < df["date"].min() + pd.Timedelta(days=95)]
+    history = df[df["date"] < df["date"].min() + pd.Timedelta(95, unit="D")]
     future = df.drop(history.index)
     formula = FORMULAS["l+s+te"]
     model = _adaptive(formula, -6.0, horizon, n_groups).fit(history)
@@ -150,14 +150,14 @@ def test_predict_does_not_renormalise_on_the_prediction_data():
     history, future = df.iloc[:100], df.iloc[100:]
     model = _adaptive(FORMULAS["s"], -6.0, 1, 1).fit(history)
     inside = model.predict(future)["Estimatedy"].to_numpy()
-    wide = model.predict(pd.concat([future, future.assign(z=future["z"] + 2.0, date=future["date"] + pd.Timedelta(days=100))],
+    wide = model.predict(pd.concat([future, future.assign(z=future["z"] + 2.0, date=future["date"] + pd.Timedelta(100, unit="D"))],
                                    ignore_index=True))["Estimatedy"].to_numpy()[: len(future)]
     np.testing.assert_allclose(wide, inside, rtol=1e-9, atol=1e-9)
 
 
 def test_no_hidden_clip_by_default_and_clip_to_the_window_range_on_request():
     df = _data(1)
-    df.loc[df["date"] > pd.Timestamp("2020-01-01") + pd.Timedelta(days=80), "x"] += 4.0      # x leaves the trained range
+    df.loc[df["date"] > pd.Timestamp("2020-01-01") + pd.Timedelta(80, unit="D"), "x"] += 4.0      # x leaves the trained range
     free = _adaptive(FORMULAS["l"], -6.0, 1, 1).predict_online(df)["Estimatedy"]
     clipped = _adaptive(FORMULAS["l"], -6.0, 1, 1, clip_to_train_range=True).predict_online(df)["Estimatedy"]
     assert free.max() > df["y"].max()                  # extrapolated freely: no whole-period clip
@@ -166,7 +166,7 @@ def test_no_hidden_clip_by_default_and_clip_to_the_window_range_on_request():
 
 def test_filled_rows_are_never_trained_or_forecast():
     df = _data(3)
-    short = df.drop(df[(df["g"] == 2) & (df["date"] > pd.Timestamp("2020-01-01") + pd.Timedelta(days=89))].index)
+    short = df.drop(df[(df["g"] == 2) & (df["date"] > pd.Timestamp("2020-01-01") + pd.Timedelta(89, unit="D"))].index)
     out = _adaptive(FORMULAS["l"], -6.0, 1, 3).predict_online(short)
     assert len(out) == len(short)
     reference = _loop(short, FORMULAS["l"], -6.0, 1, 3)

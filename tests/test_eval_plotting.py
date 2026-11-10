@@ -31,7 +31,7 @@ def _build_data_and_trackers(n_per_split=12, n_models=2):
     cursor = pd.Timestamp("2023-01-01")
     for name, length in [("fit", n_per_split), ("val", n_per_split), ("test", n_per_split)]:
         dates = pd.date_range(cursor, periods=length, freq="D")
-        cursor = dates[-1] + pd.Timedelta(days=1)
+        cursor = dates[-1] + pd.Timedelta(1, unit="D")
         splits[name] = pd.DataFrame({
             "date": dates,
             "value": rng.normal(50, 5, length),

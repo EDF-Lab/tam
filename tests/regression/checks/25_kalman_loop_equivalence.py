@@ -19,7 +19,7 @@ def run(res):
         base = base_model(res)
         full = with_residual(frame(), base)
         reference, _ = chrono_split(full)
-        online = full[(full[DATE] >= pd.Timestamp("2023-07-01")) & (full[DATE] < pd.Timestamp("2023-07-01") + pd.Timedelta(days=DAYS))].reset_index(drop=True)
+        online = full[(full[DATE] >= pd.Timestamp("2023-07-01")) & (full[DATE] < pd.Timestamp("2023-07-01") + pd.Timedelta(DAYS, unit="D"))].reset_index(drop=True)
         settings = dict(kalman_formula="load ~ l(L_Res)", base_model=base, date_col=DATE, group_col=GROUP, horizon_steps=1, process_noise_var=1e-4,
                         use_decomposition=False, block_size=1)
         if "calibration_data" in inspect.signature(ta.KalmanTAM.__init__).parameters:

@@ -375,7 +375,7 @@ def _balance_groups(
         if len(dataset) > 1 and dataset[date_col].max() != dataset[date_col].min():
             delta = (dataset[date_col].max() - dataset[date_col].min()) / len(dataset)
         else:
-            delta = pd.Timedelta(days=1)
+            delta = pd.Timedelta(1, unit="D")
             
         fake_date = dataset[date_col].max() + delta
 

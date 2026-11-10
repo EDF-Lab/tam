@@ -23,7 +23,7 @@ def _panel(n_days=120, n_groups=6, seed=0):
     for d in range(n_days):
         for g in range(n_groups):
             x = rng.uniform(-2, 2)
-            rows.append({"date": pd.Timestamp("2021-01-01") + pd.Timedelta(days=d), "g": g, "x": x,
+            rows.append({"date": pd.Timestamp("2021-01-01") + pd.Timedelta(d, unit="D"), "g": g, "x": x,
                          "y": np.abs(x) + 0.3 * g + rng.normal(0, 0.1)})
     return pd.DataFrame(rows)
 

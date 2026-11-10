@@ -175,9 +175,9 @@ class DataManager:
                 deltas = date_series.diff().dropna()
                 if not deltas.empty:
                     median_delta = deltas.median()
-                    if median_delta >= pd.Timedelta(days=28):
+                    if median_delta >= pd.Timedelta(28, unit="D"):
                         step_size = 12
-                    elif median_delta >= pd.Timedelta(days=1):
+                    elif median_delta >= pd.Timedelta(1, unit="D"):
                         step_size = 30
                     else:
                         step_size = max(1, len(df_pool) // 10)

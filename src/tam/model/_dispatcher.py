@@ -27,7 +27,7 @@ from typing import List, Dict, Optional
 from tam.common.hardware import hw
 from .spectrum import BaseEffect, build_phi_from_effects
 from ._math import _compute_weighted_covariances, solve_linear_system, solve_sparse_cg, _predict_from_coeffs, _decompose_prediction_tensor
-from ._memory import can_fit_dense_matrix, get_safe_chunk_size
+from ._memory import can_fit_dense_matrix, get_safe_chunk_size, get_safe_group_batch_size
 
 #: <smart_solve_router>
 def smart_solve(
@@ -86,8 +86,7 @@ def _run_chunked_direct_solver(
     
     available_bytes = hw.get_available_memory()
     allocatable_bytes = available_bytes * 0.8
-    bytes_per_group_full_n = total_samples * total_d * 8 * 5.0
-    safe_group_batch = max(1, int(allocatable_bytes // bytes_per_group_full_n)) if bytes_per_group_full_n > 0 else 1
+    safe_group_batch = get_safe_group_batch_size(total_samples, total_d, allocatable_bytes)
 
     all_coeffs = []
     g_start = 0

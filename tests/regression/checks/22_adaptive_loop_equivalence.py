@@ -20,7 +20,7 @@ def run(res):
     def equivalence():
         base = base_model(res)
         full = with_residual(frame(), base)
-        start = full[DATE] >= pd.Timestamp("2023-07-01") - pd.Timedelta(days=WINDOW + 1)
+        start = full[DATE] >= pd.Timestamp("2023-07-01") - pd.Timedelta(WINDOW + 1, unit="D")
         sim = full[start].reset_index(drop=True)
         sim["Residualload"] = sim[TARGET] - sim["E_base"]
         d = day_index(sim)

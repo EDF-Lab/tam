@@ -54,6 +54,8 @@ The linear effect applies direct spatial scaling, and its penalty is a standard 
 :end-before: "#: </linear_effect>"
 ```
 
+**Reading the parameters (verified by `tests/test_parameters_with_effect.py`).** `scaled` (default $\pi$) multiplies the column before the ridge, so it only rescales the coefficient: with the default penalty (`ap=-9`) the forecast does not depend on it beyond the solver tolerance (about $10^{-6}$); with an explicit penalty (`l(z, ap=-2)`) the ridge acts on the scaled column and `scaled` changes the amount of shrinkage. `raw=True` removes the scaling. With `extrapolate='continue'` (default) the line goes on beyond the training range, which is also what `'linear'` gives; `'constant'` holds the edge value.
+
 ---
 
 ## Fourier
@@ -94,6 +96,8 @@ Builds the purely diagonal Sobolev norm penalty scaled by $k^{2s}$, acting as an
 :end-before: "#: </penalty_matrix>"
 ```
 
+**Reading the parameters (verified by `tests/test_parameters_with_effect.py`).** `f()` has no `scaled` argument (the effect maps the feature to $[-\pi, \pi]$ itself): a `scaled=` written in the formula is ignored. Beyond the training range `extrapolate='continue'` (default) lets the waves go on, so the forecast differs from `'constant'`, which holds the edge value; `cyclic=True` or a declared `period` is the way to make the wave periodic on purpose.
+
 ---
 
 ## P-Splines
@@ -123,6 +127,8 @@ Constructs the structural penalty natively using consecutive finite difference m
 :start-after: "#: <penalty_matrix>"
 :end-before: "#: </penalty_matrix>"
 ```
+
+**Extrapolation (verified by `tests/test_parameters_with_effect.py`).** The B-spline basis is held at its edge value outside the knot range, so `extrapolate='continue'` and `'constant'` give the same forecast for a spline; `'linear'` (the default of `s()`) extends the edge slope and can be far from both on a trending input, and `'saturation'` is a damped version of it.
 
 ---
 
@@ -187,6 +193,8 @@ Routes structurally: isotropic Ridge for `nominal`, and finite difference $D^\to
 :start-after: "#: <penalty_matrix>"
 :end-before: "#: </penalty_matrix>"
 ```
+
+**Reading the parameters (verified by `tests/test_parameters_with_effect.py`).** `topo='ordinal'` penalises the differences of order `p_order` between consecutive levels, but next to the default ridge (`ap=-9`) that penalty is negligible: `p_order=1`, `p_order=2` and `nominal` give the same forecast to about $10^{-8}$. With an explicit penalty (`c(g, topo='ordinal', p_order=2, ap=-2)`) the order acts.
 
 ---
 
@@ -362,6 +370,8 @@ Enforces the explicit linear differential operator by constructing the analytic 
 :end-before: "#: </penalty_matrix>"
 ```
 
+**Reading the parameters (verified by `tests/test_parameters_with_effect.py`).** The operator weights `D0` to `D3` build the stiffness matrix $P$ that the penalty multiplies. With the default penalty (`ap=-9`) the term is almost unpenalised and `D1`, `D2`, `D1`+`D2` and an added `D0` weight give the same forecast to about $10^{-6}$; with an explicit penalty (`phys(x, D2=1, ap=-2)`) each weight changes the fit, and `auto_fit` finds a penalty at which they matter.
+
 ## PID (Autoregressive Control)
 
 ### The PID effect code
@@ -392,7 +402,7 @@ Constructs a $3 \times 3$ diagonal stiffness matrix. Uniquely applies an artific
 
 **Reading the parameters.** `d_pen` multiplies the ridge penalty of the derivative term only, relative to the penalty `ap` of the effect. With the default penalty (1e-9) that ridge is already negligible, so `d_pen` changes nothing; it acts with an explicit penalty (`ap=-2`), where a large `d_pen` penalises the derivative out. `auto_fit` tunes that penalty, and on a formula that already holds the lag's difference it often shrinks the whole effect, which leaves `d_pen` nothing to scale. The tests `test_d_pen_*` in `tests/spectrum/test_pid.py` pin this behaviour.
 
-**Frame dependence.** The derivative and the rolling mean are computed along the rows of the frame given to `predict()`: the first `w` rows of each group of a frame get values that training never saw. Predict a frame that holds the history (the training rows, then the new rows) and slice the result; a short frame alone gives wrong PID features. With a trending lag that leaves the trained range, the P and I terms extrapolate the raw lag, and `extrapolate='linear'` can be much worse than the default.
+**Frame dependence.** The derivative and the rolling mean are computed along the rows of the frame given to `predict()`: the first row of each group of a frame gets a derivative of its own value and the first `w-1` rows get a rolling mean that is partly zero padding, values that training never saw (a frame shorter than `w` also shortens the window). The lag is an input the caller already holds, so put at least `w` rows of it in front of the new rows (the training rows, then the new rows) and slice the result; a short frame alone gives different PID features and a different forecast for the same day. `test_pid_features_depend_on_the_frame_for_the_first_window_rows_only` pins this. With a trending lag that leaves the trained range, the P and I terms extrapolate the raw lag, and `extrapolate='linear'` can be much worse than the default.
 
 ### Control Diagnostics (Bode Stability)
 

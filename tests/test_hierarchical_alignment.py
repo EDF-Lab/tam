@@ -90,7 +90,7 @@ def test_inner_equals_a_strict_fit_on_the_common_dates():
 
 def test_inner_with_no_common_date_is_refused():
     df = _data()
-    df.loc[df["node"] == "RegionB", "timestamp"] += pd.Timedelta(days=1000)
+    df.loc[df["node"] == "RegionB", "timestamp"] += pd.Timedelta(1000, unit="D")
     with pytest.raises(ValueError, match="no (group, date)|no common"):
         _model(align="inner").fit(df)
 
