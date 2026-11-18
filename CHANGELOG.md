@@ -17,6 +17,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ---
 ## [Unreleased]
 
+## [1.6.0] - 2026-11-18
+
 ### Added
 - Added opt-in causal state continuation (`state_in` / `continue_state=True`) in `BaseTAM`, `StaticTAM`, and `build_phi_from_effects`.
 - Added opt-in Preconditioned CG, Block-QR, Hutchinson Rademacher trace, Wood analytical GCV gradient, Square-Root Group LASSO, and scale-stability penalty.
