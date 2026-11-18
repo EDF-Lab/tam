@@ -33,6 +33,7 @@ from._pid import PIDEffect
 from ._signature import SignatureEffect
 from ._single_index import SingleIndexEffect
 from ._kan import KANEffect
+from ._inertia import InertiaEffect, ThermalInertiaEffect
 from tam.common.utils import parse_formula_to_terms
 
 #: <create_effects>
@@ -413,6 +414,26 @@ def create_effects_from_parsed_terms(
             ))
         #: </parse_kan>
 
+        #: <parse_inertia>
+        elif ttype in ('inertia', 'thermal', 'ti'):
+            inertia_type = str(params_resolved.get('type', params_resolved.get('inertia_type', 'thermal'))).lower()
+            k = int(params_resolved.get('k', 8))
+            deg = int(params_resolved.get('deg', params_resolved.get('spline_degree', 3)))
+            p = int(params_resolved.get('p', params_resolved.get('penalty_order', 2)))
+            alphas_raw = params_resolved.get('alphas', params_resolved.get('alpha', (0.05, 0.01, 0.002)))
+            extrap_val = params_resolved.get('extrapolate', 'continue')
+            effects_list.append(InertiaEffect(
+                feature_name=feature_name,
+                inertia_type=inertia_type,
+                alphas=alphas_raw,
+                k=k,
+                spline_degree=deg,
+                penalty_order=p,
+                lambda_p=lambda_p,
+                extrapolate=extrap_val,
+            ))
+        #: </parse_inertia>
+
         else:
             raise ValueError(f"Unknown effect type identifier: '{ttype}'")
             
@@ -647,6 +668,8 @@ def extrapolating_features(effects_list: List[BaseEffect]) -> set:
         elif isinstance(effect, SingleIndexEffect):
             names.update(getattr(effect, 'input_features', None) or [effect.feature_name])
         elif isinstance(effect, KANEffect):
+            names.update(getattr(effect, 'input_features', None) or [effect.feature_name])
+        elif isinstance(effect, InertiaEffect):
             names.update(getattr(effect, 'input_features', None) or [effect.feature_name])
 
     for effect in effects_list:

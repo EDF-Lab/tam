@@ -1404,6 +1404,12 @@ class StaticTAM(BaseTAM):
                 "Specific Params": "others, n_nodes, k_inner, k_outer, degree, penalty_order, edge_pen, seed"
             },
             {
+                "Token": "inertia(x)",
+                "Effect": "Thermal inertia (causal RC smoothing + spline)",
+                "Syntax Example": "inertia(temp, alphas='0.05|0.01|0.002', k=8)",
+                "Specific Params": "type, alphas, k, deg, p"
+            },
+            {
                 "Token": "t(x)", 
                 "Effect": "Tree / Random Forest", 
                 "Syntax Example": "t(x, n_trees=50, sp_alpha=0.5, split_strategy='quantile')",

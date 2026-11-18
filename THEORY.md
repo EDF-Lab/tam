@@ -267,6 +267,13 @@ Different physical phenomena require different mathematical topologies. TAM flat
 
 ---
 
+### [Thermal Inertia (`inertia` / `thermal`)](math/spectrum/THERMAL_INERTIA.md) (BETA)
+
+  * **Syntax:** `inertia(temperature, type='thermal', alphas='0.05|0.01', k=4)`
+  * **Mapping & Penalty:** Causal RC low-pass filtered covariates with cached domain normalization, linear boundary extrapolation, and state continuation; [Architecture](architecture/spectrum/THERMAL_INERTIA.md).
+
+---
+
 ## 📊 Benchmark Proof: The Power of Topology & Meta-Learning
 
 *(To reproduce these results, execute `python use_cases/cheatsheet.py` located in the repository, note: results of BETA/EXP modules may differ, timing depends on the hardware configuration).*

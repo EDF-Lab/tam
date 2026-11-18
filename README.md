@@ -94,6 +94,7 @@ To understand the deep mathematical behavior of the framework, click on any effe
 / **[Signature](math/spectrum/SIGNATURE.md)** (BETA)
 / **[Single-Index](math/spectrum/SINGLE_INDEX.md)** (BETA)
 / **[KAN](math/spectrum/KAN.md)** (BETA)
+/ **[Thermal Inertia](math/spectrum/THERMAL_INERTIA.md)** (BETA)
 
 ---
 

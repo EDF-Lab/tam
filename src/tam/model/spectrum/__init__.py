@@ -40,6 +40,7 @@ from ._tensor import TensorProductEffect
 from ._tree import TreeEffect
 from ._linear_tree import LinearTreeEffect
 from ._pid import PIDEffect
+from ._inertia import InertiaEffect, ThermalInertiaEffect
 from ._kan import KANEffect
 from ._single_index import SingleIndexEffect
 from ._signature import SignatureEffect
@@ -77,6 +78,8 @@ __all__ = [
     "TreeEffect",
     "LinearTreeEffect",
     "PIDEffect",
+    "ThermalInertiaEffect",
+    "InertiaEffect",
     "KANEffect",
     "SingleIndexEffect",
     "SignatureEffect",
