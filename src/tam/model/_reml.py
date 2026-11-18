@@ -5,14 +5,14 @@
 r"""
 Restricted marginal likelihood (Laplace REML) criterion for the smoothing parameters of ``StaticTAM.auto_fit(criterion='reml')``.
 
-Treating the coefficients as a Gaussian random effect with precision ``n S(rho)``, ``S = S0 + sum_c exp(rho_c) Q_c`` and integrating them out gives, for a
-(working) system ``X'WX``, ``X'Wy`` and ``y'Wy``, per group,
+Treating the coefficients as a Gaussian random effect with precision ``T_eff P(rho)``, ``P = P_0 + sum_c exp(rho_c) P_c`` and integrating them out gives, for a
+(working) system ``Phi'W Phi``, ``Phi'W z`` and ``z'W z``, per group,
 
-    l(rho) = -1/2 log|A| + 1/2 log|S|_+ - (n - M0)/2 log(phi_hat)        A = X'WX + n S + ridge,   phi_hat = D_p / (n - M0),
+    l(rho) = -1/2 log|A| + 1/2 log|P|_+ - (T_eff - M0)/2 log(phi_hat)        A = Phi'W Phi + T_eff P + ridge,   phi_hat = D_p / (T_eff - M0),
 
-with ``D_p = y'Wy - beta' X'Wy`` the penalized residual sum of squares at ``beta = A^-1 X'Wy``, ``M0`` the dimension of the null space of the penalty and
-``|S|_+`` the determinant on the penalized subspace. With a known scale ``phi`` (Poisson, binomial) the last term is ``-D_p / (2 phi)``. The gradient in ``rho``
-is analytic (``d log|A| = tr(A^-1 dS)``, ``d D_p = beta' dS beta`` by the envelope theorem). The groups add up.
+with ``D_p = z'W z - theta' Phi'W z`` the penalized residual sum of squares at ``theta = A^-1 Phi'W z``, ``M0`` the dimension of the null space of the penalty and
+``|P|_+`` the determinant on the penalized subspace. With a known scale ``phi`` (Poisson, binomial) the last term is ``-D_p / (2 phi)``. The gradient in ``rho``
+is analytic (``d log|A| = tr(A^-1 dP)``, ``d D_p = theta' dP theta`` by the envelope theorem). The groups add up.
 """
 from __future__ import annotations
 
@@ -29,10 +29,10 @@ _NULL_TOLERANCE = 1e-9
 
 #: <penalty_basis>
 class PenaltyBasis:
-    r"""The penalty of the effects as ``S0 + sum_c lambda_c Q_c``: one ``Q_c`` per smoothing coordinate, found from the effects themselves.
+    r"""The penalty of the effects as ``P_0 + sum_c lambda_c P_c``: one ``P_c`` per smoothing coordinate, found from the effects themselves.
 
-    Every penalty of the library is linear in its smoothing weights, so ``Q_c`` is the difference of the penalty with the weight ``c`` at 2 and at 1 (the
-    other weights at 1), and ``S0`` is what remains (a fixed ridge, for instance). ``U`` spans the penalized subspace (the range of ``S0 + sum_c Q_c``,
+    Every penalty of the library is linear in its smoothing weights, so ``P_c`` is the difference of the penalty with the weight ``c`` at 2 and at 1 (the
+    other weights at 1), and ``P_0`` is what remains (a fixed ridge, for instance). ``U`` spans the penalized subspace (the range of ``P_0 + sum_c P_c``,
     the same whatever the positive weights), of dimension ``rank``; the null space has dimension ``null_dim``.
     """
 
@@ -80,14 +80,14 @@ class PenaltyBasis:
         return matrix.detach().to(device="cpu", dtype=dtype)
 
     def penalty(self, rho) -> torch.Tensor:
-        r"""``S0 + sum_c exp(rho_c) Q_c`` (without the factor ``n``)."""
+        r"""``P_0 + sum_c exp(rho_c) P_c`` (without the factor ``T_eff``)."""
         result = self.constant.clone()
         for weight, (begin, end, q) in zip(np.exp(np.asarray(rho, dtype=float)), self.blocks):
             result[begin:end, begin:end] += float(weight) * q
         return result
 
     def reduced_penalty(self, rho) -> torch.Tensor:
-        r"""The penalty on the penalized subspace, ``U' S U``."""
+        r"""The penalty on the penalized subspace, ``U' P U``."""
         result = self._reduced_constant.clone()
         for weight, reduced in zip(np.exp(np.asarray(rho, dtype=float)), self._reduced):
             result = result + float(weight) * reduced
@@ -109,9 +109,9 @@ def reml_objective(
 
     Args:
         rho: log smoothing weights, one per coordinate of ``basis``.
-        cov_x, cov_xy, y_sq: ``X'WX`` (G, D, D), ``X'Wy`` (G, D, 1) and ``y'Wy`` (G,), float64.
+        cov_x, cov_xy, y_sq: ``Phi'W Phi`` (G, D, D), ``Phi'W z`` (G, D, 1) and ``z'W z`` (G,), float64.
         basis: the penalty of the effects.
-        n_samples: rows of a group (the scale of the penalty, as in the fit).
+        n_samples: rows of a group, ``T_eff`` (the scale of the penalty, as in the fit).
         known_scale: the scale ``phi`` when it is known (Poisson, binomial); estimated from the penalized residual sum of squares otherwise.
     """
     rho = np.asarray(rho, dtype=float)
@@ -138,10 +138,10 @@ def reml_objective(
     gradient = np.zeros(basis.n_coordinates)
     for c, ((begin, end, q), reduced_q) in enumerate(zip(basis.blocks, basis._reduced)):
         scaled_q = n * lam[c] * q.to(cov_x.device)
-        trace_a = (inverse[:, begin:end, begin:end] * scaled_q.T).sum(dim=(1, 2))  # tr(A^-1 dS_c), (G,)
+        trace_a = (inverse[:, begin:end, begin:end] * scaled_q.T).sum(dim=(1, 2))  # tr(A^-1 dP_c), (G,)
         trace_s = (reduced_inverse * (n * lam[c] * reduced_q).T).sum()
         beta_block = beta[:, begin:end, 0]
-        quad = torch.einsum("gi,ij,gj->g", beta_block, scaled_q, beta_block)  # beta' dS_c beta
+        quad = torch.einsum("gi,ij,gj->g", beta_block, scaled_q, beta_block)  # theta' dP_c theta
         if known_scale is None:
             scale_term = -dof / (2.0 * deviance) * quad
         else:
