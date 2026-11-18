@@ -390,3 +390,170 @@ def compute_bootstrap_significance(
     
     return t_stats_robust
 #: </bootstrap>
+
+
+#: <bispectrum_diagnostics>
+def hinich_bispectrum_test(
+    x: Any,
+    n_fft: int = 128,
+    overlap: float = 0.5,
+    window: str = "hann",
+    alpha: float = 0.01,
+    top_k: int = 8,
+) -> Dict[str, Any]:
+    r"""Performs Hinich higher-order spectral analysis and tests for Gaussianity and linearity.
+
+    Estimates the Welch-segmented bispectrum \hat{B}(k_1, k_2) and normalized bicoherence
+    b^2(k_1, k_2) in the principal non-redundant triangle 1 <= k_2 <= k_1, k_1 + k_2 <= n_fft // 2.
+    Computes the Hinich asymptotic Chi-square test of Gaussianity and linearity dispersion metrics,
+    and extracts the top coupled frequency triads driving non-linear quadratic phase coupling (QPC).
+
+    Args:
+        x (Union[np.ndarray, torch.Tensor, pd.Series, list]): Input 1D time series.
+        n_fft (int): Segment window length for FFT decomposition (must be even).
+        overlap (float): Fractional segment overlap in [0, 1). Default 0.5 (50% overlap).
+        window (str): Taper window function ('hann' or 'boxcar').
+        alpha (float): Significance level for Gaussianity test (e.g. 0.01).
+        top_k (int): Number of top coupled frequency triads to extract.
+
+    Returns:
+        Dict[str, Any]: Diagnostic results containing:
+            - 'p_value_gaussianity': Asymptotic p-value for Gaussianity null hypothesis.
+            - 'stat_gaussianity': Hinich chi-square test statistic.
+            - 'df_gaussianity': Degrees of freedom (2 * number of grid points).
+            - 'is_gaussian': True if p_value > alpha.
+            - 'linearity_iqr': Interquartile range of bicoherence across principal domain.
+            - 'linearity_std': Standard deviation of bicoherence across principal domain.
+            - 'top_triads': List of dictionaries for top-K coupled frequency triads.
+            - 'bicoherence_map': 2D ndarray of bicoherence values of shape (n_fft//2 + 1, n_fft//2 + 1).
+            - 'principal_mask': Boolean mask of points in the principal domain.
+            - 'n_segments': Number of Welch segments processed.
+            - 'n_fft': FFT window length.
+    """
+    from scipy.stats import chi2
+
+    if isinstance(x, torch.Tensor):
+        x_arr = x.detach().cpu().numpy().astype(np.float64).ravel()
+    elif isinstance(x, (pd.Series, pd.DataFrame)):
+        x_arr = x.values.astype(np.float64).ravel()
+    else:
+        x_arr = np.asarray(x, dtype=np.float64).ravel()
+
+    n_samples = len(x_arr)
+    n_fft = int(n_fft)
+    if n_samples < n_fft:
+        raise ValueError(
+            f"Input series length ({n_samples}) must be at least n_fft ({n_fft}) for bispectrum analysis."
+        )
+
+    # Demean the signal
+    x_zero_mean = x_arr - np.mean(x_arr)
+
+    # Window function
+    if window == "hann":
+        w = np.hanning(n_fft)
+    else:
+        w = np.ones(n_fft, dtype=np.float64)
+
+    # Overlapping segmentation
+    step = max(1, int(n_fft * (1.0 - overlap)))
+    n_segs = (n_samples - n_fft) // step + 1
+    if n_segs < 1:
+        raise ValueError(f"Insufficient samples ({n_samples}) to form any segment of length {n_fft}.")
+
+    segments = np.lib.stride_tricks.sliding_window_view(x_zero_mean, n_fft)[::step][:n_segs]
+    win_segs = segments * w
+
+    # Real FFT across segments: shape (n_segs, n_fft // 2 + 1)
+    fft_coeffs = np.fft.rfft(win_segs, axis=-1)
+    n_freqs = n_fft // 2 + 1
+
+    # Principal non-redundant triangular domain of the frequency pairs (k_2 not above k_1, and k_1 + k_2 within the Nyquist range)
+    principal_mask = np.zeros((n_freqs, n_freqs), dtype=bool)
+    for k1 in range(1, n_freqs):
+        for k2 in range(1, k1 + 1):
+            if k1 + k2 <= n_fft // 2:
+                principal_mask[k1, k2] = True
+
+    coords = np.argwhere(principal_mask)
+    k1_idx = coords[:, 0]
+    k2_idx = coords[:, 1]
+    k3_idx = k1_idx + k2_idx
+
+    # Slices across segments
+    x1 = fft_coeffs[:, k1_idx]
+    x2 = fft_coeffs[:, k2_idx]
+    x3 = fft_coeffs[:, k3_idx]
+
+    product_12 = x1 * x2  # shape (n_segs, n_points)
+    bispec_segment = product_12 * np.conj(x3)
+
+    # Welch averaged bispectrum: shape (n_points,)
+    bispec_mean = np.mean(bispec_segment, axis=0)
+
+    # Normalization (Kim & Powers / Haubrich bicoherence):
+    # E[|X(k1)X(k2)|^2] * E[|X(k1+k2)|^2]
+    denom_p12 = np.mean(np.abs(product_12) ** 2, axis=0)
+    denom_p3 = np.mean(np.abs(x3) ** 2, axis=0)
+    denom = denom_p12 * denom_p3 + 1e-12
+
+    bicoherence_vals = np.clip(np.abs(bispec_mean) ** 2 / denom, 0.0, 1.0)
+
+    # Populate 2D bicoherence map (symmetric across diagonal)
+    bicoherence_map = np.zeros((n_freqs, n_freqs), dtype=np.float64)
+    bicoherence_map[k1_idx, k2_idx] = bicoherence_vals
+    bicoherence_map[k2_idx, k1_idx] = bicoherence_vals
+
+    # Hinich Gaussianity Test
+    # Under Gaussianity null, 2 * n_segs * b^2(k1, k2) is asymptotically central chi-square with 2 d.o.f.
+    stat_gaussianity = float(np.sum(2.0 * n_segs * bicoherence_vals))
+    df_gaussianity = int(2 * len(bicoherence_vals))
+    p_value_gaussianity = float(chi2.sf(stat_gaussianity, df_gaussianity))
+    is_gaussian = bool(p_value_gaussianity > alpha)
+
+    # Linearity metrics (dispersion across principal domain)
+    q75, q25 = np.percentile(bicoherence_vals, [75, 25])
+    linearity_iqr = float(q75 - q25)
+    linearity_std = float(np.std(bicoherence_vals))
+
+    # Top-K coupled frequency triads
+    sorted_order = np.argsort(bicoherence_vals)[::-1]
+    top_indices = sorted_order[: min(top_k, len(sorted_order))]
+
+    top_triads = []
+    for idx in top_indices:
+        k1_val = int(k1_idx[idx])
+        k2_val = int(k2_idx[idx])
+        k3_val = int(k3_idx[idx])
+        b2_val = float(bicoherence_vals[idx])
+        b_val = bispec_mean[idx]
+
+        top_triads.append({
+            "k1": k1_val,
+            "k2": k2_val,
+            "k3": k3_val,
+            "omega1": float(2.0 * np.pi * k1_val / n_fft),
+            "omega2": float(2.0 * np.pi * k2_val / n_fft),
+            "omega3": float(2.0 * np.pi * k3_val / n_fft),
+            "f1": float(k1_val / n_fft),
+            "f2": float(k2_val / n_fft),
+            "f3": float(k3_val / n_fft),
+            "bicoherence": b2_val,
+            "bispectrum_mag": float(np.abs(b_val)),
+            "bispectrum_phase": float(np.angle(b_val)),
+        })
+
+    return {
+        "p_value_gaussianity": p_value_gaussianity,
+        "stat_gaussianity": stat_gaussianity,
+        "df_gaussianity": df_gaussianity,
+        "is_gaussian": is_gaussian,
+        "linearity_iqr": linearity_iqr,
+        "linearity_std": linearity_std,
+        "top_triads": top_triads,
+        "bicoherence_map": bicoherence_map,
+        "principal_mask": principal_mask,
+        "n_segments": n_segs,
+        "n_fft": n_fft,
+    }
+#: </bispectrum_diagnostics>

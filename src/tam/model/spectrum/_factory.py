@@ -41,6 +41,7 @@ from ._koopman import KoopmanEffect
 from ._prior_spectral import PriorSpectralEffect
 from ._hippo import HiPPOEffect
 from ._transformer import TransformerEffect
+from ._bispectrum import BispectrumEffect
 from tam.common.utils import parse_formula_to_terms
 
 #: <create_effects>
@@ -55,6 +56,10 @@ def _parse_additional_features(params_resolved: Dict[str, Any]) -> Optional[List
         clean = others_raw.replace('[', '').replace(']', '').replace("'", "").replace('"', '').replace(',', '|')
         return [s.strip() for s in clean.split('|') if s.strip()]
     return None
+
+
+#: Default log10 of the smoothing weight of ``bispec(...)`` when the formula gives no ``ap=`` (see the parse block).
+_BISPEC_DEFAULT_AP: float = -5.0
 
 
 def create_effects_from_parsed_terms(
@@ -689,6 +694,40 @@ def create_effects_from_parsed_terms(
             ))
         #: </parse_transformer>
 
+        #: <parse_bispectrum>
+        elif ttype == 'bispec':
+            if 'ap' not in params_resolved:
+                # The columns of a smooth series are nearly collinear: the model default (a very small weight) lets the coefficients blow up
+                # out of sample, so this effect starts from the weight the benchmarks use (log10 of the weight: minus five); an explicit `ap=` still wins.
+                lambda_p = 10 ** _BISPEC_DEFAULT_AP
+            k = int(params_resolved.get('k', params_resolved.get('m', 8)))
+            if 'n_fft' in params_resolved and 'window' in params_resolved:
+                if int(params_resolved['n_fft']) != int(params_resolved['window']):
+                    raise ValueError(
+                        f"Conflicting 'n_fft' ({params_resolved['n_fft']}) and 'window' "
+                        f"({params_resolved['window']}) in bispec()."
+                    )
+            n_fft = int(params_resolved.get('n_fft', params_resolved.get('window', 128)))
+            sobolev_order = float(params_resolved.get('sobolev_order', params_resolved.get('s', 1.0)))
+            triads = params_resolved.get('triads', None)
+            bicoherences = params_resolved.get('bicoherences', None)
+            extrap_val = params_resolved.get('extrapolate', 'continue')
+
+            additional_features = _parse_additional_features(params_resolved)
+
+            effects_list.append(BispectrumEffect(
+                feature_name=feature_name,
+                k=k,
+                n_fft=n_fft,
+                sobolev_order=sobolev_order,
+                triads=triads,
+                bicoherences=bicoherences,
+                lambda_p=lambda_p,
+                extrapolate=extrap_val,
+                additional_features=additional_features,
+            ))
+        #: </parse_bispectrum>
+
         else:
             raise ValueError(f"Unknown effect type identifier: '{ttype}'")
             
@@ -950,6 +989,8 @@ def extrapolating_features(effects_list: List[BaseEffect]) -> set:
         elif isinstance(effect, HiPPOEffect):
             names.update(getattr(effect, 'input_features', None) or [effect.feature_name])
         elif isinstance(effect, TransformerEffect):
+            names.update(getattr(effect, 'input_features', None) or [effect.feature_name])
+        elif isinstance(effect, BispectrumEffect):
             names.update(getattr(effect, 'input_features', None) or [effect.feature_name])
 
     for effect in effects_list:

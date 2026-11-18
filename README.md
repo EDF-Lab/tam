@@ -105,6 +105,7 @@ To understand the deep mathematical behavior of the framework, click on any effe
 / **[Prior Spectral](math/spectrum/PRIOR_SPECTRAL.md)** (BETA)
 / **[HiPPO SSM](math/spectrum/HIPPO_SSM.md)** (BETA)
 / **[Performer Attention](math/spectrum/TRANSFORMER_FAVOR.md)** (BETA)
+/ **[Bispectrum](math/spectrum/BISPECTRUM.md)** (BETA)
 
 ---
 

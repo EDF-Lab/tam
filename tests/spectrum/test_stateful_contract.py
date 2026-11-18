@@ -16,6 +16,7 @@ import pytest
 import torch
 
 from tam.model.spectrum._signature import SignatureEffect
+from tam.model.spectrum._bispectrum import BispectrumEffect
 from tam.model.spectrum._foundation import FoundationEffect
 from tam.model.spectrum._hippo import HiPPOEffect
 from tam.model.spectrum._inertia import InertiaEffect
@@ -39,6 +40,7 @@ CASES = [
     pytest.param(lambda: FoundationEffect("x", patch_len=8, n_tokens=6, n_bins=6, scales=(1, 4, 16), n_struct=8), 1, id="foundation"),
     pytest.param(lambda: FoundationEffect("x", additional_features=["z"], patch_len=6, n_tokens=5, n_bins=5, scales=(1, 8), n_struct=8), 2, id="foundation_multi"),
     pytest.param(lambda: HiPPOEffect("x", k=6, measure="legt"), 1, id="hippo"),
+    pytest.param(lambda: BispectrumEffect("x", k=4, n_fft=32), 1, id="bispec"),
     pytest.param(lambda: TransformerEffect("x", m_features=6, n_heads=3, causal=True, decay=(1.0, 0.95, 0.8)), 1, id="attn"),
     pytest.param(lambda: TransformerEffect("x", additional_features=["z"], m_features=5, n_heads=2, causal=True, mode="bilinear"), 2, id="attn_bilinear"),
     pytest.param(lambda: KoopmanEffect("x", k=6, n_lift=24, delay_embed=3), 1, id="koopman"),

@@ -344,6 +344,13 @@ Different physical phenomena require different mathematical topologies. TAM flat
 
 ---
 
+### [Higher-Order Bispectrum (`bispec`)](math/spectrum/BISPECTRUM.md) (BETA)
+
+  * **Syntax:** `bispec(x, k=8, n_fft=64)`
+  * **Mapping & Penalty:** Quadratic phase-coupling triad features with Hinich Gaussianity diagnostics; [Architecture](architecture/spectrum/BISPECTRUM.md).
+
+---
+
 ## 📊 Benchmark Proof: The Power of Topology & Meta-Learning
 
 *(To reproduce these results, execute `python use_cases/cheatsheet.py` located in the repository, note: results of BETA/EXP modules may differ, timing depends on the hardware configuration).*

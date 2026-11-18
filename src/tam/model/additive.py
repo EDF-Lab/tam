@@ -1473,6 +1473,12 @@ class StaticTAM(BaseTAM):
                 "Specific Params": "others, m_features, n_heads, causal, decay, mode, orthogonal, seed, k"
             },
             {
+                "Token": "bispec(x)",
+                "Effect": "Bispectral phase-coupling features",
+                "Syntax Example": "bispec(load, k=8, n_fft=128)",
+                "Specific Params": "k, n_fft (alias window), sobolev_order, triads, bicoherences; ap defaults to -5 for this token (smooth series give nearly collinear columns)"
+            },
+            {
                 "Token": "t(x)", 
                 "Effect": "Tree / Random Forest", 
                 "Syntax Example": "t(x, n_trees=50, sp_alpha=0.5, split_strategy='quantile')",
