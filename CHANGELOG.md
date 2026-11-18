@@ -15,7 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > **[0.0.6]** corresponds to the legacy `weakl` package available on PyPI.
 
 ---
-## [Unreleased]
+## [1.6.1] - 2026-11-18
 
 ### Added
 - Added Bochner QMC RFF spectrum effect (`pspec`, `PriorSpectralEffect`).
@@ -406,7 +406,8 @@ This version introduced the Formula API and the first object-oriented refactorin
 ### Added
 * Initial project setup based on the original `weakl` v0.0.6 package.
 
-[Unreleased]: https://github.com/EDF-Lab/tam/compare/v1.5.1...HEAD
+[1.6.1]: https://github.com/EDF-Lab/tam/releases/tag/v1.6.1
+[1.6.0]: https://github.com/EDF-Lab/tam/releases/tag/v1.6.0
 [1.5.1]: https://github.com/EDF-Lab/tam/releases/tag/v1.5.1
 [1.5.0]: https://github.com/EDF-Lab/tam/releases/tag/v1.5.0
 [1.4.1]: https://github.com/EDF-Lab/tam/releases/tag/v1.4.1

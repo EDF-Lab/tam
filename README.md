@@ -191,10 +191,10 @@ If you use these packages in your research, please cite them using their permane
 **TAM**
 ```bibtex
 @misc{tam2026package,
-  title={TAM: Time series Additive Model (v1.5.0)},
+  title={TAM: Time series Additive Model (v1.6.1)},
   author={Allioux, Yann and Goude, Yannig},
   year={2026},
-  doi={10.5281/zenodo.23507593},
+  doi={10.5281/zenodo.24340687},
   note={With foundational WeaKL research by Nathan Doumèche, and tensorisation and adaptive model contributions by Éloi Bedek}
 }
 ```
