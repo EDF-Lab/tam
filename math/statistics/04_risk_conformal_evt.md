@@ -54,7 +54,7 @@ A parametric location-scale fit constrains the whole shape and may misfit the ex
 
 ## Epistemic (Parameter) Uncertainty
 
-The penalized fit is a MAP estimate under a Gaussian prior {cite:p}`wahba1983bayesian`. The posterior covariance is $V_\beta=\sigma^2(\Phi^\top\Phi+nS)^{-1}$, and the epistemic standard error $\sqrt{\phi V_\beta \phi^\top}$ widens where the training design is data-poor. 
+The penalized fit is a MAP estimate under a Gaussian prior {cite:p}`wahba1983bayesian`. The posterior covariance is $V_\theta=\sigma^2\big(\Phi^\top W\Phi+T_{\text{eff}}(P+\epsilon I_D)\big)^{-1}$, and the epistemic standard error $\sqrt{\phi V_\theta \phi^\top}$ widens where the training design is data-poor.
 
 *Note: This is computed via an efficient Cholesky solve, never requiring a dense matrix inverse.*
 

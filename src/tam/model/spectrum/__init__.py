@@ -48,6 +48,15 @@ from ._inertia import InertiaEffect, ThermalInertiaEffect, DegreeDayEffect, Warp
 from ._kan import KANEffect
 from ._single_index import SingleIndexEffect
 from ._signature import SignatureEffect
+from ._prior_spectral import PriorSpectralEffect
+from ._hippo import HiPPOEffect
+from ._transformer import TransformerEffect
+from ._bispectrum import BispectrumEffect
+from ._scattering import ScatteringEffect
+from ._tjepa import TJEPAEffect
+from ._fno import OperatorEffect
+from ._hurst import HurstEffect
+from ._ssa import SSAEffect
 
 # Utility functions exposed for the StaticTAM model
 from ._factory import (
@@ -94,6 +103,15 @@ __all__ = [
     "KANEffect",
     "SingleIndexEffect",
     "SignatureEffect",
+    "PriorSpectralEffect",
+    "HiPPOEffect",
+    "TransformerEffect",
+    "BispectrumEffect",
+    "ScatteringEffect",
+    "TJEPAEffect",
+    "OperatorEffect",
+    "HurstEffect",
+    "SSAEffect",
 
     # Factory / Assembly
     "create_effects_from_parsed_terms",

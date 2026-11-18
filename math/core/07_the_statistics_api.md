@@ -10,7 +10,7 @@ Where the [Spectrum library](../spectrum/LINEAR.md) is a *heterogeneous* collect
 
 Every fit reduces to one penalized weighted least-squares solve:
 
-$$ \left(\Phi^\top W \Phi + n\,S\right)\theta = \Phi^\top W z. $$
+$$ \left(\Phi^\top W \Phi + T_{\text{eff}}\,(P + \epsilon I_D)\right)\hat\theta = \Phi^\top W z, \qquad W = \Lambda^\top\Lambda, \quad \epsilon = 10^{-6}. $$
 
 A Gaussian mean fit calls it **once**; the default `loss="l2"` (with $W=I$) is bit-identical to the ordinary least-squares solver. Every non-Gaussian target changes **only** the working response $z$ and the per-observation weights $W = \mathrm{diag}(w_i)$, the high-performance linear algebra never changes, only the *schedule* that feeds it.
 

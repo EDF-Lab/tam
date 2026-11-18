@@ -1362,7 +1362,7 @@ class StaticTAM(BaseTAM):
                 "Token": "n(x)", 
                 "Effect": "Neural Network", 
                 "Syntax Example": "n(Income, others='Age', n_neurons=500, seed=42)",
-                "Specific Params": "n_neurons, act ('relu'/'cos'/'tanh'), n_hidden_layers, seed, others, orthogonalize (True: only what the other terms cannot explain)"
+                "Specific Params": "n_neurons, act ('relu'/'cos'/'tanh'/'exu'), n_hidden_layers, seed, others, orthogonalize (True: only what the other terms cannot explain)"
             },
             {
                 "Token": "te(a, b)", 
@@ -1380,7 +1380,7 @@ class StaticTAM(BaseTAM):
                 "Token": "phys(x)", 
                 "Effect": "Physics (PIKL/ODE)", 
                 "Syntax Example": "phys(t, basis='spline', k=20, D2=1.0)",
-                "Specific Params": "basis, k/n_coeffs, D{n} (derivative weights)"
+                "Specific Params": "basis, k/n_coeffs, D{n} (derivative weights; a fractional order is written with an underscore: D0_5=1.0 is the order 0.5, e.g. phys(t, basis='fourier', n_coeffs=16, D0_5=1.0))"
             },
             {
                 "Token": "pid(x)", 
@@ -1453,6 +1453,60 @@ class StaticTAM(BaseTAM):
                 "Effect": "Koopman eigenfunctions (EDMD)",
                 "Syntax Example": "koopman(temp, others='load', k=12, n_lift=64, delay_embed=4)",
                 "Specific Params": "others, k, n_lift, delay_embed, reg, alpha_res, alpha_unit, seed"
+            },
+            {
+                "Token": "pspec(x)",
+                "Effect": "Bochner prior spectral features (QMC RFF)",
+                "Syntax Example": "pspec(load, k=64, prior='matern', nu=1.5, length_scale=1.0)",
+                "Specific Params": "k, prior, nu, length_scale, sobolev_order, qmc, seed, others"
+            },
+            {
+                "Token": "hippo(x)",
+                "Effect": "HiPPO state-space memory",
+                "Syntax Example": "hippo(load, k=16, measure='legt', dt=0.05)",
+                "Specific Params": "k, measure, dt, discretization, degree_pen"
+            },
+            {
+                "Token": "attn(x)",
+                "Effect": "Linearized causal attention (FAVOR+)",
+                "Syntax Example": "attn(load, m_features=16, n_heads=4, causal=True)",
+                "Specific Params": "others, m_features, n_heads, causal, decay, mode, orthogonal, seed, k"
+            },
+            {
+                "Token": "bispec(x)",
+                "Effect": "Bispectral phase-coupling features",
+                "Syntax Example": "bispec(load, k=8, n_fft=128)",
+                "Specific Params": "k, n_fft (alias window), sobolev_order, triads, bicoherences; ap defaults to -5 for this token (smooth series give nearly collinear columns)"
+            },
+            {
+                "Token": "wst(x)",
+                "Effect": "Wavelet scattering transform",
+                "Syntax Example": "wst(load, J=3, Q=1, max_order=2, causal=True)",
+                "Specific Params": "J, Q, max_order, causal, order_pen, xi_0"
+            },
+            {
+                "Token": "tjepa(x)",
+                "Effect": "T-JEPA latent covariate encoder",
+                "Syntax Example": "tjepa(temp, others='wind|solar', latent_dim=4, window=16)",
+                "Specific Params": "others, latent_dim, window, horizon, readout, k_spline, mode ('svd' or 'vicreg'), epochs (vicreg only), seed"
+            },
+            {
+                "Token": "fno(x)",
+                "Effect": "Fourier neural operator channels",
+                "Syntax Example": "fno(load, modes=12, width=8, window=32, causal=True)",
+                "Specific Params": "modes, width, window (W), causal, seed"
+            },
+            {
+                "Token": "hurst(x)",
+                "Effect": "Long-memory harmonic basis with a fractional-noise penalty",
+                "Syntax Example": "hurst(load, k=16, H=0.75)",
+                "Specific Params": "k, H, period"
+            },
+            {
+                "Token": "ssa(x)",
+                "Effect": "Singular spectrum analysis modes",
+                "Syntax Example": "ssa(load, window=48, k=10)",
+                "Specific Params": "window, k"
             },
             {
                 "Token": "t(x)", 

@@ -323,6 +323,83 @@ Different physical phenomena require different mathematical topologies. TAM flat
 
 ---
 
+### [Bochner QMC RFF (`pspec`)](math/spectrum/PRIOR_SPECTRAL.md) (BETA)
+
+  * **Syntax:** `pspec(x, n_features=32, lengthscale=1.0, nu=1.5)`
+  * **Mapping & Penalty:** Quasi-Monte Carlo Random Fourier Features sampling Matérn spectral densities; [Architecture](architecture/spectrum/PRIOR_SPECTRAL.md).
+
+---
+
+### [HiPPO State-Space Memory (`hippo`)](math/spectrum/HIPPO_SSM.md) (BETA)
+
+  * **Syntax:** `hippo(x, order=8, dt=0.05, measure='legs')`
+  * **Mapping & Penalty:** Continuous-time Legendre polynomial projection state-space memory; [Architecture](architecture/spectrum/HIPPO_SSM.md).
+
+---
+
+### [Performer FAVOR+ Attention (`attn`)](math/spectrum/TRANSFORMER_FAVOR.md) (BETA)
+
+  * **Syntax:** `attn(x, d_model=16, n_features=32, decay=0.95)`
+  * **Mapping & Penalty:** Linearized positive orthogonal random feature causal attention; [Architecture](architecture/spectrum/TRANSFORMER_FAVOR.md).
+
+---
+
+### [Higher-Order Bispectrum (`bispec`)](math/spectrum/BISPECTRUM.md) (BETA)
+
+  * **Syntax:** `bispec(x, k=8, n_fft=64)`
+  * **Mapping & Penalty:** Quadratic phase-coupling triad features with Hinich Gaussianity diagnostics; [Architecture](architecture/spectrum/BISPECTRUM.md).
+
+---
+
+### [Wavelet Scattering (`wst`)](math/spectrum/WAVELET_SCATTERING.md) (BETA)
+
+  * **Syntax:** `wst(x, J=3, Q=1, max_order=2)`
+  * **Mapping & Penalty:** Translation-invariant multi-scale Morlet wavelet scattering cascade; [Architecture](architecture/spectrum/WAVELET_SCATTERING.md).
+
+---
+
+### [T-JEPA Latent Predictor (`tjepa`)](math/spectrum/T_JEPA.md) (BETA)
+
+  * **Syntax:** `tjepa(x, others=x2, latent_dim=16, window=24, horizon=6)`
+  * **Mapping & Penalty:** Self-supervised VICReg joint-embedding predictive encoder (AdamW) with linear/spline readout; [Architecture](architecture/spectrum/T_JEPA.md).
+
+---
+
+### [Fourier Neural Operator (`fno`)](math/spectrum/FNO.md) (BETA)
+
+  * **Syntax:** `fno(x, modes=12, width=8)`
+  * **Mapping & Penalty:** Resolution-invariant spectral convolution operator with Sobolev frequency penalty; [Architecture](architecture/spectrum/FNO.md).
+
+---
+
+### [Hurst Fractional Noise (`hurst`)](math/spectrum/HURST.md) (BETA)
+
+  * **Syntax:** `hurst(x, k=16, H=0.75)`
+  * **Mapping & Penalty:** Harmonic basis weighted by fractional Gaussian noise inverse power spectrum $|\omega|^{2H-1}$; [Architecture](architecture/spectrum/HURST.md).
+
+---
+
+### [Caputo Fractional Physics (`phys` fractional orders)](math/spectrum/FRACTIONAL_PHYSICS.md) (BETA)
+
+  * **Syntax:** `phys(x, D0.5=1.0)`
+  * **Mapping & Penalty:** Grünwald-Letnikov Caputo fractional differential operator penalties ($\alpha \in (0,2)$); integer orders remain bit-identical to v1.5.1; [Architecture](architecture/spectrum/FRACTIONAL_PHYSICS.md).
+
+---
+
+### [Exp-Centered Units (`n(..., activation='exu')`)](math/spectrum/EXU.md) (BETA)
+
+  * **Syntax:** `n(x, activation='exu', k=64)`
+  * **Mapping & Penalty:** Log-space weight parameterization for sharp step-function regimes without Gibbs oscillation; [Architecture](architecture/spectrum/EXU.md).
+
+---
+
+### [Singular Spectrum Analysis (`ssa`)](math/spectrum/SSA.md) (BETA)
+
+  * **Syntax:** `ssa(x, window=24, k=8)`
+  * **Mapping & Penalty:** Hankel trajectory EOF projection with inverse-singular-value spectral penalty; [Architecture](architecture/spectrum/SSA.md).
+
+---
+
 ## 📊 Benchmark Proof: The Power of Topology & Meta-Learning
 
 *(To reproduce these results, execute `python use_cases/cheatsheet.py` located in the repository, note: results of BETA/EXP modules may differ, timing depends on the hardware configuration).*

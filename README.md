@@ -102,6 +102,17 @@ To understand the deep mathematical behavior of the framework, click on any effe
 / **[Patch Basis](math/spectrum/PATCH_BASIS.md)** (BETA)
 / **[Foundation Basis](math/spectrum/FOUNDATION.md)** (BETA)
 / **[Koopman EDMD](math/spectrum/KOOPMAN_DMD.md)** (BETA)
+/ **[Prior Spectral](math/spectrum/PRIOR_SPECTRAL.md)** (BETA)
+/ **[HiPPO SSM](math/spectrum/HIPPO_SSM.md)** (BETA)
+/ **[Performer Attention](math/spectrum/TRANSFORMER_FAVOR.md)** (BETA)
+/ **[Bispectrum](math/spectrum/BISPECTRUM.md)** (BETA)
+/ **[Wavelet Scattering](math/spectrum/WAVELET_SCATTERING.md)** (BETA)
+/ **[T-JEPA](math/spectrum/T_JEPA.md)** (BETA)
+/ **[FNO](math/spectrum/FNO.md)** (BETA)
+/ **[Hurst fGn](math/spectrum/HURST.md)** (BETA)
+/ **[Fractional Physics](math/spectrum/FRACTIONAL_PHYSICS.md)** (BETA)
+/ **[ExU Neural](math/spectrum/EXU.md)** (BETA)
+/ **[SSA](math/spectrum/SSA.md)** (BETA)
 
 ---
 
@@ -180,10 +191,10 @@ If you use these packages in your research, please cite them using their permane
 **TAM**
 ```bibtex
 @misc{tam2026package,
-  title={TAM: Time series Additive Model (v1.5.0)},
+  title={TAM: Time series Additive Model (v1.6.1)},
   author={Allioux, Yann and Goude, Yannig},
   year={2026},
-  doi={10.5281/zenodo.23507593},
+  doi={10.5281/zenodo.24340687},
   note={With foundational WeaKL research by Nathan Doumèche, and tensorisation and adaptive model contributions by Éloi Bedek}
 }
 ```

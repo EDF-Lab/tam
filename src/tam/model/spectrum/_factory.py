@@ -38,6 +38,15 @@ from ._temporal_operator import TemporalOperatorEffect
 from ._patch_basis import PatchBasisEffect
 from ._foundation import FoundationEffect
 from ._koopman import KoopmanEffect
+from ._prior_spectral import PriorSpectralEffect
+from ._hippo import HiPPOEffect
+from ._transformer import TransformerEffect
+from ._bispectrum import BispectrumEffect
+from ._scattering import ScatteringEffect
+from ._tjepa import TJEPAEffect
+from ._fno import OperatorEffect
+from ._hurst import HurstEffect
+from ._ssa import SSAEffect
 from tam.common.utils import parse_formula_to_terms
 
 #: <create_effects>
@@ -52,6 +61,10 @@ def _parse_additional_features(params_resolved: Dict[str, Any]) -> Optional[List
         clean = others_raw.replace('[', '').replace(']', '').replace("'", "").replace('"', '').replace(',', '|')
         return [s.strip() for s in clean.split('|') if s.strip()]
     return None
+
+
+#: Default log10 of the smoothing weight of ``bispec(...)`` when the formula gives no ``ap=`` (see the parse block).
+_BISPEC_DEFAULT_AP: float = -5.0
 
 
 def create_effects_from_parsed_terms(
@@ -274,14 +287,17 @@ def create_effects_from_parsed_terms(
             basis = params_resolved.get('basis', 'spline')
             n_coeffs = int(params_resolved.get('k', 20) if basis != 'fourier' else params_resolved.get('n_coeffs', 20))
             
+            # An order is `D<integer>` or `D<integer>_<digits>` (the underscore is the decimal point: `D0_5` is the order 0.5)
             diff_weights = {}
+            derivative_keys = set()
             for pk, pv in params_resolved.items():
-                if pk.startswith('D') and pk[1:].isdigit():
-                    diff_weights[pk] = float(pv)
+                if re.fullmatch(r'D\d+(_\d+)?', pk):
+                    diff_weights[pk.replace('_', '.')] = float(pv)
+                    derivative_keys.add(pk)
             if not diff_weights: diff_weights = {'D2': 1.0}
                 
             reserved_keys = ['k', 'n_coeffs', 'ap', 'basis', 'extrapolate']
-            basis_kwargs = {k: v for k, v in params_resolved.items() if k not in reserved_keys and not k.startswith('D')}
+            basis_kwargs = {k: v for k, v in params_resolved.items() if k not in reserved_keys and k not in derivative_keys}
             extrap_val = params_resolved.get('extrapolate', 'continue')
             effects_list.append(UniversalPhysicsEffect(
                 feature_name, basis, n_coeffs, diff_weights, lambda_p, extrap_val, **basis_kwargs
@@ -605,6 +621,225 @@ def create_effects_from_parsed_terms(
             ))
         #: </parse_koopman>
 
+        #: <parse_prior_spectral>
+        elif ttype in ('pspec', 'bochner', 'prior_spectral'):
+            k = int(params_resolved.get('k', params_resolved.get('m', 64)))
+            prior = params_resolved.get('prior', 'matern')
+            nu = float(params_resolved.get('nu', 1.5))
+            length_scale = float(params_resolved.get('length_scale', params_resolved.get('ell', 1.0)))
+            sobolev_order = float(params_resolved.get('sobolev_order', params_resolved.get('s', 1.0)))
+            qmc = str(params_resolved.get('qmc', 'halton'))
+            seed = int(params_resolved.get('seed', 42))
+            extrap_val = params_resolved.get('extrapolate', 'continue')
+
+            additional_features = _parse_additional_features(params_resolved)
+
+            effects_list.append(PriorSpectralEffect(
+                feature_name=feature_name,
+                k=k,
+                prior=prior,
+                nu=nu,
+                length_scale=length_scale,
+                sobolev_order=sobolev_order,
+                qmc=qmc,
+                seed=seed,
+                lambda_p=lambda_p,
+                extrapolate=extrap_val,
+                additional_features=additional_features
+            ))
+        #: </parse_prior_spectral>
+
+        #: <parse_hippo>
+        elif ttype == 'hippo':
+            k = int(params_resolved.get('k', 16))
+            measure = str(params_resolved.get('measure', 'legt')).lower().strip()
+            dt = float(params_resolved.get('dt', 0.05))
+            discretization = str(params_resolved.get('discretization', 'bilinear')).lower().strip()
+            degree_pen = float(params_resolved.get('degree_pen', 1.0))
+            extrap_val = params_resolved.get('extrapolate', 'continue')
+
+            effects_list.append(HiPPOEffect(
+                feature_name=feature_name,
+                k=k,
+                measure=measure,
+                dt=dt,
+                discretization=discretization,
+                degree_pen=degree_pen,
+                lambda_p=lambda_p,
+                extrapolate=extrap_val
+            ))
+        #: </parse_hippo>
+
+        #: <parse_transformer>
+        elif ttype in ('attn', 'transformer', 'favor_plus', 'performer'):
+            m_features = int(params_resolved.get('m_features', 16))
+            n_heads = int(params_resolved.get('n_heads', 4))
+            causal_raw = params_resolved.get('causal', True)
+            causal = _as_bool(causal_raw)
+            decay = params_resolved.get('decay', (1.0, 0.99, 0.95, 0.85))
+            mode = str(params_resolved.get('mode', 'head')).lower().strip()
+            orth_raw = params_resolved.get('orthogonal', True)
+            orthogonal = _as_bool(orth_raw)
+            seed = int(params_resolved.get('seed', 42))
+            extrap_val = params_resolved.get('extrapolate', 'continue')
+            k = int(params_resolved['k']) if ('k' in params_resolved and params_resolved['k'] is not None) else None
+
+            additional_features = _parse_additional_features(params_resolved)
+
+            effects_list.append(TransformerEffect(
+                feature_name=feature_name,
+                m_features=m_features,
+                n_heads=n_heads,
+                causal=causal,
+                decay=decay,
+                mode=mode,
+                orthogonal=orthogonal,
+                seed=seed,
+                lambda_p=lambda_p,
+                extrapolate=extrap_val,
+                additional_features=additional_features,
+                k=k
+            ))
+        #: </parse_transformer>
+
+        #: <parse_bispectrum>
+        elif ttype == 'bispec':
+            if 'ap' not in params_resolved:
+                # The columns of a smooth series are nearly collinear: the model default (a very small weight) lets the coefficients blow up
+                # out of sample, so this effect starts from the weight the benchmarks use (log10 of the weight: minus five); an explicit `ap=` still wins.
+                lambda_p = 10 ** _BISPEC_DEFAULT_AP
+            k = int(params_resolved.get('k', params_resolved.get('m', 8)))
+            if 'n_fft' in params_resolved and 'window' in params_resolved:
+                if int(params_resolved['n_fft']) != int(params_resolved['window']):
+                    raise ValueError(
+                        f"Conflicting 'n_fft' ({params_resolved['n_fft']}) and 'window' "
+                        f"({params_resolved['window']}) in bispec()."
+                    )
+            n_fft = int(params_resolved.get('n_fft', params_resolved.get('window', 128)))
+            sobolev_order = float(params_resolved.get('sobolev_order', params_resolved.get('s', 1.0)))
+            triads = params_resolved.get('triads', None)
+            bicoherences = params_resolved.get('bicoherences', None)
+            extrap_val = params_resolved.get('extrapolate', 'continue')
+
+            additional_features = _parse_additional_features(params_resolved)
+
+            effects_list.append(BispectrumEffect(
+                feature_name=feature_name,
+                k=k,
+                n_fft=n_fft,
+                sobolev_order=sobolev_order,
+                triads=triads,
+                bicoherences=bicoherences,
+                lambda_p=lambda_p,
+                extrapolate=extrap_val,
+                additional_features=additional_features,
+            ))
+        #: </parse_bispectrum>
+
+        #: <parse_scattering>
+        elif ttype in ('wst', 'scattering'):
+            J = int(params_resolved.get('J', 3))
+            Q = int(params_resolved.get('Q', 1))
+            max_order = int(params_resolved.get('max_order', 2))
+            causal_raw = params_resolved.get('causal', True)
+            causal = _as_bool(causal_raw)
+            order_pen = float(params_resolved.get('order_pen', 4.0))
+            xi_0 = float(params_resolved.get('xi_0', 0.85 * np.pi))
+            extrap_val = params_resolved.get('extrapolate', 'continue')
+            effects_list.append(ScatteringEffect(
+                feature_name=feature_name,
+                J=J,
+                Q=Q,
+                max_order=max_order,
+                causal=causal,
+                order_pen=order_pen,
+                xi_0=xi_0,
+                lambda_p=lambda_p,
+                extrapolate=extrap_val,
+            ))
+        #: </parse_scattering>
+
+        #: <parse_tjepa>
+        elif ttype == 'tjepa':
+            latent_dim = int(params_resolved.get('latent_dim', params_resolved.get('d', 4)))
+            window = int(params_resolved.get('window', params_resolved.get('w', 16)))
+            horizon = int(params_resolved.get('horizon', params_resolved.get('delta', 4)))
+            readout = str(params_resolved.get('readout', 'spline')).lower()
+            k_spline = int(params_resolved.get('k_spline', 8))
+            epochs = int(params_resolved.get('epochs', 30))
+            seed = int(params_resolved.get('seed', 42))
+            tjepa_mode = str(params_resolved.get('mode', 'svd')).lower()
+            extrap_val = params_resolved.get('extrapolate', 'continue')
+
+            additional_features = _parse_additional_features(params_resolved)
+
+            effects_list.append(TJEPAEffect(
+                feature_name=feature_name,
+                additional_features=additional_features,
+                latent_dim=latent_dim,
+                window=window,
+                horizon=horizon,
+                readout=readout,
+                k_spline=k_spline,
+                epochs=epochs,
+                seed=seed,
+                mode=tjepa_mode,
+                lambda_p=lambda_p,
+                extrapolate=extrap_val,
+            ))
+        #: </parse_tjepa>
+
+        #: <parse_fno>
+        elif ttype == 'fno':
+            modes = int(params_resolved.get('modes', 12))
+            width = int(params_resolved.get('width', 8))
+            window = int(params_resolved.get('window', params_resolved.get('W', 32)))
+            causal = _as_bool(params_resolved.get('causal', True))
+            seed = int(params_resolved.get('seed', 42))
+            extrap_val = params_resolved.get('extrapolate', 'continue')
+            effects_list.append(OperatorEffect(
+                feature_name=feature_name,
+                modes=modes,
+                width=width,
+                window=window,
+                causal=causal,
+                seed=seed,
+                lambda_p=lambda_p,
+                extrapolate=extrap_val,
+            ))
+        #: </parse_fno>
+
+        #: <parse_hurst>
+        elif ttype == 'hurst':
+            k = int(params_resolved.get('k', 16))
+            H = float(params_resolved.get('H', params_resolved.get('h', 0.75)))
+            period = params_resolved.get('period', None)
+            period_val = float(period) if period is not None else None
+            extrap_val = params_resolved.get('extrapolate', 'continue')
+            effects_list.append(HurstEffect(
+                feature_name=feature_name,
+                k=k,
+                H=H,
+                period=period_val,
+                lambda_p=lambda_p,
+                extrapolate=extrap_val,
+            ))
+        #: </parse_hurst>
+
+        #: <parse_ssa>
+        elif ttype == 'ssa':
+            window = int(params_resolved.get('window', params_resolved.get('L', 48)))
+            k = int(params_resolved.get('k', 10))
+            extrap_val = params_resolved.get('extrapolate', 'continue')
+            effects_list.append(SSAEffect(
+                feature_name=feature_name,
+                window=window,
+                k=k,
+                lambda_p=lambda_p,
+                extrapolate=extrap_val,
+            ))
+        #: </parse_ssa>
+
         else:
             raise ValueError(f"Unknown effect type identifier: '{ttype}'")
             
@@ -860,6 +1095,24 @@ def extrapolating_features(effects_list: List[BaseEffect]) -> set:
         elif isinstance(effect, FoundationEffect):
             names.update(getattr(effect, 'input_features', None) or [effect.feature_name])
         elif isinstance(effect, KoopmanEffect):
+            names.update(getattr(effect, 'input_features', None) or [effect.feature_name])
+        elif isinstance(effect, PriorSpectralEffect):
+            names.update(getattr(effect, 'input_features', None) or [effect.feature_name])
+        elif isinstance(effect, HiPPOEffect):
+            names.update(getattr(effect, 'input_features', None) or [effect.feature_name])
+        elif isinstance(effect, TransformerEffect):
+            names.update(getattr(effect, 'input_features', None) or [effect.feature_name])
+        elif isinstance(effect, BispectrumEffect):
+            names.update(getattr(effect, 'input_features', None) or [effect.feature_name])
+        elif isinstance(effect, ScatteringEffect):
+            names.update(getattr(effect, 'input_features', None) or [effect.feature_name])
+        elif isinstance(effect, TJEPAEffect):
+            names.update(getattr(effect, 'input_features', None) or [effect.feature_name])
+        elif isinstance(effect, OperatorEffect):
+            names.update(getattr(effect, 'input_features', None) or [effect.feature_name])
+        elif isinstance(effect, HurstEffect):
+            names.update(getattr(effect, 'input_features', None) or [effect.feature_name])
+        elif isinstance(effect, SSAEffect):
             names.update(getattr(effect, 'input_features', None) or [effect.feature_name])
 
     for effect in effects_list:
