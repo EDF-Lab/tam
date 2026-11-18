@@ -32,6 +32,7 @@ from ._linear_tree import LinearTreeEffect
 from._pid import PIDEffect
 from ._signature import SignatureEffect
 from ._single_index import SingleIndexEffect
+from ._kan import KANEffect
 from tam.common.utils import parse_formula_to_terms
 
 #: <create_effects>
@@ -384,6 +385,34 @@ def create_effects_from_parsed_terms(
             ))
         #: </parse_single_index>
 
+        #: <parse_kan>
+        elif ttype == 'kan':
+            n_nodes = int(params_resolved.get('n_nodes', params_resolved.get('q', 8)))
+            k_inner = int(params_resolved.get('k_inner', 6))
+            k_outer = int(params_resolved.get('k_outer', 8))
+            deg = int(params_resolved.get('degree', 3))
+            p = int(params_resolved.get('penalty_order', 2))
+            edge_pen = float(params_resolved.get('edge_pen', 0.1))
+            seed = int(params_resolved.get('seed', 42))
+            extrap_val = params_resolved.get('extrapolate', 'continue')
+
+            additional_features = _parse_additional_features(params_resolved)
+
+            effects_list.append(KANEffect(
+                feature_name=feature_name,
+                additional_features=additional_features,
+                n_nodes=n_nodes,
+                k_inner=k_inner,
+                k_outer=k_outer,
+                spline_degree=deg,
+                penalty_order=p,
+                edge_pen=edge_pen,
+                lambda_p=lambda_p,
+                seed=seed,
+                extrapolate=extrap_val,
+            ))
+        #: </parse_kan>
+
         else:
             raise ValueError(f"Unknown effect type identifier: '{ttype}'")
             
@@ -616,6 +645,8 @@ def extrapolating_features(effects_list: List[BaseEffect]) -> set:
         elif isinstance(effect, SignatureEffect):
             names.update(getattr(effect, 'input_features', None) or [effect.feature_name])
         elif isinstance(effect, SingleIndexEffect):
+            names.update(getattr(effect, 'input_features', None) or [effect.feature_name])
+        elif isinstance(effect, KANEffect):
             names.update(getattr(effect, 'input_features', None) or [effect.feature_name])
 
     for effect in effects_list:

@@ -1398,6 +1398,12 @@ class StaticTAM(BaseTAM):
                 "Specific Params": "others, k, lag_window, alpha, alpha_pen, spline_degree, penalty_order"
             },
             {
+                "Token": "kan(x)",
+                "Effect": "Kolmogorov-Arnold edge splines",
+                "Syntax Example": "kan(x, others='z', n_nodes=8, k_outer=8)",
+                "Specific Params": "others, n_nodes, k_inner, k_outer, degree, penalty_order, edge_pen, seed"
+            },
+            {
                 "Token": "t(x)", 
                 "Effect": "Tree / Random Forest", 
                 "Syntax Example": "t(x, n_trees=50, sp_alpha=0.5, split_strategy='quantile')",

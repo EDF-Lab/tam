@@ -93,6 +93,7 @@ To understand the deep mathematical behavior of the framework, click on any effe
 **[Linear](math/spectrum/LINEAR.md)** / **[Fourier](math/spectrum/FOURIER.md)** / **[Spline](math/spectrum/SPLINES.md)** / **[Chebyshev](math/spectrum/CHEBYSHEV.md)** / **[Categorical](math/spectrum/CATEGORICAL.md)** / **[Interaction](math/spectrum/CROSS_TENSOR.md)** / **[RBF](math/spectrum/RBF.md)** / **[Neural](math/spectrum/NEURAL.md)** / **[Tree](math/spectrum/TREE.md)** / **[Linear Tree](math/spectrum/LINEAR_TREE.md)** / **[Wavelet](math/spectrum/WAVELETS.md)** / **[PID](math/spectrum/PID.md)** / **[Physics](math/spectrum/PHYSICS_PIKL.md)** (BETA)
 / **[Signature](math/spectrum/SIGNATURE.md)** (BETA)
 / **[Single-Index](math/spectrum/SINGLE_INDEX.md)** (BETA)
+/ **[KAN](math/spectrum/KAN.md)** (BETA)
 
 ---
 

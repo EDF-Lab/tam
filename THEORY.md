@@ -260,6 +260,13 @@ Different physical phenomena require different mathematical topologies. TAM flat
 
 ---
 
+### [Kolmogorov-Arnold Edge Splines (`kan`)](math/spectrum/KAN.md) (BETA)
+
+  * **Syntax:** `kan(x1, others=x2, k=5, n_hidden=8)`
+  * **Mapping & Penalty:** Per-feature standardized inner SiLU+B-spline edges, pre-tanh scale stability, and edge-roughness weighted outer B-spline penalty; [Architecture](architecture/spectrum/KAN.md).
+
+---
+
 ## 📊 Benchmark Proof: The Power of Topology & Meta-Learning
 
 *(To reproduce these results, execute `python use_cases/cheatsheet.py` located in the repository, note: results of BETA/EXP modules may differ, timing depends on the hardware configuration).*

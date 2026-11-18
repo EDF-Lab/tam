@@ -57,6 +57,7 @@ Time series Additive Model (TAM) Official Documentation
    math/spectrum/CATEGORICAL
    math/spectrum/CROSS_TENSOR
    math/spectrum/PHYSICS_PIKL
+   math/spectrum/KAN
    math/spectrum/SINGLE_INDEX
    math/spectrum/SIGNATURE
    math/spectrum/PID
@@ -110,6 +111,7 @@ Time series Additive Model (TAM) Official Documentation
    architecture/core/04_hardware_memory
    architecture/core/05_gcv_implementation
    architecture/core/06_the_spectrum_api
+   architecture/spectrum/KAN
    architecture/spectrum/SINGLE_INDEX
    architecture/spectrum/SIGNATURE
    architecture/core/07_the_statistics_api
