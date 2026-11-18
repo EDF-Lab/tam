@@ -96,6 +96,7 @@ To understand the deep mathematical behavior of the framework, click on any effe
 / **[KAN](math/spectrum/KAN.md)** (BETA)
 / **[Thermal Inertia](math/spectrum/THERMAL_INERTIA.md)** (BETA)
 / **[Degree Days](math/spectrum/DEGREE_DAY.md)** (BETA)
+/ **[Warped Calendar](math/spectrum/WARPED_CALENDAR.md)** (BETA)
 
 ---
 

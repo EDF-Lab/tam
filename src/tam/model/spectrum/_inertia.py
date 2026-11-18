@@ -293,3 +293,151 @@ class DegreeDayEffect(BaseEffect):
 
 # Same class under the name of its formula token ``smooth_hinge``.
 SmoothHingeEffect = DegreeDayEffect
+
+
+class WarpedCalendarEffect(CoordinatePenaltyMixin, BaseEffect):
+    r"""Phase-warped calendar Fourier effect for holidays and regime shifts.
+
+    Note: has no effect when ``group_col`` is the column read by ``wcal`` (e.g. ``group_col='tod'``): that column is constant inside a group,
+    and the columns varying through ``by`` are spanned by a day-type term on the same ``by`` column.
+    Use it in a model not grouped by its input column.
+
+    On public holidays, school breaks, and bridge days, the diurnal or annual load
+    curve undergoes both vertical amplitude scaling and horizontal phase warping
+    (e.g. delayed morning wake-up ramp). Parameterizes a diffeomorphic phase-warping map:
+
+    .. math::
+
+        \tilde{\tau}_t = \tau_t + \sum_{r=1}^K \delta_r z_t \sin(r \tau_t)
+
+    Linearized around the base harmonics via first-order Taylor expansion:
+
+    .. math::
+
+        \Phi_{\text{wcal}}(\tau_t, z_t) = \Big[\, \Phi_{\text{base}}(\tau_t) \;\Big|\; z_t \odot \partial_\tau \Phi_{\text{base}}(\tau_t) \;\Big|\; z_t \odot \Phi_{\text{base}}(\tau_t) \,\Big]
+
+    regularized by a block-diagonal Sobolev roughness penalty.
+
+    Args:
+        feature_name (str): Periodic time/phase column name (e.g. 'tod', 'toy').
+        regime_feature (Optional[str]): Regime indicator column name (e.g. 'is_holiday', 'day_type_jf').
+        period (float): Period length (e.g. 48.0 for half-hourly tod, 365.25 for toy).
+            Defaults to 48.0.
+        n_harmonics (int): Number of Fourier harmonics :math:`K`. Defaults to 6.
+        sobolev_order (float): Sobolev penalty exponent :math:`s \ge 1`. Defaults to 2.0.
+        gamma_warp (float): Penalty multiplier for horizontal phase-warping terms. Defaults to 1.0.
+        gamma_amp (float): Penalty multiplier for vertical amplitude-scaling terms. Defaults to 1.0.
+        lambda_p (float): Global regularization weight. Defaults to 1.0.
+        extrapolate (str): Extrapolation mode. Defaults to ``'periodic'``.
+    """
+
+    def __init__(
+        self,
+        feature_name: str,
+        regime_feature: Optional[str] = None,
+        period: float = 48.0,
+        n_harmonics: int = 6,
+        sobolev_order: float = 2.0,
+        gamma_warp: float = 1.0,
+        gamma_amp: float = 1.0,
+        lambda_p: float = 1.0,
+        extrapolate: str = "periodic",
+    ):
+        super().__init__(feature_name, "wcal", lambda_p, extrapolate)
+
+        self.additional_features = [regime_feature] if regime_feature else []
+        self.input_features = [self.feature_name] + self.additional_features
+        self.regime_feature = regime_feature
+        self.period = max(1e-4, float(period))
+        self.n_harmonics = max(1, int(n_harmonics))
+        self.sobolev_order = float(sobolev_order)
+        self.gamma_warp = float(gamma_warp)
+        self.gamma_amp = float(gamma_amp)
+
+        self.has_regime = bool(self.additional_features)
+        self._n_coeffs = 6 * self.n_harmonics if self.has_regime else 2 * self.n_harmonics
+        if self.has_regime:
+            self._init_coordinates(["base", "warp", "amp"], [1.0, self.gamma_warp, self.gamma_amp])
+        else:
+            self._init_coordinates(["base"], [1.0])
+
+    def summary_type(self) -> str:
+        """Returns effect type name for summary."""
+        return "WarpedCalendar"
+
+    def summary_details(self) -> str:
+        """Returns details string for model summary."""
+        return (
+            f"period={self.period}, K={self.n_harmonics}, "
+            f"by='{self.regime_feature}', s={self.sobolev_order}"
+        )
+
+    def get_n_coeffs(self) -> int:
+        """Returns total number of basis coefficients."""
+        return self._n_coeffs
+
+#: <wcal_feature_map>
+    def build_feature_map(self, x_col: torch.Tensor) -> torch.Tensor:
+        """Constructs base Fourier, phase-derivative warping, and amplitude interaction columns."""
+        orig_shape = x_col.shape
+
+        if self.has_regime and x_col.dim() >= 2 and x_col.shape[-1] >= 2:
+            phase_in = x_col[..., 0]
+            regime_in = x_col[..., 1:]
+            batch_shape = orig_shape[:-1]
+        else:
+            phase_in = x_col
+            regime_in = None
+            batch_shape = orig_shape
+
+        # The input is the phase normalized from [0, period] to [-1, 1] (fixed_ranges()): angular phase in [0, 2*pi)
+        tau = (np.pi * (phase_in + 1.0)).unsqueeze(-1)
+        k_vec = torch.arange(1, self.n_harmonics + 1, device=x_col.device, dtype=x_col.dtype)
+
+        angles = tau * k_vec
+        cos_part = torch.cos(angles)
+        sin_part = torch.sin(angles)
+
+        base_cols = torch.cat([cos_part, sin_part], dim=-1)
+
+        if not self.has_regime or regime_in is None:
+            return base_cols.reshape(*batch_shape, self._n_coeffs)
+
+        d_cos = -k_vec * sin_part
+        d_sin = k_vec * cos_part
+        d_cols = torch.cat([d_cos, d_sin], dim=-1)
+
+        # Diffeomorphic phase-modulation profile g(tau) = (tau - pi)/pi in [-1, 1)
+        # prevents exact collinearity between phase-derivative warp_cols and amp_cols.
+        phase_envelope = (tau - np.pi) / np.pi
+        warp_cols = regime_in * phase_envelope * d_cols
+        amp_cols = regime_in * base_cols
+
+        full = torch.cat([base_cols, warp_cols, amp_cols], dim=-1)
+        return full.reshape(*batch_shape, self._n_coeffs)
+#: </wcal_feature_map>
+
+#: <wcal_penalty_matrix>
+    def build_penalty_matrix(self) -> torch.Tensor:
+        """Constructs block-diagonal Sobolev frequency penalty matrix."""
+        k_vec = torch.arange(1, self.n_harmonics + 1, device=TORCH_DEVICE, dtype=torch.get_default_dtype())
+        sob_weights = (k_vec ** self.sobolev_order)
+        p_base = torch.cat([sob_weights, sob_weights])
+
+        coords = self.penalty_coordinates()
+        if not self.has_regime:
+            return torch.diag(coords[0] * p_base)
+
+        lam_base, lam_warp, lam_amp = coords
+        return torch.diag(torch.cat([lam_base * p_base, lam_warp * p_base, lam_amp * p_base]))
+#: </wcal_penalty_matrix>
+
+
+def _build_canonical_knots(
+    k: int, degree: int, device: torch.device, dtype: torch.dtype, x_min: float = -1.0, x_max: float = 1.0
+) -> torch.Tensor:
+    """Helper to build clamped B-spline knots on [x_min, x_max]."""
+    internal = torch.linspace(x_min, x_max, k + 1, device=device, dtype=dtype)[1:-1]
+    t_left = torch.full((degree + 1,), x_min, device=device, dtype=dtype)
+    t_right = torch.full((degree + 1,), x_max, device=device, dtype=dtype)
+    return torch.cat([t_left, internal, t_right])

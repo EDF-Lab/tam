@@ -521,6 +521,9 @@ class StaticTAM(BaseTAM):
             if 'by' in term['params'] and isinstance(term['params']['by'], str):
                 add_feature(term['params']['by'].strip())
 
+            if 'regime_feature' in term['params'] and isinstance(term['params']['regime_feature'], str):
+                add_feature(term['params']['regime_feature'].strip())
+
             if term['type'] == 'c' and 'coords' in term['params'] and isinstance(term['params']['coords'], str):
                 for extra in re.split(r"[:|]", term['params']['coords']):
                     if extra.strip():
@@ -1414,6 +1417,12 @@ class StaticTAM(BaseTAM):
                 "Effect": "Smooth degree-day hinges (hdd_cdd / smooth_hinge)",
                 "Syntax Example": "dd(temp, heat='-0.2|0.0', cool='0.3|0.5', sharpness=10, quad=True)",
                 "Specific Params": "heat_thresholds, cool_thresholds, sharpness, quad"
+            },
+            {
+                "Token": "wcal(x)",
+                "Effect": "Warped calendar harmonics",
+                "Syntax Example": "wcal(tod, by='holiday', period=48, k=6)",
+                "Specific Params": "by (or others, regime_feature), period, n_harmonics (or k), sobolev_order, gamma_warp, gamma_amp"
             },
             {
                 "Token": "t(x)", 

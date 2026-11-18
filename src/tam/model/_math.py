@@ -207,6 +207,7 @@ def decomposition_names(effects_list: List[BaseEffect]) -> List[str]:
         'chebyshev': 'p', 'categorical_nominal': 'c', 'categorical_ordinal': 'c', 'categorical_fourier': 'c', 'categorical_graph': 'c',
         'neural': 'n', 'rbf_gauss': 'rbf', 'rbf_matern': 'rbf', 'rbf_tps': 'rbf', 'tree': 't', 'linear_tree': 'lt', 'pid': 'pid',
         'tensor_product': 'te', 'phys_spline': 'phys',
+        'warped_calendar': 'wcal',
         'degree_day': 'hdd_cdd',
         'thermal_inertia': 'thermal',
         'inertia': 'inertia', 'inertia_thermal': 'inertia', 'inertia_rotational': 'inertia', 'inertia_behavioral': 'inertia',

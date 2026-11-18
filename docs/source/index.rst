@@ -57,6 +57,7 @@ Time series Additive Model (TAM) Official Documentation
    math/spectrum/CATEGORICAL
    math/spectrum/CROSS_TENSOR
    math/spectrum/PHYSICS_PIKL
+   math/spectrum/WARPED_CALENDAR
    math/spectrum/DEGREE_DAY
    math/spectrum/THERMAL_INERTIA
    math/spectrum/KAN
@@ -113,6 +114,7 @@ Time series Additive Model (TAM) Official Documentation
    architecture/core/04_hardware_memory
    architecture/core/05_gcv_implementation
    architecture/core/06_the_spectrum_api
+   architecture/spectrum/WARPED_CALENDAR
    architecture/spectrum/DEGREE_DAY
    architecture/spectrum/THERMAL_INERTIA
    architecture/spectrum/KAN

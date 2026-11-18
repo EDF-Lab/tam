@@ -281,6 +281,13 @@ Different physical phenomena require different mathematical topologies. TAM flat
 
 ---
 
+### [Warped Calendar (`wcal`)](math/spectrum/WARPED_CALENDAR.md) (BETA)
+
+  * **Syntax:** `wcal(time, regime, k=4, period=365.25)`
+  * **Mapping & Penalty:** Full-rank $6K$ diffeomorphic calendar phase-modulation harmonics; [Architecture](architecture/spectrum/WARPED_CALENDAR.md).
+
+---
+
 ## 📊 Benchmark Proof: The Power of Topology & Meta-Learning
 
 *(To reproduce these results, execute `python use_cases/cheatsheet.py` located in the repository, note: results of BETA/EXP modules may differ, timing depends on the hardware configuration).*

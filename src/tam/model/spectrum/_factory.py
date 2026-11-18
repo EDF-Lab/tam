@@ -33,7 +33,7 @@ from._pid import PIDEffect
 from ._signature import SignatureEffect
 from ._single_index import SingleIndexEffect
 from ._kan import KANEffect
-from ._inertia import InertiaEffect, ThermalInertiaEffect, DegreeDayEffect
+from ._inertia import InertiaEffect, ThermalInertiaEffect, DegreeDayEffect, WarpedCalendarEffect
 from tam.common.utils import parse_formula_to_terms
 
 #: <create_effects>
@@ -453,6 +453,32 @@ def create_effects_from_parsed_terms(
             ))
         #: </parse_hdd_cdd>
 
+        #: <parse_wcal>
+        elif ttype in ('wcal', 'warped_calendar', 'calendar_warp'):
+            period = float(params_resolved.get('period', params_resolved.get('p', 48.0)))
+            n_harmonics = int(params_resolved.get('n_harmonics', params_resolved.get('k', 6)))
+            regime_feature = params_resolved.get('by', params_resolved.get('others', params_resolved.get('regime_feature', None)))
+            if regime_feature is not None:
+                regime_feature = str(regime_feature).strip()
+                if not regime_feature or regime_feature.lower() in ('none', 'null'):
+                    regime_feature = None
+            sobolev_order = float(params_resolved.get('sobolev_order', params_resolved.get('s', 2.0)))
+            gamma_warp = float(params_resolved.get('gamma_warp', 1.0))
+            gamma_amp = float(params_resolved.get('gamma_amp', 1.0))
+            extrap_val = params_resolved.get('extrapolate', 'periodic')
+            effects_list.append(WarpedCalendarEffect(
+                feature_name=feature_name,
+                regime_feature=regime_feature,
+                period=period,
+                n_harmonics=n_harmonics,
+                sobolev_order=sobolev_order,
+                gamma_warp=gamma_warp,
+                gamma_amp=gamma_amp,
+                lambda_p=lambda_p,
+                extrapolate=extrap_val,
+            ))
+        #: </parse_wcal>
+
         else:
             raise ValueError(f"Unknown effect type identifier: '{ttype}'")
             
@@ -625,6 +651,11 @@ def fixed_ranges(effects_list: List[BaseEffect]) -> Dict[str, tuple]:
             known = periods.setdefault(effect.feature_name, effect.period)
             if known != effect.period:
                 raise ValueError(f"Two periods declared for '{effect.feature_name}': {known} and {effect.period}.")
+        elif isinstance(effect, WarpedCalendarEffect):
+            wcal_range = (0.0, float(effect.period))
+            known = periods.setdefault(effect.feature_name, wcal_range)
+            if known != wcal_range:
+                raise ValueError(f"Two periods declared for '{effect.feature_name}': {known} and {wcal_range}.")
 
     for effect in effects_list:
         visit(effect)
@@ -691,6 +722,8 @@ def extrapolating_features(effects_list: List[BaseEffect]) -> set:
         elif isinstance(effect, InertiaEffect):
             names.update(getattr(effect, 'input_features', None) or [effect.feature_name])
         elif isinstance(effect, DegreeDayEffect):
+            names.update(getattr(effect, 'input_features', None) or [effect.feature_name])
+        elif isinstance(effect, WarpedCalendarEffect):
             names.update(getattr(effect, 'input_features', None) or [effect.feature_name])
 
     for effect in effects_list:
