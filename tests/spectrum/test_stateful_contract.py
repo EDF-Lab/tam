@@ -17,6 +17,7 @@ import torch
 
 from tam.model.spectrum._signature import SignatureEffect
 from tam.model.spectrum._bispectrum import BispectrumEffect
+from tam.model.spectrum._fno import OperatorEffect
 from tam.model.spectrum._foundation import FoundationEffect
 from tam.model.spectrum._hippo import HiPPOEffect
 from tam.model.spectrum._inertia import InertiaEffect
@@ -42,6 +43,7 @@ CASES = [
     pytest.param(lambda: FoundationEffect("x", patch_len=8, n_tokens=6, n_bins=6, scales=(1, 4, 16), n_struct=8), 1, id="foundation"),
     pytest.param(lambda: FoundationEffect("x", additional_features=["z"], patch_len=6, n_tokens=5, n_bins=5, scales=(1, 8), n_struct=8), 2, id="foundation_multi"),
     pytest.param(lambda: HiPPOEffect("x", k=6, measure="legt"), 1, id="hippo"),
+    pytest.param(lambda: OperatorEffect("x", modes=5, width=3, window=12), 1, id="fno"),
     pytest.param(lambda: TJEPAEffect("x", latent_dim=2, window=6, horizon=2, readout="linear", epochs=5, mode="vicreg"), 1, id="tjepa"),
     pytest.param(lambda: TJEPAEffect("x", additional_features=["z"], latent_dim=2, window=5, horizon=2, readout="spline", k_spline=5, epochs=5, mode="vicreg"), 2, id="tjepa_multi"),
     pytest.param(lambda: TJEPAEffect("x", latent_dim=2, window=6, horizon=2, readout="linear"), 1, id="tjepa_svd"),

@@ -365,6 +365,13 @@ Different physical phenomena require different mathematical topologies. TAM flat
 
 ---
 
+### [Fourier Neural Operator (`fno`)](math/spectrum/FNO.md) (BETA)
+
+  * **Syntax:** `fno(x, modes=12, width=8)`
+  * **Mapping & Penalty:** Resolution-invariant spectral convolution operator with Sobolev frequency penalty; [Architecture](architecture/spectrum/FNO.md).
+
+---
+
 ## 📊 Benchmark Proof: The Power of Topology & Meta-Learning
 
 *(To reproduce these results, execute `python use_cases/cheatsheet.py` located in the repository, note: results of BETA/EXP modules may differ, timing depends on the hardware configuration).*

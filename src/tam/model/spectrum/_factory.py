@@ -44,6 +44,7 @@ from ._transformer import TransformerEffect
 from ._bispectrum import BispectrumEffect
 from ._scattering import ScatteringEffect
 from ._tjepa import TJEPAEffect
+from ._fno import OperatorEffect
 from tam.common.utils import parse_formula_to_terms
 
 #: <create_effects>
@@ -783,6 +784,26 @@ def create_effects_from_parsed_terms(
             ))
         #: </parse_tjepa>
 
+        #: <parse_fno>
+        elif ttype == 'fno':
+            modes = int(params_resolved.get('modes', 12))
+            width = int(params_resolved.get('width', 8))
+            window = int(params_resolved.get('window', params_resolved.get('W', 32)))
+            causal = _as_bool(params_resolved.get('causal', True))
+            seed = int(params_resolved.get('seed', 42))
+            extrap_val = params_resolved.get('extrapolate', 'continue')
+            effects_list.append(OperatorEffect(
+                feature_name=feature_name,
+                modes=modes,
+                width=width,
+                window=window,
+                causal=causal,
+                seed=seed,
+                lambda_p=lambda_p,
+                extrapolate=extrap_val,
+            ))
+        #: </parse_fno>
+
         else:
             raise ValueError(f"Unknown effect type identifier: '{ttype}'")
             
@@ -1050,6 +1071,8 @@ def extrapolating_features(effects_list: List[BaseEffect]) -> set:
         elif isinstance(effect, ScatteringEffect):
             names.update(getattr(effect, 'input_features', None) or [effect.feature_name])
         elif isinstance(effect, TJEPAEffect):
+            names.update(getattr(effect, 'input_features', None) or [effect.feature_name])
+        elif isinstance(effect, OperatorEffect):
             names.update(getattr(effect, 'input_features', None) or [effect.feature_name])
 
     for effect in effects_list:

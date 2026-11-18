@@ -24,6 +24,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added Bispectrum quadratic phase-coupling spectrum effect (`bispec`, `BispectrumEffect`) and `hinich_bispectrum_test`.
 - Added Wavelet Scattering spectrum effect (`wst`, `ScatteringEffect`).
 - Added T-JEPA exogenous latent spectrum effect (`tjepa`, `TJEPAEffect`) with a closed-form encoder (`mode="svd"`, default) and a self-supervised gradient encoder (`mode="vicreg"`).
+- Added Fourier Neural Operator spectrum effect (`fno`, `OperatorEffect`).
 
 ## [1.6.0] - 2026-11-18
 

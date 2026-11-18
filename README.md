@@ -108,6 +108,7 @@ To understand the deep mathematical behavior of the framework, click on any effe
 / **[Bispectrum](math/spectrum/BISPECTRUM.md)** (BETA)
 / **[Wavelet Scattering](math/spectrum/WAVELET_SCATTERING.md)** (BETA)
 / **[T-JEPA](math/spectrum/T_JEPA.md)** (BETA)
+/ **[FNO](math/spectrum/FNO.md)** (BETA)
 
 ---
 

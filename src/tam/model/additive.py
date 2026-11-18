@@ -1491,6 +1491,12 @@ class StaticTAM(BaseTAM):
                 "Specific Params": "others, latent_dim, window, horizon, readout, k_spline, mode ('svd' or 'vicreg'), epochs (vicreg only), seed"
             },
             {
+                "Token": "fno(x)",
+                "Effect": "Fourier neural operator channels",
+                "Syntax Example": "fno(load, modes=12, width=8, window=32, causal=True)",
+                "Specific Params": "modes, width, window (W), causal, seed"
+            },
+            {
                 "Token": "t(x)", 
                 "Effect": "Tree / Random Forest", 
                 "Syntax Example": "t(x, n_trees=50, sp_alpha=0.5, split_strategy='quantile')",
