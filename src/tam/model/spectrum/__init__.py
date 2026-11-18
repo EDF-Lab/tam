@@ -52,6 +52,7 @@ from ._prior_spectral import PriorSpectralEffect
 from ._hippo import HiPPOEffect
 from ._transformer import TransformerEffect
 from ._bispectrum import BispectrumEffect
+from ._scattering import ScatteringEffect
 
 # Utility functions exposed for the StaticTAM model
 from ._factory import (
@@ -102,6 +103,7 @@ __all__ = [
     "HiPPOEffect",
     "TransformerEffect",
     "BispectrumEffect",
+    "ScatteringEffect",
 
     # Factory / Assembly
     "create_effects_from_parsed_terms",

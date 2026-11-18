@@ -223,6 +223,7 @@ def decomposition_names(effects_list: List[BaseEffect]) -> List[str]:
         'hippo': 'hippo',
         'transformer': 'attn',
         'bispectrum': 'bispec',
+        'scattering': 'wst',
         'phys_fourier': 'phys', 'phys_neural': 'phys', 'offset': 'offset'
     }
 

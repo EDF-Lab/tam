@@ -1479,6 +1479,12 @@ class StaticTAM(BaseTAM):
                 "Specific Params": "k, n_fft (alias window), sobolev_order, triads, bicoherences; ap defaults to -5 for this token (smooth series give nearly collinear columns)"
             },
             {
+                "Token": "wst(x)",
+                "Effect": "Wavelet scattering transform",
+                "Syntax Example": "wst(load, J=3, Q=1, max_order=2, causal=True)",
+                "Specific Params": "J, Q, max_order, causal, order_pen, xi_0"
+            },
+            {
                 "Token": "t(x)", 
                 "Effect": "Tree / Random Forest", 
                 "Syntax Example": "t(x, n_trees=50, sp_alpha=0.5, split_strategy='quantile')",

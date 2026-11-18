@@ -72,6 +72,7 @@ Time series Additive Model (TAM) Official Documentation
    math/spectrum/HIPPO_SSM
    math/spectrum/TRANSFORMER_FAVOR
    math/spectrum/BISPECTRUM
+   math/spectrum/WAVELET_SCATTERING
    math/spectrum/PID
    math/spectrum/LINEAR_TREE
 
@@ -138,6 +139,7 @@ Time series Additive Model (TAM) Official Documentation
    architecture/spectrum/HIPPO_SSM
    architecture/spectrum/TRANSFORMER_FAVOR
    architecture/spectrum/BISPECTRUM
+   architecture/spectrum/WAVELET_SCATTERING
    architecture/core/07_the_statistics_api
 
 .. raw:: latex

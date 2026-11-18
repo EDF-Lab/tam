@@ -42,6 +42,7 @@ from ._prior_spectral import PriorSpectralEffect
 from ._hippo import HiPPOEffect
 from ._transformer import TransformerEffect
 from ._bispectrum import BispectrumEffect
+from ._scattering import ScatteringEffect
 from tam.common.utils import parse_formula_to_terms
 
 #: <create_effects>
@@ -728,6 +729,29 @@ def create_effects_from_parsed_terms(
             ))
         #: </parse_bispectrum>
 
+        #: <parse_scattering>
+        elif ttype in ('wst', 'scattering'):
+            J = int(params_resolved.get('J', 3))
+            Q = int(params_resolved.get('Q', 1))
+            max_order = int(params_resolved.get('max_order', 2))
+            causal_raw = params_resolved.get('causal', True)
+            causal = _as_bool(causal_raw)
+            order_pen = float(params_resolved.get('order_pen', 4.0))
+            xi_0 = float(params_resolved.get('xi_0', 0.85 * np.pi))
+            extrap_val = params_resolved.get('extrapolate', 'continue')
+            effects_list.append(ScatteringEffect(
+                feature_name=feature_name,
+                J=J,
+                Q=Q,
+                max_order=max_order,
+                causal=causal,
+                order_pen=order_pen,
+                xi_0=xi_0,
+                lambda_p=lambda_p,
+                extrapolate=extrap_val,
+            ))
+        #: </parse_scattering>
+
         else:
             raise ValueError(f"Unknown effect type identifier: '{ttype}'")
             
@@ -991,6 +1015,8 @@ def extrapolating_features(effects_list: List[BaseEffect]) -> set:
         elif isinstance(effect, TransformerEffect):
             names.update(getattr(effect, 'input_features', None) or [effect.feature_name])
         elif isinstance(effect, BispectrumEffect):
+            names.update(getattr(effect, 'input_features', None) or [effect.feature_name])
+        elif isinstance(effect, ScatteringEffect):
             names.update(getattr(effect, 'input_features', None) or [effect.feature_name])
 
     for effect in effects_list:

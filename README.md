@@ -106,6 +106,7 @@ To understand the deep mathematical behavior of the framework, click on any effe
 / **[HiPPO SSM](math/spectrum/HIPPO_SSM.md)** (BETA)
 / **[Performer Attention](math/spectrum/TRANSFORMER_FAVOR.md)** (BETA)
 / **[Bispectrum](math/spectrum/BISPECTRUM.md)** (BETA)
+/ **[Wavelet Scattering](math/spectrum/WAVELET_SCATTERING.md)** (BETA)
 
 ---
 

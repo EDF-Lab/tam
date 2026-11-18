@@ -351,6 +351,13 @@ Different physical phenomena require different mathematical topologies. TAM flat
 
 ---
 
+### [Wavelet Scattering (`wst`)](math/spectrum/WAVELET_SCATTERING.md) (BETA)
+
+  * **Syntax:** `wst(x, J=3, Q=1, max_order=2)`
+  * **Mapping & Penalty:** Translation-invariant multi-scale Morlet wavelet scattering cascade; [Architecture](architecture/spectrum/WAVELET_SCATTERING.md).
+
+---
+
 ## 📊 Benchmark Proof: The Power of Topology & Meta-Learning
 
 *(To reproduce these results, execute `python use_cases/cheatsheet.py` located in the repository, note: results of BETA/EXP modules may differ, timing depends on the hardware configuration).*

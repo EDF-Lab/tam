@@ -22,6 +22,7 @@ from tam.model.spectrum._hippo import HiPPOEffect
 from tam.model.spectrum._inertia import InertiaEffect
 from tam.model.spectrum._koopman import KoopmanEffect
 from tam.model.spectrum._patch_basis import PatchBasisEffect
+from tam.model.spectrum._scattering import ScatteringEffect
 from tam.model.spectrum._single_index import SingleIndexEffect
 from tam.model.spectrum._transformer import TransformerEffect
 from tam.model.spectrum._temporal_operator import TemporalOperatorEffect
@@ -40,6 +41,7 @@ CASES = [
     pytest.param(lambda: FoundationEffect("x", patch_len=8, n_tokens=6, n_bins=6, scales=(1, 4, 16), n_struct=8), 1, id="foundation"),
     pytest.param(lambda: FoundationEffect("x", additional_features=["z"], patch_len=6, n_tokens=5, n_bins=5, scales=(1, 8), n_struct=8), 2, id="foundation_multi"),
     pytest.param(lambda: HiPPOEffect("x", k=6, measure="legt"), 1, id="hippo"),
+    pytest.param(lambda: ScatteringEffect("x", J=3, Q=1, max_order=2), 1, id="wst"),
     pytest.param(lambda: BispectrumEffect("x", k=4, n_fft=32), 1, id="bispec"),
     pytest.param(lambda: TransformerEffect("x", m_features=6, n_heads=3, causal=True, decay=(1.0, 0.95, 0.8)), 1, id="attn"),
     pytest.param(lambda: TransformerEffect("x", additional_features=["z"], m_features=5, n_heads=2, causal=True, mode="bilinear"), 2, id="attn_bilinear"),
