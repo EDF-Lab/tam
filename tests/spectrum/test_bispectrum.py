@@ -317,7 +317,7 @@ def _smooth_panel(days=210):
     t = np.arange(len(df)) / 24.0
     df["x"] = 8 + 6 * np.sin(2 * np.pi * t / 365 * 8) + 3 * np.sin(2 * np.pi * (df["tod"] - 9) / 24) + rng.normal(0, 0.5, len(df))
     df["z"] = np.cos(2 * np.pi * t / 7) + rng.normal(0, 0.2, len(df))
-    df["is_we"] = (df["date"].dt.dayofweek >= 5).astype(float)
+    df["is_we"] = (df["date"].dt.day_of_week >= 5).astype(float)
     df["y"] = 50 - 2.0 * df["x"] + 0.05 * df["x"] ** 2 + 3 * df["z"] + 5 * df["is_we"] + rng.normal(0, 1.0, len(df))
     return df.iloc[: 24 * (days - 10)].reset_index(drop=True), df.iloc[24 * (days - 10):].reset_index(drop=True)
 

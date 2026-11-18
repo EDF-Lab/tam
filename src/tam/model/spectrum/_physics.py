@@ -179,7 +179,9 @@ class UniversalPhysicsEffect(BaseEffect):
 
         for key, weight in self.diff_weights.items():
             order = float(key[1:])
-            eig_vals += weight * (1j * freqs.to(torch.complex128)) ** order
+            # an integer order uses the integer power, as in v1.5.1 (the complex power with a float exponent can differ by one unit in the last place between platforms)
+            power = int(order) if order.is_integer() else order
+            eig_vals += weight * (1j * freqs.to(torch.complex128)) ** power
             
         penalty_half = self.lambda_p * (torch.abs(eig_vals) ** 2).to(torch.get_default_dtype())
         diag_full = torch.cat([penalty_half, penalty_half])
