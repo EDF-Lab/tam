@@ -51,6 +51,8 @@ model_tensor = ta.StaticTAM(formula=f_tensor, date_col="date").fit(train_df)
 predictions = model_phys.predict(test_df)
 ```
 
+> **Opt-in Large-Scale Solvers & Trace Estimators (v1.6.0-dev):** `solve_sparse_cg(..., preconditioner='diag'|'block')`, `solve_block_qr`, `compute_gcv_score(..., trace_method='hutchinson')`, `compute_gcv_score_and_grad`, `solve_sqrt_group_lasso`, and `compute_scale_stability_penalty`. Defaults remain exact.
+
 ### The Meta-Models Cheatsheet
 Real-world data is chaotic. Rather than polluting the exactness of the core engine, TAM uses specialized "Meta-Learners" that wrap around the base model to handle specific industrial constraints.
 

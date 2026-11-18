@@ -111,11 +111,10 @@ $$ \ell_R(\boldsymbol\rho)=-\tfrac12\log\big|X^\top WX+nS_{\boldsymbol\lambda}\b
 
 with $\rho_p=\log\lambda_p$, $M_0$ the dimension of the null space of the penalty (the part of the fit that is not penalised), $|\cdot|_+$ the determinant on the penalised subspace and $D_p=\lVert\sqrt W(y-X\hat\beta)\rVert^2+n\hat\beta^\top S_{\boldsymbol\lambda}\hat\beta$ the penalised residual sum of squares. When the scale is known (Poisson, binomial) the last term is $-D_p/(2\phi)$. Its gradient is analytic: $\partial_{\rho_p}\log|A|=\operatorname{tr}(A^{-1}\partial_{\rho_p}nS_{\boldsymbol\lambda})$ for $A=X^\top WX+nS_{\boldsymbol\lambda}$, the same with the pseudo-inverse for $\log|S|_+$, and $\partial_{\rho_p}D_p=\hat\beta^\top(\partial_{\rho_p}nS_{\boldsymbol\lambda})\hat\beta$ because $\hat\beta$ minimises $D_p$. The sampling distribution of the REML estimate of a smoothing parameter is narrower than that of the GCV estimate and it is much less prone to undersmoothing {cite:p}`reiss2009smoothing`. For a non-Gaussian family the criterion is evaluated on the working system of the last reweighting pass, as for GCV.
 
-## Future Roadmap: Matrix-Free GCV
+## Matrix-Free GCV & Analytical Derivatives
 
-Currently, the exact algebraic trace evaluation requires the dense inversion of the $D \times D$ system matrix ($\Phi^T \Lambda^T \Lambda \Phi + T P$). In PyTorch hardware engineering, this imposes a hard physical ceiling. If the combined feature dimension exceeds $D = 7500$, the dense inversion will trigger an Out-Of-Memory (OOM) error. For extreme topologies exceeding this limit, the framework is mathematically forced to abandon exact GCV and fall back to a pure Matrix-Free grid search using the Conjugate Gradient solver.
+When the combined feature dimension $D$ exceeds dense inversion budgets, the framework evaluates the effective degrees of freedom $\operatorname{Tr}(S)$ using **Hutchinson's stochastic trace estimator** with Rademacher probe vectors $z_r \in \{-1, +1\}^D$:
 
+$$\operatorname{Tr}\!\left(A^{-1} G\right) \approx \frac{1}{R} \sum_{r=1}^R z_r^\top \left(A^{-1} G z_r\right)$$
 
-
-To unify these pipelines in the future, the framework aims to evaluate the GCV score using **Hutchinson's stochastic trace estimator**. By drawing independent random vectors with Rademacher entries, Hutchinson's method approximates the trace of the inverse matrix using only matrix-vector products. This would entirely eliminate the need for the dense exact matrix inversion, allowing the continuous GCV algebraic solver to scale infinitely alongside the sparse Matrix-Free Conjugate Gradient solver.
-
+where $A^{-1} (G z_r)$ is solved matrix-free via Preconditioned Conjugate Gradient, avoiding $\mathcal{O}(D^2)$ dense storage. Furthermore, for differentiable smoothing selection, **Wood's analytical GCV gradient** computes $\partial_{\rho_p} \operatorname{GCV}(\boldsymbol{\rho})$ directly from $\partial_{\rho_p} \hat{\beta} = -A^{-1} (\partial_{\rho_p} n S_{\boldsymbol{\lambda}}) \hat{\beta}$ and $\partial_{\rho_p} \operatorname{Tr}(S) = -\operatorname{Tr}(A^{-1} G A^{-1} \partial_{\rho_p} n S_{\boldsymbol{\lambda}})$.
