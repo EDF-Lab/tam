@@ -31,7 +31,8 @@ def smart_solve_gcv(
     alpha_p_list: Optional[List[float]] = None,
     gamma: float = 1.4,
     verbose: bool = False,
-    sample_weights: Optional[torch.Tensor] = None
+    sample_weights: Optional[torch.Tensor] = None,
+    trace_method: str = "exact"
 ) -> Tuple[torch.Tensor, np.ndarray, float]:
     r"""
     Memory-safe Generalized Cross Validation (GCV) solver.
@@ -57,7 +58,7 @@ def smart_solve_gcv(
     total_d = dummy_phi.shape[-1]
     del dummy_x, dummy_phi
     
-    if total_d > 7500:
+    if total_d > 7500 and trace_method == "exact":
         raise MemoryError(
             f"Feature dimension D={total_d} is too massive for Generalized Cross Validation (GCV). "
             "GCV requires computing the exact trace of the dense inverse covariance matrix, "
@@ -210,7 +211,8 @@ def smart_solve_gcv(
                 penalty_M_star_M=current_penalty, 
                 lambda_p=1.0, 
                 n_samples=num_samples,
-                gamma=gamma
+                gamma=gamma,
+                trace_method=trace_method
             )
             return score.item()
 
@@ -301,7 +303,8 @@ def smart_solve_gcv(
                         penalty_M_star_M=current_penalty, 
                         lambda_p=1.0, 
                         n_samples=num_samples,
-                        gamma=gamma
+                        gamma=gamma,
+                        trace_method=trace_method
                     )
                     total_score += score.item()
                 except (torch.OutOfMemoryError, MemoryError):

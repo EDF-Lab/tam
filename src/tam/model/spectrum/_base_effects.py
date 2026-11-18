@@ -10,6 +10,7 @@ Out-of-Distribution (OOD) extrapolation router.
 """
 
 from abc import ABC, abstractmethod
+from typing import Any, Dict, Optional
 import torch
 
 #: <class_def>
@@ -30,6 +31,14 @@ class BaseEffect(ABC):
 
     #: Whether ``build_feature_map`` keeps a trailing feature dimension (..., d) even when d == 1 (kernels, trees, networks, tensor products).
     keeps_feature_dim: bool = False
+
+    #: True for an effect that carries a causal state between two calls (``state_in`` / ``_state_out``); see ``_temporal_utils``.
+    stateful: bool = False
+
+    def _check_temporal_extrapolate(self) -> None:
+        """A temporal effect reads ordered steps: a finite difference on isolated points (``linear``, ``saturation``) has no meaning for it."""
+        if self.extrapolate in ('linear', 'saturation'):
+            raise ValueError(f"{self.__class__.__name__} is a temporal effect: extrapolate must be 'continue', 'constant' or 'periodic', not '{self.extrapolate}'")
 
     @property
     def required_features(self) -> list:
@@ -92,12 +101,25 @@ class BaseEffect(ABC):
         return aligned[0] if len(aligned) == 1 else tuple(aligned)
 
 #: <universal_extrapolation>
-    def transform(self, x_col: torch.Tensor) -> torch.Tensor:
+    @staticmethod
+    def _wrap_periodic(x_col: torch.Tensor) -> torch.Tensor:
+        """The coordinates outside [-1, 1] wrapped around the period 2; the ones inside are unchanged."""
+        return torch.where((x_col < -1.0) | (x_col > 1.0), ((x_col + 1.0) % 2.0) - 1.0, x_col)
+
+    def transform(self, x_col: torch.Tensor, state_in: Optional[Dict[str, Any]] = None) -> torch.Tensor:
         r"""
         The Universal Extrapolation Wrapper (Multidimensional).
         Intercepts normalized data [-1, 1]^d. If data is OOD, it projects the 
         feature map according to the requested extrapolation mode using directional derivatives.
+        The mode ``'periodic'`` wraps the coordinates outside [-1, 1] around the period 2.
         """
+        if state_in is not None and self.extrapolate in ('constant', 'periodic'):
+            x_col = torch.clamp(x_col, min=-1.0, max=1.0) if self.extrapolate == 'constant' else self._wrap_periodic(x_col)
+        if state_in is not None:
+            try:
+                return self.build_feature_map(x_col, state_in=state_in)
+            except TypeError:
+                return self.build_feature_map(x_col)
         if self.extrapolate == 'continue':
             return self.build_feature_map(x_col)
 
@@ -127,6 +149,10 @@ class BaseEffect(ABC):
         if self.extrapolate == 'constant':
             return self.build_feature_map(x_bound)
 
+        # Periodic Extrapolation: the values outside [-1, 1] wrap around the period 2
+        if self.extrapolate == 'periodic':
+            return self.build_feature_map(self._wrap_periodic(x_col))
+
         # 3. Base feature map exactly at the boundary of the hypercube
         phi_base = self.build_feature_map(x_bound)
 
@@ -151,7 +177,13 @@ class BaseEffect(ABC):
 
         # 6. Step STRICTLY BACKWARD into the safe hypercube to evaluate the finite difference.
         step_back = eps * unit_delta
+        had_state = hasattr(self, "_state_out")
+        saved_state = getattr(self, "_state_out", None)
         phi_eps = self.build_feature_map(x_bound_vals - step_back)
+        if had_state:
+            self._state_out = saved_state
+        elif hasattr(self, "_state_out"):
+            del self._state_out
         
         # The outward gradient (directional derivative) along the unit violation vector
         slope_unit = (phi_base[is_ood] - phi_eps) / eps

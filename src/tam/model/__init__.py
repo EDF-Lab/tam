@@ -18,6 +18,7 @@ from .additive import StaticTAM
 from .adaptative import AdaptiveTAM
 from .kalman import KalmanTAM
 from .opera import OperaTAM
+from .opera import HierarchicalOperaTAM, TwoTierOperaTAM
 from .hierarchical import HierarchicalTAM
 from .neural import NeuralTAM
 
@@ -37,6 +38,8 @@ __all__ = [
     "AdaptiveTAM",
     "KalmanTAM",
     "OperaTAM",
+    "HierarchicalOperaTAM",
+    "TwoTierOperaTAM",
     "HierarchicalTAM",
     "NeuralTAM",
     # Static conformal engine

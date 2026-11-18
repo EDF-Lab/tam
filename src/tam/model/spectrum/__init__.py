@@ -40,6 +40,14 @@ from ._tensor import TensorProductEffect
 from ._tree import TreeEffect
 from ._linear_tree import LinearTreeEffect
 from ._pid import PIDEffect
+from ._koopman import KoopmanEffect
+from ._foundation import FoundationEffect
+from ._patch_basis import PatchBasisEffect
+from ._temporal_operator import TemporalOperatorEffect
+from ._inertia import InertiaEffect, ThermalInertiaEffect, DegreeDayEffect, WarpedCalendarEffect, MacroTrendEffect
+from ._kan import KANEffect
+from ._single_index import SingleIndexEffect
+from ._signature import SignatureEffect
 
 # Utility functions exposed for the StaticTAM model
 from ._factory import (
@@ -74,6 +82,18 @@ __all__ = [
     "TreeEffect",
     "LinearTreeEffect",
     "PIDEffect",
+    "KoopmanEffect",
+    "FoundationEffect",
+    "PatchBasisEffect",
+    "TemporalOperatorEffect",
+    "WarpedCalendarEffect",
+    "MacroTrendEffect",
+    "DegreeDayEffect",
+    "ThermalInertiaEffect",
+    "InertiaEffect",
+    "KANEffect",
+    "SingleIndexEffect",
+    "SignatureEffect",
 
     # Factory / Assembly
     "create_effects_from_parsed_terms",

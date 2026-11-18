@@ -89,3 +89,15 @@ To solve this, `OperaTAM` re-architects the online aggregation into a **3D Tenso
 The historical data is padded and reshaped into a contiguous GPU tensor of dimensions `(Batch, Time, Experts)`, where the `Batch` dimension represents independent spatial groups (e.g., thousands of distinct energy substations). 
 
 The sequential mathematical loop is then decorated with `@torch.jit.script`. This compiles the sequential MLpol evaluation, simultaneously tracking the regret sequences for thousands of independent groups in a single pass without standard Python loop overhead. This fuses the theoretical purity of the OPERA framework {cite:p}`gaillard2016opera` with the raw computational velocity of modern deep learning infrastructures.
+
+---
+
+## Bernstein Online Aggregation (BOA) & Two-Tier Hierarchical Ensembling
+
+When heterogeneous basis families (e.g., Splines, Neural, Trees, Foundation bases) are aggregated together, **Bernstein Online Aggregation (BOA)** stabilizes weight updates via second-order gradient variance adaptation:
+
+$$w_{k,t+1} \propto w_{k,t}\, \exp\left(-\eta_{k,t}\, r_{k,t} - \eta_{k,t}^2\, r_{k,t}^2\right), \qquad \eta_{k,t} = \min\left(\frac{1}{2 \max_{s \le t} |r_{k,s}|},\; \sqrt{\frac{\ln K}{\sum_{s=1}^{t} r_{k,s}^2}}\right)$$
+
+where $r_{k,t}$ is the linearized regret defined above, $K$ is the number of experts, and the weights are renormalized to sum to one at every step.
+
+achieving fast $\mathcal{O}(\ln K / T)$ excess risk rates under small-loss regimes. In **Hierarchical Online Aggregation**, experts are partitioned by basis family: Level 1 computes intra-family aggregates via MLpol, and Level 2 combines the $F$ family meta-experts via BOA, preventing collinearity within a family from diluting cross-family diversity.

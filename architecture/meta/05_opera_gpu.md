@@ -86,3 +86,10 @@ While `predict_online()` handles the complex task of running the sequential 3D t
 
 **Architectural Choice (The Inference API):**
 To standardize the deployment pipeline, `OperaTAM` implements a dedicated `predict()` method. When `fit()` (which wraps `predict_online()`) completes the historical simulation, the final updated weight vector per group is saved to `self.weights_history_`. When a user subsequently calls `predict(test_data)`, the framework completely bypasses the TorchScript C++ loop. Instead, it extracts the final frozen weights and executes a standard NumPy dot product (`experts @ weights`), ensuring instant, deterministic out-of-sample predictions.
+
+---
+
+## Bernstein Online Aggregation (`BOA`) & `HierarchicalOperaTAM`
+
+- **`algorithm='BOA'` in `OperaTAM`**: Dispatches to the TorchScript-compiled `_boa_loop_optimized_3d` kernel, maintaining per-group adaptive learning rates and second-order Bernstein variance penalization.
+- **`HierarchicalOperaTAM`**: Accepts `families: Dict[str, List[str]]`, runs Level-1 `OperaTAM(..., algorithm=level1_algorithm)` (default `'MLPOL'`) within each basis family, and aggregates the resulting family meta-predictions at Level 2 via `OperaTAM(..., algorithm=level2_algorithm)` (default `'BOA'`), exposing `level1_models_` and `level2_model_`. It is also available as `TwoTierOperaTAM`; it is a two-level Opera aggregation, not hierarchical reconciliation.

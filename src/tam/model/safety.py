@@ -17,23 +17,27 @@ pvalue), and a symmetric-interval convenience (calibrate, predict_intervals).
 
 import numpy as np
 import pandas as pd
-from typing import Optional
+from typing import Optional, Callable
 
 _TINY: float = 1e-12
 
 
 class SafetyTAM:
-    """Static split-conformal prediction: a finite-sample marginal coverage guarantee under exchangeability.
+    """Static split-conformal prediction and Conformal Risk Control (CRC).
 
     For coverage under distribution shift, feed this engine's conformal_quantile to the Adaptive Conformal
     Inference loop in tam.model.statistics.risk.aci.
     """
 
     def __init__(self, alpha: float = 0.1):
-        """alpha is the target error rate (e.g. 0.1 for 90% coverage)."""
+        """alpha is the target error rate or bounded risk level (e.g. 0.1 for 90% coverage)."""
         self.alpha_target = alpha
         self.residuals_calib_ = None
         self.signed_scores_ = None
+        self.crc_lambda_: Optional[float] = None
+        self.crc_w_under_: float = 1.0
+        self.crc_w_over_: float = 1.0
+        self.crc_bound_B_: float = 1.0
 
     def calibrate_scores(self, scores: np.ndarray) -> "SafetyTAM":
         """Calibrate directly on a supplied array of nonconformity scores (the generic entry point)."""
@@ -191,3 +195,98 @@ class SafetyTAM:
                 columns.append(y_pred + np.sign(tau - 0.5) * radius * scale_vector)
         table = np.sort(np.column_stack(columns), axis=1)
         return pd.DataFrame(table, columns=[f"q{t}" for t in levels])
+
+    def calibrate_crc(
+        self,
+        y_true: np.ndarray,
+        y_pred: np.ndarray,
+        alpha: Optional[float] = None,
+        loss_fn: Optional[Callable[[np.ndarray, np.ndarray, np.ndarray], np.ndarray]] = None,
+        bound_B: float = 1.0,
+        w_under: float = 2.0,
+        w_over: float = 1.0,
+        scale: Optional[np.ndarray] = None,
+        lambda_grid: Optional[np.ndarray] = None,
+    ) -> "SafetyTAM":
+        """Conformal Risk Control (Angelopoulos et al., 2022/2024) for bounded monotone business losses.
+
+        Selects the smallest radius multiplier lambda_hat such that finite-sample expected risk is controlled:
+            E[L(C_lambda(X_{n+1}), Y_{n+1})] <= alpha
+        via the finite-sample guarantee:
+            (n / (n + 1)) * R_hat_n(lambda) + B / (n + 1) <= alpha
+
+        When `loss_fn` is None, uses an asymmetric bounded shortfall/miscoverage loss for intervals
+        [y_pred - lambda * w_over * scale, y_pred + lambda * w_under * scale] bounded in [0, bound_B].
+        """
+        target_alpha = float(self.alpha_target if alpha is None else alpha)
+        y_true_arr = np.asarray(y_true, dtype=float)
+        y_pred_arr = np.asarray(y_pred, dtype=float)
+        n = len(y_true_arr)
+        scale_arr = np.ones(n, dtype=float) if scale is None else np.asarray(scale, dtype=float)
+
+        # Also populate standard calibration scores so standard conformal methods work seamlessly
+        self.calibrate(y_true_arr, y_pred_arr, scale=scale_arr, verbose=False)
+        self.crc_w_under_ = float(w_under)
+        self.crc_w_over_ = float(w_over)
+        self.crc_bound_B_ = float(bound_B)
+
+        abs_res = np.abs(y_true_arr - y_pred_arr) / np.maximum(scale_arr, _TINY)
+        max_score = float(np.max(abs_res)) * 2.0 + 1.0
+        if lambda_grid is None:
+            grid = np.unique(np.concatenate([
+                np.linspace(0.0, max_score, 500),
+                np.sort(abs_res),
+            ]))
+        else:
+            grid = np.sort(np.asarray(lambda_grid, dtype=float))
+
+        scale_norm = max(float(np.std(y_true_arr - y_pred_arr)), 1e-6)
+        w_max = max(self.crc_w_under_, self.crc_w_over_, 1e-6)
+
+        selected_lam = float(grid[-1])
+        for lam in grid:
+            lower = y_pred_arr - lam * self.crc_w_over_ * scale_arr
+            upper = y_pred_arr + lam * self.crc_w_under_ * scale_arr
+            if loss_fn is not None:
+                losses = np.clip(np.asarray(loss_fn(y_true_arr, lower, upper), dtype=float), 0.0, self.crc_bound_B_)
+            else:
+                under_violation = np.maximum(y_true_arr - upper, 0.0) / scale_norm
+                over_violation = np.maximum(lower - y_true_arr, 0.0) / scale_norm
+                raw_loss = (self.crc_w_under_ * under_violation + self.crc_w_over_ * over_violation) / w_max
+                # Combine continuous shortfall with binary indicator capped at bound_B
+                losses = np.minimum(self.crc_bound_B_, raw_loss + 0.5 * ((y_true_arr < lower) | (y_true_arr > upper)).astype(float) * self.crc_bound_B_)
+            r_hat = float(np.mean(losses))
+            crc_objective = (n / (n + 1.0)) * r_hat + (self.crc_bound_B_ / (n + 1.0))
+            if crc_objective <= target_alpha:
+                selected_lam = float(lam)
+                break
+
+        self.crc_lambda_ = selected_lam
+        return self
+
+    def predict_crc_intervals(
+        self,
+        y_pred: np.ndarray,
+        y_true_online: Optional[np.ndarray] = None,
+        scale: Optional[np.ndarray] = None,
+    ) -> pd.DataFrame:
+        """Predict asymmetric risk-controlled intervals calibrated via `calibrate_crc()`."""
+        if self.crc_lambda_ is None:
+            raise RuntimeError("Call .calibrate_crc() before predicting CRC intervals.")
+        y_pred_arr = np.asarray(y_pred, dtype=float)
+        n_test = len(y_pred_arr)
+        scale_arr = np.ones(n_test, dtype=float) if scale is None else np.asarray(scale, dtype=float)
+
+        lower = y_pred_arr - self.crc_lambda_ * self.crc_w_over_ * scale_arr
+        upper = y_pred_arr + self.crc_lambda_ * self.crc_w_under_ * scale_arr
+        result = pd.DataFrame({
+            "Predicted": y_pred_arr,
+            "Lower": lower,
+            "Upper": upper,
+            "Lambda_CRC": np.full(n_test, self.crc_lambda_),
+            "Width": upper - lower,
+        })
+        if y_true_online is not None:
+            result["Actual"] = np.asarray(y_true_online, dtype=float)
+            result["Covered"] = (result["Actual"] >= result["Lower"]) & (result["Actual"] <= result["Upper"])
+        return result

@@ -44,6 +44,43 @@ class _HierarchicalSystem(NamedTuple):
     n_groups: int
 #: </hierarchical_system>
 
+
+def compute_sinkhorn_coherence_matrix(
+    n_steps: int,
+    window: int = 24,
+    eps: float = 0.05,
+    n_iters: int = 20,
+    device: Optional[torch.device] = None,
+    dtype: Optional[torch.dtype] = None,
+) -> torch.Tensor:
+    r"""
+    Constructs a doubly-stochastic entropic Optimal-Transport (Sinkhorn) temporal
+    smoothing kernel K_eps of shape (n_steps, n_steps) for soft phase-tolerant
+    hierarchical aggregation coherence.
+
+    Within a local window |t - s| <= window, temporal cost is C_{t,s} = ((t - s) / window)^2,
+    producing Gibbs kernel G_{t,s} = exp(-C_{t,s} / eps). Iterative Sinkhorn-Knopp
+    row/column scaling projects G onto the doubly-stochastic Birkhoff polytope so total
+    energy is strictly conserved (K_eps 1 = 1, 1^T K_eps = 1^T).
+    """
+    dev = TORCH_DEVICE if device is None else device
+    dt = torch.get_default_dtype() if dtype is None else dtype
+    idx = torch.arange(n_steps, device=dev, dtype=dt)
+    diff = idx.unsqueeze(1) - idx.unsqueeze(0)
+    w_scale = max(float(window), 1.0)
+    cost = (diff / w_scale) ** 2
+    mask = torch.abs(diff) <= float(window)
+    K = torch.where(mask, torch.exp(-cost / max(float(eps), 1e-4)), torch.zeros_like(cost))
+
+    u = torch.ones(n_steps, device=dev, dtype=dt)
+    v = torch.ones(n_steps, device=dev, dtype=dt)
+    for _ in range(max(int(n_iters), 1)):
+        u = 1.0 / torch.clamp(K @ v, min=1e-12)
+        v = 1.0 / torch.clamp(K.mT @ u, min=1e-12)
+    P_sink = (u.unsqueeze(1) * K) * v.unsqueeze(0)
+    return 0.5 * (P_sink + P_sink.mT)
+
+
 #: <init_hierarchical>
 class HierarchicalTAM:
     r"""
@@ -52,6 +89,9 @@ class HierarchicalTAM:
     Trains multiple StaticTAM models simultaneously, linked by aggregation constraints.
     Instead of fitting each node independently, it solves a global linear system
     that penalizes deviations from the hierarchy (Parent = Sum of Children).
+    Supports standard pointwise L2 coherence ('l2') or Sinkhorn entropic temporal
+    transport coherence ('sinkhorn') that tolerates sub-step phase jitter while
+    conserving total energy across windows.
 
     Attributes:
         structure (Dict[str, List[str]]): Hierarchy definition {Parent: [Child1, Child2]}.
@@ -59,6 +99,7 @@ class HierarchicalTAM:
         lambda_p_hier (float): Strength of the hierarchical constraint regularization.
         align (str): How the nodes are matched on ``(group, date)`` at fit, ``"strict"`` or ``"inner"``.
         additivity_gap_ (Dict[str, float]): After fit, per parent ``max |Y_p - sum Y_c| / mean |Y_p|``.
+        coherence_loss (str): ``'l2'`` (default) or ``'sinkhorn'``.
     """
     
     def __init__(
@@ -69,7 +110,11 @@ class HierarchicalTAM:
         group_col: Optional[str] = None,
         date_col: Optional[str] = None,
         lambda_p_hier: float = 1.0,
-        align: str = "strict"
+        align: str = "strict",
+        coherence_loss: str = "l2",
+        sinkhorn_eps: float = 0.05,
+        sinkhorn_window: int = 24,
+        sinkhorn_iters: int = 20,
     ):
         r"""
         Initializes the HierarchicalTAM model.
@@ -85,10 +130,20 @@ class HierarchicalTAM:
             align: ``"strict"`` raises when the nodes do not share the same ``(group, date)`` keys and lists the first missing keys
                 per node; ``"inner"`` keeps the keys every node has and warns with the rows dropped per node. Without a
                 ``date_col`` the nodes are matched by row position and must have the same number of rows.
+            coherence_loss: ``'l2'`` (pointwise) or ``'sinkhorn'`` (entropic OT temporal kernel).
+            sinkhorn_eps: Entropic regularization epsilon for Sinkhorn kernel.
+            sinkhorn_window: Maximum temporal shift window for Sinkhorn kernel.
+            sinkhorn_iters: Number of Sinkhorn-Knopp doubly stochastic scaling iterations.
         """
         if align not in ("strict", "inner"):
             raise ValueError(f"HierarchicalTAM: align must be 'strict' or 'inner', got {align!r}.")
         self.align = align
+        self.coherence_loss = str(coherence_loss).lower().strip()
+        if self.coherence_loss not in ("l2", "sinkhorn"):
+            raise ValueError(f"coherence_loss must be 'l2' or 'sinkhorn'; got {coherence_loss!r}.")
+        self.sinkhorn_eps = float(sinkhorn_eps)
+        self.sinkhorn_window = int(sinkhorn_window)
+        self.sinkhorn_iters = int(sinkhorn_iters)
         self.structure = structure
         self.node_col = node_col
         self.group_col = group_col or "__dummy_group__"
@@ -312,16 +367,29 @@ class HierarchicalTAM:
                     for parent, children in self.structure.items():
                         p_start, p_end = node_to_idx[parent]
                         phi_p = phi_chunks[parent]
+                        if self.coherence_loss == "sinkhorn":
+                            K_sink = compute_sinkhorn_coherence_matrix(
+                                phi_p.shape[1],
+                                window=self.sinkhorn_window,
+                                eps=self.sinkhorn_eps,
+                                n_iters=self.sinkhorn_iters,
+                                device=phi_p.device,
+                                dtype=phi_p.dtype,
+                            )
+                            phi_p_eff = K_sink @ phi_p
+                        else:
+                            phi_p_eff = phi_p
 
-                        cov_X_global[:, p_start:p_end, p_start:p_end] += self.lambda_p_hier * (phi_p.mT @ phi_p)
+                        cov_X_global[:, p_start:p_end, p_start:p_end] += self.lambda_p_hier * (phi_p.mT @ phi_p_eff)
 
                         for child in children:
                             c_start, c_end = node_to_idx[child]
                             phi_c = phi_chunks[child]
+                            phi_c_eff = (K_sink @ phi_c) if self.coherence_loss == "sinkhorn" else phi_c
 
-                            cov_X_global[:, c_start:c_end, c_start:c_end] += self.lambda_p_hier * (phi_c.mT @ phi_c)
+                            cov_X_global[:, c_start:c_end, c_start:c_end] += self.lambda_p_hier * (phi_c.mT @ phi_c_eff)
 
-                            cross = -self.lambda_p_hier * (phi_p.mT @ phi_c)
+                            cross = -self.lambda_p_hier * (phi_p.mT @ phi_c_eff)
                             cov_X_global[:, p_start:p_end, c_start:c_end] += cross
                             cov_X_global[:, c_start:c_end, p_start:p_end] += cross.mT
 
@@ -329,7 +397,8 @@ class HierarchicalTAM:
                                 if sibling != child:
                                     s_start, s_end = node_to_idx[sibling]
                                     phi_s = phi_chunks[sibling]
-                                    cov_X_global[:, c_start:c_end, s_start:s_end] += self.lambda_p_hier * (phi_c.mT @ phi_s)
+                                    phi_s_eff = (K_sink @ phi_s) if self.coherence_loss == "sinkhorn" else phi_s
+                                    cov_X_global[:, c_start:c_end, s_start:s_end] += self.lambda_p_hier * (phi_c.mT @ phi_s_eff)
 
                     del phi_chunks, y_chunks
                     start_idx += safe_batch
@@ -444,12 +513,25 @@ class HierarchicalTAM:
                                 phi_c = phi_chunks[child]
                                 constraint_diff -= (phi_c @ v[c_start:c_end, :])
 
-                            Av[p_start:p_end, :] += self.lambda_p_hier * (phi_p.mT @ constraint_diff)
+                            if self.coherence_loss == "sinkhorn":
+                                K_sink = compute_sinkhorn_coherence_matrix(
+                                    phi_p.shape[0],
+                                    window=self.sinkhorn_window,
+                                    eps=self.sinkhorn_eps,
+                                    n_iters=self.sinkhorn_iters,
+                                    device=phi_p.device,
+                                    dtype=phi_p.dtype,
+                                )
+                                constraint_diff_eff = K_sink @ constraint_diff
+                            else:
+                                constraint_diff_eff = constraint_diff
+
+                            Av[p_start:p_end, :] += self.lambda_p_hier * (phi_p.mT @ constraint_diff_eff)
 
                             for child in children:
                                 c_start, c_end = node_to_idx[child]
                                 phi_c = phi_chunks[child]
-                                Av[c_start:c_end, :] -= self.lambda_p_hier * (phi_c.mT @ constraint_diff)
+                                Av[c_start:c_end, :] -= self.lambda_p_hier * (phi_c.mT @ constraint_diff_eff)
 
                         local_start += local_safe_batch
 

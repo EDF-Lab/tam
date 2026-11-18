@@ -30,9 +30,30 @@ from ._physics import UniversalPhysicsEffect
 from ._tree import TreeEffect
 from ._linear_tree import LinearTreeEffect
 from._pid import PIDEffect
+from ._signature import SignatureEffect
+from ._single_index import SingleIndexEffect
+from ._kan import KANEffect
+from ._inertia import InertiaEffect, ThermalInertiaEffect, DegreeDayEffect, WarpedCalendarEffect, MacroTrendEffect
+from ._temporal_operator import TemporalOperatorEffect
+from ._patch_basis import PatchBasisEffect
+from ._foundation import FoundationEffect
+from ._koopman import KoopmanEffect
 from tam.common.utils import parse_formula_to_terms
 
 #: <create_effects>
+def _parse_additional_features(params_resolved: Dict[str, Any]) -> Optional[List[str]]:
+    """The extra input columns of a term, from ``others=`` or ``additional_features=``: a list, or a string such as ``'a|b'`` or ``"['a', 'b']"``."""
+    others_raw = params_resolved.get('others', params_resolved.get('additional_features', None))
+    if not others_raw:
+        return None
+    if isinstance(others_raw, (list, tuple)):
+        return [str(s).strip() for s in others_raw if str(s).strip()]
+    if isinstance(others_raw, str):
+        clean = others_raw.replace('[', '').replace(']', '').replace("'", "").replace('"', '').replace(',', '|')
+        return [s.strip() for s in clean.split('|') if s.strip()]
+    return None
+
+
 def create_effects_from_parsed_terms(
     parsed_terms: List[Dict],
     token_values: Dict[str, Any],
@@ -311,6 +332,279 @@ def create_effects_from_parsed_terms(
             ))
         #: </parse_linear_tree>
 
+        #: <parse_signature>
+        elif ttype == 'sig':
+            w = int(params_resolved.get('w', 9))
+            N = int(params_resolved.get('N', params_resolved.get('level', 3)))
+            lag = int(params_resolved.get('lag', 0))
+            time_aug_raw = params_resolved.get('time_augment', True)
+            time_augment = _as_bool(time_aug_raw)
+            log_sig_raw = params_resolved.get('log_sig', False)
+            log_sig = _as_bool(log_sig_raw)
+            lead_lag_raw = params_resolved.get('lead_lag', False)
+            lead_lag = _as_bool(lead_lag_raw)
+            extrap_val = params_resolved.get('extrapolate', 'continue')
+            k = int(params_resolved['k']) if ('k' in params_resolved and params_resolved['k'] is not None) else None
+
+            additional_features = _parse_additional_features(params_resolved)
+
+            effects_list.append(SignatureEffect(
+                feature_name=feature_name,
+                w=w,
+                N=N,
+                lag=lag,
+                time_augment=time_augment,
+                log_sig=log_sig,
+                lead_lag=lead_lag,
+                lambda_p=lambda_p,
+                extrapolate=extrap_val,
+                additional_features=additional_features,
+                k=k
+            ))
+        #: </parse_signature>
+
+        #: <parse_single_index>
+        elif ttype in ('si', 'single_index'):
+            k = int(params_resolved.get('k', 10))
+            deg = int(params_resolved.get('deg', params_resolved.get('spline_degree', 3)))
+            p = int(params_resolved.get('p', params_resolved.get('penalty_order', 2)))
+            lag_w_raw = params_resolved.get('lag_window', params_resolved.get('window', params_resolved.get('lags', None)))
+            lag_window = int(lag_w_raw) if lag_w_raw is not None else None
+            alpha_raw = params_resolved.get('alpha', None)
+            alpha_pen = float(params_resolved.get('alpha_pen', 1.0))
+            extrap_val = params_resolved.get('extrapolate', 'continue')
+
+            additional_features = _parse_additional_features(params_resolved)
+
+            effects_list.append(SingleIndexEffect(
+                feature_name=feature_name,
+                additional_features=additional_features,
+                k=k,
+                lag_window=lag_window,
+                alpha=alpha_raw,
+                alpha_pen=alpha_pen,
+                spline_degree=deg,
+                penalty_order=p,
+                lambda_p=lambda_p,
+                extrapolate=extrap_val,
+            ))
+        #: </parse_single_index>
+
+        #: <parse_kan>
+        elif ttype == 'kan':
+            n_nodes = int(params_resolved.get('n_nodes', params_resolved.get('q', 8)))
+            k_inner = int(params_resolved.get('k_inner', 6))
+            k_outer = int(params_resolved.get('k_outer', 8))
+            deg = int(params_resolved.get('degree', 3))
+            p = int(params_resolved.get('penalty_order', 2))
+            edge_pen = float(params_resolved.get('edge_pen', 0.1))
+            seed = int(params_resolved.get('seed', 42))
+            extrap_val = params_resolved.get('extrapolate', 'continue')
+
+            additional_features = _parse_additional_features(params_resolved)
+
+            effects_list.append(KANEffect(
+                feature_name=feature_name,
+                additional_features=additional_features,
+                n_nodes=n_nodes,
+                k_inner=k_inner,
+                k_outer=k_outer,
+                spline_degree=deg,
+                penalty_order=p,
+                edge_pen=edge_pen,
+                lambda_p=lambda_p,
+                seed=seed,
+                extrapolate=extrap_val,
+            ))
+        #: </parse_kan>
+
+        #: <parse_inertia>
+        elif ttype in ('inertia', 'thermal', 'ti'):
+            inertia_type = str(params_resolved.get('type', params_resolved.get('inertia_type', 'thermal'))).lower()
+            k = int(params_resolved.get('k', 8))
+            deg = int(params_resolved.get('deg', params_resolved.get('spline_degree', 3)))
+            p = int(params_resolved.get('p', params_resolved.get('penalty_order', 2)))
+            alphas_raw = params_resolved.get('alphas', params_resolved.get('alpha', (0.05, 0.01, 0.002)))
+            extrap_val = params_resolved.get('extrapolate', 'continue')
+            effects_list.append(InertiaEffect(
+                feature_name=feature_name,
+                inertia_type=inertia_type,
+                alphas=alphas_raw,
+                k=k,
+                spline_degree=deg,
+                penalty_order=p,
+                lambda_p=lambda_p,
+                extrapolate=extrap_val,
+            ))
+        #: </parse_inertia>
+
+        #: <parse_hdd_cdd>
+        elif ttype in ('hdd_cdd', 'dd', 'smooth_hinge', 'degreeday', 'degree_day'):
+            heat_raw = params_resolved.get('heat_thresholds', params_resolved.get('heat', (-0.2, 0.0)))
+            cool_raw = params_resolved.get('cool_thresholds', params_resolved.get('cool', (0.3, 0.5)))
+            sharpness = float(params_resolved.get('sharpness', params_resolved.get('beta', 10.0)))
+            quad_raw = params_resolved.get('quad', True)
+            quad = _as_bool(quad_raw)
+            extrap_val = params_resolved.get('extrapolate', 'continue')
+            effects_list.append(DegreeDayEffect(
+                feature_name=feature_name,
+                heat_thresholds=heat_raw,
+                cool_thresholds=cool_raw,
+                sharpness=sharpness,
+                quad=quad,
+                lambda_p=lambda_p,
+                extrapolate=extrap_val,
+            ))
+        #: </parse_hdd_cdd>
+
+        #: <parse_wcal>
+        elif ttype in ('wcal', 'warped_calendar', 'calendar_warp'):
+            period = float(params_resolved.get('period', params_resolved.get('p', 48.0)))
+            n_harmonics = int(params_resolved.get('n_harmonics', params_resolved.get('k', 6)))
+            regime_feature = params_resolved.get('by', params_resolved.get('others', params_resolved.get('regime_feature', None)))
+            if regime_feature is not None:
+                regime_feature = str(regime_feature).strip()
+                if not regime_feature or regime_feature.lower() in ('none', 'null'):
+                    regime_feature = None
+            sobolev_order = float(params_resolved.get('sobolev_order', params_resolved.get('s', 2.0)))
+            gamma_warp = float(params_resolved.get('gamma_warp', 1.0))
+            gamma_amp = float(params_resolved.get('gamma_amp', 1.0))
+            extrap_val = params_resolved.get('extrapolate', 'periodic')
+            effects_list.append(WarpedCalendarEffect(
+                feature_name=feature_name,
+                regime_feature=regime_feature,
+                period=period,
+                n_harmonics=n_harmonics,
+                sobolev_order=sobolev_order,
+                gamma_warp=gamma_warp,
+                gamma_amp=gamma_amp,
+                lambda_p=lambda_p,
+                extrapolate=extrap_val,
+            ))
+        #: </parse_wcal>
+
+        #: <parse_hp_trend>
+        elif ttype in ('hp_trend', 'macro_trend', 'trend_hp'):
+            k = int(params_resolved.get('k', 20))
+            extrap_val = params_resolved.get('extrapolate', 'linear')
+            effects_list.append(MacroTrendEffect(
+                feature_name=feature_name,
+                k=k,
+                lambda_p=lambda_p,
+                extrapolate=extrap_val,
+            ))
+        #: </parse_hp_trend>
+
+        #: <parse_temporal_operator>
+        elif ttype in ('temp_op', 'op_attn', 'op_hippo', 'op_ssa'):
+            default_op = ttype.split('_')[1] if ttype.startswith('op_') else 'attn'
+            op_type = str(params_resolved.get('op', params_resolved.get('operator_type', default_op))).lower()
+            inner_basis = str(params_resolved.get('inner', params_resolved.get('inner_basis', 'spline'))).lower()
+            k_base = int(params_resolved.get('k_base', params_resolved.get('k', 8)))
+            decay = float(params_resolved.get('decay', 0.92))
+            n_rf = int(params_resolved.get('n_random_features', params_resolved.get('m', 8)))
+            window = int(params_resolved.get('window', 12))
+            seed = int(params_resolved.get('seed', 42))
+            extrap_val = params_resolved.get('extrapolate', 'continue')
+            additional_features = _parse_additional_features(params_resolved)
+            effects_list.append(TemporalOperatorEffect(
+                feature_name=feature_name,
+                operator_type=op_type,
+                inner_basis=inner_basis,
+                k_base=k_base,
+                decay=decay,
+                n_random_features=n_rf,
+                window=window,
+                lambda_p=lambda_p,
+                seed=seed,
+                extrapolate=extrap_val,
+                additional_features=additional_features,
+            ))
+        #: </parse_temporal_operator>
+
+        #: <parse_patch_basis>
+        elif ttype == 'patch_basis':
+            extrap_val = params_resolved.get('extrapolate', 'continue')
+            seed = int(params_resolved.get('seed', 42))
+            additional_features = _parse_additional_features(params_resolved)
+
+            include_levy = _as_bool(params_resolved.get('include_levy', True))
+
+            effects_list.append(PatchBasisEffect(
+                feature_name=feature_name,
+                patch_len=int(params_resolved.get('patch_len', 16)),
+                n_tokens=int(params_resolved.get('n_tokens', params_resolved.get('k', 16))),
+                include_levy=include_levy,
+                lambda_p=lambda_p,
+                seed=seed,
+                extrapolate=extrap_val,
+                additional_features=additional_features,
+            ))
+        #: </parse_patch_basis>
+
+        #: <parse_foundation>
+        elif ttype == 'foundation':
+            extrap_val = params_resolved.get('extrapolate', 'continue')
+            seed = int(params_resolved.get('seed', 42))
+            additional_features = _parse_additional_features(params_resolved)
+
+            scales_raw = params_resolved.get('scales', (1, 4, 16, 64))
+            if isinstance(scales_raw, str):
+                clean_s = scales_raw.replace('[', '').replace(']', '').replace('(', '').replace(')', '').replace('|', ',')
+                scales = [int(s.strip()) for s in clean_s.split(',') if s.strip()]
+            elif isinstance(scales_raw, (int, float)):
+                scales = [int(scales_raw)]
+            else:
+                scales = [int(s) for s in scales_raw]
+
+            include_levy = _as_bool(params_resolved.get('include_levy', True))
+            n_struct_raw = params_resolved.get('n_struct', None)
+            n_pfn_raw = params_resolved.get('n_pfn', None)   # alias of n_struct
+            if n_struct_raw is not None and n_pfn_raw is not None and int(n_struct_raw) != int(n_pfn_raw):
+                raise ValueError(f"foundation: n_struct={n_struct_raw} and n_pfn={n_pfn_raw} disagree; n_pfn is an alias of n_struct")
+            n_struct = int(n_struct_raw if n_struct_raw is not None else (n_pfn_raw if n_pfn_raw is not None else 16))
+
+            effects_list.append(FoundationEffect(
+                feature_name=feature_name,
+                patch_len=int(params_resolved.get('patch_len', 16)),
+                n_tokens=int(params_resolved.get('n_tokens', 16)),
+                n_bins=int(params_resolved.get('n_bins', 16)),
+                scales=scales,
+                n_struct=n_struct,
+                include_levy=include_levy,
+                lambda_p=lambda_p,
+                seed=seed,
+                extrapolate=extrap_val,
+                additional_features=additional_features,
+            ))
+        #: </parse_foundation>
+
+        #: <parse_koopman>
+        elif ttype == 'koopman':
+            k = int(params_resolved.get('k', 12))
+            n_lift = int(params_resolved.get('n_lift', 64))
+            delay_embed = int(params_resolved.get('delay_embed', 1))
+            reg = float(params_resolved.get('reg', 1e-4))
+            alpha_res = float(params_resolved.get('alpha_res', 10.0))
+            alpha_unit = float(params_resolved.get('alpha_unit', 10.0))
+            seed = int(params_resolved.get('seed', 42))
+            extrap_val = params_resolved.get('extrapolate', 'continue')
+            additional_features = _parse_additional_features(params_resolved)
+            effects_list.append(KoopmanEffect(
+                feature_name=feature_name,
+                k=k,
+                n_lift=n_lift,
+                delay_embed=delay_embed,
+                reg=reg,
+                alpha_res=alpha_res,
+                alpha_unit=alpha_unit,
+                seed=seed,
+                lambda_p=lambda_p,
+                extrapolate=extrap_val,
+                additional_features=additional_features,
+            ))
+        #: </parse_koopman>
+
         else:
             raise ValueError(f"Unknown effect type identifier: '{ttype}'")
             
@@ -483,6 +777,11 @@ def fixed_ranges(effects_list: List[BaseEffect]) -> Dict[str, tuple]:
             known = periods.setdefault(effect.feature_name, effect.period)
             if known != effect.period:
                 raise ValueError(f"Two periods declared for '{effect.feature_name}': {known} and {effect.period}.")
+        elif isinstance(effect, WarpedCalendarEffect):
+            wcal_range = (0.0, float(effect.period))
+            known = periods.setdefault(effect.feature_name, wcal_range)
+            if known != wcal_range:
+                raise ValueError(f"Two periods declared for '{effect.feature_name}': {known} and {wcal_range}.")
 
     for effect in effects_list:
         visit(effect)
@@ -539,6 +838,28 @@ def extrapolating_features(effects_list: List[BaseEffect]) -> set:
                 visit(sub)
         elif isinstance(effect, (SplineEffect, FourierEffect, ChebyshevEffect, WaveletEffect, RBFEffect, NeuralEffect,
                                  TreeEffect, UniversalPhysicsEffect)):
+            names.update(getattr(effect, 'input_features', None) or [effect.feature_name])
+        elif isinstance(effect, SignatureEffect):
+            names.update(getattr(effect, 'input_features', None) or [effect.feature_name])
+        elif isinstance(effect, SingleIndexEffect):
+            names.update(getattr(effect, 'input_features', None) or [effect.feature_name])
+        elif isinstance(effect, KANEffect):
+            names.update(getattr(effect, 'input_features', None) or [effect.feature_name])
+        elif isinstance(effect, InertiaEffect):
+            names.update(getattr(effect, 'input_features', None) or [effect.feature_name])
+        elif isinstance(effect, DegreeDayEffect):
+            names.update(getattr(effect, 'input_features', None) or [effect.feature_name])
+        elif isinstance(effect, WarpedCalendarEffect):
+            names.update(getattr(effect, 'input_features', None) or [effect.feature_name])
+        elif isinstance(effect, MacroTrendEffect):
+            names.update(getattr(effect, 'input_features', None) or [effect.feature_name])
+        elif isinstance(effect, TemporalOperatorEffect):
+            names.update(getattr(effect, 'input_features', None) or [effect.feature_name])
+        elif isinstance(effect, PatchBasisEffect):
+            names.update(getattr(effect, 'input_features', None) or [effect.feature_name])
+        elif isinstance(effect, FoundationEffect):
+            names.update(getattr(effect, 'input_features', None) or [effect.feature_name])
+        elif isinstance(effect, KoopmanEffect):
             names.update(getattr(effect, 'input_features', None) or [effect.feature_name])
 
     for effect in effects_list:
@@ -627,10 +948,12 @@ def build_phi_from_effects(
     x_data: torch.Tensor,
     effects_list: List[BaseEffect],
     feature_columns: Optional[List[str]] = None,
-    return_components: bool = False
+    return_components: bool = False,
+    state_in: Optional[Dict[int, Any]] = None
 ) -> torch.Tensor:
     """
     Constructs the global Design Matrix by concatenating effect feature maps.
+    Optionally forwards per-effect causal continuation states `state_in[i]`.
     """
     if feature_columns is None:
         feature_columns = _infer_feature_columns(effects_list)
@@ -639,7 +962,8 @@ def build_phi_from_effects(
     col_idx = 0
     name_to_idx = {name: i for i, name in enumerate(feature_columns)} if feature_columns else None
     
-    for effect in effects_list:
+    for eff_idx, effect in enumerate(effects_list):
+        eff_state = None if state_in is None else state_in.get(eff_idx, None)
         if isinstance(effect, OffsetEffect):
             phi_components.append(effect.transform(x_data))
             
@@ -658,7 +982,7 @@ def build_phi_from_effects(
                 x_cols = x_data[..., col_idx : col_idx + n_inputs]
                 col_idx += n_inputs
             
-            phi_components.append(effect.transform(x_cols))
+            phi_components.append(effect.transform(x_cols, state_in=eff_state))
             
         else:
             if name_to_idx:
@@ -672,7 +996,7 @@ def build_phi_from_effects(
                 x_col = x_data[..., col_idx]
                 col_idx += 1
             
-            phi_components.append(effect.transform(x_col))
+            phi_components.append(effect.transform(x_col, state_in=eff_state))
             
     if return_components:
         return phi_components
