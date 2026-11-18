@@ -18,7 +18,7 @@ residual and the CQR score) and assembles the outputs. One source of truth for c
 """
 from __future__ import annotations
 
-from typing import Dict, Optional
+from typing import Any, Callable, Dict, Optional
 
 import numpy as np
 import pandas as pd
@@ -122,3 +122,46 @@ class ConformalDistributionalTAM:
             levels.append(alpha_t)
             alpha_t = update_risk_level(alpha_t, 0.0 if inside else 1.0, self.alpha, gamma)
         return pd.DataFrame({"lower": lowers, "upper": uppers, "alpha_t": levels}, index=ordered_data.index)
+
+    def calibrate_crc(
+        self,
+        calibration_data: pd.DataFrame,
+        w_under: float = 2.0,
+        w_over: float = 1.0,
+        bound_B: float = 1.0,
+        loss_fn: Optional[Callable[..., Any]] = None,
+    ) -> "ConformalDistributionalTAM":
+        """Calibrate Conformal Risk Control (CRC) per stratum on the distributional model's location/scale."""
+        mu_hat, sigma_hat = self.model._mu_sigma(calibration_data)
+        observed = self.model._to_model_scale(calibration_data[self.model.target_col_].to_numpy())
+        strata = self._strata(calibration_data)
+        self._crc_engine: Dict[object, SafetyTAM] = {}
+        for stratum in list(np.unique(strata)) + [_ALL_STRATA]:
+            mask = np.ones(len(strata), dtype=bool) if stratum is _ALL_STRATA else (strata == stratum)
+            self._crc_engine[stratum] = SafetyTAM(self.alpha).calibrate_crc(
+                y_true=observed[mask],
+                y_pred=mu_hat[mask],
+                alpha=self.alpha,
+                loss_fn=loss_fn,
+                bound_B=bound_B,
+                w_under=w_under,
+                w_over=w_over,
+                scale=sigma_hat[mask],
+            )
+        return self
+
+    def predict_crc_interval(self, data: pd.DataFrame) -> pd.DataFrame:
+        """Predict asymmetric risk-controlled intervals on the response scale."""
+        if not getattr(self, "_crc_engine", None):
+            raise RuntimeError("Call .calibrate_crc() before predicting CRC intervals.")
+        mu_hat, sigma_hat = self.model._mu_sigma(data)
+        strata = self._strata(data)
+        lowers = np.empty(len(data), dtype=float)
+        uppers = np.empty(len(data), dtype=float)
+        for s in np.unique(strata):
+            mask = strata == s
+            eng = self._engine(self._crc_engine, s)
+            df_crc = eng.predict_crc_intervals(mu_hat[mask], scale=sigma_hat[mask])
+            lowers[mask] = self.model._from_model_scale(df_crc["Lower"].to_numpy(), "the lower bound")
+            uppers[mask] = self.model._from_model_scale(df_crc["Upper"].to_numpy(), "the upper bound")
+        return pd.DataFrame({"lower": lowers, "upper": uppers}, index=data.index)

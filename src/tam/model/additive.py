@@ -13,7 +13,7 @@ data preparation, solves the primal optimization problem, and provides
 methods for hyperparameter tuning and model interpretation.
 """
 
-from typing import Dict, List, Any, Tuple, Optional, Union, Sequence
+from typing import Callable, Dict, List, Any, Tuple, Optional, Union, Sequence
 import re
 import warnings
 import torch
@@ -314,7 +314,9 @@ class StaticTAM(BaseTAM):
 
         For loss='l2' and the identity-link M-estimators (expectile / huber / student_t) the base
         prediction is returned unchanged. For GLM losses (gamma / poisson / binomial) the estimate is
-        mapped from the link scale to the mean scale: mu = g^-1(eta).
+        mapped from the link scale to the mean scale: mu = g^-1(eta). When `continue_state=True`,
+        carries the end-of-training causal states (`_effect_states_`) of stateful temporal effects
+        into the prediction pass.
         """
         if getattr(self, "_mode_", "plain") == "distributional":
             raise RuntimeError(
@@ -326,7 +328,7 @@ class StaticTAM(BaseTAM):
                 "This is a mixture StaticTAM; use predict_mean(), component_means(), "
                 "responsibilities() or anomaly_score() instead of predict()."
             )
-        self._active_state_in_ = getattr(self, '_effect_states_', None) if continue_state else None
+        self._active_state_in_ = getattr(self, "_effect_states_", None) if continue_state else None
         try:
             predicted = super().predict(data)
         finally:
@@ -451,6 +453,45 @@ class StaticTAM(BaseTAM):
             )
         raise ValueError("method must be 'static' or 'aci'.")
 
+    def calibrate_crc(
+        self,
+        calibration_data: pd.DataFrame,
+        alpha: float = 0.1,
+        w_under: float = 2.0,
+        w_over: float = 1.0,
+        bound_B: float = 1.0,
+        loss_fn: Optional[Callable[..., Any]] = None,
+        studentized: bool = False,
+    ) -> "StaticTAM":
+        """Calibrate Conformal Risk Control (CRC) on a hold-out set (delegates to SafetyTAM.calibrate_crc)."""
+        y_true = calibration_data[self.target_col_].to_numpy()
+        y_pred = self._point_prediction(calibration_data)
+        self._conformal_studentized_ = bool(studentized and self._mode_ == "distributional")
+        scale = self._conformal_scale(calibration_data) if self._conformal_studentized_ else None
+        self._safety_ = SafetyTAM(alpha).calibrate_crc(
+            y_true=y_true,
+            y_pred=y_pred,
+            alpha=alpha,
+            loss_fn=loss_fn,
+            bound_B=bound_B,
+            w_under=w_under,
+            w_over=w_over,
+            scale=scale,
+        )
+        return self
+
+    def predict_crc_intervals(
+        self,
+        data: pd.DataFrame,
+        y_true_online: Optional[np.ndarray] = None,
+    ) -> pd.DataFrame:
+        """Predict asymmetric risk-controlled intervals calibrated via `calibrate_crc()`."""
+        if self._safety_ is None or getattr(self._safety_, "crc_lambda_", None) is None:
+            raise RuntimeError("Call calibrate_crc() before predict_crc_intervals().")
+        y_pred = self._point_prediction(data)
+        scale = self._conformal_scale(data) if getattr(self, "_conformal_studentized_", False) else None
+        return self._safety_.predict_crc_intervals(y_pred, y_true_online=y_true_online, scale=scale)
+
     def _extract_recursive_features(self, terms: List[Dict]) -> List[str]:
         """
         Recursively extracts physical feature names, preserving the order of appearance.
@@ -476,6 +517,9 @@ class StaticTAM(BaseTAM):
 
             if 'slope' in term['params'] and isinstance(term['params']['slope'], str):
                 add_feature(term['params']['slope'].strip())
+
+            if 'by' in term['params'] and isinstance(term['params']['by'], str):
+                add_feature(term['params']['by'].strip())
 
             if term['type'] == 'c' and 'coords' in term['params'] and isinstance(term['params']['coords'], str):
                 for extra in re.split(r"[:|]", term['params']['coords']):
@@ -773,7 +817,7 @@ class StaticTAM(BaseTAM):
     def _build_design_matrix(self, x_data: torch.Tensor) -> torch.Tensor:
         """Builds the global design matrix."""
         feature_names = self.features_config_['features'] if self.features_config_ else None
-        state_in = getattr(self, '_active_state_in_', None)
+        state_in = getattr(self, "_active_state_in_", None)
         if state_in is not None and getattr(self, "_state_chunk_", None) is not None:
             state_in = {i: _index_state(s, self._state_chunk_) for i, s in state_in.items()}
         return build_phi_from_effects(x_data, self.effects_list_, feature_columns=feature_names, state_in=state_in)

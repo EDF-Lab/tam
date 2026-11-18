@@ -64,4 +64,9 @@ The penalized fit is a MAP estimate under a Gaussian prior {cite:p}`wahba1983bay
 
 The current `SafetyTAM` module operates marginally—meaning it calculates safety bounds for each node independently. However, Conformal Prediction intervals do not obey linear summation. Summing the marginal intervals of the children (via Minkowski sum) does not mathematically yield the correct joint interval for the aggregated parent {cite:p}`principato2024conformal`. Applying ACI independently level-by-level inevitably breaks the physical realities of the hierarchy.
 
-**Roadmap:** Future iterations of the framework must implement interval reconciliation via polytope projection to strictly enforce hierarchical aggregation constraints across the entire uncertainty band {cite:p}`principato2024conformal`.
+**Conformal Risk Control (CRC) & Polytope Reconciliation:**
+Beyond symmetric quantile coverage, **Conformal Risk Control** calibrates a threshold $\hat{\lambda}$ over any bounded monotone non-increasing loss $L_i(\lambda) \in [0, B]$ (such as interval miscoverage, pinball, or operational cost) by finding the smallest $\lambda$ satisfying:
+
+$$\frac{n}{n + 1} \hat{R}_n(\lambda) + \frac{B}{n + 1} \le \alpha$$
+
+providing finite-sample distribution-free risk control $\mathbb{E}[L_{n+1}(\hat{\lambda})] \le \alpha$. Future iterations of the framework will combine CRC with interval reconciliation via polytope projection to enforce hierarchical aggregation constraints across the uncertainty band {cite:p}`principato2024conformal`.

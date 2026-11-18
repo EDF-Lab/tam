@@ -131,6 +131,10 @@ The `statistics` layer reuses the single P-WLS atom for every non-Gaussian targe
     * *Use case:* Asymptotically-justified extreme-tail scores, and parameter (epistemic) uncertainty bands.
     * *Code:* `ta.fit_gpd_tail(model, data)` · `ta.model.posterior_prediction(model, train, new)`
 
+* **Conformal Risk Control (`SafetyTAM` / `StaticTAM`)** $\rightarrow$ **`calibrate_crc()` / `predict_crc_intervals()`**
+    * *Use case:* Distribution-free finite-sample risk control on asymmetric losses and Sinkhorn OT temporal coherence (`coherence_loss='sinkhorn'`) in `HierarchicalTAM`.
+    * *Code:* `model.calibrate_crc(cal_df, alpha=0.1, w_under=2.0, w_over=1.0)`
+
 ## The "Spectrum" of Effects Cheatsheet
 
 Different physical phenomena require different mathematical topologies. TAM flattens these diverse fields into a unified "Spectrum". Below is a quick reference for the PyTorch API syntax, the hyperparameters, the mapping function ($\Phi$), and the applied structural penalty ($P$) for each base effect.
