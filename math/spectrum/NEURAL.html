@@ -232,6 +232,17 @@
 <li class="toctree-l1"><a class="reference internal" href="KAN.html">Kolmogorov-Arnold Network Edge Splines</a></li>
 <li class="toctree-l1"><a class="reference internal" href="SINGLE_INDEX.html">Penalized Single-Index Distributed Lags</a></li>
 <li class="toctree-l1"><a class="reference internal" href="SIGNATURE.html">The Path Signature and Log-Signature Effect (Rough Path Iterated Integrals)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="PRIOR_SPECTRAL.html">The Prior Spectral Effect (Bochner QMC-RFF Basis)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="HIPPO_SSM.html">The HiPPO State Space Model Effect (Continuous-Time Polynomial Memory)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="TRANSFORMER_FAVOR.html">The Transformer Attention Effect (Linearized FAVOR+ Positive Orthogonal Random Features)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="BISPECTRUM.html">The Bispectrum Effect: Higher-Order Spectral Analysis &amp; Quadratic Phase Coupling</a></li>
+<li class="toctree-l1"><a class="reference internal" href="WAVELET_SCATTERING.html">WAVELET_SCATTERING: Translation-Invariant, Deformation-Stable Wavelet Scattering Transform (WST)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="T_JEPA.html">T_JEPA: Self-Supervised Temporal Joint-Embedding Predictive Architecture for Exogenous Covariates</a></li>
+<li class="toctree-l1"><a class="reference internal" href="FNO.html">Fourier Neural Operator</a></li>
+<li class="toctree-l1"><a class="reference internal" href="HURST.html">Hurst Fractional Gaussian Noise Basis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="FRACTIONAL_PHYSICS.html">Caputo Fractional Physics Penalties</a></li>
+<li class="toctree-l1"><a class="reference internal" href="EXU.html">Exp-Centered Units (ExU)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="SSA.html">Singular Spectrum Analysis</a></li>
 <li class="toctree-l1"><a class="reference internal" href="PID.html">The PID Effect (Autoregressive Control Dynamics)</a></li>
 <li class="toctree-l1"><a class="reference internal" href="LINEAR_TREE.html">The Linear Tree Effect (Varying-Coefficient Models)</a></li>
 </ul>
@@ -273,6 +284,17 @@
 <li class="toctree-l1"><a class="reference internal" href="../../architecture/spectrum/KAN.html">Kolmogorov-Arnold Network Edge Splines: PyTorch Architecture</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../architecture/spectrum/SINGLE_INDEX.html">Penalized Single-Index Distributed Lags: PyTorch Architecture</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../architecture/spectrum/SIGNATURE.html">Path Signature and Log-Signature Effect: PyTorch Architecture &amp; Implementation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/spectrum/PRIOR_SPECTRAL.html">Prior Spectral Effect: PyTorch Architecture &amp; Implementation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/spectrum/HIPPO_SSM.html">HiPPO State Space Model Effect: PyTorch Architecture &amp; Implementation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/spectrum/TRANSFORMER_FAVOR.html">Transformer FAVOR+ Attention Effect: PyTorch Architecture &amp; Implementation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/spectrum/BISPECTRUM.html">Bispectrum Effect: PyTorch Architecture &amp; Implementation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/spectrum/WAVELET_SCATTERING.html">Wavelet Scattering Transform: PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/spectrum/T_JEPA.html">Temporal Joint-Embedding Predictive Architecture (T-JEPA): PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/spectrum/FNO.html">Fourier Neural Operator: PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/spectrum/HURST.html">Hurst Fractional Gaussian Noise Basis: PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/spectrum/FRACTIONAL_PHYSICS.html">Caputo Fractional Physics Penalties: PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/spectrum/EXU.html">Exp-Centered Units (ExU): PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/spectrum/SSA.html">Singular Spectrum Analysis: PyTorch Architecture</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../architecture/core/07_the_statistics_api.html">The Statistics API: One Atom, Many Schedules</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">🔬 Architecture: The Statistics Engine</span></p>
@@ -388,12 +410,12 @@
 </section>
 <section id="orthogonal-projection-keeping-the-interpretable-terms-interpretable">
 <h2>Orthogonal Projection: Keeping the Interpretable Terms Interpretable<a class="headerlink" href="#orthogonal-projection-keeping-the-interpretable-terms-interpretable" title="Link to this heading">¶</a></h2>
-<p>In an additive model that also holds a flexible block (random neural features, trees), the block can reproduce a smooth main effect as well as the spline of that effect, and the two then share it in an arbitrary way: the spline is attenuated, its smoothing parameter loses its meaning, and the decomposition of the prediction is no longer readable. This confounding <span class="bibtex-citation" id="id2">[<a class="reference internal" href="../../bibliography.html#id136" title="David Rügamer, Chris Kolb, and Nadja Klein. Semi-structured distributional regression. The American Statistician, 78(1):88–99, 2024.">Rügamer <em>et al.</em>, 2024</a>]</span> is removed by restricting the flexible block to the part of its span that the rest of the design cannot reach. With <span class="math notranslate nohighlight">\(X\)</span> the design of the other terms (intercept, splines, linear terms) and <span class="math notranslate nohighlight">\(\Phi\)</span> the features of the flexible block, replace <span class="math notranslate nohighlight">\(\Phi\)</span> by</p>
+<p>In an additive model that also holds a flexible block (random neural features, trees), the block can reproduce a smooth main effect as well as the spline of that effect, and the two then share it in an arbitrary way: the spline is attenuated, its smoothing parameter loses its meaning, and the decomposition of the prediction is no longer readable. This confounding <span class="bibtex-citation" id="id2">[<a class="reference internal" href="../../bibliography.html#id136" title="David Rügamer, Chris Kolb, and Nadja Klein. Semi-structured distributional regression. The American Statistician, 78(1):88–99, 2024.">Rügamer <em>et al.</em>, 2024</a>]</span> is removed by restricting the flexible block to the part of its span that the rest of the design cannot reach. With <span class="math notranslate nohighlight">\(\Phi_{\text{base}}\)</span> the design of the other terms (intercept, splines, linear terms) and <span class="math notranslate nohighlight">\(\Phi_{\text{flex}}\)</span> the features of the flexible block, replace <span class="math notranslate nohighlight">\(\Phi_{\text{flex}}\)</span> by</p>
 <div class="math-wrapper docutils container">
 <div class="math notranslate nohighlight">
-\[ \widetilde\Phi=\big(I-X(X^\top X)^{+}X^\top\big)\Phi=\Phi-XB,\qquad B=(X^\top X)^{+}X^\top\Phi, \]</div>
+\[ \widetilde\Phi_{\text{flex}}=\big(I-\Phi_{\text{base}}(\Phi_{\text{base}}^\top\Phi_{\text{base}})^{+}\Phi_{\text{base}}^\top\big)\Phi_{\text{flex}}=\Phi_{\text{flex}}-\Phi_{\text{base}}B,\qquad B=(\Phi_{\text{base}}^\top\Phi_{\text{base}})^{+}\Phi_{\text{base}}^\top\Phi_{\text{flex}}, \]</div>
 </div>
-<p>so that <span class="math notranslate nohighlight">\(X^\top\widetilde\Phi=0\)</span>. The least-squares fit of the whole model is unchanged in its span (and so is the total fit when the flexible block is not penalised), but every component of the fit that the splines can express is carried by the splines: they recover the best additive approximation of the signal, and the flexible block only the interactions and non-smooth residuals orthogonal to it. The matrix <span class="math notranslate nohighlight">\(B\)</span> is estimated once on the training rows and applied unchanged to new rows, so that a forecast does not depend on the batch it is computed in.</p>
+<p>so that <span class="math notranslate nohighlight">\(\Phi_{\text{base}}^\top\widetilde\Phi_{\text{flex}}=0\)</span>. The least-squares fit of the whole model is unchanged in its span (and so is the total fit when the flexible block is not penalised), but every component of the fit that the splines can express is carried by the splines: they recover the best additive approximation of the signal, and the flexible block only the interactions and non-smooth residuals orthogonal to it. The matrix <span class="math notranslate nohighlight">\(B\)</span> is estimated once on the training rows and applied unchanged to new rows, so that a forecast does not depend on the batch it is computed in.</p>
 </section>
 <section id="structural-novelty-the-8-paradigm-synthesis">
 <h2>Structural Novelty: The 8-Paradigm Synthesis<a class="headerlink" href="#structural-novelty-the-8-paradigm-synthesis" title="Link to this heading">¶</a></h2>

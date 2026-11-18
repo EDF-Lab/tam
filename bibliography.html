@@ -232,6 +232,17 @@
 <li class="toctree-l1"><a class="reference internal" href="math/spectrum/KAN.html">Kolmogorov-Arnold Network Edge Splines</a></li>
 <li class="toctree-l1"><a class="reference internal" href="math/spectrum/SINGLE_INDEX.html">Penalized Single-Index Distributed Lags</a></li>
 <li class="toctree-l1"><a class="reference internal" href="math/spectrum/SIGNATURE.html">The Path Signature and Log-Signature Effect (Rough Path Iterated Integrals)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="math/spectrum/PRIOR_SPECTRAL.html">The Prior Spectral Effect (Bochner QMC-RFF Basis)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="math/spectrum/HIPPO_SSM.html">The HiPPO State Space Model Effect (Continuous-Time Polynomial Memory)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="math/spectrum/TRANSFORMER_FAVOR.html">The Transformer Attention Effect (Linearized FAVOR+ Positive Orthogonal Random Features)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="math/spectrum/BISPECTRUM.html">The Bispectrum Effect: Higher-Order Spectral Analysis &amp; Quadratic Phase Coupling</a></li>
+<li class="toctree-l1"><a class="reference internal" href="math/spectrum/WAVELET_SCATTERING.html">WAVELET_SCATTERING: Translation-Invariant, Deformation-Stable Wavelet Scattering Transform (WST)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="math/spectrum/T_JEPA.html">T_JEPA: Self-Supervised Temporal Joint-Embedding Predictive Architecture for Exogenous Covariates</a></li>
+<li class="toctree-l1"><a class="reference internal" href="math/spectrum/FNO.html">Fourier Neural Operator</a></li>
+<li class="toctree-l1"><a class="reference internal" href="math/spectrum/HURST.html">Hurst Fractional Gaussian Noise Basis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="math/spectrum/FRACTIONAL_PHYSICS.html">Caputo Fractional Physics Penalties</a></li>
+<li class="toctree-l1"><a class="reference internal" href="math/spectrum/EXU.html">Exp-Centered Units (ExU)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="math/spectrum/SSA.html">Singular Spectrum Analysis</a></li>
 <li class="toctree-l1"><a class="reference internal" href="math/spectrum/PID.html">The PID Effect (Autoregressive Control Dynamics)</a></li>
 <li class="toctree-l1"><a class="reference internal" href="math/spectrum/LINEAR_TREE.html">The Linear Tree Effect (Varying-Coefficient Models)</a></li>
 </ul>
@@ -273,6 +284,17 @@
 <li class="toctree-l1"><a class="reference internal" href="architecture/spectrum/KAN.html">Kolmogorov-Arnold Network Edge Splines: PyTorch Architecture</a></li>
 <li class="toctree-l1"><a class="reference internal" href="architecture/spectrum/SINGLE_INDEX.html">Penalized Single-Index Distributed Lags: PyTorch Architecture</a></li>
 <li class="toctree-l1"><a class="reference internal" href="architecture/spectrum/SIGNATURE.html">Path Signature and Log-Signature Effect: PyTorch Architecture &amp; Implementation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="architecture/spectrum/PRIOR_SPECTRAL.html">Prior Spectral Effect: PyTorch Architecture &amp; Implementation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="architecture/spectrum/HIPPO_SSM.html">HiPPO State Space Model Effect: PyTorch Architecture &amp; Implementation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="architecture/spectrum/TRANSFORMER_FAVOR.html">Transformer FAVOR+ Attention Effect: PyTorch Architecture &amp; Implementation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="architecture/spectrum/BISPECTRUM.html">Bispectrum Effect: PyTorch Architecture &amp; Implementation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="architecture/spectrum/WAVELET_SCATTERING.html">Wavelet Scattering Transform: PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="architecture/spectrum/T_JEPA.html">Temporal Joint-Embedding Predictive Architecture (T-JEPA): PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="architecture/spectrum/FNO.html">Fourier Neural Operator: PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="architecture/spectrum/HURST.html">Hurst Fractional Gaussian Noise Basis: PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="architecture/spectrum/FRACTIONAL_PHYSICS.html">Caputo Fractional Physics Penalties: PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="architecture/spectrum/EXU.html">Exp-Centered Units (ExU): PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="architecture/spectrum/SSA.html">Singular Spectrum Analysis: PyTorch Architecture</a></li>
 <li class="toctree-l1"><a class="reference internal" href="architecture/core/07_the_statistics_api.html">The Statistics API: One Atom, Many Schedules</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">🔬 Architecture: The Statistics Engine</span></p>
@@ -740,268 +762,360 @@
 <span class="label"><span class="fn-bracket">[</span>98<span class="fn-bracket">]</span></span>
 <p>Adeline Fermanian. Embedding and learning with signatures. <em>Computational Statistics &amp; Data Analysis</em>, 157:107148, 2021.</p>
 </div>
-<div class="citation" id="id13" role="doc-biblioentry">
+<div class="citation" id="id166" role="doc-biblioentry">
 <span class="label"><span class="fn-bracket">[</span>99<span class="fn-bracket">]</span></span>
+<p>Salomon Bochner. Monotone Funktionen, Stieltjessche Integrale und harmonische Analyse. <em>Mathematische Annalen</em>, 108(1):378–410, 1933.</p>
+</div>
+<div class="citation" id="id167" role="doc-biblioentry">
+<span class="label"><span class="fn-bracket">[</span>100<span class="fn-bracket">]</span></span>
+<p>Jiyan Yang, Vikas Sindhwani, Haim Avron, and Michael Mahoney. Quasi-Monte Carlo feature maps for shift-invariant kernels. In <em>International Conference on Machine Learning (ICML)</em>, 485–493. 2014.</p>
+</div>
+<div class="citation" id="id168" role="doc-biblioentry">
+<span class="label"><span class="fn-bracket">[</span>101<span class="fn-bracket">]</span></span>
+<p>Albert Gu, Karan Goel, and Christopher Ré. Efficiently modeling long sequences with structured state spaces. In <em>International Conference on Learning Representations (ICLR)</em>. 2022.</p>
+</div>
+<div class="citation" id="id169" role="doc-biblioentry">
+<span class="label"><span class="fn-bracket">[</span>102<span class="fn-bracket">]</span></span>
+<p>Albert Gu, Ankit Gupta, Karan Goel, and Christopher Ré. On the parameterization and initialization of diagonal state space models. In <em>Advances in Neural Information Processing Systems (NeurIPS)</em>, volume 35. 2022.</p>
+</div>
+<div class="citation" id="id170" role="doc-biblioentry">
+<span class="label"><span class="fn-bracket">[</span>103<span class="fn-bracket">]</span></span>
+<p>Jimmy T H Smith, Andrew Warrington, and Scott W Linderman. Simplified state space layers for sequence modeling. In <em>International Conference on Learning Representations (ICLR)</em>. 2023.</p>
+</div>
+<div class="citation" id="id171" role="doc-biblioentry">
+<span class="label"><span class="fn-bracket">[</span>104<span class="fn-bracket">]</span></span>
+<p>Ashish Vaswani, Noam Shazeer, Niki Parmar, Jakob Uszkoreit, Llion Jones, Aidan N Gomez, Łukasz Kaiser, and Illia Polosukhin. Attention is all you need. In <em>Advances in Neural Information Processing Systems (NeurIPS)</em>, volume 30. 2017.</p>
+</div>
+<div class="citation" id="id173" role="doc-biblioentry">
+<span class="label"><span class="fn-bracket">[</span>105<span class="fn-bracket">]</span></span>
+<p>Angelos Katharopoulos, Apoorv Vyas, Nikolaos Pappas, and François Fleuret. Transformers are RNNs: fast autoregressive transformers with linear attention. In <em>International Conference on Machine Learning (ICML)</em>, 5156–5165. 2020.</p>
+</div>
+<div class="citation" id="id172" role="doc-biblioentry">
+<span class="label"><span class="fn-bracket">[</span>106<span class="fn-bracket">]</span></span>
+<p>Felix Xinnan X Yu, Ananda Theertha Suresh, Krzysztof M Choromanski, Daniel N Holtmann-Rice, and Sanjiv Kumar. Orthogonal random features. In <em>Advances in Neural Information Processing Systems (NeurIPS)</em>, volume 29. 2016.</p>
+</div>
+<div class="citation" id="id174" role="doc-biblioentry">
+<span class="label"><span class="fn-bracket">[</span>107<span class="fn-bracket">]</span></span>
+<p>David R. Brillinger. An introduction to polyspectra. <em>The Annals of Mathematical Statistics</em>, 36(5):1351–1374, 1965.</p>
+</div>
+<div class="citation" id="id175" role="doc-biblioentry">
+<span class="label"><span class="fn-bracket">[</span>108<span class="fn-bracket">]</span></span>
+<p>Chrysostomos L. Nikias and Jerry M. Mendel. Signal processing with higher-order spectra. <em>IEEE Signal Processing Magazine</em>, 10(3):10–37, 1993.</p>
+</div>
+<div class="citation" id="id177" role="doc-biblioentry">
+<span class="label"><span class="fn-bracket">[</span>109<span class="fn-bracket">]</span></span>
+<p>Melvin J Hinich. Testing for Gaussianity and linearity of a stationary time series. <em>Journal of Time Series Analysis</em>, 3(3):169–176, 1982.</p>
+</div>
+<div class="citation" id="id176" role="doc-biblioentry">
+<span class="label"><span class="fn-bracket">[</span>110<span class="fn-bracket">]</span></span>
+<p>Young C Kim and Edward J Powers. Digital bispectral analysis and its applications to nonlinear wave interactions. <em>IEEE Transactions on Plasma Science</em>, 7(2):120–131, 1979.</p>
+</div>
+<div class="citation" id="id178" role="doc-biblioentry">
+<span class="label"><span class="fn-bracket">[</span>111<span class="fn-bracket">]</span></span>
+<p>Stéphane Mallat. Group invariant scattering. <em>Communications on Pure and Applied Mathematics</em>, 65(10):1331–1398, 2012.</p>
+</div>
+<div class="citation" id="id179" role="doc-biblioentry">
+<span class="label"><span class="fn-bracket">[</span>112<span class="fn-bracket">]</span></span>
+<p>Joan Bruna and Stéphane Mallat. Invariant scattering convolution networks. <em>IEEE Transactions on Pattern Analysis and Machine Intelligence</em>, 35(8):1872–1886, 2013.</p>
+</div>
+<div class="citation" id="id180" role="doc-biblioentry">
+<span class="label"><span class="fn-bracket">[</span>113<span class="fn-bracket">]</span></span>
+<p>Joakim Andén and Stéphane Mallat. Deep scattering spectrum. <em>IEEE Transactions on Signal Processing</em>, 62(16):4114–4128, 2014.</p>
+</div>
+<div class="citation" id="id182" role="doc-biblioentry">
+<span class="label"><span class="fn-bracket">[</span>114<span class="fn-bracket">]</span></span>
+<p>Mahmoud Assran, Quentin Duval, Ishan Misra, Piotr Bojanowski, Pascal Vincent, Michael Rabbat, Yann LeCun, and Nicolas Ballas. Self-supervised learning from images with a joint-embedding predictive architecture. In <em>IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR)</em>, 15619–15629. 2023.</p>
+</div>
+<div class="citation" id="id181" role="doc-biblioentry">
+<span class="label"><span class="fn-bracket">[</span>115<span class="fn-bracket">]</span></span>
+<p>Adrien Bardes, Jean Ponce, and Yann LeCun. VICReg: variance-invariance-covariance regularization for self-supervised learning. <em>International Conference on Learning Representations (ICLR)</em>, 2022.</p>
+</div>
+<div class="citation" id="id183" role="doc-biblioentry">
+<span class="label"><span class="fn-bracket">[</span>116<span class="fn-bracket">]</span></span>
+<p>Zongyi Li, Nikola Kovachki, Kamyar Azizzadenesheli, Burigede Liu, Kaushik Bhattacharya, Andrew Stuart, and Anima Anandkumar. Fourier neural operator for parametric partial differential equations. <em>International Conference on Learning Representations (ICLR)</em>, 2021.</p>
+</div>
+<div class="citation" id="id184" role="doc-biblioentry">
+<span class="label"><span class="fn-bracket">[</span>117<span class="fn-bracket">]</span></span>
+<p>Nikola Kovachki, Zongyi Li, Burigede Liu, Kamyar Azizzadenesheli, Kaushik Bhattacharya, Andrew Stuart, and Anima Anandkumar. Neural operator: learning maps between function spaces with applications to PDEs. <em>Journal of Machine Learning Research</em>, 24(89):1–97, 2023.</p>
+</div>
+<div class="citation" id="id185" role="doc-biblioentry">
+<span class="label"><span class="fn-bracket">[</span>118<span class="fn-bracket">]</span></span>
+<p>Benoit B Mandelbrot and John W Van Ness. Fractional Brownian motions, fractional noises and applications. <em>SIAM Review</em>, 10(4):422–437, 1968.</p>
+</div>
+<div class="citation" id="id186" role="doc-biblioentry">
+<span class="label"><span class="fn-bracket">[</span>119<span class="fn-bracket">]</span></span>
+<p>Michele Caputo. Linear models of dissipation whose Q is almost frequency independent–II. <em>Geophysical Journal International</em>, 13(5):529–539, 1967.</p>
+</div>
+<div class="citation" id="id187" role="doc-biblioentry">
+<span class="label"><span class="fn-bracket">[</span>120<span class="fn-bracket">]</span></span>
+<p>Igor Podlubny. <em>Fractional Differential Equations: An Introduction to Fractional Derivatives, Fractional Differential Equations, to Methods of Their Solution and Some of Their Applications</em>. Volume 198. Academic Press, 1999.</p>
+</div>
+<div class="citation" id="id188" role="doc-biblioentry">
+<span class="label"><span class="fn-bracket">[</span>121<span class="fn-bracket">]</span></span>
+<p>David S Broomhead and Gregory P King. Extracting qualitative dynamics from experimental data. <em>Physica D: Nonlinear Phenomena</em>, 20(2-3):217–236, 1986.</p>
+</div>
+<div class="citation" id="id13" role="doc-biblioentry">
+<span class="label"><span class="fn-bracket">[</span>122<span class="fn-bracket">]</span></span>
 <p>George EP Box, Gwilym M Jenkins, Gregory C Reinsel, and Greta M Ljung. <em>Time series analysis: forecasting and control</em>. John Wiley &amp; Sons, 2015.</p>
 </div>
 <div class="citation" id="id56" role="doc-biblioentry">
-<span class="label"><span class="fn-bracket">[</span>100<span class="fn-bracket">]</span></span>
+<span class="label"><span class="fn-bracket">[</span>123<span class="fn-bracket">]</span></span>
 <p>Nicolas Minorsky. Directional stability of automatically steered bodies. <em>Journal of the American Society for Naval Engineers</em>, 34(2):280–309, 1922.</p>
 </div>
 <div class="citation" id="id2" role="doc-biblioentry">
-<span class="label"><span class="fn-bracket">[</span>101<span class="fn-bracket">]</span></span>
+<span class="label"><span class="fn-bracket">[</span>124<span class="fn-bracket">]</span></span>
 <p>Karl Johan Åström and Richard Murray. <em>Feedback systems: an introduction for scientists and engineers</em>. Princeton university press, 2021.</p>
 </div>
 <div class="citation" id="id12" role="doc-biblioentry">
-<span class="label"><span class="fn-bracket">[</span>102<span class="fn-bracket">]</span></span>
+<span class="label"><span class="fn-bracket">[</span>125<span class="fn-bracket">]</span></span>
 <p>Hendrik W Bode. Network analysis and feedback amplifier design. 1945.</p>
 </div>
 <div class="citation" id="id87" role="doc-biblioentry">
-<span class="label"><span class="fn-bracket">[</span>103<span class="fn-bracket">]</span></span>
+<span class="label"><span class="fn-bracket">[</span>126<span class="fn-bracket">]</span></span>
 <p>Achim Zeileis, Torsten Hothorn, and Kurt Hornik. Model-based recursive partitioning. <em>Journal of Computational and Graphical Statistics</em>, 17(2):492–514, 2008.</p>
 </div>
 <div class="citation" id="id115" role="doc-biblioentry">
-<span class="label"><span class="fn-bracket">[</span>104<span class="fn-bracket">]</span></span>
+<span class="label"><span class="fn-bracket">[</span>127<span class="fn-bracket">]</span></span>
 <p>John Ashworth Nelder and Robert WM Wedderburn. Generalized linear models. <em>Journal of the Royal Statistical Society Series A: Statistics in Society</em>, 135(3):370–384, 1972.</p>
 </div>
 <div class="citation" id="id123" role="doc-biblioentry">
-<span class="label"><span class="fn-bracket">[</span>105<span class="fn-bracket">]</span></span>
+<span class="label"><span class="fn-bracket">[</span>128<span class="fn-bracket">]</span></span>
 <p>Peter J Green. Iteratively reweighted least squares for maximum likelihood estimation, and some robust and resistant alternatives. <em>Journal of the Royal Statistical Society: Series B (Methodological)</em>, 46(2):149–170, 1984.</p>
 </div>
 <div class="citation" id="id127" role="doc-biblioentry">
-<span class="label"><span class="fn-bracket">[</span>106<span class="fn-bracket">]</span></span>
+<span class="label"><span class="fn-bracket">[</span>129<span class="fn-bracket">]</span></span>
 <p>Jerald F. Lawless. Negative binomial and mixed Poisson regression. <em>The Canadian Journal of Statistics</em>, 15(3):209–225, 1987.</p>
 </div>
 <div class="citation" id="id126" role="doc-biblioentry">
-<span class="label"><span class="fn-bracket">[</span>107<span class="fn-bracket">]</span></span>
+<span class="label"><span class="fn-bracket">[</span>130<span class="fn-bracket">]</span></span>
 <p>Bent Jørgensen. Exponential dispersion models. <em>Journal of the Royal Statistical Society: Series B</em>, 49(2):127–162, 1987.</p>
 </div>
 <div class="citation" id="id111" role="doc-biblioentry">
-<span class="label"><span class="fn-bracket">[</span>108<span class="fn-bracket">]</span></span>
+<span class="label"><span class="fn-bracket">[</span>131<span class="fn-bracket">]</span></span>
 <p>Peter J Huber. Robust estimation of a location parameter. <em>The Annals of Mathematical Statistics</em>, 35(1):73–101, 1964.</p>
 </div>
 <div class="citation" id="id110" role="doc-biblioentry">
-<span class="label"><span class="fn-bracket">[</span>109<span class="fn-bracket">]</span></span>
+<span class="label"><span class="fn-bracket">[</span>132<span class="fn-bracket">]</span></span>
 <p>Whitney K Newey and James L Powell. Asymmetric least squares estimation and testing. <em>Econometrica: Journal of the Econometric Society</em>, pages 819–847, 1987.</p>
 </div>
 <div class="citation" id="id116" role="doc-biblioentry">
-<span class="label"><span class="fn-bracket">[</span>110<span class="fn-bracket">]</span></span>
+<span class="label"><span class="fn-bracket">[</span>133<span class="fn-bracket">]</span></span>
 <p>M Chris Jones. Expectiles and m-quantiles are quantiles. <em>Statistics &amp; Probability Letters</em>, 20(2):149–153, 1994.</p>
 </div>
 <div class="citation" id="id117" role="doc-biblioentry">
-<span class="label"><span class="fn-bracket">[</span>111<span class="fn-bracket">]</span></span>
+<span class="label"><span class="fn-bracket">[</span>134<span class="fn-bracket">]</span></span>
 <p>Qiwli Yao and Howell Tong. Asymmetric least squares regression estimation: a nonparametric approach. <em>Journal of nonparametric statistics</em>, 6(2-3):273–292, 1996.</p>
 </div>
 <div class="citation" id="id109" role="doc-biblioentry">
-<span class="label"><span class="fn-bracket">[</span>112<span class="fn-bracket">]</span></span>
+<span class="label"><span class="fn-bracket">[</span>135<span class="fn-bracket">]</span></span>
 <p>Robert A Rigby and D Mikis Stasinopoulos. Generalized additive models for location, scale and shape. <em>Journal of the Royal Statistical Society Series C: Applied Statistics</em>, 54(3):507–554, 2005.</p>
 </div>
 <div class="citation" id="id135" role="doc-biblioentry">
-<span class="label"><span class="fn-bracket">[</span>113<span class="fn-bracket">]</span></span>
+<span class="label"><span class="fn-bracket">[</span>136<span class="fn-bracket">]</span></span>
 <p>H. D. Patterson and R. Thompson. Recovery of inter-block information when block sizes are unequal. <em>Biometrika</em>, 58(3):545–554, 1971.</p>
 </div>
 <div class="citation" id="id129" role="doc-biblioentry">
-<span class="label"><span class="fn-bracket">[</span>114<span class="fn-bracket">]</span></span>
+<span class="label"><span class="fn-bracket">[</span>137<span class="fn-bracket">]</span></span>
 <p>George E. P. Box and David R. Cox. An analysis of transformations. <em>Journal of the Royal Statistical Society: Series B</em>, 26(2):211–252, 1964.</p>
 </div>
 <div class="citation" id="id124" role="doc-biblioentry">
-<span class="label"><span class="fn-bracket">[</span>115<span class="fn-bracket">]</span></span>
+<span class="label"><span class="fn-bracket">[</span>138<span class="fn-bracket">]</span></span>
 <p>Bartosz Uniejewski, Rafał Weron, and Florian Ziel. Variance stabilizing transformations for electricity spot price forecasting. <em>IEEE Transactions on Power Systems</em>, 33(2):2219–2229, 2018.</p>
 </div>
 <div class="citation" id="id125" role="doc-biblioentry">
-<span class="label"><span class="fn-bracket">[</span>116<span class="fn-bracket">]</span></span>
+<span class="label"><span class="fn-bracket">[</span>139<span class="fn-bracket">]</span></span>
 <p>Norman L. Johnson. Systems of frequency curves generated by methods of translation. <em>Biometrika</em>, 36(1/2):149–176, 1949.</p>
 </div>
 <div class="citation" id="id114" role="doc-biblioentry">
-<span class="label"><span class="fn-bracket">[</span>117<span class="fn-bracket">]</span></span>
+<span class="label"><span class="fn-bracket">[</span>140<span class="fn-bracket">]</span></span>
 <p>Arthur P Dempster, Nan M Laird, and Donald B Rubin. Maximum likelihood from incomplete data via the em algorithm. <em>Journal of the royal statistical society: series B (methodological)</em>, 39(1):1–22, 1977.</p>
 </div>
 <div class="citation" id="id112" role="doc-biblioentry">
-<span class="label"><span class="fn-bracket">[</span>118<span class="fn-bracket">]</span></span>
+<span class="label"><span class="fn-bracket">[</span>141<span class="fn-bracket">]</span></span>
 <p>Abe Sklar. Fonctions de répartition à n dimensions et leurs marges. <em>Publ. inst. statist. univ. Paris</em>, 8:229–231, 1959.</p>
 </div>
 <div class="citation" id="id102" role="doc-biblioentry">
-<span class="label"><span class="fn-bracket">[</span>119<span class="fn-bracket">]</span></span>
+<span class="label"><span class="fn-bracket">[</span>142<span class="fn-bracket">]</span></span>
 <p>Anastasios N Angelopoulos and Stephen Bates. Conformal prediction: a gentle introduction. <em>Foundations and Trends in Machine Learning</em>, 16(4):494–591, 2023. Standard pedagogical reference for the &quot;Split Conformal&quot; method implemented in the base version of SafetyTAM.</p>
 </div>
 <div class="citation" id="id118" role="doc-biblioentry">
-<span class="label"><span class="fn-bracket">[</span>120<span class="fn-bracket">]</span></span>
+<span class="label"><span class="fn-bracket">[</span>143<span class="fn-bracket">]</span></span>
 <p>Vladimir Vovk, Alexander Gammerman, and Glenn Shafer. <em>Algorithmic learning in a random world</em>. Springer, 2005.</p>
 </div>
 <div class="citation" id="id119" role="doc-biblioentry">
-<span class="label"><span class="fn-bracket">[</span>121<span class="fn-bracket">]</span></span>
+<span class="label"><span class="fn-bracket">[</span>144<span class="fn-bracket">]</span></span>
 <p>Jing Lei, Max G’Sell, Alessandro Rinaldo, Ryan J Tibshirani, and Larry Wasserman. Distribution-free predictive inference for regression. <em>Journal of the American Statistical Association</em>, 113(523):1094–1111, 2018.</p>
 </div>
 <div class="citation" id="id120" role="doc-biblioentry">
-<span class="label"><span class="fn-bracket">[</span>122<span class="fn-bracket">]</span></span>
+<span class="label"><span class="fn-bracket">[</span>145<span class="fn-bracket">]</span></span>
 <p>Yaniv Romano, Evan Patterson, and Emmanuel Candes. Conformalized quantile regression. <em>Advances in neural information processing systems</em>, 2019.</p>
 </div>
 <div class="citation" id="id103" role="doc-biblioentry">
-<span class="label"><span class="fn-bracket">[</span>123<span class="fn-bracket">]</span></span>
+<span class="label"><span class="fn-bracket">[</span>146<span class="fn-bracket">]</span></span>
 <p>Guillaume Principato and Gilles Stoltz. Blackwell's approachability for sequential conformal inference. <em>arXiv preprint arXiv:2510.15824</em>, 2025. Addresses the issue of exchangeability violation in time series (data drift) and proposes dynamic coverage rate adjustment methods.</p>
 </div>
 <div class="citation" id="id104" role="doc-biblioentry">
-<span class="label"><span class="fn-bracket">[</span>124<span class="fn-bracket">]</span></span>
+<span class="label"><span class="fn-bracket">[</span>147<span class="fn-bracket">]</span></span>
 <p>Isaac Gibbs and Emmanuel Candes. Adaptive conformal inference under distribution shift. <em>Advances in Neural Information Processing Systems</em>, 34:1660–1672, 2021. Introduces the ACI (Adaptive Conformal Inference) algorithm implemented in SafetyTAM for online risk level adjustment.</p>
 </div>
 <div class="citation" id="id113" role="doc-biblioentry">
-<span class="label"><span class="fn-bracket">[</span>125<span class="fn-bracket">]</span></span>
+<span class="label"><span class="fn-bracket">[</span>148<span class="fn-bracket">]</span></span>
 <p>James Pickands III. Statistical inference using extreme order statistics. <em>the Annals of Statistics</em>, pages 119–131, 1975.</p>
 </div>
 <div class="citation" id="id121" role="doc-biblioentry">
-<span class="label"><span class="fn-bracket">[</span>126<span class="fn-bracket">]</span></span>
+<span class="label"><span class="fn-bracket">[</span>149<span class="fn-bracket">]</span></span>
 <p>August A Balkema and Laurens De Haan. Residual life time at great age. <em>The Annals of probability</em>, pages 792–804, 1974.</p>
 </div>
 <div class="citation" id="id122" role="doc-biblioentry">
-<span class="label"><span class="fn-bracket">[</span>127<span class="fn-bracket">]</span></span>
+<span class="label"><span class="fn-bracket">[</span>150<span class="fn-bracket">]</span></span>
 <p>Grace Wahba. Bayesian “confidence intervals” for the cross-validated smoothing spline. <em>Journal of the Royal Statistical Society: Series B (Methodological)</em>, 45(1):133–150, 1983.</p>
 </div>
 <div class="citation" id="id101" role="doc-biblioentry">
-<span class="label"><span class="fn-bracket">[</span>128<span class="fn-bracket">]</span></span>
+<span class="label"><span class="fn-bracket">[</span>151<span class="fn-bracket">]</span></span>
 <p>Guillaume Principato, Gilles Stoltz, Yvenn Amara-Ouali, Yannig Goude, Bachir Hamrouche, and Jean-Michel Poggi. Conformal prediction for hierarchical data. <em>arXiv preprint arXiv:2411.13479</em>, 2024. Demonstrates that naive application of conformal prediction level-by-level breaks hierarchical coherence and proposes interval reconciliation algorithms.</p>
 </div>
 <div class="citation" id="id88" role="doc-biblioentry">
-<span class="label"><span class="fn-bracket">[</span>129<span class="fn-bracket">]</span></span>
+<span class="label"><span class="fn-bracket">[</span>152<span class="fn-bracket">]</span></span>
 <p>Joseph De Vilmarest and Olivier Wintenberger. Stochastic online optimization using kalman recursion. <em>Journal of Machine Learning Research</em>, 22(223):1–55, 2021.</p>
 </div>
 <div class="citation" id="id22" role="doc-biblioentry">
-<span class="label"><span class="fn-bracket">[</span>130<span class="fn-bracket">]</span></span>
+<span class="label"><span class="fn-bracket">[</span>153<span class="fn-bracket">]</span></span>
 <p>Joseph De Vilmarest and Yannig Goude. State-space models for online post-covid electricity load forecasting competition. <em>IEEE Open Access Journal of Power and Energy</em>, 9:192–201, 2022.</p>
 </div>
 <div class="citation" id="id23" role="doc-biblioentry">
-<span class="label"><span class="fn-bracket">[</span>131<span class="fn-bracket">]</span></span>
+<span class="label"><span class="fn-bracket">[</span>154<span class="fn-bracket">]</span></span>
 <p>Joseph de Vilmarest and Olivier Wintenberger. Viking: variational bayesian variance tracking. <em>Statistical Inference for Stochastic Processes</em>, 27(3):839–860, 2024.</p>
 </div>
 <div class="citation" id="id33" role="doc-biblioentry">
-<span class="label"><span class="fn-bracket">[</span>132<span class="fn-bracket">]</span></span>
+<span class="label"><span class="fn-bracket">[</span>155<span class="fn-bracket">]</span></span>
 <p>Pierre Gaillard, Yannig Goude, Laurent Plagne, Thibaut Dubois, and Benoit Thieurmel. Opera, a r package, online prediction by expert aggregation (v1.1). 2016.</p>
 </div>
 <div class="citation" id="id17" role="doc-biblioentry">
-<span class="label"><span class="fn-bracket">[</span>133<span class="fn-bracket">]</span></span>
+<span class="label"><span class="fn-bracket">[</span>156<span class="fn-bracket">]</span></span>
 <p>Nicolo Cesa-Bianchi and Gábor Lugosi. <em>Prediction, learning, and games</em>. Cambridge university press, 2006.</p>
 </div>
 <div class="citation" id="id107" role="doc-biblioentry">
-<span class="label"><span class="fn-bracket">[</span>134<span class="fn-bracket">]</span></span>
+<span class="label"><span class="fn-bracket">[</span>157<span class="fn-bracket">]</span></span>
 <p>Rob J Hyndman and Anne B Koehler. Another look at measures of forecast accuracy. <em>International journal of forecasting</em>, 22(4):679–688, 2006.</p>
 </div>
 <div class="citation" id="id108" role="doc-biblioentry">
-<span class="label"><span class="fn-bracket">[</span>135<span class="fn-bracket">]</span></span>
+<span class="label"><span class="fn-bracket">[</span>158<span class="fn-bracket">]</span></span>
 <p>Tianfeng Chai and Roland R Draxler. Root mean square error (rmse) or mean absolute error (mae)?–arguments against avoiding rmse in the literature. <em>Geoscientific model development</em>, 7(3):1247–1250, 2014.</p>
 </div>
 <div class="citation" id="id128" role="doc-biblioentry">
-<span class="label"><span class="fn-bracket">[</span>136<span class="fn-bracket">]</span></span>
+<span class="label"><span class="fn-bracket">[</span>159<span class="fn-bracket">]</span></span>
 <p>Tilmann Gneiting and Adrian E. Raftery. Strictly proper scoring rules, prediction, and estimation. <em>Journal of the American Statistical Association</em>, 102(477):359–378, 2007.</p>
 </div>
 <div class="citation" id="id95" role="doc-biblioentry">
-<span class="label"><span class="fn-bracket">[</span>137<span class="fn-bracket">]</span></span>
+<span class="label"><span class="fn-bracket">[</span>160<span class="fn-bracket">]</span></span>
 <p>James Durbin and Geoffrey S Watson. Testing for serial correlation in least squares regression: i. <em>Biometrika</em>, 37(3/4):409–428, 1950.</p>
 </div>
 <div class="citation" id="id93" role="doc-biblioentry">
-<span class="label"><span class="fn-bracket">[</span>138<span class="fn-bracket">]</span></span>
+<span class="label"><span class="fn-bracket">[</span>161<span class="fn-bracket">]</span></span>
 <p>Manuel Arellano. <em>Panel data econometrics</em>. OUP Oxford, 2003.</p>
 </div>
 <div class="citation" id="id91" role="doc-biblioentry">
-<span class="label"><span class="fn-bracket">[</span>139<span class="fn-bracket">]</span></span>
+<span class="label"><span class="fn-bracket">[</span>162<span class="fn-bracket">]</span></span>
 <p>Keshav Das, Julie Keisler, Margaux Brégère, and Amaury Durand. Automl algorithms for online generalized additive model selection: application to electricity demand forecasting. <em>arXiv preprint arXiv:2503.24019</em>, 2025.</p>
 </div>
 <div class="citation" id="id4" role="doc-biblioentry">
-<span class="label"><span class="fn-bracket">[</span>140<span class="fn-bracket">]</span></span>
+<span class="label"><span class="fn-bracket">[</span>163<span class="fn-bracket">]</span></span>
 <p>Yann Allioux and Yannig Goude. Force: french open research catalogue of energy (v1.1.1). 2026. With a contribution of Nathan Doumèche during his thesis. <a class="reference external" href="https://doi.org/10.5281/zenodo.21108937">doi:10.5281/zenodo.21108937</a>.</p>
 </div>
 <div class="citation" id="id5" role="doc-biblioentry">
-<span class="label"><span class="fn-bracket">[</span>141<span class="fn-bracket">]</span></span>
+<span class="label"><span class="fn-bracket">[</span>164<span class="fn-bracket">]</span></span>
 <p>Yann Allioux and Yannig Goude. Force dataset: french open research catalogue of energy - 2026 snapshot. 2026. With a contribution of Nathan Doumèche during his thesis. <a class="reference external" href="https://doi.org/10.5281/zenodo.21109134">doi:10.5281/zenodo.21109134</a>.</p>
 </div>
 <div class="citation" id="id6" role="doc-biblioentry">
-<span class="label"><span class="fn-bracket">[</span>142<span class="fn-bracket">]</span></span>
-<p>Yann Allioux and Yannig Goude. Tam: time series additive model (v1.3.0). 2026. With foundational WeaKL research by Nathan Doumèche, and tensorisation and adaptive model contributions by Éloi Bedek. <a class="reference external" href="https://doi.org/10.5281/zenodo.22544995">doi:10.5281/zenodo.22544995</a>.</p>
+<span class="label"><span class="fn-bracket">[</span>165<span class="fn-bracket">]</span></span>
+<p>Yann Allioux and Yannig Goude. Tam: time series additive model (v1.6.1). 2026. With foundational WeaKL research by Nathan Doumèche, and tensorisation and adaptive model contributions by Éloi Bedek. <a class="reference external" href="https://doi.org/10.5281/zenodo.24340687">doi:10.5281/zenodo.24340687</a>.</p>
 </div>
 <div class="citation" id="id7" role="doc-biblioentry">
-<span class="label"><span class="fn-bracket">[</span>143<span class="fn-bracket">]</span></span>
+<span class="label"><span class="fn-bracket">[</span>166<span class="fn-bracket">]</span></span>
 <p>Yann Allioux, Athir Hamadieh, Louis Viennot, Ismaïl El Azzaoui, Antoine Gourbilleau, and Joseph de Vilmarest. viking_kalman: variational bayesian variance tracking in python, a fast implementation of the r viking package (v0.1.0). 2026. <a class="reference external" href="https://doi.org/10.5281/zenodo.20171756">doi:10.5281/zenodo.20171756</a>.</p>
 </div>
 <div class="citation" id="id25" role="doc-biblioentry">
-<span class="label"><span class="fn-bracket">[</span>144<span class="fn-bracket">]</span></span>
+<span class="label"><span class="fn-bracket">[</span>167<span class="fn-bracket">]</span></span>
 <p>Nathan Doumèche. Weakl: weak kernel learner (v0.0.6). 2026.</p>
 </div>
 <div class="citation" id="id27" role="doc-biblioentry">
-<span class="label"><span class="fn-bracket">[</span>145<span class="fn-bracket">]</span></span>
+<span class="label"><span class="fn-bracket">[</span>168<span class="fn-bracket">]</span></span>
 <p>Nathan Doumèche, Yannig Goude, Stefania Rubrichi, and Yann Allioux. Human spatial dynamics for electricity demand forecasting. <em>IEEE Transactions on Power Systems</em>, 2025.</p>
 </div>
 <div class="citation" id="id28" role="doc-biblioentry">
-<span class="label"><span class="fn-bracket">[</span>146<span class="fn-bracket">]</span></span>
+<span class="label"><span class="fn-bracket">[</span>169<span class="fn-bracket">]</span></span>
 <p>Nathan Doumèche, Yannig Goude, and Yann Allioux. Human spatial dynamics for electricity demand forecasting: the case of france during the 2022 energy crisis. October 2023. URL: <a class="reference external" href="https://doi.org/10.5281/zenodo.10041368">https://doi.org/10.5281/zenodo.10041368</a>, <a class="reference external" href="https://doi.org/10.5281/zenodo.10041368">doi:10.5281/zenodo.10041368</a>.</p>
 </div>
 <div class="citation" id="id31" role="doc-biblioentry">
-<span class="label"><span class="fn-bracket">[</span>147<span class="fn-bracket">]</span></span>
+<span class="label"><span class="fn-bracket">[</span>170<span class="fn-bracket">]</span></span>
 <p>Mostafa Farrokhabadi, Jethro Browell, Yi Wang, Stephen Makonin, Wencong Su, and Hamidreza Zareipour. Day-ahead electricity demand forecasting competition: post-covid paradigm. <em>IEEE Open Access Journal of Power and Energy</em>, 9:185–191, 2022.</p>
 </div>
 <div class="citation" id="id32" role="doc-biblioentry">
-<span class="label"><span class="fn-bracket">[</span>148<span class="fn-bracket">]</span></span>
+<span class="label"><span class="fn-bracket">[</span>171<span class="fn-bracket">]</span></span>
 <p>Pierre Gaillard, Yannig Goude, and Raphaël Nedellec. Additive models and robust aggregation for gefcom2014 probabilistic electric load and electricity price forecasting. <em>International Journal of forecasting</em>, 32(3):1038–1050, 2016.</p>
 </div>
 <div class="citation" id="id48" role="doc-biblioentry">
-<span class="label"><span class="fn-bracket">[</span>149<span class="fn-bracket">]</span></span>
+<span class="label"><span class="fn-bracket">[</span>172<span class="fn-bracket">]</span></span>
 <p>R. E. Kalman. A new approach to linear filtering and prediction problems. <em>Journal of Basic Engineering</em>, 82(1):35–45, 03 1960. URL: <a class="reference external" href="https://doi.org/10.1115/1.3662552">https://doi.org/10.1115/1.3662552</a>, <a class="reference external" href="https://arxiv.org/abs/https://asmedigitalcollection.asme.org/fluidsengineering/article-pdf/82/1/35/5518977/35_1.pdf">arXiv:https://asmedigitalcollection.asme.org/fluidsengineering/article-pdf/82/1/35/5518977/35_1.pdf</a>, <a class="reference external" href="https://doi.org/10.1115/1.3662552">doi:10.1115/1.3662552</a>.</p>
 </div>
 <div class="citation" id="id60" role="doc-biblioentry">
-<span class="label"><span class="fn-bracket">[</span>150<span class="fn-bracket">]</span></span>
+<span class="label"><span class="fn-bracket">[</span>173<span class="fn-bracket">]</span></span>
 <p>Jingang Qu, David Holzmüller, Gaël Varoquaux, and Marine Le Morvan. Tabicl: a tabular foundation model for in-context learning on large data. <em>arXiv preprint arXiv:2502.05564</em>, 2025.</p>
 </div>
 <div class="citation" id="id69" role="doc-biblioentry">
-<span class="label"><span class="fn-bracket">[</span>151<span class="fn-bracket">]</span></span>
+<span class="label"><span class="fn-bracket">[</span>174<span class="fn-bracket">]</span></span>
 <p>Skipper Seabold, Josef Perktold, and others. Statsmodels: econometric and statistical modeling with python. <em>scipy</em>, 7(1):92–96, 2010.</p>
 </div>
 <div class="citation" id="id77" role="doc-biblioentry">
-<span class="label"><span class="fn-bracket">[</span>152<span class="fn-bracket">]</span></span>
+<span class="label"><span class="fn-bracket">[</span>175<span class="fn-bracket">]</span></span>
 <p>Shanika L Wickramasuriya, George Athanasopoulos, and Rob J Hyndman. Optimal forecast reconciliation for hierarchical and grouped time series through trace minimization. <em>Journal of the American Statistical Association</em>, 114(526):804–819, 2019.</p>
 </div>
 <div class="citation" id="id83" role="doc-biblioentry">
-<span class="label"><span class="fn-bracket">[</span>153<span class="fn-bracket">]</span></span>
+<span class="label"><span class="fn-bracket">[</span>176<span class="fn-bracket">]</span></span>
 <p>Simon N Wood, Zheyuan Li, Gavin Shaddick, and Nicole H Augustin. Generalized additive models for gigadata: modeling the uk black smoke network daily data. <em>Journal of the American Statistical Association</em>, 112(519):1199–1210, 2017.</p>
 </div>
 <div class="citation" id="id89" role="doc-biblioentry">
-<span class="label"><span class="fn-bracket">[</span>154<span class="fn-bracket">]</span></span>
+<span class="label"><span class="fn-bracket">[</span>177<span class="fn-bracket">]</span></span>
 <p>Adam Paszke, Sam Gross, Francisco Massa, Adam Lerer, James Bradbury, Gregory Chanan, Trevor Killeen, Zeming Lin, Natalia Gimelshein, Luca Antiga, and others. Pytorch: an imperative style, high-performance deep learning library. <em>Advances in neural information processing systems</em>, 2019.</p>
 </div>
 <div class="citation" id="id90" role="doc-biblioentry">
-<span class="label"><span class="fn-bracket">[</span>155<span class="fn-bracket">]</span></span>
+<span class="label"><span class="fn-bracket">[</span>178<span class="fn-bracket">]</span></span>
 <p>daniel servén, Charlie Brummitt, Franz Király, JodesL, Denise Schmitz, Zachariah Carmichael, Alejandro Ouslan, Fräntz Miccoli, IlyesD, Jonathan Taylor, Joseph Egan, Luc Lapenta, Lucas Servén Marín, Shishin Mo, Shushank Ranjan, Stephen Anthony Rose, Thomas Kraxner, Umberto Fasci, Viktor Szépe, Yasser El Haddar, hlink, Hassan Abedi, and nicoleta-kyo. Dswah/pygam: v0.12.0. December 2025. URL: <a class="reference external" href="https://doi.org/10.5281/zenodo.17981758">https://doi.org/10.5281/zenodo.17981758</a>, <a class="reference external" href="https://doi.org/10.5281/zenodo.17981758">doi:10.5281/zenodo.17981758</a>.</p>
 </div>
 <div class="citation" id="id92" role="doc-biblioentry">
-<span class="label"><span class="fn-bracket">[</span>156<span class="fn-bracket">]</span></span>
+<span class="label"><span class="fn-bracket">[</span>179<span class="fn-bracket">]</span></span>
 <p>Amandine Pierrot and Yannig Goude. Short-term electricity load forecasting with generalized additive models. <em>Proceedings of ISAP power</em>, 2011.</p>
 </div>
 <div class="citation" id="id94" role="doc-biblioentry">
-<span class="label"><span class="fn-bracket">[</span>157<span class="fn-bracket">]</span></span>
+<span class="label"><span class="fn-bracket">[</span>180<span class="fn-bracket">]</span></span>
 <p>James Durbin and Siem Jan Koopman. <em>Time series analysis by state space methods</em>. Oxford University Press (UK), 2012.</p>
 </div>
 <div class="citation" id="id96" role="doc-biblioentry">
-<span class="label"><span class="fn-bracket">[</span>158<span class="fn-bracket">]</span></span>
+<span class="label"><span class="fn-bracket">[</span>181<span class="fn-bracket">]</span></span>
 <p>Max A Woodbury. <em>Inverting modified matrices</em>. Department of Statistics, Princeton University, 1950. Mathematical foundation of the Woodbury matrix identity (Sherman-Morrison-Woodbury formula), justifying the low-rank update inversion optimization.</p>
 </div>
 <div class="citation" id="id97" role="doc-biblioentry">
-<span class="label"><span class="fn-bracket">[</span>159<span class="fn-bracket">]</span></span>
+<span class="label"><span class="fn-bracket">[</span>182<span class="fn-bracket">]</span></span>
 <p>Harold V Henderson and Shayle R Searle. On deriving the inverse of a sum of matrices. <em>SIAM review</em>, 23(1):53–60, 1981. Modern review and formal proof of the Woodbury identity used to stabilize the Kalman gain matrix inversion.</p>
 </div>
 <div class="citation" id="id98" role="doc-biblioentry">
-<span class="label"><span class="fn-bracket">[</span>160<span class="fn-bracket">]</span></span>
+<span class="label"><span class="fn-bracket">[</span>183<span class="fn-bracket">]</span></span>
 <p>William W Hager. Updating the inverse of a matrix. <em>SIAM review</em>, 31(2):221–239, 1989.</p>
 </div>
 <div class="citation" id="id99" role="doc-biblioentry">
-<span class="label"><span class="fn-bracket">[</span>161<span class="fn-bracket">]</span></span>
+<span class="label"><span class="fn-bracket">[</span>184<span class="fn-bracket">]</span></span>
 <p>Ali H Sayed. <em>Adaptive filters</em>. John Wiley &amp; Sons, 2011.</p>
 </div>
 <div class="citation" id="id100" role="doc-biblioentry">
-<span class="label"><span class="fn-bracket">[</span>162<span class="fn-bracket">]</span></span>
+<span class="label"><span class="fn-bracket">[</span>185<span class="fn-bracket">]</span></span>
 <p>Margaux Brégère and Malo Huard. Online hierarchical forecasting for power consumption data. <em>International Journal of Forecasting</em>, 38(1):339–351, 2022. Key reference for online hierarchical forecasting in the energy sector. Illustrates the post-hoc reconciliation approach, in contrast to the joint learning proposed here.</p>
 </div>
 <div class="citation" id="id105" role="doc-biblioentry">
-<span class="label"><span class="fn-bracket">[</span>163<span class="fn-bracket">]</span></span>
+<span class="label"><span class="fn-bracket">[</span>186<span class="fn-bracket">]</span></span>
 <p>Christopher M Bishop and Nasser M Nasrabadi. <em>Pattern recognition and machine learning</em>. Volume 4. Springer, 2006. Justifies the Bayesian interpretation of Ridge regression and uncertainty calculation via the inverse Hessian.</p>
 </div>
 <div class="citation" id="id106" role="doc-biblioentry">
-<span class="label"><span class="fn-bracket">[</span>164<span class="fn-bracket">]</span></span>
+<span class="label"><span class="fn-bracket">[</span>187<span class="fn-bracket">]</span></span>
 <p>Dimitris N Politis and Joseph P Romano. The stationary bootstrap. <em>Journal of the American Statistical association</em>, 89(428):1303–1313, 1994. Theoretical foundation of Block Bootstrap for time series. Justifies contiguous block resampling to preserve residual autocorrelation.</p>
 </div>
 </div>

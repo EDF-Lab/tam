@@ -68,6 +68,17 @@ Time series Additive Model (TAM) Official Documentation
    math/spectrum/KAN
    math/spectrum/SINGLE_INDEX
    math/spectrum/SIGNATURE
+   math/spectrum/PRIOR_SPECTRAL
+   math/spectrum/HIPPO_SSM
+   math/spectrum/TRANSFORMER_FAVOR
+   math/spectrum/BISPECTRUM
+   math/spectrum/WAVELET_SCATTERING
+   math/spectrum/T_JEPA
+   math/spectrum/FNO
+   math/spectrum/HURST
+   math/spectrum/FRACTIONAL_PHYSICS
+   math/spectrum/EXU
+   math/spectrum/SSA
    math/spectrum/PID
    math/spectrum/LINEAR_TREE
 
@@ -130,6 +141,17 @@ Time series Additive Model (TAM) Official Documentation
    architecture/spectrum/KAN
    architecture/spectrum/SINGLE_INDEX
    architecture/spectrum/SIGNATURE
+   architecture/spectrum/PRIOR_SPECTRAL
+   architecture/spectrum/HIPPO_SSM
+   architecture/spectrum/TRANSFORMER_FAVOR
+   architecture/spectrum/BISPECTRUM
+   architecture/spectrum/WAVELET_SCATTERING
+   architecture/spectrum/T_JEPA
+   architecture/spectrum/FNO
+   architecture/spectrum/HURST
+   architecture/spectrum/FRACTIONAL_PHYSICS
+   architecture/spectrum/EXU
+   architecture/spectrum/SSA
    architecture/core/07_the_statistics_api
 
 .. raw:: latex

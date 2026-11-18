@@ -232,6 +232,17 @@
 <li class="toctree-l1"><a class="reference internal" href="../../math/spectrum/KAN.html">Kolmogorov-Arnold Network Edge Splines</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../math/spectrum/SINGLE_INDEX.html">Penalized Single-Index Distributed Lags</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../math/spectrum/SIGNATURE.html">The Path Signature and Log-Signature Effect (Rough Path Iterated Integrals)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../math/spectrum/PRIOR_SPECTRAL.html">The Prior Spectral Effect (Bochner QMC-RFF Basis)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../math/spectrum/HIPPO_SSM.html">The HiPPO State Space Model Effect (Continuous-Time Polynomial Memory)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../math/spectrum/TRANSFORMER_FAVOR.html">The Transformer Attention Effect (Linearized FAVOR+ Positive Orthogonal Random Features)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../math/spectrum/BISPECTRUM.html">The Bispectrum Effect: Higher-Order Spectral Analysis &amp; Quadratic Phase Coupling</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../math/spectrum/WAVELET_SCATTERING.html">WAVELET_SCATTERING: Translation-Invariant, Deformation-Stable Wavelet Scattering Transform (WST)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../math/spectrum/T_JEPA.html">T_JEPA: Self-Supervised Temporal Joint-Embedding Predictive Architecture for Exogenous Covariates</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../math/spectrum/FNO.html">Fourier Neural Operator</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../math/spectrum/HURST.html">Hurst Fractional Gaussian Noise Basis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../math/spectrum/FRACTIONAL_PHYSICS.html">Caputo Fractional Physics Penalties</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../math/spectrum/EXU.html">Exp-Centered Units (ExU)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../math/spectrum/SSA.html">Singular Spectrum Analysis</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../math/spectrum/PID.html">The PID Effect (Autoregressive Control Dynamics)</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../math/spectrum/LINEAR_TREE.html">The Linear Tree Effect (Varying-Coefficient Models)</a></li>
 </ul>
@@ -273,6 +284,17 @@
 <li class="toctree-l1"><a class="reference internal" href="../spectrum/KAN.html">Kolmogorov-Arnold Network Edge Splines: PyTorch Architecture</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../spectrum/SINGLE_INDEX.html">Penalized Single-Index Distributed Lags: PyTorch Architecture</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../spectrum/SIGNATURE.html">Path Signature and Log-Signature Effect: PyTorch Architecture &amp; Implementation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../spectrum/PRIOR_SPECTRAL.html">Prior Spectral Effect: PyTorch Architecture &amp; Implementation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../spectrum/HIPPO_SSM.html">HiPPO State Space Model Effect: PyTorch Architecture &amp; Implementation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../spectrum/TRANSFORMER_FAVOR.html">Transformer FAVOR+ Attention Effect: PyTorch Architecture &amp; Implementation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../spectrum/BISPECTRUM.html">Bispectrum Effect: PyTorch Architecture &amp; Implementation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../spectrum/WAVELET_SCATTERING.html">Wavelet Scattering Transform: PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../spectrum/T_JEPA.html">Temporal Joint-Embedding Predictive Architecture (T-JEPA): PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../spectrum/FNO.html">Fourier Neural Operator: PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../spectrum/HURST.html">Hurst Fractional Gaussian Noise Basis: PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../spectrum/FRACTIONAL_PHYSICS.html">Caputo Fractional Physics Penalties: PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../spectrum/EXU.html">Exp-Centered Units (ExU): PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../spectrum/SSA.html">Singular Spectrum Analysis: PyTorch Architecture</a></li>
 <li class="toctree-l1"><a class="reference internal" href="07_the_statistics_api.html">The Statistics API: One Atom, Many Schedules</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">🔬 Architecture: The Statistics Engine</span></p>
@@ -512,9 +534,9 @@
 
 <span class="sd">    Args:</span>
 <span class="sd">        rho: log smoothing weights, one per coordinate of ``basis``.</span>
-<span class="sd">        cov_x, cov_xy, y_sq: ``X'WX`` (G, D, D), ``X'Wy`` (G, D, 1) and ``y'Wy`` (G,), float64.</span>
+<span class="sd">        cov_x, cov_xy, y_sq: ``Phi'W Phi`` (G, D, D), ``Phi'W z`` (G, D, 1) and ``z'W z`` (G,), float64.</span>
 <span class="sd">        basis: the penalty of the effects.</span>
-<span class="sd">        n_samples: rows of a group (the scale of the penalty, as in the fit).</span>
+<span class="sd">        n_samples: rows of a group, ``T_eff`` (the scale of the penalty, as in the fit).</span>
 <span class="sd">        known_scale: the scale ``phi`` when it is known (Poisson, binomial); estimated from the penalized residual sum of squares otherwise.</span>
 <span class="sd">    """</span>
     <span class="n">rho</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">rho</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
@@ -541,10 +563,10 @@
     <span class="n">gradient</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">basis</span><span class="o">.</span><span class="n">n_coordinates</span><span class="p">)</span>
     <span class="k">for</span> <span class="n">c</span><span class="p">,</span> <span class="p">((</span><span class="n">begin</span><span class="p">,</span> <span class="n">end</span><span class="p">,</span> <span class="n">q</span><span class="p">),</span> <span class="n">reduced_q</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="n">basis</span><span class="o">.</span><span class="n">blocks</span><span class="p">,</span> <span class="n">basis</span><span class="o">.</span><span class="n">_reduced</span><span class="p">)):</span>
         <span class="n">scaled_q</span> <span class="o">=</span> <span class="n">n</span> <span class="o">*</span> <span class="n">lam</span><span class="p">[</span><span class="n">c</span><span class="p">]</span> <span class="o">*</span> <span class="n">q</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">cov_x</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
-        <span class="n">trace_a</span> <span class="o">=</span> <span class="p">(</span><span class="n">inverse</span><span class="p">[:,</span> <span class="n">begin</span><span class="p">:</span><span class="n">end</span><span class="p">,</span> <span class="n">begin</span><span class="p">:</span><span class="n">end</span><span class="p">]</span> <span class="o">*</span> <span class="n">scaled_q</span><span class="o">.</span><span class="n">T</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">))</span>  <span class="c1"># tr(A^-1 dS_c), (G,)</span>
+        <span class="n">trace_a</span> <span class="o">=</span> <span class="p">(</span><span class="n">inverse</span><span class="p">[:,</span> <span class="n">begin</span><span class="p">:</span><span class="n">end</span><span class="p">,</span> <span class="n">begin</span><span class="p">:</span><span class="n">end</span><span class="p">]</span> <span class="o">*</span> <span class="n">scaled_q</span><span class="o">.</span><span class="n">T</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">))</span>  <span class="c1"># tr(A^-1 dP_c), (G,)</span>
         <span class="n">trace_s</span> <span class="o">=</span> <span class="p">(</span><span class="n">reduced_inverse</span> <span class="o">*</span> <span class="p">(</span><span class="n">n</span> <span class="o">*</span> <span class="n">lam</span><span class="p">[</span><span class="n">c</span><span class="p">]</span> <span class="o">*</span> <span class="n">reduced_q</span><span class="p">)</span><span class="o">.</span><span class="n">T</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
         <span class="n">beta_block</span> <span class="o">=</span> <span class="n">beta</span><span class="p">[:,</span> <span class="n">begin</span><span class="p">:</span><span class="n">end</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span>
-        <span class="n">quad</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s2">"gi,ij,gj-&gt;g"</span><span class="p">,</span> <span class="n">beta_block</span><span class="p">,</span> <span class="n">scaled_q</span><span class="p">,</span> <span class="n">beta_block</span><span class="p">)</span>  <span class="c1"># beta' dS_c beta</span>
+        <span class="n">quad</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s2">"gi,ij,gj-&gt;g"</span><span class="p">,</span> <span class="n">beta_block</span><span class="p">,</span> <span class="n">scaled_q</span><span class="p">,</span> <span class="n">beta_block</span><span class="p">)</span>  <span class="c1"># theta' dP_c theta</span>
         <span class="k">if</span> <span class="n">known_scale</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">scale_term</span> <span class="o">=</span> <span class="o">-</span><span class="n">dof</span> <span class="o">/</span> <span class="p">(</span><span class="mf">2.0</span> <span class="o">*</span> <span class="n">deviance</span><span class="p">)</span> <span class="o">*</span> <span class="n">quad</span>
         <span class="k">else</span><span class="p">:</span>

@@ -232,6 +232,17 @@
 <li class="toctree-l1"><a class="reference internal" href="../../math/spectrum/KAN.html">Kolmogorov-Arnold Network Edge Splines</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../math/spectrum/SINGLE_INDEX.html">Penalized Single-Index Distributed Lags</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../math/spectrum/SIGNATURE.html">The Path Signature and Log-Signature Effect (Rough Path Iterated Integrals)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../math/spectrum/PRIOR_SPECTRAL.html">The Prior Spectral Effect (Bochner QMC-RFF Basis)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../math/spectrum/HIPPO_SSM.html">The HiPPO State Space Model Effect (Continuous-Time Polynomial Memory)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../math/spectrum/TRANSFORMER_FAVOR.html">The Transformer Attention Effect (Linearized FAVOR+ Positive Orthogonal Random Features)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../math/spectrum/BISPECTRUM.html">The Bispectrum Effect: Higher-Order Spectral Analysis &amp; Quadratic Phase Coupling</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../math/spectrum/WAVELET_SCATTERING.html">WAVELET_SCATTERING: Translation-Invariant, Deformation-Stable Wavelet Scattering Transform (WST)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../math/spectrum/T_JEPA.html">T_JEPA: Self-Supervised Temporal Joint-Embedding Predictive Architecture for Exogenous Covariates</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../math/spectrum/FNO.html">Fourier Neural Operator</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../math/spectrum/HURST.html">Hurst Fractional Gaussian Noise Basis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../math/spectrum/FRACTIONAL_PHYSICS.html">Caputo Fractional Physics Penalties</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../math/spectrum/EXU.html">Exp-Centered Units (ExU)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../math/spectrum/SSA.html">Singular Spectrum Analysis</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../math/spectrum/PID.html">The PID Effect (Autoregressive Control Dynamics)</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../math/spectrum/LINEAR_TREE.html">The Linear Tree Effect (Varying-Coefficient Models)</a></li>
 </ul>
@@ -273,6 +284,17 @@
 <li class="toctree-l1"><a class="reference internal" href="../spectrum/KAN.html">Kolmogorov-Arnold Network Edge Splines: PyTorch Architecture</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../spectrum/SINGLE_INDEX.html">Penalized Single-Index Distributed Lags: PyTorch Architecture</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../spectrum/SIGNATURE.html">Path Signature and Log-Signature Effect: PyTorch Architecture &amp; Implementation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../spectrum/PRIOR_SPECTRAL.html">Prior Spectral Effect: PyTorch Architecture &amp; Implementation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../spectrum/HIPPO_SSM.html">HiPPO State Space Model Effect: PyTorch Architecture &amp; Implementation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../spectrum/TRANSFORMER_FAVOR.html">Transformer FAVOR+ Attention Effect: PyTorch Architecture &amp; Implementation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../spectrum/BISPECTRUM.html">Bispectrum Effect: PyTorch Architecture &amp; Implementation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../spectrum/WAVELET_SCATTERING.html">Wavelet Scattering Transform: PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../spectrum/T_JEPA.html">Temporal Joint-Embedding Predictive Architecture (T-JEPA): PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../spectrum/FNO.html">Fourier Neural Operator: PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../spectrum/HURST.html">Hurst Fractional Gaussian Noise Basis: PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../spectrum/FRACTIONAL_PHYSICS.html">Caputo Fractional Physics Penalties: PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../spectrum/EXU.html">Exp-Centered Units (ExU): PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../spectrum/SSA.html">Singular Spectrum Analysis: PyTorch Architecture</a></li>
 <li class="toctree-l1"><a class="reference internal" href="07_the_statistics_api.html">The Statistics API: One Atom, Many Schedules</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">🔬 Architecture: The Statistics Engine</span></p>
@@ -473,6 +495,10 @@
         <span class="n">clean</span> <span class="o">=</span> <span class="n">others_raw</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">'['</span><span class="p">,</span> <span class="s1">''</span><span class="p">)</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">']'</span><span class="p">,</span> <span class="s1">''</span><span class="p">)</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">"'"</span><span class="p">,</span> <span class="s2">""</span><span class="p">)</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">'"'</span><span class="p">,</span> <span class="s1">''</span><span class="p">)</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">','</span><span class="p">,</span> <span class="s1">'|'</span><span class="p">)</span>
         <span class="k">return</span> <span class="p">[</span><span class="n">s</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">clean</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">'|'</span><span class="p">)</span> <span class="k">if</span> <span class="n">s</span><span class="o">.</span><span class="n">strip</span><span class="p">()]</span>
     <span class="k">return</span> <span class="kc">None</span>
+
+
+<span class="c1">#: Default log10 of the smoothing weight of ``bispec(...)`` when the formula gives no ``ap=`` (see the parse block).</span>
+<span class="n">_BISPEC_DEFAULT_AP</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="o">-</span><span class="mf">5.0</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">create_effects_from_parsed_terms</span><span class="p">(</span>
@@ -800,6 +826,15 @@
         <span class="s1">'kan'</span><span class="p">:</span> <span class="s1">'kan'</span><span class="p">,</span>
         <span class="s1">'single_index'</span><span class="p">:</span> <span class="s1">'si'</span><span class="p">,</span>
         <span class="s1">'signature'</span><span class="p">:</span> <span class="s1">'sig'</span><span class="p">,</span>
+        <span class="s1">'prior_spectral'</span><span class="p">:</span> <span class="s1">'pspec'</span><span class="p">,</span>
+        <span class="s1">'hippo'</span><span class="p">:</span> <span class="s1">'hippo'</span><span class="p">,</span>
+        <span class="s1">'transformer'</span><span class="p">:</span> <span class="s1">'attn'</span><span class="p">,</span>
+        <span class="s1">'bispectrum'</span><span class="p">:</span> <span class="s1">'bispec'</span><span class="p">,</span>
+        <span class="s1">'scattering'</span><span class="p">:</span> <span class="s1">'wst'</span><span class="p">,</span>
+        <span class="s1">'tjepa'</span><span class="p">:</span> <span class="s1">'tjepa'</span><span class="p">,</span>
+        <span class="s1">'operator'</span><span class="p">:</span> <span class="s1">'fno'</span><span class="p">,</span>
+        <span class="s1">'hurst'</span><span class="p">:</span> <span class="s1">'hurst'</span><span class="p">,</span>
+        <span class="s1">'ssa'</span><span class="p">:</span> <span class="s1">'ssa'</span><span class="p">,</span>
         <span class="s1">'phys_fourier'</span><span class="p">:</span> <span class="s1">'phys'</span><span class="p">,</span> <span class="s1">'phys_neural'</span><span class="p">:</span> <span class="s1">'phys'</span><span class="p">,</span> <span class="s1">'offset'</span><span class="p">:</span> <span class="s1">'offset'</span>
     <span class="p">}</span>
 

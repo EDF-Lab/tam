@@ -232,6 +232,17 @@
 <li class="toctree-l1"><a class="reference internal" href="math/spectrum/KAN.html">Kolmogorov-Arnold Network Edge Splines</a></li>
 <li class="toctree-l1"><a class="reference internal" href="math/spectrum/SINGLE_INDEX.html">Penalized Single-Index Distributed Lags</a></li>
 <li class="toctree-l1"><a class="reference internal" href="math/spectrum/SIGNATURE.html">The Path Signature and Log-Signature Effect (Rough Path Iterated Integrals)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="math/spectrum/PRIOR_SPECTRAL.html">The Prior Spectral Effect (Bochner QMC-RFF Basis)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="math/spectrum/HIPPO_SSM.html">The HiPPO State Space Model Effect (Continuous-Time Polynomial Memory)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="math/spectrum/TRANSFORMER_FAVOR.html">The Transformer Attention Effect (Linearized FAVOR+ Positive Orthogonal Random Features)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="math/spectrum/BISPECTRUM.html">The Bispectrum Effect: Higher-Order Spectral Analysis &amp; Quadratic Phase Coupling</a></li>
+<li class="toctree-l1"><a class="reference internal" href="math/spectrum/WAVELET_SCATTERING.html">WAVELET_SCATTERING: Translation-Invariant, Deformation-Stable Wavelet Scattering Transform (WST)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="math/spectrum/T_JEPA.html">T_JEPA: Self-Supervised Temporal Joint-Embedding Predictive Architecture for Exogenous Covariates</a></li>
+<li class="toctree-l1"><a class="reference internal" href="math/spectrum/FNO.html">Fourier Neural Operator</a></li>
+<li class="toctree-l1"><a class="reference internal" href="math/spectrum/HURST.html">Hurst Fractional Gaussian Noise Basis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="math/spectrum/FRACTIONAL_PHYSICS.html">Caputo Fractional Physics Penalties</a></li>
+<li class="toctree-l1"><a class="reference internal" href="math/spectrum/EXU.html">Exp-Centered Units (ExU)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="math/spectrum/SSA.html">Singular Spectrum Analysis</a></li>
 <li class="toctree-l1"><a class="reference internal" href="math/spectrum/PID.html">The PID Effect (Autoregressive Control Dynamics)</a></li>
 <li class="toctree-l1"><a class="reference internal" href="math/spectrum/LINEAR_TREE.html">The Linear Tree Effect (Varying-Coefficient Models)</a></li>
 </ul>
@@ -273,6 +284,17 @@
 <li class="toctree-l1"><a class="reference internal" href="architecture/spectrum/KAN.html">Kolmogorov-Arnold Network Edge Splines: PyTorch Architecture</a></li>
 <li class="toctree-l1"><a class="reference internal" href="architecture/spectrum/SINGLE_INDEX.html">Penalized Single-Index Distributed Lags: PyTorch Architecture</a></li>
 <li class="toctree-l1"><a class="reference internal" href="architecture/spectrum/SIGNATURE.html">Path Signature and Log-Signature Effect: PyTorch Architecture &amp; Implementation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="architecture/spectrum/PRIOR_SPECTRAL.html">Prior Spectral Effect: PyTorch Architecture &amp; Implementation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="architecture/spectrum/HIPPO_SSM.html">HiPPO State Space Model Effect: PyTorch Architecture &amp; Implementation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="architecture/spectrum/TRANSFORMER_FAVOR.html">Transformer FAVOR+ Attention Effect: PyTorch Architecture &amp; Implementation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="architecture/spectrum/BISPECTRUM.html">Bispectrum Effect: PyTorch Architecture &amp; Implementation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="architecture/spectrum/WAVELET_SCATTERING.html">Wavelet Scattering Transform: PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="architecture/spectrum/T_JEPA.html">Temporal Joint-Embedding Predictive Architecture (T-JEPA): PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="architecture/spectrum/FNO.html">Fourier Neural Operator: PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="architecture/spectrum/HURST.html">Hurst Fractional Gaussian Noise Basis: PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="architecture/spectrum/FRACTIONAL_PHYSICS.html">Caputo Fractional Physics Penalties: PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="architecture/spectrum/EXU.html">Exp-Centered Units (ExU): PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="architecture/spectrum/SSA.html">Singular Spectrum Analysis: PyTorch Architecture</a></li>
 <li class="toctree-l1"><a class="reference internal" href="architecture/core/07_the_statistics_api.html">The Statistics API: One Atom, Many Schedules</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">🔬 Architecture: The Statistics Engine</span></p>
@@ -759,6 +781,94 @@
 <li><p><strong>Mapping &amp; Penalty:</strong> Extended Dynamic Mode Decomposition eigenfunctions with residual stability penalty; <a class="reference internal" href="architecture/spectrum/KOOPMAN_DMD.html"><span class="std std-doc">Architecture</span></a>.</p></li>
 </ul>
 </section>
+<hr class="docutils" />
+<section id="bochner-qmc-rff-pspec-beta">
+<h3><a class="reference internal" href="math/spectrum/PRIOR_SPECTRAL.html"><span class="std std-doc">Bochner QMC RFF (<code class="docutils literal notranslate"><span class="pre">pspec</span></code>)</span></a> (BETA)<a class="headerlink" href="#bochner-qmc-rff-pspec-beta" title="Link to this heading">¶</a></h3>
+<ul class="simple">
+<li><p><strong>Syntax:</strong> <code class="docutils literal notranslate"><span class="pre">pspec(x,</span> <span class="pre">n_features=32,</span> <span class="pre">lengthscale=1.0,</span> <span class="pre">nu=1.5)</span></code></p></li>
+<li><p><strong>Mapping &amp; Penalty:</strong> Quasi-Monte Carlo Random Fourier Features sampling Matérn spectral densities; <a class="reference internal" href="architecture/spectrum/PRIOR_SPECTRAL.html"><span class="std std-doc">Architecture</span></a>.</p></li>
+</ul>
+</section>
+<hr class="docutils" />
+<section id="hippo-state-space-memory-hippo-beta">
+<h3><a class="reference internal" href="math/spectrum/HIPPO_SSM.html"><span class="std std-doc">HiPPO State-Space Memory (<code class="docutils literal notranslate"><span class="pre">hippo</span></code>)</span></a> (BETA)<a class="headerlink" href="#hippo-state-space-memory-hippo-beta" title="Link to this heading">¶</a></h3>
+<ul class="simple">
+<li><p><strong>Syntax:</strong> <code class="docutils literal notranslate"><span class="pre">hippo(x,</span> <span class="pre">order=8,</span> <span class="pre">dt=0.05,</span> <span class="pre">measure='legs')</span></code></p></li>
+<li><p><strong>Mapping &amp; Penalty:</strong> Continuous-time Legendre polynomial projection state-space memory; <a class="reference internal" href="architecture/spectrum/HIPPO_SSM.html"><span class="std std-doc">Architecture</span></a>.</p></li>
+</ul>
+</section>
+<hr class="docutils" />
+<section id="performer-favor-attention-attn-beta">
+<h3><a class="reference internal" href="math/spectrum/TRANSFORMER_FAVOR.html"><span class="std std-doc">Performer FAVOR+ Attention (<code class="docutils literal notranslate"><span class="pre">attn</span></code>)</span></a> (BETA)<a class="headerlink" href="#performer-favor-attention-attn-beta" title="Link to this heading">¶</a></h3>
+<ul class="simple">
+<li><p><strong>Syntax:</strong> <code class="docutils literal notranslate"><span class="pre">attn(x,</span> <span class="pre">d_model=16,</span> <span class="pre">n_features=32,</span> <span class="pre">decay=0.95)</span></code></p></li>
+<li><p><strong>Mapping &amp; Penalty:</strong> Linearized positive orthogonal random feature causal attention; <a class="reference internal" href="architecture/spectrum/TRANSFORMER_FAVOR.html"><span class="std std-doc">Architecture</span></a>.</p></li>
+</ul>
+</section>
+<hr class="docutils" />
+<section id="higher-order-bispectrum-bispec-beta">
+<h3><a class="reference internal" href="math/spectrum/BISPECTRUM.html"><span class="std std-doc">Higher-Order Bispectrum (<code class="docutils literal notranslate"><span class="pre">bispec</span></code>)</span></a> (BETA)<a class="headerlink" href="#higher-order-bispectrum-bispec-beta" title="Link to this heading">¶</a></h3>
+<ul class="simple">
+<li><p><strong>Syntax:</strong> <code class="docutils literal notranslate"><span class="pre">bispec(x,</span> <span class="pre">k=8,</span> <span class="pre">n_fft=64)</span></code></p></li>
+<li><p><strong>Mapping &amp; Penalty:</strong> Quadratic phase-coupling triad features with Hinich Gaussianity diagnostics; <a class="reference internal" href="architecture/spectrum/BISPECTRUM.html"><span class="std std-doc">Architecture</span></a>.</p></li>
+</ul>
+</section>
+<hr class="docutils" />
+<section id="wavelet-scattering-wst-beta">
+<h3><a class="reference internal" href="math/spectrum/WAVELET_SCATTERING.html"><span class="std std-doc">Wavelet Scattering (<code class="docutils literal notranslate"><span class="pre">wst</span></code>)</span></a> (BETA)<a class="headerlink" href="#wavelet-scattering-wst-beta" title="Link to this heading">¶</a></h3>
+<ul class="simple">
+<li><p><strong>Syntax:</strong> <code class="docutils literal notranslate"><span class="pre">wst(x,</span> <span class="pre">J=3,</span> <span class="pre">Q=1,</span> <span class="pre">max_order=2)</span></code></p></li>
+<li><p><strong>Mapping &amp; Penalty:</strong> Translation-invariant multi-scale Morlet wavelet scattering cascade; <a class="reference internal" href="architecture/spectrum/WAVELET_SCATTERING.html"><span class="std std-doc">Architecture</span></a>.</p></li>
+</ul>
+</section>
+<hr class="docutils" />
+<section id="t-jepa-latent-predictor-tjepa-beta">
+<h3><a class="reference internal" href="math/spectrum/T_JEPA.html"><span class="std std-doc">T-JEPA Latent Predictor (<code class="docutils literal notranslate"><span class="pre">tjepa</span></code>)</span></a> (BETA)<a class="headerlink" href="#t-jepa-latent-predictor-tjepa-beta" title="Link to this heading">¶</a></h3>
+<ul class="simple">
+<li><p><strong>Syntax:</strong> <code class="docutils literal notranslate"><span class="pre">tjepa(x,</span> <span class="pre">others=x2,</span> <span class="pre">latent_dim=16,</span> <span class="pre">window=24,</span> <span class="pre">horizon=6)</span></code></p></li>
+<li><p><strong>Mapping &amp; Penalty:</strong> Self-supervised VICReg joint-embedding predictive encoder (AdamW) with linear/spline readout; <a class="reference internal" href="architecture/spectrum/T_JEPA.html"><span class="std std-doc">Architecture</span></a>.</p></li>
+</ul>
+</section>
+<hr class="docutils" />
+<section id="fourier-neural-operator-fno-beta">
+<h3><a class="reference internal" href="math/spectrum/FNO.html"><span class="std std-doc">Fourier Neural Operator (<code class="docutils literal notranslate"><span class="pre">fno</span></code>)</span></a> (BETA)<a class="headerlink" href="#fourier-neural-operator-fno-beta" title="Link to this heading">¶</a></h3>
+<ul class="simple">
+<li><p><strong>Syntax:</strong> <code class="docutils literal notranslate"><span class="pre">fno(x,</span> <span class="pre">modes=12,</span> <span class="pre">width=8)</span></code></p></li>
+<li><p><strong>Mapping &amp; Penalty:</strong> Resolution-invariant spectral convolution operator with Sobolev frequency penalty; <a class="reference internal" href="architecture/spectrum/FNO.html"><span class="std std-doc">Architecture</span></a>.</p></li>
+</ul>
+</section>
+<hr class="docutils" />
+<section id="hurst-fractional-noise-hurst-beta">
+<h3><a class="reference internal" href="math/spectrum/HURST.html"><span class="std std-doc">Hurst Fractional Noise (<code class="docutils literal notranslate"><span class="pre">hurst</span></code>)</span></a> (BETA)<a class="headerlink" href="#hurst-fractional-noise-hurst-beta" title="Link to this heading">¶</a></h3>
+<ul class="simple">
+<li><p><strong>Syntax:</strong> <code class="docutils literal notranslate"><span class="pre">hurst(x,</span> <span class="pre">k=16,</span> <span class="pre">H=0.75)</span></code></p></li>
+<li><p><strong>Mapping &amp; Penalty:</strong> Harmonic basis weighted by fractional Gaussian noise inverse power spectrum <span class="math notranslate nohighlight">\(|\omega|^{2H-1}\)</span>; <a class="reference internal" href="architecture/spectrum/HURST.html"><span class="std std-doc">Architecture</span></a>.</p></li>
+</ul>
+</section>
+<hr class="docutils" />
+<section id="caputo-fractional-physics-phys-fractional-orders-beta">
+<h3><a class="reference internal" href="math/spectrum/FRACTIONAL_PHYSICS.html"><span class="std std-doc">Caputo Fractional Physics (<code class="docutils literal notranslate"><span class="pre">phys</span></code> fractional orders)</span></a> (BETA)<a class="headerlink" href="#caputo-fractional-physics-phys-fractional-orders-beta" title="Link to this heading">¶</a></h3>
+<ul class="simple">
+<li><p><strong>Syntax:</strong> <code class="docutils literal notranslate"><span class="pre">phys(x,</span> <span class="pre">D0.5=1.0)</span></code></p></li>
+<li><p><strong>Mapping &amp; Penalty:</strong> Grünwald-Letnikov Caputo fractional differential operator penalties (<span class="math notranslate nohighlight">\(\alpha \in (0,2)\)</span>); integer orders remain bit-identical to v1.5.1; <a class="reference internal" href="architecture/spectrum/FRACTIONAL_PHYSICS.html"><span class="std std-doc">Architecture</span></a>.</p></li>
+</ul>
+</section>
+<hr class="docutils" />
+<section id="exp-centered-units-n-activation-exu-beta">
+<span id="exp-centered-units-n-activationexu-beta"></span><h3><a class="reference internal" href="math/spectrum/EXU.html"><span class="std std-doc">Exp-Centered Units (<code class="docutils literal notranslate"><span class="pre">n(...,</span> <span class="pre">activation='exu')</span></code>)</span></a> (BETA)<a class="headerlink" href="#exp-centered-units-n-activation-exu-beta" title="Link to this heading">¶</a></h3>
+<ul class="simple">
+<li><p><strong>Syntax:</strong> <code class="docutils literal notranslate"><span class="pre">n(x,</span> <span class="pre">activation='exu',</span> <span class="pre">k=64)</span></code></p></li>
+<li><p><strong>Mapping &amp; Penalty:</strong> Log-space weight parameterization for sharp step-function regimes without Gibbs oscillation; <a class="reference internal" href="architecture/spectrum/EXU.html"><span class="std std-doc">Architecture</span></a>.</p></li>
+</ul>
+</section>
+<hr class="docutils" />
+<section id="singular-spectrum-analysis-ssa-beta">
+<h3><a class="reference internal" href="math/spectrum/SSA.html"><span class="std std-doc">Singular Spectrum Analysis (<code class="docutils literal notranslate"><span class="pre">ssa</span></code>)</span></a> (BETA)<a class="headerlink" href="#singular-spectrum-analysis-ssa-beta" title="Link to this heading">¶</a></h3>
+<ul class="simple">
+<li><p><strong>Syntax:</strong> <code class="docutils literal notranslate"><span class="pre">ssa(x,</span> <span class="pre">window=24,</span> <span class="pre">k=8)</span></code></p></li>
+<li><p><strong>Mapping &amp; Penalty:</strong> Hankel trajectory EOF projection with inverse-singular-value spectral penalty; <a class="reference internal" href="architecture/spectrum/SSA.html"><span class="std std-doc">Architecture</span></a>.</p></li>
+</ul>
+</section>
 </section>
 <hr class="docutils" />
 <section id="benchmark-proof-the-power-of-topology-meta-learning">
@@ -956,6 +1066,17 @@
 <li><a class="reference internal" href="#causal-revin-patch-basis-patch-basis-beta"><span class="xref myst">Causal RevIN Patch Basis (<code class="docutils literal notranslate"><span class="pre">patch_basis</span></code>)</span> (BETA)</a></li>
 <li><a class="reference internal" href="#universal-foundation-basis-foundation-beta"><span class="xref myst">Universal Foundation Basis (<code class="docutils literal notranslate"><span class="pre">foundation</span></code>)</span> (BETA)</a></li>
 <li><a class="reference internal" href="#koopman-edmd-koopman-beta"><span class="xref myst">Koopman EDMD (<code class="docutils literal notranslate"><span class="pre">koopman</span></code>)</span> (BETA)</a></li>
+<li><a class="reference internal" href="#bochner-qmc-rff-pspec-beta"><span class="xref myst">Bochner QMC RFF (<code class="docutils literal notranslate"><span class="pre">pspec</span></code>)</span> (BETA)</a></li>
+<li><a class="reference internal" href="#hippo-state-space-memory-hippo-beta"><span class="xref myst">HiPPO State-Space Memory (<code class="docutils literal notranslate"><span class="pre">hippo</span></code>)</span> (BETA)</a></li>
+<li><a class="reference internal" href="#performer-favor-attention-attn-beta"><span class="xref myst">Performer FAVOR+ Attention (<code class="docutils literal notranslate"><span class="pre">attn</span></code>)</span> (BETA)</a></li>
+<li><a class="reference internal" href="#higher-order-bispectrum-bispec-beta"><span class="xref myst">Higher-Order Bispectrum (<code class="docutils literal notranslate"><span class="pre">bispec</span></code>)</span> (BETA)</a></li>
+<li><a class="reference internal" href="#wavelet-scattering-wst-beta"><span class="xref myst">Wavelet Scattering (<code class="docutils literal notranslate"><span class="pre">wst</span></code>)</span> (BETA)</a></li>
+<li><a class="reference internal" href="#t-jepa-latent-predictor-tjepa-beta"><span class="xref myst">T-JEPA Latent Predictor (<code class="docutils literal notranslate"><span class="pre">tjepa</span></code>)</span> (BETA)</a></li>
+<li><a class="reference internal" href="#fourier-neural-operator-fno-beta"><span class="xref myst">Fourier Neural Operator (<code class="docutils literal notranslate"><span class="pre">fno</span></code>)</span> (BETA)</a></li>
+<li><a class="reference internal" href="#hurst-fractional-noise-hurst-beta"><span class="xref myst">Hurst Fractional Noise (<code class="docutils literal notranslate"><span class="pre">hurst</span></code>)</span> (BETA)</a></li>
+<li><a class="reference internal" href="#caputo-fractional-physics-phys-fractional-orders-beta"><span class="xref myst">Caputo Fractional Physics (<code class="docutils literal notranslate"><span class="pre">phys</span></code> fractional orders)</span> (BETA)</a></li>
+<li><a class="reference internal" href="#exp-centered-units-n-activation-exu-beta"><span class="xref myst">Exp-Centered Units (<code class="docutils literal notranslate"><span class="pre">n(...,</span> <span class="pre">activation='exu')</span></code>)</span> (BETA)</a></li>
+<li><a class="reference internal" href="#singular-spectrum-analysis-ssa-beta"><span class="xref myst">Singular Spectrum Analysis (<code class="docutils literal notranslate"><span class="pre">ssa</span></code>)</span> (BETA)</a></li>
 </ul>
 </li>
 <li><a class="reference internal" href="#benchmark-proof-the-power-of-topology-meta-learning">📊 Benchmark Proof: The Power of Topology &amp; Meta-Learning</a><ul>

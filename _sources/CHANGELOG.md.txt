@@ -15,7 +15,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > **[0.0.6]** corresponds to the legacy `weakl` package available on PyPI.
 
 ---
-## [Unreleased]
+## [1.6.1] - 2026-11-18
+
+### Added
+- Added Bochner QMC RFF spectrum effect (`pspec`, `PriorSpectralEffect`).
+- Added HiPPO state-space memory spectrum effect (`hippo`, `HiPPOEffect`).
+- Added Performer FAVOR+ causal attention spectrum effect (`attn`, `TransformerEffect`).
+- Added Bispectrum quadratic phase-coupling spectrum effect (`bispec`, `BispectrumEffect`) and `hinich_bispectrum_test`.
+- Added Wavelet Scattering spectrum effect (`wst`, `ScatteringEffect`).
+- Added T-JEPA exogenous latent spectrum effect (`tjepa`, `TJEPAEffect`) with a closed-form encoder (`mode="svd"`, default) and a self-supervised gradient encoder (`mode="vicreg"`).
+- Added Fourier Neural Operator spectrum effect (`fno`, `OperatorEffect`).
+- Added Hurst fractional Brownian motion spectrum effect (`hurst`, `HurstEffect`).
+- Added Caputo fractional derivative orders to `UniversalPhysicsEffect` (integer `phys()` unchanged).
+- Added Exp-Centered Unit (`activation='exu'`) mode to `NeuralEffect`.
+- Added Singular Spectrum Analysis spectrum effect (`ssa`, `SSAEffect`).
 
 ## [1.6.0] - 2026-11-18
 
@@ -393,7 +406,8 @@ This version introduced the Formula API and the first object-oriented refactorin
 ### Added
 * Initial project setup based on the original `weakl` v0.0.6 package.
 
-[Unreleased]: https://github.com/EDF-Lab/tam/compare/v1.5.1...HEAD
+[1.6.1]: https://github.com/EDF-Lab/tam/releases/tag/v1.6.1
+[1.6.0]: https://github.com/EDF-Lab/tam/releases/tag/v1.6.0
 [1.5.1]: https://github.com/EDF-Lab/tam/releases/tag/v1.5.1
 [1.5.0]: https://github.com/EDF-Lab/tam/releases/tag/v1.5.0
 [1.4.1]: https://github.com/EDF-Lab/tam/releases/tag/v1.4.1

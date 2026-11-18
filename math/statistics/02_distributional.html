@@ -232,6 +232,17 @@
 <li class="toctree-l1"><a class="reference internal" href="../spectrum/KAN.html">Kolmogorov-Arnold Network Edge Splines</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../spectrum/SINGLE_INDEX.html">Penalized Single-Index Distributed Lags</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../spectrum/SIGNATURE.html">The Path Signature and Log-Signature Effect (Rough Path Iterated Integrals)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../spectrum/PRIOR_SPECTRAL.html">The Prior Spectral Effect (Bochner QMC-RFF Basis)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../spectrum/HIPPO_SSM.html">The HiPPO State Space Model Effect (Continuous-Time Polynomial Memory)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../spectrum/TRANSFORMER_FAVOR.html">The Transformer Attention Effect (Linearized FAVOR+ Positive Orthogonal Random Features)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../spectrum/BISPECTRUM.html">The Bispectrum Effect: Higher-Order Spectral Analysis &amp; Quadratic Phase Coupling</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../spectrum/WAVELET_SCATTERING.html">WAVELET_SCATTERING: Translation-Invariant, Deformation-Stable Wavelet Scattering Transform (WST)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../spectrum/T_JEPA.html">T_JEPA: Self-Supervised Temporal Joint-Embedding Predictive Architecture for Exogenous Covariates</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../spectrum/FNO.html">Fourier Neural Operator</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../spectrum/HURST.html">Hurst Fractional Gaussian Noise Basis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../spectrum/FRACTIONAL_PHYSICS.html">Caputo Fractional Physics Penalties</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../spectrum/EXU.html">Exp-Centered Units (ExU)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../spectrum/SSA.html">Singular Spectrum Analysis</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../spectrum/PID.html">The PID Effect (Autoregressive Control Dynamics)</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../spectrum/LINEAR_TREE.html">The Linear Tree Effect (Varying-Coefficient Models)</a></li>
 </ul>
@@ -273,6 +284,17 @@
 <li class="toctree-l1"><a class="reference internal" href="../../architecture/spectrum/KAN.html">Kolmogorov-Arnold Network Edge Splines: PyTorch Architecture</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../architecture/spectrum/SINGLE_INDEX.html">Penalized Single-Index Distributed Lags: PyTorch Architecture</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../architecture/spectrum/SIGNATURE.html">Path Signature and Log-Signature Effect: PyTorch Architecture &amp; Implementation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/spectrum/PRIOR_SPECTRAL.html">Prior Spectral Effect: PyTorch Architecture &amp; Implementation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/spectrum/HIPPO_SSM.html">HiPPO State Space Model Effect: PyTorch Architecture &amp; Implementation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/spectrum/TRANSFORMER_FAVOR.html">Transformer FAVOR+ Attention Effect: PyTorch Architecture &amp; Implementation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/spectrum/BISPECTRUM.html">Bispectrum Effect: PyTorch Architecture &amp; Implementation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/spectrum/WAVELET_SCATTERING.html">Wavelet Scattering Transform: PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/spectrum/T_JEPA.html">Temporal Joint-Embedding Predictive Architecture (T-JEPA): PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/spectrum/FNO.html">Fourier Neural Operator: PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/spectrum/HURST.html">Hurst Fractional Gaussian Noise Basis: PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/spectrum/FRACTIONAL_PHYSICS.html">Caputo Fractional Physics Penalties: PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/spectrum/EXU.html">Exp-Centered Units (ExU): PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/spectrum/SSA.html">Singular Spectrum Analysis: PyTorch Architecture</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../architecture/core/07_the_statistics_api.html">The Statistics API: One Atom, Many Schedules</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">🔬 Architecture: The Statistics Engine</span></p>
@@ -367,13 +389,13 @@ below zero, so a target taking such values is modelled on its own scale, <span c
 <p><strong>Efficiency of the location.</strong> Given the scale, the minimum-variance estimator of <span class="math notranslate nohighlight">\(\theta\)</span> in <span class="math notranslate nohighlight">\(\mu=\Phi\theta\)</span> is the weighted penalized least-squares solution with weights <span class="math notranslate nohighlight">\(w_i=1/\sigma_i^2\)</span>,</p>
 <div class="math-wrapper docutils container">
 <div class="math notranslate nohighlight">
-\[ \hat\theta=\big(\Phi^\top W\Phi+nP\big)^{-1}\Phi^\top W t, \]</div>
+\[ \hat\theta=\big(\Phi^\top W\Phi+T_{\text{eff}}P\big)^{-1}\Phi^\top W t, \]</div>
 </div>
 <p>while the first stage uses <span class="math notranslate nohighlight">\(W=I\)</span>: it is unbiased, but its variance exceeds that of the weighted one when the noise is heteroscedastic. For a symmetric law the information matrix is block-diagonal in <span class="math notranslate nohighlight">\((\mu,\sigma)\)</span> (the parameters are orthogonal), so alternating the two steps, location with the weights of the last scale and scale on the residuals of the last location, converges to the joint maximum of the likelihood, usually in one to three rounds, and loses nothing against a joint Newton step. The gain depends on how local the location is: the variance of a flexible smoother at a point is governed by the noise at that point only, so the weights change it little; a parsimonious location (a line, a few knots) over a noise whose spread varies several times gains a third of its error or more.</p>
 <p><strong>Bias of the scale.</strong> The scale is fitted to squared residuals, which the fit has shrunk: with the hat matrix <span class="math notranslate nohighlight">\(H\)</span> of the location, <span class="math notranslate nohighlight">\(\mathbb E[r_i^2]=\sigma_i^2(1-2h_{ii})+\sum_jH_{ij}^2\sigma_j^2\approx\sigma_i^2(1-h_{ii})\)</span> when <span class="math notranslate nohighlight">\(\sigma\)</span> varies slowly compared to the width of the smoother, since <span class="math notranslate nohighlight">\(\sum_jH_{ij}^2=h_{ii}\)</span>. The variance is therefore underestimated by the fraction <span class="math notranslate nohighlight">\(h_{ii}\)</span>, which is large when the location is flexible and the sample small, and the intervals are too narrow. Dividing by the leverage gives an unbiased target,</p>
 <div class="math-wrapper docutils container">
 <div class="math notranslate nohighlight">
-\[ \tilde r_i^2=\frac{r_i^2}{1-h_{ii}},\qquad h_{ii}=w_i\,\phi_i^\top\big(\Phi^\top W\Phi+nP\big)^{-1}\phi_i, \]</div>
+\[ \tilde r_i^2=\frac{r_i^2}{1-h_{ii}},\qquad h_{ii}=w_i\,\phi_i^\top\big(\Phi^\top W\Phi+T_{\text{eff}}P\big)^{-1}\phi_i, \]</div>
 </div>
 <p>the per-row form of the degrees-of-freedom correction of restricted maximum likelihood <span class="bibtex-citation" id="id2">[<a class="reference internal" href="../../bibliography.html#id135" title="H. D. Patterson and R. Thompson. Recovery of inter-block information when block sizes are unequal. Biometrika, 58(3):545–554, 1971.">Patterson and Thompson, 1971</a>]</span>, whose aggregate version replaces <span class="math notranslate nohighlight">\(n\)</span> by <span class="math notranslate nohighlight">\(n-\operatorname{edf}\)</span> with <span class="math notranslate nohighlight">\(\operatorname{edf}=\sum_ih_{ii}\)</span> the trace of the hat matrix <span class="bibtex-citation" id="id3">[<a class="reference internal" href="../../bibliography.html#id82" title="Simon N Wood. Generalized additive models: an introduction with R. chapman and hall/CRC, 2017.">Wood, 2017</a>]</span>. The leverage is clamped below <span class="math notranslate nohighlight">\(0.9\)</span> because a row that the location nearly interpolates would make <span class="math notranslate nohighlight">\(\tilde r_i^2\)</span> explode.</p>
 </section>

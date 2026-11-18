@@ -22,7 +22,7 @@ $$||P_{lin}^{1/2} \theta_{lin}||_2^2 = \lambda ||\theta_{lin}||_2^2$$
 
 This direct projection corresponds precisely to the homogeneous Dot Product Kernel (or Linear Kernel), defined as $k(x, x') = \langle x, x' \rangle = x^\top x'$ {cite:p}`williams2006gaussian`. 
 
-By equipping the standard Euclidean space with the strictly positive definite penalty norm induced by $\lambda I$, the coefficients are rigorously bounded. This guarantees that the linear mapping satisfies Mercer's conditions, formally operating as a valid, finite-dimensional Reproducing Kernel Hilbert Space (RKHS). The framework mathematically ensures the strict invertibility of the global covariance matrix $\left( \Phi^\top \Lambda^\top \Lambda \Phi + n P \right)$. This stabilizes the global matrix resolution, entirely preventing numerical singularities without artificially suppressing the linear signal.
+By equipping the standard Euclidean space with the strictly positive definite penalty norm induced by $\lambda I$, the coefficients are rigorously bounded. This guarantees that the linear mapping satisfies Mercer's conditions, formally operating as a valid, finite-dimensional Reproducing Kernel Hilbert Space (RKHS). The framework mathematically ensures the strict invertibility of the global covariance matrix $\left( \Phi^\top \Lambda^\top \Lambda \Phi + T_{\text{eff}} P \right)$. This stabilizes the global matrix resolution, entirely preventing numerical singularities without artificially suppressing the linear signal.
 
 ## Raw Covariates and Varying Coefficients
 

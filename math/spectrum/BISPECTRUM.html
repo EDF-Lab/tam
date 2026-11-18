@@ -1,0 +1,577 @@
+<!doctype html>
+<html class="no-js" lang="en" data-content_root="../../">
+  <head><meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="index" title="Index" href="../../genindex.html"><link rel="search" title="Search" href="../../search.html"><link rel="next" title="WAVELET_SCATTERING: Translation-Invariant, Deformation-Stable Wavelet Scattering Transform (WST)" href="WAVELET_SCATTERING.html"><link rel="prev" title="The Transformer Attention Effect (Linearized FAVOR+ Positive Orthogonal Random Features)" href="TRANSFORMER_FAVOR.html">
+        <link rel="prefetch" href="../../_static/logo.png" as="image">
+
+    <!-- Generated with Sphinx 9.1.1 and Furo 2025.12.19 -->
+        <title>The Bispectrum Effect: Higher-Order Spectral Analysis &amp; Quadratic Phase Coupling - TAM 1.5.1 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=d111a655" />
+    <link rel="stylesheet" type="text/css" href="../../_static/styles/furo.css?v=7bdb33bb" />
+    <link rel="stylesheet" type="text/css" href="../../_static/styles/furo-extensions.css?v=8dab3a3b" />
+    
+    
+
+
+<style>
+  body {
+    --color-code-background: #f2f2f2;
+  --color-code-foreground: #1e1e1e;
+  
+  }
+  @media not print {
+    body[data-theme="dark"] {
+      --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+    }
+    @media (prefers-color-scheme: dark) {
+      body:not([data-theme="light"]) {
+        --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+      }
+    }
+  }
+</style></head>
+  <body>
+    
+    <script>
+      document.body.dataset.theme = localStorage.getItem("theme") || "auto";
+    </script>
+    
+
+<svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
+  <symbol id="svg-toc" viewBox="0 0 24 24">
+    <title>Contents</title>
+    <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 1024 1024">
+      <path d="M408 442h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8zm-8 204c0 4.4 3.6 8 8 8h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56zm504-486H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zm0 632H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zM115.4 518.9L271.7 642c5.8 4.6 14.4.5 14.4-6.9V388.9c0-7.4-8.5-11.5-14.4-6.9L115.4 505.1a8.74 8.74 0 0 0 0 13.8z"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-menu" viewBox="0 0 24 24">
+    <title>Menu</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-menu">
+      <line x1="3" y1="12" x2="21" y2="12"></line>
+      <line x1="3" y1="6" x2="21" y2="6"></line>
+      <line x1="3" y1="18" x2="21" y2="18"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-arrow-right" viewBox="0 0 24 24">
+    <title>Expand</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-chevron-right">
+      <polyline points="9 18 15 12 9 6"></polyline>
+    </svg>
+  </symbol>
+  <symbol id="svg-sun" viewBox="0 0 24 24">
+    <title>Light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="feather-sun">
+      <circle cx="12" cy="12" r="5"></circle>
+      <line x1="12" y1="1" x2="12" y2="3"></line>
+      <line x1="12" y1="21" x2="12" y2="23"></line>
+      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+      <line x1="1" y1="12" x2="3" y2="12"></line>
+      <line x1="21" y1="12" x2="23" y2="12"></line>
+      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+      <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon" viewBox="0 0 24 24">
+    <title>Dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-moon">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454z" />
+    </svg>
+  </symbol>
+  <symbol id="svg-sun-with-moon" viewBox="0 0 24 24">
+    <title>Auto light/dark, in light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path style="opacity: 50%" d="M 5.411 14.504 C 5.471 14.504 5.532 14.504 5.591 14.504 C 3.639 16.319 4.383 19.569 6.931 20.352 C 7.693 20.586 8.512 20.551 9.25 20.252 C 8.023 23.207 4.056 23.725 2.11 21.184 C 0.166 18.642 1.702 14.949 4.874 14.536 C 5.051 14.512 5.231 14.5 5.411 14.5 L 5.411 14.504 Z"/>
+      <line x1="14.5" y1="3.25" x2="14.5" y2="1.25"/>
+      <line x1="14.5" y1="15.85" x2="14.5" y2="17.85"/>
+      <line x1="10.044" y1="5.094" x2="8.63" y2="3.68"/>
+      <line x1="19" y1="14.05" x2="20.414" y2="15.464"/>
+      <line x1="8.2" y1="9.55" x2="6.2" y2="9.55"/>
+      <line x1="20.8" y1="9.55" x2="22.8" y2="9.55"/>
+      <line x1="10.044" y1="14.006" x2="8.63" y2="15.42"/>
+      <line x1="19" y1="5.05" x2="20.414" y2="3.636"/>
+      <circle cx="14.5" cy="9.55" r="3.6"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon-with-sun" viewBox="0 0 24 24">
+    <title>Auto light/dark, in dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path d="M 8.282 7.007 C 8.385 7.007 8.494 7.007 8.595 7.007 C 5.18 10.184 6.481 15.869 10.942 17.24 C 12.275 17.648 13.706 17.589 15 17.066 C 12.851 22.236 5.91 23.143 2.505 18.696 C -0.897 14.249 1.791 7.786 7.342 7.063 C 7.652 7.021 7.965 7 8.282 7 L 8.282 7.007 Z"/>
+      <line style="opacity: 50%" x1="18" y1="3.705" x2="18" y2="2.5"/>
+      <line style="opacity: 50%" x1="18" y1="11.295" x2="18" y2="12.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="4.816" x2="14.464" y2="3.964"/>
+      <line style="opacity: 50%" x1="20.711" y1="10.212" x2="21.563" y2="11.063"/>
+      <line style="opacity: 50%" x1="14.205" y1="7.5" x2="13.001" y2="7.5"/>
+      <line style="opacity: 50%" x1="21.795" y1="7.5" x2="23" y2="7.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="10.184" x2="14.464" y2="11.036"/>
+      <line style="opacity: 50%" x1="20.711" y1="4.789" x2="21.563" y2="3.937"/>
+      <circle style="opacity: 50%" cx="18" cy="7.5" r="2.169"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-pencil" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-pencil-code">
+      <path d="M4 20h4l10.5 -10.5a2.828 2.828 0 1 0 -4 -4l-10.5 10.5v4" />
+      <path d="M13.5 6.5l4 4" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+  <symbol id="svg-eye" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-eye-code">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M10 12a2 2 0 1 0 4 0a2 2 0 0 0 -4 0" />
+      <path
+        d="M11.11 17.958c-3.209 -.307 -5.91 -2.293 -8.11 -5.958c2.4 -4 5.4 -6 9 -6c3.6 0 6.6 2 9 6c-.21 .352 -.427 .688 -.647 1.008" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+</svg>
+
+<input type="checkbox" class="sidebar-toggle" name="__navigation" id="__navigation" aria-label="Toggle site navigation sidebar">
+<input type="checkbox" class="sidebar-toggle" name="__toc" id="__toc" aria-label="Toggle table of contents sidebar">
+<label class="overlay sidebar-overlay" for="__navigation"></label>
+<label class="overlay toc-overlay" for="__toc"></label>
+
+<a class="skip-to-content muted-link" href="#furo-main-content">Skip to content</a>
+
+
+
+<div class="page">
+  <header class="mobile-header">
+    <div class="header-left">
+      <label class="nav-overlay-icon" for="__navigation">
+        <span class="icon"><svg><use href="#svg-menu"></use></svg></span>
+      </label>
+    </div>
+    <div class="header-center">
+      <a href="../../index.html"><div class="brand">TAM 1.5.1 documentation</div></a>
+    </div>
+    <div class="header-right">
+      <div class="theme-toggle-container theme-toggle-header">
+        <button class="theme-toggle" aria-label="Toggle Light / Dark / Auto color theme">
+          <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+          <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+          <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+          <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+        </button>
+      </div>
+      <label class="toc-overlay-icon toc-header-icon" for="__toc">
+        <span class="icon"><svg><use href="#svg-toc"></use></svg></span>
+      </label>
+    </div>
+  </header>
+  <aside class="sidebar-drawer">
+    <div class="sidebar-container">
+      
+      <div class="sidebar-sticky"><a class="sidebar-brand" href="../../index.html">
+  <div class="sidebar-logo-container">
+    <img class="sidebar-logo" src="../../_static/logo.png" alt="Logo"/>
+  </div>
+  
+  <span class="sidebar-brand-text">TAM 1.5.1 documentation</span>
+  
+</a><form class="sidebar-search-container" method="get" action="../../search.html" role="search">
+  <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
+  <input type="hidden" name="check_keywords" value="yes">
+  <input type="hidden" name="area" value="default">
+</form>
+<div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
+  <p class="caption" role="heading"><span class="caption-text">🚀 Getting Started</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../README.html">TAM (Time series Additive Model)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../THEORY.html">📚 Theory Introduction of TAM and Cheatsheet</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">🧠 Theory: The Core Engine</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../core/01_primal_model.html">The Exact Primal Resolution</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../core/02_tensorization.html">The Theory of N-Dim Broadcasting and Normalization</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../core/03_linear_system.html">Linear Algebra: Direct vs. Iterative Solvers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../core/04_complexity.html">Computational Complexity (<span class="math notranslate nohighlight">\(\mathcal{O}(D^3+T D^2)\)</span> vs <span class="math notranslate nohighlight">\(\mathcal{O}(T^3)\)</span>)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../core/05_gcv_theory.html">Hyperparameter Optimization: Generalized Cross-Validation (GCV)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../core/07_the_statistics_api.html">One Atom, Many Statistics: The Statistics API</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">🌈 Theory: The Spectrum Library</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="LINEAR.html">The Linear Effect (Ridge Regression)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="SPLINES.html">The Spline Effect (P-Splines)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="FOURIER.html">The Fourier Effect (Sobolev Spectral Basis)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="WAVELETS.html">The Wavelet Effect (Ricker)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="CHEBYSHEV.html">The Chebyshev Effect (Polynomial Minimax Basis)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="TREE.html">The Tree Effect (Random Forests &amp; Binning Features)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="NEURAL.html">The Neural Effect (NEPT)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="RBF.html">The Radial Basis Function (RBF) Effect</a></li>
+<li class="toctree-l1"><a class="reference internal" href="CATEGORICAL.html">The Categorical Effect (Discrete Topologies)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="CROSS_TENSOR.html">The Tensor Product Effect (Interactions)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="PHYSICS_PIKL.html">Physics-Informed Kernel Learning (PIKL)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="KOOPMAN_DMD.html">KOOPMAN_DMD: Global Linearization of Non-linear Dynamical Systems via Kernel / Extended Dynamic Mode Decomposition (EDMD / kDMD)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="FOUNDATION.html">Universal Foundation Basis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="PATCH_BASIS.html">Causal Patch Basis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="TEMPORAL_OPERATOR.html">Temporal Operators on an Evaluated Basis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="WARPED_CALENDAR.html">Warped Calendar Harmonics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="MACRO_TREND.html">Hodrick-Prescott Macro-Trend</a></li>
+<li class="toctree-l1"><a class="reference internal" href="DEGREE_DAY.html">Smooth Degree-Day Hinges</a></li>
+<li class="toctree-l1"><a class="reference internal" href="THERMAL_INERTIA.html">Thermal Inertia</a></li>
+<li class="toctree-l1"><a class="reference internal" href="KAN.html">Kolmogorov-Arnold Network Edge Splines</a></li>
+<li class="toctree-l1"><a class="reference internal" href="SINGLE_INDEX.html">Penalized Single-Index Distributed Lags</a></li>
+<li class="toctree-l1"><a class="reference internal" href="SIGNATURE.html">The Path Signature and Log-Signature Effect (Rough Path Iterated Integrals)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="PRIOR_SPECTRAL.html">The Prior Spectral Effect (Bochner QMC-RFF Basis)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="HIPPO_SSM.html">The HiPPO State Space Model Effect (Continuous-Time Polynomial Memory)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="TRANSFORMER_FAVOR.html">The Transformer Attention Effect (Linearized FAVOR+ Positive Orthogonal Random Features)</a></li>
+<li class="toctree-l1 current current-page"><a class="current reference internal" href="#">The Bispectrum Effect: Higher-Order Spectral Analysis &amp; Quadratic Phase Coupling</a></li>
+<li class="toctree-l1"><a class="reference internal" href="WAVELET_SCATTERING.html">WAVELET_SCATTERING: Translation-Invariant, Deformation-Stable Wavelet Scattering Transform (WST)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="T_JEPA.html">T_JEPA: Self-Supervised Temporal Joint-Embedding Predictive Architecture for Exogenous Covariates</a></li>
+<li class="toctree-l1"><a class="reference internal" href="FNO.html">Fourier Neural Operator</a></li>
+<li class="toctree-l1"><a class="reference internal" href="HURST.html">Hurst Fractional Gaussian Noise Basis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="FRACTIONAL_PHYSICS.html">Caputo Fractional Physics Penalties</a></li>
+<li class="toctree-l1"><a class="reference internal" href="EXU.html">Exp-Centered Units (ExU)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="SSA.html">Singular Spectrum Analysis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="PID.html">The PID Effect (Autoregressive Control Dynamics)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="LINEAR_TREE.html">The Linear Tree Effect (Varying-Coefficient Models)</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">📊 Theory: The Statistics Engine</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../statistics/01_reweighted_estimation.html">Reweighted Estimation: GLMs, Expectiles &amp; Robust M-Estimators</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../statistics/02_distributional.html">Distributional (Location-Scale) Models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../statistics/03_mixture_copula.html">Mixtures &amp; Gaussian Copulas</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../statistics/04_risk_conformal_evt.html">Risk: Conformal, ACI, EVT &amp; Epistemic Uncertainty</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">⚙️ Theory: Meta-Learners &amp; Inference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../meta/01_adaptive_online.html">Adaptive Online Learning (AdaptiveTAM)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../meta/02_kalman_filter.html">Dynamic Tracking via Extended Kalman Filtering [BETA]</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../meta/03_hierarchical_joint.html">Hierarchical Joint Optimization [BETA]</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../meta/05_opera_aggregation.html">Online Prediction by Expert Aggregation (OPERA)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../meta/06_deep_gam_backfitting.html">Deep-GAM Hybridization and Orthogonal Backfitting [EXP]</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../meta/07_statistical_diagnostics.html">Statistical Inference and Diagnostics (Glass-Box) [EXP]</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../meta/08_auto_orchestrator.html">Evolutionary Orchestration and Multi-Fidelity AutoML</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../meta/09_auto_data_topology.html">AutoTAM Data Topology and Structural Safeguards [EXP]</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../meta/10_mlops_evaluation.html">Empirical Evaluation and MLOps Diagnostics</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">💻 Architecture: Core Implementation</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/core/01_additive_api.html">The Additive API and Object-Oriented Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/core/02_data_pipeline.html">The Engineering of Normalization and Padding</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/core/03_math_dispatcher.html">PyTorch Math Dispatcher &amp; Matrix-Free Solvers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/core/04_hardware_memory.html">Hardware Memory Dispatch &amp; Anti-OOM Systems</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/core/05_gcv_implementation.html">Auto-ML via Generalized Cross-Validation (GCV)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/core/06_the_spectrum_api.html">The Spectral Dictionary: PyTorch Implementations &amp; Factory Assembly</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/spectrum/KOOPMAN_DMD.html">Koopman Kernel DMD: PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/spectrum/FOUNDATION.html">Universal Foundation Basis: PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/spectrum/PATCH_BASIS.html">Causal RevIN Patch Basis: PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/spectrum/TEMPORAL_OPERATOR.html">Form B Temporal Operators: PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/spectrum/WARPED_CALENDAR.html">Warped Calendar Harmonics: PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/spectrum/MACRO_TREND.html">Macro-Trend (<code class="docutils literal notranslate"><span class="pre">hp_trend</span></code>): PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/spectrum/DEGREE_DAY.html">Smooth Degree-Day Hinges: PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/spectrum/THERMAL_INERTIA.html">Thermal Inertia: PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/spectrum/KAN.html">Kolmogorov-Arnold Network Edge Splines: PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/spectrum/SINGLE_INDEX.html">Penalized Single-Index Distributed Lags: PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/spectrum/SIGNATURE.html">Path Signature and Log-Signature Effect: PyTorch Architecture &amp; Implementation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/spectrum/PRIOR_SPECTRAL.html">Prior Spectral Effect: PyTorch Architecture &amp; Implementation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/spectrum/HIPPO_SSM.html">HiPPO State Space Model Effect: PyTorch Architecture &amp; Implementation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/spectrum/TRANSFORMER_FAVOR.html">Transformer FAVOR+ Attention Effect: PyTorch Architecture &amp; Implementation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/spectrum/BISPECTRUM.html">Bispectrum Effect: PyTorch Architecture &amp; Implementation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/spectrum/WAVELET_SCATTERING.html">Wavelet Scattering Transform: PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/spectrum/T_JEPA.html">Temporal Joint-Embedding Predictive Architecture (T-JEPA): PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/spectrum/FNO.html">Fourier Neural Operator: PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/spectrum/HURST.html">Hurst Fractional Gaussian Noise Basis: PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/spectrum/FRACTIONAL_PHYSICS.html">Caputo Fractional Physics Penalties: PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/spectrum/EXU.html">Exp-Centered Units (ExU): PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/spectrum/SSA.html">Singular Spectrum Analysis: PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/core/07_the_statistics_api.html">The Statistics API: One Atom, Many Schedules</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">🔬 Architecture: The Statistics Engine</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/statistics/01_reweighted_estimation_code.html">Reweighted Estimation: Strategy Pattern &amp; IRLS Driver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/statistics/02_distributional_code.html">Distributional (Location-Scale): Thin Delegation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/statistics/03_mixture_copula_code.html">Mixtures &amp; Copulas: EM over the Atom, and the Standalone Joiner</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/statistics/04_risk_conformal_evt_code.html">Risk: Static Conformal, Streaming ACI, EVT &amp; Epistemic</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">🛠️ Architecture: Advanced Orchestration</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/meta/01_adaptive_code.html">Online Error Correction (AdaptiveTAM)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/meta/02_kalman_torchscript.html">Kalman TorchScript Optimizations &amp; Block Updates [BETA]</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/meta/03_hierarchical_code.html">Hierarchical Engineering &amp; Memory Assembly  [BETA]</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/meta/05_opera_gpu.html">OPERA GPU Tensor Batching</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/meta/06_neural_hybrid.html">DeepGAM Engineering &amp; Sequential Encapsulation [EXP]</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/meta/07_diagnostics_utils.html">Diagnostics, Visualization &amp; Utilities Engineering  [EXP]</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/meta/08_auto_orchestrator_code.html">Orchestrator Pipeline and Evolutionary Hub-and-Spoke Engine [EXP]</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/meta/09_auto_data_topology_code.html">AutoTAM Data Topology: Stateful Architecture &amp; Pandas Vectorization [EXP]</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/meta/10_mlops_tracking_code.html">MLOps Tracking and Empirical Benchmarking (Engineering)</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">🧪 Gallery of Examples &amp; Use Cases</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../EXAMPLES.html">🧪 Gallery of Examples &amp; Use Cases</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">📚 References &amp; Changelog</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../AUTHORS.html">👥 Authors and Contributions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../ACKNOWLEDGEMENTS.html">🔬 Scientific Background &amp; Acknowledgments</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../CHANGELOG.html">Changelog</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../CONTRIBUTING.html">🤝 Contributing to Time series Additive Model (TAM)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../README_DOC.html">📘 Documentation Generation Guide (TAM)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../bibliography.html">References</a></li>
+</ul>
+
+</div>
+</div>
+
+      </div>
+      
+    </div>
+  </aside>
+  <div class="main">
+    <div class="content">
+      <div class="article-container">
+        <a href="#" class="back-to-top muted-link">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+            <path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8v12z"></path>
+          </svg>
+          <span>Back to top</span>
+        </a>
+        <div class="content-icon-container">
+          <div class="view-this-page">
+  <a class="muted-link" href="../../_sources/math/spectrum/BISPECTRUM.md.txt" title="View this page">
+    <svg><use href="#svg-eye"></use></svg>
+    <span class="visually-hidden">View this page</span>
+  </a>
+</div>
+<div class="theme-toggle-container theme-toggle-content">
+            <button class="theme-toggle" aria-label="Toggle Light / Dark / Auto color theme">
+              <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+              <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+              <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+              <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+            </button>
+          </div>
+          <label class="toc-overlay-icon toc-content-icon" for="__toc">
+            <span class="icon"><svg><use href="#svg-toc"></use></svg></span>
+          </label>
+        </div>
+        <article role="main" id="furo-main-content">
+          <section class="tex2jax_ignore mathjax_ignore" id="the-bispectrum-effect-higher-order-spectral-analysis-quadratic-phase-coupling">
+<span id="the-bispectrum-effect-higher-order-spectral-analysis--quadratic-phase-coupling"></span><h1>The Bispectrum Effect: Higher-Order Spectral Analysis &amp; Quadratic Phase Coupling<a class="headerlink" href="#the-bispectrum-effect-higher-order-spectral-analysis-quadratic-phase-coupling" title="Link to this heading">¶</a></h1>
+<p><strong>Navigation:</strong></p>
+<ul class="simple">
+<li><p><strong>Theory Introduction:</strong> <a class="reference internal" href="../../THEORY.html"><span class="std std-doc">See the Intro</span></a></p></li>
+<li><p><strong>Code Architecture:</strong> <a class="reference internal" href="../../architecture/spectrum/BISPECTRUM.html"><span class="std std-doc">See BISPECTRUM.md</span></a></p></li>
+</ul>
+<section id="foundational-theory-why-second-order-spectra-fall-short">
+<h2>Foundational Theory: Why Second-Order Spectra Fall Short<a class="headerlink" href="#foundational-theory-why-second-order-spectra-fall-short" title="Link to this heading">¶</a></h2>
+<p>Standard Fourier and autocorrelation analyses rely exclusively on the second-order power spectral density <span class="math notranslate nohighlight">\(S(\omega) = \mathbb{E}[|X(\omega)|^2]\)</span> (Wiener–Khinchin theorem). Consequently, second-order methods are completely <strong>phase-blind</strong>: they cannot distinguish a linear Gaussian process from a non-linear, phase-coupled, asymmetric, heavy-tailed process with identical power spectrum <span class="bibtex-citation" id="id1">[<a class="reference internal" href="../../bibliography.html#id174" title="David R. Brillinger. An introduction to polyspectra. The Annals of Mathematical Statistics, 36(5):1351–1374, 1965.">Brillinger, 1965</a>, <a class="reference internal" href="../../bibliography.html#id175" title="Chrysostomos L. Nikias and Jerry M. Mendel. Signal processing with higher-order spectra. IEEE Signal Processing Magazine, 10(3):10–37, 1993.">Nikias and Mendel, 1993</a>]</span>.</p>
+<p>In electricity grid losses, volatile wholesale power prices, and industrial loads, non-linear physical interactions generate <strong>Quadratic Phase Coupling (QPC)</strong>:</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[\omega_3 = \omega_1 + \omega_2, \qquad \phi_3 = \phi_1 + \phi_2\]</div>
+</div>
+<p>This coupling produces non-zero third-order cumulants, skewness, and extreme asymmetric spikes that break Gaussian and Student-<span class="math notranslate nohighlight">\(t\)</span> parametric models. By introducing the <strong>Bispectrum</strong> and <strong>Bicoherence</strong> <span class="bibtex-citation" id="id2">[<a class="reference internal" href="../../bibliography.html#id174" title="David R. Brillinger. An introduction to polyspectra. The Annals of Mathematical Statistics, 36(5):1351–1374, 1965.">Brillinger, 1965</a>, <a class="reference internal" href="../../bibliography.html#id175" title="Chrysostomos L. Nikias and Jerry M. Mendel. Signal processing with higher-order spectra. IEEE Signal Processing Magazine, 10(3):10–37, 1993.">Nikias and Mendel, 1993</a>, <a class="reference internal" href="../../bibliography.html#id177" title="Melvin J Hinich. Testing for Gaussianity and linearity of a stationary time series. Journal of Time Series Analysis, 3(3):169–176, 1982.">Hinich, 1982</a>]</span>, TAM detects phase coupling and materializes an explicit quadratic phase-coupled Primal feature map <span class="math notranslate nohighlight">\(\Phi_{\text{bispec}}\)</span>.</p>
+</section>
+<section id="third-order-cumulant-and-the-bispectrum">
+<span id="1-third-order-cumulant-and-the-bispectrum"></span><h2>1. Third-Order Cumulant and the Bispectrum<a class="headerlink" href="#third-order-cumulant-and-the-bispectrum" title="Link to this heading">¶</a></h2>
+<p>For a zero-mean stationary stochastic process <span class="math notranslate nohighlight">\(\{x_t\}\)</span>, the third-order cumulant sequence is the two-lag skewness tensor:</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[C_3(\tau_1, \tau_2) = \operatorname{cum}(x_t,\, x_{t+\tau_1},\, x_{t+\tau_2}) = \mathbb{E}\big[x_t\, x_{t+\tau_1}\, x_{t+\tau_2}\big]\]</div>
+</div>
+<p>For any Gaussian process (or any symmetric linear process), <span class="math notranslate nohighlight">\(C_3(\tau_1, \tau_2) \equiv 0\)</span> identically. The <strong>Bispectrum</strong> <span class="math notranslate nohighlight">\(B(\omega_1, \omega_2) \in \mathbb{C}\)</span> is the 2D Fourier transform of <span class="math notranslate nohighlight">\(C_3(\tau_1, \tau_2)\)</span> <span class="bibtex-citation" id="id3">[<a class="reference internal" href="../../bibliography.html#id174" title="David R. Brillinger. An introduction to polyspectra. The Annals of Mathematical Statistics, 36(5):1351–1374, 1965.">Brillinger, 1965</a>, <a class="reference internal" href="../../bibliography.html#id175" title="Chrysostomos L. Nikias and Jerry M. Mendel. Signal processing with higher-order spectra. IEEE Signal Processing Magazine, 10(3):10–37, 1993.">Nikias and Mendel, 1993</a>]</span>:</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[B(\omega_1, \omega_2) = \sum_{\tau_1=-\infty}^{\infty} \sum_{\tau_2=-\infty}^{\infty} C_3(\tau_1, \tau_2)\, e^{-i(\omega_1 \tau_1 + \omega_2 \tau_2)}\]</div>
+</div>
+<p>In the frequency domain, with discrete Fourier transform <span class="math notranslate nohighlight">\(X(\omega) = \sum_{t=0}^{N-1} x_t e^{-i\omega t}\)</span>, the bispectrum measures the cross-correlation across closed frequency triads <span class="math notranslate nohighlight">\(\omega_1 + \omega_2 + \omega_3 = 0\)</span> (i.e. <span class="math notranslate nohighlight">\(\omega_3 = -(\omega_1 + \omega_2)\)</span>):</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[\hat{B}(k_1, k_2) = \frac{1}{M_{\text{seg}}} \sum_{m=1}^{M_{\text{seg}}} X^{(m)}(k_1)\, X^{(m)}(k_2)\, \big(X^{(m)}(k_1 + k_2)\big)^*\]</div>
+</div>
+<p>averaged across <span class="math notranslate nohighlight">\(M_{\text{seg}}\)</span> Welch overlapping segments in the principal non-redundant triangular domain:</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[\Omega = \big\{(k_1, k_2) \in \mathbb{N}^2 \;\big|\; 1 \le k_2 \le k_1, \; k_1 + k_2 \le \frac{N}{2}\big\}\]</div>
+</div>
+</section>
+<section id="normalized-bicoherence-hinich-tests">
+<span id="2-normalized-bicoherence--hinich-tests"></span><h2>2. Normalized Bicoherence &amp; Hinich Tests<a class="headerlink" href="#normalized-bicoherence-hinich-tests" title="Link to this heading">¶</a></h2>
+<p>To eliminate amplitude dependence on the marginal power spectrum <span class="math notranslate nohighlight">\(P(k) = \mathbb{E}[|X(k)|^2]\)</span>, the squared <strong>Bicoherence</strong> <span class="math notranslate nohighlight">\(b^2(k_1, k_2) \in [0, 1]\)</span> is normalized via the Kim &amp; Powers / Haubrich formulation <span class="bibtex-citation" id="id4">[<a class="reference internal" href="../../bibliography.html#id177" title="Melvin J Hinich. Testing for Gaussianity and linearity of a stationary time series. Journal of Time Series Analysis, 3(3):169–176, 1982.">Hinich, 1982</a>, <a class="reference internal" href="../../bibliography.html#id176" title="Young C Kim and Edward J Powers. Digital bispectral analysis and its applications to nonlinear wave interactions. IEEE Transactions on Plasma Science, 7(2):120–131, 1979.">Kim and Powers, 1979</a>]</span>:</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[b^2(k_1, k_2) = \frac{\big|\hat{B}(k_1, k_2)\big|^2}{\left( \frac{1}{M_{\text{seg}}} \sum_{m=1}^{M_{\text{seg}}} |X^{(m)}(k_1) X^{(m)}(k_2)|^2 \right) \left( \frac{1}{M_{\text{seg}}} \sum_{m=1}^{M_{\text{seg}}} |X^{(m)}(k_1 + k_2)|^2 \right) + \varepsilon}\]</div>
+</div>
+<p>By the Cauchy–Schwarz inequality, <span class="math notranslate nohighlight">\(0 \le b^2(k_1, k_2) \le 1\)</span> strictly:</p>
+<ul class="simple">
+<li><p>Under the null hypothesis of a purely linear Gaussian process, <span class="math notranslate nohighlight">\(2 M_{\text{seg}} b^2(k_1, k_2) \xrightarrow{d} \chi^2_2\)</span> asymptotically (<strong>Hinich Gaussianity Test</strong>, <span class="bibtex-citation" id="id5">[<a class="reference internal" href="../../bibliography.html#id177" title="Melvin J Hinich. Testing for Gaussianity and linearity of a stationary time series. Journal of Time Series Analysis, 3(3):169–176, 1982.">Hinich, 1982</a>]</span>).</p></li>
+<li><p>Under a linear non-Gaussian process, <span class="math notranslate nohighlight">\(b^2(k_1, k_2)\)</span> is approximately constant across frequencies. Spatial peaks in <span class="math notranslate nohighlight">\(b^2(k_1, k_2)\)</span> prove genuine <strong>Quadratic Phase Coupling (QPC)</strong>:</p></li>
+</ul>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[x_t \supset A_1 \cos(\omega_1 t + \phi_1) + A_2 \cos(\omega_2 t + \phi_2) + A_{12} \cos\big((\omega_1 + \omega_2)t + \phi_1 + \phi_2\big)\]</div>
+</div>
+</section>
+<section id="primal-feature-map-phi-text-bispec">
+<span id="3-primal-feature-map-"></span><h2>3. Primal Feature Map (<span class="math notranslate nohighlight">\(\Phi_{\text{bispec}}\)</span>)<a class="headerlink" href="#primal-feature-map-phi-text-bispec" title="Link to this heading">¶</a></h2>
+<p>For each selected triad <span class="math notranslate nohighlight">\(j = (k_{1,j}, k_{2,j})\)</span> with <span class="math notranslate nohighlight">\(k_{3,j} = k_{1,j} + k_{2,j}\)</span> and <span class="math notranslate nohighlight">\(\omega_i = 2\pi k_i / n_{\text{fft}}\)</span>, the causal short-time Fourier components over the last <span class="math notranslate nohighlight">\(n_{\text{fft}}\)</span> samples are</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[z_i(t) = \sum_{s=0}^{n_{\text{fft}}-1} h_s\, x(t-s)\, e^{+\mathrm{i}\omega_i s},\]</div>
+</div>
+<p>with the Hann window <span class="math notranslate nohighlight">\(h_s = \tfrac12 - \tfrac12\cos\frac{2\pi (s + 1/2)}{n_{\text{fft}}}\)</span>; the phase is taken in the window coordinate <span class="math notranslate nohighlight">\(s\)</span>, so it does not depend on the absolute index <span class="math notranslate nohighlight">\(t\)</span>. The bispectral product</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[B_j(t) = z_1(t)\, z_2(t)\, \overline{z_3(t)}\]</div>
+</div>
+<p>is free of the absolute time: the phase factors <span class="math notranslate nohighlight">\(e^{-\mathrm{i}(\omega_1 + \omega_2 - \omega_3)t}\)</span> cancel because <span class="math notranslate nohighlight">\(\omega_3 = \omega_1 + \omega_2\)</span>, so <span class="math notranslate nohighlight">\(B_j(t)\)</span> only depends on the samples inside the window. When the three components are phase locked, <span class="math notranslate nohighlight">\(\varphi_1 + \varphi_2 - \varphi_3\)</span> (the biphase) is constant and <span class="math notranslate nohighlight">\(B_j\)</span> keeps a constant phase; when they are not, the phase rotates and <span class="math notranslate nohighlight">\(B_j\)</span> averages to zero <span class="bibtex-citation" id="id6">[<a class="reference internal" href="../../bibliography.html#id177" title="Melvin J Hinich. Testing for Gaussianity and linearity of a stationary time series. Journal of Time Series Analysis, 3(3):169–176, 1982.">Hinich, 1982</a>, <a class="reference internal" href="../../bibliography.html#id176" title="Young C Kim and Edward J Powers. Digital bispectral analysis and its applications to nonlinear wave interactions. IEEE Transactions on Plasma Science, 7(2):120–131, 1979.">Kim and Powers, 1979</a>]</span>.</p>
+<p>The four columns of the triad are</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[\Big[\; \frac{\operatorname{Re} B_j}{s_j},\;\; \frac{\operatorname{Im} B_j}{s_j},\;\; \frac{|z_1 z_2|}{s_{a,j}},\;\; \cos(\varphi_1 + \varphi_2 - \varphi_3) = \frac{\operatorname{Re} B_j}{|z_1 z_2|\,|z_3| + \varepsilon_j} \;\Big],\]</div>
+</div>
+<p>with <span class="math notranslate nohighlight">\(s_j\)</span> and <span class="math notranslate nohighlight">\(s_{a,j}\)</span> the training medians of <span class="math notranslate nohighlight">\(|B_j|\)</span> and <span class="math notranslate nohighlight">\(|z_1 z_2|\)</span> and <span class="math notranslate nohighlight">\(\varepsilon_j = 10^{-12}\)</span> times the training median of <span class="math notranslate nohighlight">\(|z_1 z_2|\,|z_3|\)</span>, all frozen when the effect is initialized. Because the pairs <span class="math notranslate nohighlight">\((k_1, k_2)\)</span> are distinct, the four columns of a triad differ from those of every other triad.</p>
+</section>
+<section id="sobolev-bicoherence-penalty-matrix-p-text-bispec">
+<span id="4-sobolev-bicoherence-penalty-matrix-"></span><h2>4. Sobolev-Bicoherence Penalty Matrix (<span class="math notranslate nohighlight">\(P_{\text{bispec}}\)</span>)<a class="headerlink" href="#sobolev-bicoherence-penalty-matrix-p-text-bispec" title="Link to this heading">¶</a></h2>
+<p>The penalty matrix <span class="math notranslate nohighlight">\(P_{\text{bispec}}\)</span> weights each triad by its total bi-frequency Sobolev roughness and inversely by its empirical bicoherence significance:</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[P_{\text{bispec}} = \operatorname{diag}\!\left( \lambda_p \cdot \frac{1 + (\omega_{1,j}^2 + \omega_{2,j}^2 + (\omega_{1,j}+\omega_{2,j})^2)^s}{\max\big(b^2_j,\, \varepsilon_b\big)} \right)_{j=1}^K \otimes I_4\]</div>
+</div>
+<ul class="simple">
+<li><p><strong>High-frequency suppression</strong>: the Sobolev numerator regularizes rapid oscillatory noise.</p></li>
+<li><p><strong>Empirical bicoherence weighting</strong>: triads with spurious, low bicoherence (<span class="math notranslate nohighlight">\(b^2 \to 0\)</span>) receive large penalty weights and shrink to zero, while validated quadratic couplings (<span class="math notranslate nohighlight">\(b^2 \to 1\)</span>) are retained. The bicoherence is estimated once, on the segments of every training group (a segment never spans two groups).</p></li>
+<li><p><strong>Strict positive definiteness</strong>: every diagonal element is positive, so <span class="math notranslate nohighlight">\(P_{\text{bispec}} \succ 0\)</span>.</p></li>
+</ul>
+</section>
+<section id="causality-and-state-continuation">
+<span id="5-causality-and-state-continuation"></span><h2>5. Causality and state continuation<a class="headerlink" href="#causality-and-state-continuation" title="Link to this heading">¶</a></h2>
+<p>Every component is a causal window ending at the current step: the features of step <span class="math notranslate nohighlight">\(t\)</span> never use a later value. The state is the last <span class="math notranslate nohighlight">\(n_{\text{fft}} - 1\)</span> samples of every group, <code class="docutils literal notranslate"><span class="pre">{&quot;hist&quot;:</span> <span class="pre">(B,</span> <span class="pre">n_fft</span> <span class="pre">-</span> <span class="pre">1,</span> <span class="pre">1)}</span></code>; without one the first sample is replicated. The effect reads one column.</p>
+<p><img alt="Bispectrum geometry" src="../../_images/bispec_geometry.png" /></p>
+</section>
+<section id="conditioning-on-smooth-series">
+<h2>Conditioning on smooth series<a class="headerlink" href="#conditioning-on-smooth-series" title="Link to this heading">¶</a></h2>
+<p>The columns of the bispectral product of a very smooth series (a few sinusoids with little noise) are nearly linearly dependent: the Gram matrix of the design is badly conditioned, and the penalized solution is then sensitive to small differences between the series used to fit and a later one unless the penalty weight is large enough to control the near-null directions of the design. The weight of the penalty, not a rescaling of the columns, is the quantity that restores a stable solution; it is chosen by the same criteria as for any other term.</p>
+</section>
+<section id="chunk-equivalence">
+<h2>Chunk equivalence<a class="headerlink" href="#chunk-equivalence" title="Link to this heading">¶</a></h2>
+<p>The features of a series computed in one pass over it equal the features computed in two chunks when the second chunk starts from the terminal state of the first. Three mechanisms carry that state, and this effect uses a <strong>window history</strong> (the last rows of every group, which complete the windows of the next chunk) and <strong>frozen training statistics</strong> (constants estimated once on the training period, which a later chunk does not update). Because the state is exactly what a later row reads from the past, a forecast can continue a fitted series one chunk at a time without refitting or recomputing the past.</p>
+</section>
+<section id="what-is-new-here">
+<h2>What is new here<a class="headerlink" href="#what-is-new-here" title="Link to this heading">¶</a></h2>
+<p>The bispectrum, the bicoherence and the Hinich test are those of the cited papers. What this effect adds:</p>
+<ul class="simple">
+<li><p>the <strong>phase-coupling features used as regressors of an additive model</strong>: the real and imaginary parts of the causal bispectral product of a triad, its modulus input and the cosine of the biphase are columns of a penalized term, so a load whose daily and weekly components are phase locked can be regressed on that locking;</p></li>
+<li><p>the <strong>time-free form of the product</strong>, which depends only on the samples inside the window, so that a forecast that continues the training period needs only the last <span class="math notranslate nohighlight">\(n_{\text{fft}} - 1\)</span> samples;</p></li>
+<li><p>the <strong>bicoherence-weighted Sobolev penalty</strong> that shrinks the triads without significant coupling.</p></li>
+</ul>
+<p>The <code class="docutils literal notranslate"><span class="pre">hinich_bispectrum_test</span></code> function of the diagnostics is unchanged and is the way to choose the triads.</p>
+</section>
+<section id="references">
+<h2>References<a class="headerlink" href="#references" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p>Brillinger, David R. (1965). <em>An Introduction to Polyspectra</em>. The Annals of Mathematical Statistics. <code class="docutils literal notranslate"><span class="pre">brillinger1965introduction</span></code></p></li>
+<li><p>Kim, Young C, Powers, Edward J (1979). <em>Digital bispectral analysis and its applications to nonlinear wave interactions</em>. IEEE Transactions on Plasma Science. <code class="docutils literal notranslate"><span class="pre">kim1979digital</span></code></p></li>
+<li><p>Hinich, Melvin J (1982). <em>Testing for Gaussianity and linearity of a stationary time series</em>. Journal of Time Series Analysis. <code class="docutils literal notranslate"><span class="pre">hinich1982testing</span></code></p></li>
+<li><p>Wood, Simon N (2017). <em>Generalized additive models: an introduction with R</em>. chapman and hall/CRC. <code class="docutils literal notranslate"><span class="pre">wood2017generalized</span></code></p></li>
+</ul>
+</section>
+</section>
+
+        </article>
+      </div>
+      <footer>
+        
+        <div class="related-pages">
+          <a class="next-page" href="WAVELET_SCATTERING.html">
+              <div class="page-info">
+                <div class="context">
+                  <span>Next</span>
+                </div>
+                <div class="title">WAVELET_SCATTERING: Translation-Invariant, Deformation-Stable Wavelet Scattering Transform (WST)</div>
+              </div>
+              <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
+            </a>
+          <a class="prev-page" href="TRANSFORMER_FAVOR.html">
+              <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
+              <div class="page-info">
+                <div class="context">
+                  <span>Previous</span>
+                </div>
+                
+                <div class="title">The Transformer Attention Effect (Linearized FAVOR+ Positive Orthogonal Random Features)</div>
+                
+              </div>
+            </a>
+        </div>
+        <div class="bottom-of-page">
+          <div class="left-details">
+            <div class="copyright">
+                Copyright &#169; 2025-2026 Électricité de France (contributors: Yann Allioux); 2023-2025 Électricité de France, Sorbonne Université (contributors: Nathan Doumèche, Éloi Bedek)
+            </div>
+            Made with <a href="https://www.sphinx-doc.org/">Sphinx</a> and <a class="muted-link" href="https://pradyunsg.me">@pradyunsg</a>'s
+            
+            <a href="https://github.com/pradyunsg/furo">Furo</a>
+            
+          </div>
+          <div class="right-details">
+            
+          </div>
+        </div>
+        
+      </footer>
+    </div>
+    <aside class="toc-drawer">
+      
+      
+      <div class="toc-sticky toc-scroll">
+        <div class="toc-title-container">
+          <span class="toc-title">
+            On this page
+          </span>
+        </div>
+        <div class="toc-tree-container">
+          <div class="toc-tree">
+            <ul>
+<li><a class="reference internal" href="#">The Bispectrum Effect: Higher-Order Spectral Analysis &amp; Quadratic Phase Coupling</a><ul>
+<li><a class="reference internal" href="#foundational-theory-why-second-order-spectra-fall-short">Foundational Theory: Why Second-Order Spectra Fall Short</a></li>
+<li><a class="reference internal" href="#third-order-cumulant-and-the-bispectrum">1. Third-Order Cumulant and the Bispectrum</a></li>
+<li><a class="reference internal" href="#normalized-bicoherence-hinich-tests">2. Normalized Bicoherence &amp; Hinich Tests</a></li>
+<li><a class="reference internal" href="#primal-feature-map-phi-text-bispec">3. Primal Feature Map (<span class="math notranslate nohighlight">\(\Phi_{\text{bispec}}\)</span>)</a></li>
+<li><a class="reference internal" href="#sobolev-bicoherence-penalty-matrix-p-text-bispec">4. Sobolev-Bicoherence Penalty Matrix (<span class="math notranslate nohighlight">\(P_{\text{bispec}}\)</span>)</a></li>
+<li><a class="reference internal" href="#causality-and-state-continuation">5. Causality and state continuation</a></li>
+<li><a class="reference internal" href="#conditioning-on-smooth-series">Conditioning on smooth series</a></li>
+<li><a class="reference internal" href="#chunk-equivalence">Chunk equivalence</a></li>
+<li><a class="reference internal" href="#what-is-new-here">What is new here</a></li>
+<li><a class="reference internal" href="#references">References</a></li>
+</ul>
+</li>
+</ul>
+
+          </div>
+        </div>
+      </div>
+      
+      
+    </aside>
+  </div>
+</div><script src="../../_static/documentation_options.js?v=44dfd65d"></script>
+    <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="../../_static/scripts/furo.js?v=46bd48cc"></script>
+    <script>window.MathJax = {"options": {"processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+    <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@4/tex-mml-chtml.js"></script>
+    </body>
+</html>
