@@ -36,6 +36,7 @@ from ._kan import KANEffect
 from ._inertia import InertiaEffect, ThermalInertiaEffect, DegreeDayEffect, WarpedCalendarEffect, MacroTrendEffect
 from ._temporal_operator import TemporalOperatorEffect
 from ._patch_basis import PatchBasisEffect
+from ._foundation import FoundationEffect
 from tam.common.utils import parse_formula_to_terms
 
 #: <create_effects>
@@ -540,6 +541,43 @@ def create_effects_from_parsed_terms(
             ))
         #: </parse_patch_basis>
 
+        #: <parse_foundation>
+        elif ttype == 'foundation':
+            extrap_val = params_resolved.get('extrapolate', 'continue')
+            seed = int(params_resolved.get('seed', 42))
+            additional_features = _parse_additional_features(params_resolved)
+
+            scales_raw = params_resolved.get('scales', (1, 4, 16, 64))
+            if isinstance(scales_raw, str):
+                clean_s = scales_raw.replace('[', '').replace(']', '').replace('(', '').replace(')', '').replace('|', ',')
+                scales = [int(s.strip()) for s in clean_s.split(',') if s.strip()]
+            elif isinstance(scales_raw, (int, float)):
+                scales = [int(scales_raw)]
+            else:
+                scales = [int(s) for s in scales_raw]
+
+            include_levy = _as_bool(params_resolved.get('include_levy', True))
+            n_struct_raw = params_resolved.get('n_struct', None)
+            n_pfn_raw = params_resolved.get('n_pfn', None)   # alias of n_struct
+            if n_struct_raw is not None and n_pfn_raw is not None and int(n_struct_raw) != int(n_pfn_raw):
+                raise ValueError(f"foundation: n_struct={n_struct_raw} and n_pfn={n_pfn_raw} disagree; n_pfn is an alias of n_struct")
+            n_struct = int(n_struct_raw if n_struct_raw is not None else (n_pfn_raw if n_pfn_raw is not None else 16))
+
+            effects_list.append(FoundationEffect(
+                feature_name=feature_name,
+                patch_len=int(params_resolved.get('patch_len', 16)),
+                n_tokens=int(params_resolved.get('n_tokens', 16)),
+                n_bins=int(params_resolved.get('n_bins', 16)),
+                scales=scales,
+                n_struct=n_struct,
+                include_levy=include_levy,
+                lambda_p=lambda_p,
+                seed=seed,
+                extrapolate=extrap_val,
+                additional_features=additional_features,
+            ))
+        #: </parse_foundation>
+
         else:
             raise ValueError(f"Unknown effect type identifier: '{ttype}'")
             
@@ -791,6 +829,8 @@ def extrapolating_features(effects_list: List[BaseEffect]) -> set:
         elif isinstance(effect, TemporalOperatorEffect):
             names.update(getattr(effect, 'input_features', None) or [effect.feature_name])
         elif isinstance(effect, PatchBasisEffect):
+            names.update(getattr(effect, 'input_features', None) or [effect.feature_name])
+        elif isinstance(effect, FoundationEffect):
             names.update(getattr(effect, 'input_features', None) or [effect.feature_name])
 
     for effect in effects_list:

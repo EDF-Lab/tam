@@ -1443,6 +1443,12 @@ class StaticTAM(BaseTAM):
                 "Specific Params": "patch_len, n_tokens (k), include_levy, seed, others"
             },
             {
+                "Token": "foundation(x)",
+                "Effect": "Universal foundation basis (patch, quantile histogram, filterbank, structural prior)",
+                "Syntax Example": "foundation(load, others='temp', patch_len=16, n_tokens=16, n_struct=16)",
+                "Specific Params": "others, patch_len, n_tokens, n_bins, scales, n_struct (alias n_pfn), include_levy, seed"
+            },
+            {
                 "Token": "t(x)", 
                 "Effect": "Tree / Random Forest", 
                 "Syntax Example": "t(x, n_trees=50, sp_alpha=0.5, split_strategy='quantile')",

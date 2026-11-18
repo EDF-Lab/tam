@@ -100,6 +100,7 @@ To understand the deep mathematical behavior of the framework, click on any effe
 / **[Macro Trend](math/spectrum/MACRO_TREND.md)** (BETA)
 / **[Temporal Operators](math/spectrum/TEMPORAL_OPERATOR.md)** (BETA)
 / **[Patch Basis](math/spectrum/PATCH_BASIS.md)** (BETA)
+/ **[Foundation Basis](math/spectrum/FOUNDATION.md)** (BETA)
 
 ---
 

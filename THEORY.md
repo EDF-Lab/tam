@@ -309,6 +309,13 @@ Different physical phenomena require different mathematical topologies. TAM flat
 
 ---
 
+### [Universal Foundation Basis (`foundation`)](math/spectrum/FOUNDATION.md) (BETA)
+
+  * **Syntax:** `foundation(x, others=x2, patch_len=16, n_tokens=16, n_bins=16, n_pfn=16)`
+  * **Mapping & Penalty:** Closed-form penalized universal basis combining Causal RevIN Patches, Quantile Histogram embeddings, Multi-Rate Filterbanks, and PFN Ridge features; [Architecture](architecture/spectrum/FOUNDATION.md).
+
+---
+
 ## 📊 Benchmark Proof: The Power of Topology & Meta-Learning
 
 *(To reproduce these results, execute `python use_cases/cheatsheet.py` located in the repository, note: results of BETA/EXP modules may differ, timing depends on the hardware configuration).*
