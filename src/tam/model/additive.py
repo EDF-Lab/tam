@@ -1437,6 +1437,12 @@ class StaticTAM(BaseTAM):
                 "Specific Params": "op, inner, k_base, decay, n_random_features, window, seed, others"
             },
             {
+                "Token": "patch_basis(x)",
+                "Effect": "Causal RevIN patch basis",
+                "Syntax Example": "patch_basis(load, patch_len=16, n_tokens=16, include_levy=True)",
+                "Specific Params": "patch_len, n_tokens (k), include_levy, seed, others"
+            },
+            {
                 "Token": "t(x)", 
                 "Effect": "Tree / Random Forest", 
                 "Syntax Example": "t(x, n_trees=50, sp_alpha=0.5, split_strategy='quantile')",

@@ -31,6 +31,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added diffeomorphic warped calendar spectrum effect (`wcal`, `WarpedCalendarEffect`).
 - Added Hodrick-Prescott macro-trend spectrum effect (`hp_trend`, `MacroTrendEffect`).
 - Added Form B `TemporalOperatorEffect` (`op_attn`, `op_hippo`, `op_ssa`).
+- Added `PatchBasisEffect` (`patch_basis`) with Causal RevIN and Level-2 Lévy Area hysteresis.
 
 ## [1.5.1] - 2026-11-09
 

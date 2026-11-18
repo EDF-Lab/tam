@@ -302,6 +302,13 @@ Different physical phenomena require different mathematical topologies. TAM flat
 
 ---
 
+### [Causal RevIN Patch Basis (`patch_basis`)](math/spectrum/PATCH_BASIS.md) (BETA)
+
+  * **Syntax:** `patch_basis(x, others=x2, patch_len=16, n_tokens=16)`
+  * **Mapping & Penalty:** Causal rolling RevIN patch projection with optional Level-2 antisymmetric Lévy Area hysteresis; [Architecture](architecture/spectrum/PATCH_BASIS.md).
+
+---
+
 ## 📊 Benchmark Proof: The Power of Topology & Meta-Learning
 
 *(To reproduce these results, execute `python use_cases/cheatsheet.py` located in the repository, note: results of BETA/EXP modules may differ, timing depends on the hardware configuration).*

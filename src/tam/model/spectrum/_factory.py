@@ -35,6 +35,7 @@ from ._single_index import SingleIndexEffect
 from ._kan import KANEffect
 from ._inertia import InertiaEffect, ThermalInertiaEffect, DegreeDayEffect, WarpedCalendarEffect, MacroTrendEffect
 from ._temporal_operator import TemporalOperatorEffect
+from ._patch_basis import PatchBasisEffect
 from tam.common.utils import parse_formula_to_terms
 
 #: <create_effects>
@@ -519,6 +520,26 @@ def create_effects_from_parsed_terms(
             ))
         #: </parse_temporal_operator>
 
+        #: <parse_patch_basis>
+        elif ttype == 'patch_basis':
+            extrap_val = params_resolved.get('extrapolate', 'continue')
+            seed = int(params_resolved.get('seed', 42))
+            additional_features = _parse_additional_features(params_resolved)
+
+            include_levy = _as_bool(params_resolved.get('include_levy', True))
+
+            effects_list.append(PatchBasisEffect(
+                feature_name=feature_name,
+                patch_len=int(params_resolved.get('patch_len', 16)),
+                n_tokens=int(params_resolved.get('n_tokens', params_resolved.get('k', 16))),
+                include_levy=include_levy,
+                lambda_p=lambda_p,
+                seed=seed,
+                extrapolate=extrap_val,
+                additional_features=additional_features,
+            ))
+        #: </parse_patch_basis>
+
         else:
             raise ValueError(f"Unknown effect type identifier: '{ttype}'")
             
@@ -768,6 +789,8 @@ def extrapolating_features(effects_list: List[BaseEffect]) -> set:
         elif isinstance(effect, MacroTrendEffect):
             names.update(getattr(effect, 'input_features', None) or [effect.feature_name])
         elif isinstance(effect, TemporalOperatorEffect):
+            names.update(getattr(effect, 'input_features', None) or [effect.feature_name])
+        elif isinstance(effect, PatchBasisEffect):
             names.update(getattr(effect, 'input_features', None) or [effect.feature_name])
 
     for effect in effects_list:

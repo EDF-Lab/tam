@@ -17,6 +17,7 @@ import torch
 
 from tam.model.spectrum._signature import SignatureEffect
 from tam.model.spectrum._inertia import InertiaEffect
+from tam.model.spectrum._patch_basis import PatchBasisEffect
 from tam.model.spectrum._single_index import SingleIndexEffect
 from tam.model.spectrum._temporal_operator import TemporalOperatorEffect
 
@@ -31,6 +32,8 @@ CASES = [
     pytest.param(lambda: TemporalOperatorEffect("x", operator_type="attn", k_base=5, decay=0.9), 1, id="op_attn"),
     pytest.param(lambda: TemporalOperatorEffect("x", operator_type="hippo", inner_basis="fourier", k_base=4), 1, id="op_hippo"),
     pytest.param(lambda: TemporalOperatorEffect("x", operator_type="ssa", k_base=5, window=9), 1, id="op_ssa"),
+    pytest.param(lambda: PatchBasisEffect("x", patch_len=8, n_tokens=6), 1, id="patch_basis"),
+    pytest.param(lambda: PatchBasisEffect("x", additional_features=["z"], patch_len=6, n_tokens=5), 2, id="patch_basis_multi"),
 ]
 
 

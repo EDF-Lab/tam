@@ -99,6 +99,7 @@ To understand the deep mathematical behavior of the framework, click on any effe
 / **[Warped Calendar](math/spectrum/WARPED_CALENDAR.md)** (BETA)
 / **[Macro Trend](math/spectrum/MACRO_TREND.md)** (BETA)
 / **[Temporal Operators](math/spectrum/TEMPORAL_OPERATOR.md)** (BETA)
+/ **[Patch Basis](math/spectrum/PATCH_BASIS.md)** (BETA)
 
 ---
 
