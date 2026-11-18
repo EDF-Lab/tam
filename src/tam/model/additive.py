@@ -1485,6 +1485,12 @@ class StaticTAM(BaseTAM):
                 "Specific Params": "J, Q, max_order, causal, order_pen, xi_0"
             },
             {
+                "Token": "tjepa(x)",
+                "Effect": "T-JEPA latent covariate encoder",
+                "Syntax Example": "tjepa(temp, others='wind|solar', latent_dim=4, window=16)",
+                "Specific Params": "others, latent_dim, window, horizon, readout, k_spline, mode ('svd' or 'vicreg'), epochs (vicreg only), seed"
+            },
+            {
                 "Token": "t(x)", 
                 "Effect": "Tree / Random Forest", 
                 "Syntax Example": "t(x, n_trees=50, sp_alpha=0.5, split_strategy='quantile')",

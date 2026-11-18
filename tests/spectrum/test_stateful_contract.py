@@ -24,6 +24,7 @@ from tam.model.spectrum._koopman import KoopmanEffect
 from tam.model.spectrum._patch_basis import PatchBasisEffect
 from tam.model.spectrum._scattering import ScatteringEffect
 from tam.model.spectrum._single_index import SingleIndexEffect
+from tam.model.spectrum._tjepa import TJEPAEffect
 from tam.model.spectrum._transformer import TransformerEffect
 from tam.model.spectrum._temporal_operator import TemporalOperatorEffect
 
@@ -41,6 +42,10 @@ CASES = [
     pytest.param(lambda: FoundationEffect("x", patch_len=8, n_tokens=6, n_bins=6, scales=(1, 4, 16), n_struct=8), 1, id="foundation"),
     pytest.param(lambda: FoundationEffect("x", additional_features=["z"], patch_len=6, n_tokens=5, n_bins=5, scales=(1, 8), n_struct=8), 2, id="foundation_multi"),
     pytest.param(lambda: HiPPOEffect("x", k=6, measure="legt"), 1, id="hippo"),
+    pytest.param(lambda: TJEPAEffect("x", latent_dim=2, window=6, horizon=2, readout="linear", epochs=5, mode="vicreg"), 1, id="tjepa"),
+    pytest.param(lambda: TJEPAEffect("x", additional_features=["z"], latent_dim=2, window=5, horizon=2, readout="spline", k_spline=5, epochs=5, mode="vicreg"), 2, id="tjepa_multi"),
+    pytest.param(lambda: TJEPAEffect("x", latent_dim=2, window=6, horizon=2, readout="linear"), 1, id="tjepa_svd"),
+    pytest.param(lambda: TJEPAEffect("x", additional_features=["z"], latent_dim=2, window=5, horizon=2, readout="spline", k_spline=5), 2, id="tjepa_svd_multi"),
     pytest.param(lambda: ScatteringEffect("x", J=3, Q=1, max_order=2), 1, id="wst"),
     pytest.param(lambda: BispectrumEffect("x", k=4, n_fft=32), 1, id="bispec"),
     pytest.param(lambda: TransformerEffect("x", m_features=6, n_heads=3, causal=True, decay=(1.0, 0.95, 0.8)), 1, id="attn"),

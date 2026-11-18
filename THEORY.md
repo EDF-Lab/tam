@@ -358,6 +358,13 @@ Different physical phenomena require different mathematical topologies. TAM flat
 
 ---
 
+### [T-JEPA Latent Predictor (`tjepa`)](math/spectrum/T_JEPA.md) (BETA)
+
+  * **Syntax:** `tjepa(x, others=x2, latent_dim=16, window=24, horizon=6)`
+  * **Mapping & Penalty:** Self-supervised VICReg joint-embedding predictive encoder (AdamW) with linear/spline readout; [Architecture](architecture/spectrum/T_JEPA.md).
+
+---
+
 ## 📊 Benchmark Proof: The Power of Topology & Meta-Learning
 
 *(To reproduce these results, execute `python use_cases/cheatsheet.py` located in the repository, note: results of BETA/EXP modules may differ, timing depends on the hardware configuration).*

@@ -43,6 +43,7 @@ from ._hippo import HiPPOEffect
 from ._transformer import TransformerEffect
 from ._bispectrum import BispectrumEffect
 from ._scattering import ScatteringEffect
+from ._tjepa import TJEPAEffect
 from tam.common.utils import parse_formula_to_terms
 
 #: <create_effects>
@@ -752,6 +753,36 @@ def create_effects_from_parsed_terms(
             ))
         #: </parse_scattering>
 
+        #: <parse_tjepa>
+        elif ttype == 'tjepa':
+            latent_dim = int(params_resolved.get('latent_dim', params_resolved.get('d', 4)))
+            window = int(params_resolved.get('window', params_resolved.get('w', 16)))
+            horizon = int(params_resolved.get('horizon', params_resolved.get('delta', 4)))
+            readout = str(params_resolved.get('readout', 'spline')).lower()
+            k_spline = int(params_resolved.get('k_spline', 8))
+            epochs = int(params_resolved.get('epochs', 30))
+            seed = int(params_resolved.get('seed', 42))
+            tjepa_mode = str(params_resolved.get('mode', 'svd')).lower()
+            extrap_val = params_resolved.get('extrapolate', 'continue')
+
+            additional_features = _parse_additional_features(params_resolved)
+
+            effects_list.append(TJEPAEffect(
+                feature_name=feature_name,
+                additional_features=additional_features,
+                latent_dim=latent_dim,
+                window=window,
+                horizon=horizon,
+                readout=readout,
+                k_spline=k_spline,
+                epochs=epochs,
+                seed=seed,
+                mode=tjepa_mode,
+                lambda_p=lambda_p,
+                extrapolate=extrap_val,
+            ))
+        #: </parse_tjepa>
+
         else:
             raise ValueError(f"Unknown effect type identifier: '{ttype}'")
             
@@ -1017,6 +1048,8 @@ def extrapolating_features(effects_list: List[BaseEffect]) -> set:
         elif isinstance(effect, BispectrumEffect):
             names.update(getattr(effect, 'input_features', None) or [effect.feature_name])
         elif isinstance(effect, ScatteringEffect):
+            names.update(getattr(effect, 'input_features', None) or [effect.feature_name])
+        elif isinstance(effect, TJEPAEffect):
             names.update(getattr(effect, 'input_features', None) or [effect.feature_name])
 
     for effect in effects_list:

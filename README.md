@@ -107,6 +107,7 @@ To understand the deep mathematical behavior of the framework, click on any effe
 / **[Performer Attention](math/spectrum/TRANSFORMER_FAVOR.md)** (BETA)
 / **[Bispectrum](math/spectrum/BISPECTRUM.md)** (BETA)
 / **[Wavelet Scattering](math/spectrum/WAVELET_SCATTERING.md)** (BETA)
+/ **[T-JEPA](math/spectrum/T_JEPA.md)** (BETA)
 
 ---
 
