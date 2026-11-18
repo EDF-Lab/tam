@@ -30,9 +30,23 @@ from ._physics import UniversalPhysicsEffect
 from ._tree import TreeEffect
 from ._linear_tree import LinearTreeEffect
 from._pid import PIDEffect
+from ._signature import SignatureEffect
 from tam.common.utils import parse_formula_to_terms
 
 #: <create_effects>
+def _parse_additional_features(params_resolved: Dict[str, Any]) -> Optional[List[str]]:
+    """The extra input columns of a term, from ``others=`` or ``additional_features=``: a list, or a string such as ``'a|b'`` or ``"['a', 'b']"``."""
+    others_raw = params_resolved.get('others', params_resolved.get('additional_features', None))
+    if not others_raw:
+        return None
+    if isinstance(others_raw, (list, tuple)):
+        return [str(s).strip() for s in others_raw if str(s).strip()]
+    if isinstance(others_raw, str):
+        clean = others_raw.replace('[', '').replace(']', '').replace("'", "").replace('"', '').replace(',', '|')
+        return [s.strip() for s in clean.split('|') if s.strip()]
+    return None
+
+
 def create_effects_from_parsed_terms(
     parsed_terms: List[Dict],
     token_values: Dict[str, Any],
@@ -311,6 +325,37 @@ def create_effects_from_parsed_terms(
             ))
         #: </parse_linear_tree>
 
+        #: <parse_signature>
+        elif ttype == 'sig':
+            w = int(params_resolved.get('w', 9))
+            N = int(params_resolved.get('N', params_resolved.get('level', 3)))
+            lag = int(params_resolved.get('lag', 0))
+            time_aug_raw = params_resolved.get('time_augment', True)
+            time_augment = _as_bool(time_aug_raw)
+            log_sig_raw = params_resolved.get('log_sig', False)
+            log_sig = _as_bool(log_sig_raw)
+            lead_lag_raw = params_resolved.get('lead_lag', False)
+            lead_lag = _as_bool(lead_lag_raw)
+            extrap_val = params_resolved.get('extrapolate', 'continue')
+            k = int(params_resolved['k']) if ('k' in params_resolved and params_resolved['k'] is not None) else None
+
+            additional_features = _parse_additional_features(params_resolved)
+
+            effects_list.append(SignatureEffect(
+                feature_name=feature_name,
+                w=w,
+                N=N,
+                lag=lag,
+                time_augment=time_augment,
+                log_sig=log_sig,
+                lead_lag=lead_lag,
+                lambda_p=lambda_p,
+                extrapolate=extrap_val,
+                additional_features=additional_features,
+                k=k
+            ))
+        #: </parse_signature>
+
         else:
             raise ValueError(f"Unknown effect type identifier: '{ttype}'")
             
@@ -539,6 +584,8 @@ def extrapolating_features(effects_list: List[BaseEffect]) -> set:
                 visit(sub)
         elif isinstance(effect, (SplineEffect, FourierEffect, ChebyshevEffect, WaveletEffect, RBFEffect, NeuralEffect,
                                  TreeEffect, UniversalPhysicsEffect)):
+            names.update(getattr(effect, 'input_features', None) or [effect.feature_name])
+        elif isinstance(effect, SignatureEffect):
             names.update(getattr(effect, 'input_features', None) or [effect.feature_name])
 
     for effect in effects_list:

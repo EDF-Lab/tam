@@ -246,6 +246,13 @@ Different physical phenomena require different mathematical topologies. TAM flat
   * 📖 *Note: This effect natively encapsulates the piecewise logic to fully support multi-dimensional spatial interactions without requiring formula macro expansions.*
 ---
 
+### [Causal Path Signature (`sig`)](math/spectrum/SIGNATURE.md) (BETA)
+
+  * **Syntax:** `sig(x1, others=x2, depth=3, window=16, log_sig=False)`
+  * **Mapping & Penalty:** Causal sliding-window iterated Chen path signatures (or Lyndon log-signatures) with factorial degree-scaled Ridge penalty; [Architecture](architecture/spectrum/SIGNATURE.md).
+
+---
+
 ## 📊 Benchmark Proof: The Power of Topology & Meta-Learning
 
 *(To reproduce these results, execute `python use_cases/cheatsheet.py` located in the repository, note: results of BETA/EXP modules may differ, timing depends on the hardware configuration).*

@@ -1386,6 +1386,12 @@ class StaticTAM(BaseTAM):
                 "Specific Params": "w (rolling window), d_pen (derivative stiffness)"
             },
             {
+                "Token": "sig(x)",
+                "Effect": "Path signature / log-signature",
+                "Syntax Example": "sig(temp, w=9, N=3, lag=0, log_sig=True)",
+                "Specific Params": "w, N, lag, time_augment, log_sig, lead_lag, others, k"
+            },
+            {
                 "Token": "t(x)", 
                 "Effect": "Tree / Random Forest", 
                 "Syntax Example": "t(x, n_trees=50, sp_alpha=0.5, split_strategy='quantile')",

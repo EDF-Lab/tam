@@ -23,6 +23,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added opt-in Sinkhorn entropic OT temporal coherence (`coherence_loss='sinkhorn'`) in `HierarchicalTAM` and Conformal Risk Control (`calibrate_crc()` / `predict_crc_intervals()`).
 - Added Bernstein Online Aggregation (`algorithm='BOA'`) and `HierarchicalOperaTAM`.
 - Added `TwoTierOperaTAM`, another name for `HierarchicalOperaTAM`.
+- Added causal path signature spectrum effect (`sig`, `SignatureEffect`).
 
 ## [1.5.1] - 2026-11-09
 
