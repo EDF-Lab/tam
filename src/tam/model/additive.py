@@ -1503,6 +1503,12 @@ class StaticTAM(BaseTAM):
                 "Specific Params": "k, H, period"
             },
             {
+                "Token": "ssa(x)",
+                "Effect": "Singular spectrum analysis modes",
+                "Syntax Example": "ssa(load, window=48, k=10)",
+                "Specific Params": "window, k"
+            },
+            {
                 "Token": "t(x)", 
                 "Effect": "Tree / Random Forest", 
                 "Syntax Example": "t(x, n_trees=50, sp_alpha=0.5, split_strategy='quantile')",

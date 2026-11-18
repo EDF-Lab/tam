@@ -112,6 +112,7 @@ To understand the deep mathematical behavior of the framework, click on any effe
 / **[Hurst fGn](math/spectrum/HURST.md)** (BETA)
 / **[Fractional Physics](math/spectrum/FRACTIONAL_PHYSICS.md)** (BETA)
 / **[ExU Neural](math/spectrum/EXU.md)** (BETA)
+/ **[SSA](math/spectrum/SSA.md)** (BETA)
 
 ---
 

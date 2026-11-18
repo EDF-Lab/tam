@@ -56,6 +56,7 @@ from ._scattering import ScatteringEffect
 from ._tjepa import TJEPAEffect
 from ._fno import OperatorEffect
 from ._hurst import HurstEffect
+from ._ssa import SSAEffect
 
 # Utility functions exposed for the StaticTAM model
 from ._factory import (
@@ -110,6 +111,7 @@ __all__ = [
     "TJEPAEffect",
     "OperatorEffect",
     "HurstEffect",
+    "SSAEffect",
 
     # Factory / Assembly
     "create_effects_from_parsed_terms",

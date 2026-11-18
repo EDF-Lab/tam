@@ -46,6 +46,7 @@ from ._scattering import ScatteringEffect
 from ._tjepa import TJEPAEffect
 from ._fno import OperatorEffect
 from ._hurst import HurstEffect
+from ._ssa import SSAEffect
 from tam.common.utils import parse_formula_to_terms
 
 #: <create_effects>
@@ -825,6 +826,20 @@ def create_effects_from_parsed_terms(
             ))
         #: </parse_hurst>
 
+        #: <parse_ssa>
+        elif ttype == 'ssa':
+            window = int(params_resolved.get('window', params_resolved.get('L', 48)))
+            k = int(params_resolved.get('k', 10))
+            extrap_val = params_resolved.get('extrapolate', 'continue')
+            effects_list.append(SSAEffect(
+                feature_name=feature_name,
+                window=window,
+                k=k,
+                lambda_p=lambda_p,
+                extrapolate=extrap_val,
+            ))
+        #: </parse_ssa>
+
         else:
             raise ValueError(f"Unknown effect type identifier: '{ttype}'")
             
@@ -1096,6 +1111,8 @@ def extrapolating_features(effects_list: List[BaseEffect]) -> set:
         elif isinstance(effect, OperatorEffect):
             names.update(getattr(effect, 'input_features', None) or [effect.feature_name])
         elif isinstance(effect, HurstEffect):
+            names.update(getattr(effect, 'input_features', None) or [effect.feature_name])
+        elif isinstance(effect, SSAEffect):
             names.update(getattr(effect, 'input_features', None) or [effect.feature_name])
 
     for effect in effects_list:
