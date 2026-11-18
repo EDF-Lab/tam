@@ -18,6 +18,7 @@ import torch
 from tam.model.spectrum._signature import SignatureEffect
 from tam.model.spectrum._inertia import InertiaEffect
 from tam.model.spectrum._single_index import SingleIndexEffect
+from tam.model.spectrum._temporal_operator import TemporalOperatorEffect
 
 B, T, SPLIT = 3, 400, 250
 
@@ -27,6 +28,9 @@ CASES = [
     pytest.param(lambda: SignatureEffect("x", w=5, N=3, lag=0, log_sig=True, lead_lag=True, additional_features=["z"]), 2, id="sig_multi"),
     pytest.param(lambda: SingleIndexEffect("x", lag_window=7, k=6), 1, id="si"),
     pytest.param(lambda: InertiaEffect("x", alphas=(0.3, 0.05, 0.002, 1.0), k=5), 1, id="inertia"),
+    pytest.param(lambda: TemporalOperatorEffect("x", operator_type="attn", k_base=5, decay=0.9), 1, id="op_attn"),
+    pytest.param(lambda: TemporalOperatorEffect("x", operator_type="hippo", inner_basis="fourier", k_base=4), 1, id="op_hippo"),
+    pytest.param(lambda: TemporalOperatorEffect("x", operator_type="ssa", k_base=5, window=9), 1, id="op_ssa"),
 ]
 
 

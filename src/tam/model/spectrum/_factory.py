@@ -34,6 +34,7 @@ from ._signature import SignatureEffect
 from ._single_index import SingleIndexEffect
 from ._kan import KANEffect
 from ._inertia import InertiaEffect, ThermalInertiaEffect, DegreeDayEffect, WarpedCalendarEffect, MacroTrendEffect
+from ._temporal_operator import TemporalOperatorEffect
 from tam.common.utils import parse_formula_to_terms
 
 #: <create_effects>
@@ -491,6 +492,33 @@ def create_effects_from_parsed_terms(
             ))
         #: </parse_hp_trend>
 
+        #: <parse_temporal_operator>
+        elif ttype in ('temp_op', 'op_attn', 'op_hippo', 'op_ssa'):
+            default_op = ttype.split('_')[1] if ttype.startswith('op_') else 'attn'
+            op_type = str(params_resolved.get('op', params_resolved.get('operator_type', default_op))).lower()
+            inner_basis = str(params_resolved.get('inner', params_resolved.get('inner_basis', 'spline'))).lower()
+            k_base = int(params_resolved.get('k_base', params_resolved.get('k', 8)))
+            decay = float(params_resolved.get('decay', 0.92))
+            n_rf = int(params_resolved.get('n_random_features', params_resolved.get('m', 8)))
+            window = int(params_resolved.get('window', 12))
+            seed = int(params_resolved.get('seed', 42))
+            extrap_val = params_resolved.get('extrapolate', 'continue')
+            additional_features = _parse_additional_features(params_resolved)
+            effects_list.append(TemporalOperatorEffect(
+                feature_name=feature_name,
+                operator_type=op_type,
+                inner_basis=inner_basis,
+                k_base=k_base,
+                decay=decay,
+                n_random_features=n_rf,
+                window=window,
+                lambda_p=lambda_p,
+                seed=seed,
+                extrapolate=extrap_val,
+                additional_features=additional_features,
+            ))
+        #: </parse_temporal_operator>
+
         else:
             raise ValueError(f"Unknown effect type identifier: '{ttype}'")
             
@@ -738,6 +766,8 @@ def extrapolating_features(effects_list: List[BaseEffect]) -> set:
         elif isinstance(effect, WarpedCalendarEffect):
             names.update(getattr(effect, 'input_features', None) or [effect.feature_name])
         elif isinstance(effect, MacroTrendEffect):
+            names.update(getattr(effect, 'input_features', None) or [effect.feature_name])
+        elif isinstance(effect, TemporalOperatorEffect):
             names.update(getattr(effect, 'input_features', None) or [effect.feature_name])
 
     for effect in effects_list:

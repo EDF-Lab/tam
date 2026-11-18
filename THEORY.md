@@ -295,6 +295,13 @@ Different physical phenomena require different mathematical topologies. TAM flat
 
 ---
 
+### [Form B Temporal Operators (`op_attn` / `op_hippo` / `op_ssa`)](math/spectrum/TEMPORAL_OPERATOR.md) (BETA)
+
+  * **Syntax:** `op_attn(x, inner='spline', k_base=8, decay=0.9)`
+  * **Mapping & Penalty:** Causal temporal mixing operators applied over an evaluated inner basis matrix with exact state continuation; [Architecture](architecture/spectrum/TEMPORAL_OPERATOR.md).
+
+---
+
 ## 📊 Benchmark Proof: The Power of Topology & Meta-Learning
 
 *(To reproduce these results, execute `python use_cases/cheatsheet.py` located in the repository, note: results of BETA/EXP modules may differ, timing depends on the hardware configuration).*

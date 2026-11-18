@@ -1431,6 +1431,12 @@ class StaticTAM(BaseTAM):
                 "Specific Params": "k, extrapolate"
             },
             {
+                "Token": "op_attn(x)",
+                "Effect": "Temporal operator on an inner basis (op_attn / op_hippo / op_ssa)",
+                "Syntax Example": "op_attn(x, inner='spline', k_base=8, decay=0.92)",
+                "Specific Params": "op, inner, k_base, decay, n_random_features, window, seed, others"
+            },
+            {
                 "Token": "t(x)", 
                 "Effect": "Tree / Random Forest", 
                 "Syntax Example": "t(x, n_trees=50, sp_alpha=0.5, split_strategy='quantile')",
