@@ -1380,7 +1380,7 @@ class StaticTAM(BaseTAM):
                 "Token": "phys(x)", 
                 "Effect": "Physics (PIKL/ODE)", 
                 "Syntax Example": "phys(t, basis='spline', k=20, D2=1.0)",
-                "Specific Params": "basis, k/n_coeffs, D{n} (derivative weights)"
+                "Specific Params": "basis, k/n_coeffs, D{n} (derivative weights; a fractional order is written with an underscore: D0_5=1.0 is the order 0.5, e.g. phys(t, basis='fourier', n_coeffs=16, D0_5=1.0))"
             },
             {
                 "Token": "pid(x)", 

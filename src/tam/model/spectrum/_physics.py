@@ -11,6 +11,7 @@ differential operator (PDE).
 """
 
 import torch
+import numpy as np
 from tam.common.utils import TORCH_DEVICE
 from ._base_effects import BaseEffect
 
@@ -123,26 +124,47 @@ class UniversalPhysicsEffect(BaseEffect):
 #: <spline_penalty>
     def _build_spline_penalty(self) -> torch.Tensor:
         I = torch.eye(self.n_coeffs_val, device=TORCH_DEVICE, dtype=torch.get_default_dtype())
+        has_fractional = any(not float(k[1:]).is_integer() for k in self.diff_weights.keys())
         
         # 1. Find the maximum derivative order to determine the valid interior size
-        max_order = max([int(k[1:]) for k in self.diff_weights.keys()])
-        valid_rows = self.n_coeffs_val - max_order
+        max_order = max([int(np.ceil(float(k[1:]))) for k in self.diff_weights.keys()])
+        valid_rows = max(1, self.n_coeffs_val - max_order)
+        n_knots = getattr(self.base_effect, "n_knots", max(1, self.n_coeffs_val - 3))
+        dx = 2.0 / float(max(1, n_knots))
         
         L_op = torch.zeros((valid_rows, self.n_coeffs_val), device=TORCH_DEVICE, dtype=torch.get_default_dtype())
         
         for key, weight in self.diff_weights.items():
-            order = int(key[1:])
-            if order == 0:
+            order = float(key[1:])
+            scale_dx = float(dx ** (-order)) if has_fractional else 1.0
+            if order == 0.0:
                 mat = I
+                diff_rows = mat.shape[0]
+                if diff_rows > valid_rows:
+                    crop_total = diff_rows - valid_rows
+                    crop_top = crop_total // 2
+                    mat = mat[crop_top : crop_top + valid_rows, :]
+            elif order.is_integer():
+                mat = torch.diff(I, n=int(order), dim=0)
+                diff_rows = mat.shape[0]
+                if diff_rows > valid_rows:
+                    crop_total = diff_rows - valid_rows
+                    crop_top = crop_total // 2
+                    mat = mat[crop_top : crop_top + valid_rows, :]
+                mat = mat * scale_dx
             else:
-                mat = torch.diff(I, n=order, dim=0)
-                
-            # 2. Crop symmetrically to the valid interior, eliminating artificial zeros
-            diff_rows = mat.shape[0]
-            if diff_rows > valid_rows:
-                crop_total = diff_rows - valid_rows
-                crop_top = crop_total // 2
-                mat = mat[crop_top : crop_top + valid_rows, :]
+                # Grünwald-Letnikov fractional finite difference weights
+                w_gl = torch.zeros(valid_rows, device=TORCH_DEVICE, dtype=torch.get_default_dtype())
+                w_gl[0] = 1.0
+                for k in range(1, valid_rows):
+                    w_gl[k] = w_gl[k - 1] * (1.0 - (order + 1.0) / float(k))
+                mat_frac = torch.zeros((valid_rows, self.n_coeffs_val), device=TORCH_DEVICE, dtype=torch.get_default_dtype())
+                for i in range(valid_rows):
+                    length = min(i + 1, self.n_coeffs_val)
+                    mat_frac[i, :length] = w_gl[:length].flip(dims=[0])
+                # Caputo boundary condition: C_D^\alpha (1) = 0
+                mat_frac = mat_frac - mat_frac.sum(dim=-1, keepdim=True) / float(self.n_coeffs_val)
+                mat = mat_frac * scale_dx
                 
             L_op += weight * mat
             
@@ -156,10 +178,10 @@ class UniversalPhysicsEffect(BaseEffect):
         eig_vals = torch.zeros_like(freqs, dtype=torch.complex128)
 
         for key, weight in self.diff_weights.items():
-            order = int(key[1:])
-            eig_vals += weight * (1j * freqs) ** order
+            order = float(key[1:])
+            eig_vals += weight * (1j * freqs.to(torch.complex128)) ** order
             
-        penalty_half = self.lambda_p * (torch.abs(eig_vals) ** 2)
+        penalty_half = self.lambda_p * (torch.abs(eig_vals) ** 2).to(torch.get_default_dtype())
         diag_full = torch.cat([penalty_half, penalty_half])
         return torch.diag(diag_full)
 #: </fourier_penalty>
@@ -170,8 +192,8 @@ class UniversalPhysicsEffect(BaseEffect):
         diag_vals = torch.zeros(self.n_coeffs_val, device=TORCH_DEVICE, dtype=torch.get_default_dtype())
         
         for key, weight in self.diff_weights.items():
-            order = int(key[1:])
-            term = weight * (W ** order)
+            order = float(key[1:])
+            term = weight * ((W ** int(order)) if order.is_integer() else (torch.abs(W) ** order))
             diag_vals += term
             
         return self.lambda_p * torch.diag(torch.abs(diag_vals)**2)

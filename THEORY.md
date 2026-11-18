@@ -379,6 +379,13 @@ Different physical phenomena require different mathematical topologies. TAM flat
 
 ---
 
+### [Caputo Fractional Physics (`phys` fractional orders)](math/spectrum/FRACTIONAL_PHYSICS.md) (BETA)
+
+  * **Syntax:** `phys(x, D0.5=1.0)`
+  * **Mapping & Penalty:** Grünwald-Letnikov Caputo fractional differential operator penalties ($\alpha \in (0,2)$); integer orders remain bit-identical to v1.5.1; [Architecture](architecture/spectrum/FRACTIONAL_PHYSICS.md).
+
+---
+
 ## 📊 Benchmark Proof: The Power of Topology & Meta-Learning
 
 *(To reproduce these results, execute `python use_cases/cheatsheet.py` located in the repository, note: results of BETA/EXP modules may differ, timing depends on the hardware configuration).*

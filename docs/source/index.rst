@@ -76,6 +76,7 @@ Time series Additive Model (TAM) Official Documentation
    math/spectrum/T_JEPA
    math/spectrum/FNO
    math/spectrum/HURST
+   math/spectrum/FRACTIONAL_PHYSICS
    math/spectrum/PID
    math/spectrum/LINEAR_TREE
 
@@ -146,6 +147,7 @@ Time series Additive Model (TAM) Official Documentation
    architecture/spectrum/T_JEPA
    architecture/spectrum/FNO
    architecture/spectrum/HURST
+   architecture/spectrum/FRACTIONAL_PHYSICS
    architecture/core/07_the_statistics_api
 
 .. raw:: latex

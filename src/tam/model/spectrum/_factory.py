@@ -286,14 +286,17 @@ def create_effects_from_parsed_terms(
             basis = params_resolved.get('basis', 'spline')
             n_coeffs = int(params_resolved.get('k', 20) if basis != 'fourier' else params_resolved.get('n_coeffs', 20))
             
+            # An order is `D<integer>` or `D<integer>_<digits>` (the underscore is the decimal point: `D0_5` is the order 0.5)
             diff_weights = {}
+            derivative_keys = set()
             for pk, pv in params_resolved.items():
-                if pk.startswith('D') and pk[1:].isdigit():
-                    diff_weights[pk] = float(pv)
+                if re.fullmatch(r'D\d+(_\d+)?', pk):
+                    diff_weights[pk.replace('_', '.')] = float(pv)
+                    derivative_keys.add(pk)
             if not diff_weights: diff_weights = {'D2': 1.0}
                 
             reserved_keys = ['k', 'n_coeffs', 'ap', 'basis', 'extrapolate']
-            basis_kwargs = {k: v for k, v in params_resolved.items() if k not in reserved_keys and not k.startswith('D')}
+            basis_kwargs = {k: v for k, v in params_resolved.items() if k not in reserved_keys and k not in derivative_keys}
             extrap_val = params_resolved.get('extrapolate', 'continue')
             effects_list.append(UniversalPhysicsEffect(
                 feature_name, basis, n_coeffs, diff_weights, lambda_p, extrap_val, **basis_kwargs

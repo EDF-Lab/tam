@@ -110,6 +110,7 @@ To understand the deep mathematical behavior of the framework, click on any effe
 / **[T-JEPA](math/spectrum/T_JEPA.md)** (BETA)
 / **[FNO](math/spectrum/FNO.md)** (BETA)
 / **[Hurst fGn](math/spectrum/HURST.md)** (BETA)
+/ **[Fractional Physics](math/spectrum/FRACTIONAL_PHYSICS.md)** (BETA)
 
 ---
 
