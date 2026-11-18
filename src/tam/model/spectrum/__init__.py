@@ -40,6 +40,7 @@ from ._tensor import TensorProductEffect
 from ._tree import TreeEffect
 from ._linear_tree import LinearTreeEffect
 from ._pid import PIDEffect
+from ._koopman import KoopmanEffect
 from ._foundation import FoundationEffect
 from ._patch_basis import PatchBasisEffect
 from ._temporal_operator import TemporalOperatorEffect
@@ -81,6 +82,7 @@ __all__ = [
     "TreeEffect",
     "LinearTreeEffect",
     "PIDEffect",
+    "KoopmanEffect",
     "FoundationEffect",
     "PatchBasisEffect",
     "TemporalOperatorEffect",

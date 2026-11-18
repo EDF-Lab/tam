@@ -37,6 +37,7 @@ from ._inertia import InertiaEffect, ThermalInertiaEffect, DegreeDayEffect, Warp
 from ._temporal_operator import TemporalOperatorEffect
 from ._patch_basis import PatchBasisEffect
 from ._foundation import FoundationEffect
+from ._koopman import KoopmanEffect
 from tam.common.utils import parse_formula_to_terms
 
 #: <create_effects>
@@ -578,6 +579,32 @@ def create_effects_from_parsed_terms(
             ))
         #: </parse_foundation>
 
+        #: <parse_koopman>
+        elif ttype == 'koopman':
+            k = int(params_resolved.get('k', 12))
+            n_lift = int(params_resolved.get('n_lift', 64))
+            delay_embed = int(params_resolved.get('delay_embed', 1))
+            reg = float(params_resolved.get('reg', 1e-4))
+            alpha_res = float(params_resolved.get('alpha_res', 10.0))
+            alpha_unit = float(params_resolved.get('alpha_unit', 10.0))
+            seed = int(params_resolved.get('seed', 42))
+            extrap_val = params_resolved.get('extrapolate', 'continue')
+            additional_features = _parse_additional_features(params_resolved)
+            effects_list.append(KoopmanEffect(
+                feature_name=feature_name,
+                k=k,
+                n_lift=n_lift,
+                delay_embed=delay_embed,
+                reg=reg,
+                alpha_res=alpha_res,
+                alpha_unit=alpha_unit,
+                seed=seed,
+                lambda_p=lambda_p,
+                extrapolate=extrap_val,
+                additional_features=additional_features,
+            ))
+        #: </parse_koopman>
+
         else:
             raise ValueError(f"Unknown effect type identifier: '{ttype}'")
             
@@ -831,6 +858,8 @@ def extrapolating_features(effects_list: List[BaseEffect]) -> set:
         elif isinstance(effect, PatchBasisEffect):
             names.update(getattr(effect, 'input_features', None) or [effect.feature_name])
         elif isinstance(effect, FoundationEffect):
+            names.update(getattr(effect, 'input_features', None) or [effect.feature_name])
+        elif isinstance(effect, KoopmanEffect):
             names.update(getattr(effect, 'input_features', None) or [effect.feature_name])
 
     for effect in effects_list:

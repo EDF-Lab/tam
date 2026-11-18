@@ -33,6 +33,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added Form B `TemporalOperatorEffect` (`op_attn`, `op_hippo`, `op_ssa`).
 - Added `PatchBasisEffect` (`patch_basis`) with Causal RevIN and Level-2 Lévy Area hysteresis.
 - Added `FoundationEffect` (`foundation`) universal closed-form basis.
+- Added Koopman EDMD spectrum effect (`koopman`, `KoopmanEffect`).
 
 ## [1.5.1] - 2026-11-09
 

@@ -76,6 +76,8 @@ class SingleIndexEffect(BaseEffect):
         self._x_std: Optional[torch.Tensor] = None
         self._n_hist = (self.lag_window - 1) if self.lag_window is not None else 0
         self._user_alpha: bool = alpha is not None
+        if self.stateful:
+            self._check_temporal_extrapolate()
 
         # Parse or initialize index weight vector alpha
         if alpha is not None:

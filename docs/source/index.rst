@@ -57,6 +57,7 @@ Time series Additive Model (TAM) Official Documentation
    math/spectrum/CATEGORICAL
    math/spectrum/CROSS_TENSOR
    math/spectrum/PHYSICS_PIKL
+   math/spectrum/KOOPMAN_DMD
    math/spectrum/FOUNDATION
    math/spectrum/PATCH_BASIS
    math/spectrum/TEMPORAL_OPERATOR
@@ -118,6 +119,7 @@ Time series Additive Model (TAM) Official Documentation
    architecture/core/04_hardware_memory
    architecture/core/05_gcv_implementation
    architecture/core/06_the_spectrum_api
+   architecture/spectrum/KOOPMAN_DMD
    architecture/spectrum/FOUNDATION
    architecture/spectrum/PATCH_BASIS
    architecture/spectrum/TEMPORAL_OPERATOR

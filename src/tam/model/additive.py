@@ -1449,6 +1449,12 @@ class StaticTAM(BaseTAM):
                 "Specific Params": "others, patch_len, n_tokens, n_bins, scales, n_struct (alias n_pfn), include_levy, seed"
             },
             {
+                "Token": "koopman(x)",
+                "Effect": "Koopman eigenfunctions (EDMD)",
+                "Syntax Example": "koopman(temp, others='load', k=12, n_lift=64, delay_embed=4)",
+                "Specific Params": "others, k, n_lift, delay_embed, reg, alpha_res, alpha_unit, seed"
+            },
+            {
                 "Token": "t(x)", 
                 "Effect": "Tree / Random Forest", 
                 "Syntax Example": "t(x, n_trees=50, sp_alpha=0.5, split_strategy='quantile')",

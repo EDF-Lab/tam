@@ -316,6 +316,13 @@ Different physical phenomena require different mathematical topologies. TAM flat
 
 ---
 
+### [Koopman EDMD (`koopman`)](math/spectrum/KOOPMAN_DMD.md) (BETA)
+
+  * **Syntax:** `koopman(x, k=12, n_lift=64, delay_embed=1)`
+  * **Mapping & Penalty:** Extended Dynamic Mode Decomposition eigenfunctions with residual stability penalty; [Architecture](architecture/spectrum/KOOPMAN_DMD.md).
+
+---
+
 ## 📊 Benchmark Proof: The Power of Topology & Meta-Learning
 
 *(To reproduce these results, execute `python use_cases/cheatsheet.py` located in the repository, note: results of BETA/EXP modules may differ, timing depends on the hardware configuration).*

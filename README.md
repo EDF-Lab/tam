@@ -101,6 +101,7 @@ To understand the deep mathematical behavior of the framework, click on any effe
 / **[Temporal Operators](math/spectrum/TEMPORAL_OPERATOR.md)** (BETA)
 / **[Patch Basis](math/spectrum/PATCH_BASIS.md)** (BETA)
 / **[Foundation Basis](math/spectrum/FOUNDATION.md)** (BETA)
+/ **[Koopman EDMD](math/spectrum/KOOPMAN_DMD.md)** (BETA)
 
 ---
 
