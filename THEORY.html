@@ -221,6 +221,17 @@
 <li class="toctree-l1"><a class="reference internal" href="math/spectrum/CATEGORICAL.html">The Categorical Effect (Discrete Topologies)</a></li>
 <li class="toctree-l1"><a class="reference internal" href="math/spectrum/CROSS_TENSOR.html">The Tensor Product Effect (Interactions)</a></li>
 <li class="toctree-l1"><a class="reference internal" href="math/spectrum/PHYSICS_PIKL.html">Physics-Informed Kernel Learning (PIKL)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="math/spectrum/KOOPMAN_DMD.html">KOOPMAN_DMD: Global Linearization of Non-linear Dynamical Systems via Kernel / Extended Dynamic Mode Decomposition (EDMD / kDMD)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="math/spectrum/FOUNDATION.html">Universal Foundation Basis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="math/spectrum/PATCH_BASIS.html">Causal Patch Basis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="math/spectrum/TEMPORAL_OPERATOR.html">Temporal Operators on an Evaluated Basis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="math/spectrum/WARPED_CALENDAR.html">Warped Calendar Harmonics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="math/spectrum/MACRO_TREND.html">Hodrick-Prescott Macro-Trend</a></li>
+<li class="toctree-l1"><a class="reference internal" href="math/spectrum/DEGREE_DAY.html">Smooth Degree-Day Hinges</a></li>
+<li class="toctree-l1"><a class="reference internal" href="math/spectrum/THERMAL_INERTIA.html">Thermal Inertia</a></li>
+<li class="toctree-l1"><a class="reference internal" href="math/spectrum/KAN.html">Kolmogorov-Arnold Network Edge Splines</a></li>
+<li class="toctree-l1"><a class="reference internal" href="math/spectrum/SINGLE_INDEX.html">Penalized Single-Index Distributed Lags</a></li>
+<li class="toctree-l1"><a class="reference internal" href="math/spectrum/SIGNATURE.html">The Path Signature and Log-Signature Effect (Rough Path Iterated Integrals)</a></li>
 <li class="toctree-l1"><a class="reference internal" href="math/spectrum/PID.html">The PID Effect (Autoregressive Control Dynamics)</a></li>
 <li class="toctree-l1"><a class="reference internal" href="math/spectrum/LINEAR_TREE.html">The Linear Tree Effect (Varying-Coefficient Models)</a></li>
 </ul>
@@ -251,6 +262,17 @@
 <li class="toctree-l1"><a class="reference internal" href="architecture/core/04_hardware_memory.html">Hardware Memory Dispatch &amp; Anti-OOM Systems</a></li>
 <li class="toctree-l1"><a class="reference internal" href="architecture/core/05_gcv_implementation.html">Auto-ML via Generalized Cross-Validation (GCV)</a></li>
 <li class="toctree-l1"><a class="reference internal" href="architecture/core/06_the_spectrum_api.html">The Spectral Dictionary: PyTorch Implementations &amp; Factory Assembly</a></li>
+<li class="toctree-l1"><a class="reference internal" href="architecture/spectrum/KOOPMAN_DMD.html">Koopman Kernel DMD: PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="architecture/spectrum/FOUNDATION.html">Universal Foundation Basis: PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="architecture/spectrum/PATCH_BASIS.html">Causal RevIN Patch Basis: PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="architecture/spectrum/TEMPORAL_OPERATOR.html">Form B Temporal Operators: PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="architecture/spectrum/WARPED_CALENDAR.html">Warped Calendar Harmonics: PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="architecture/spectrum/MACRO_TREND.html">Macro-Trend (<code class="docutils literal notranslate"><span class="pre">hp_trend</span></code>): PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="architecture/spectrum/DEGREE_DAY.html">Smooth Degree-Day Hinges: PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="architecture/spectrum/THERMAL_INERTIA.html">Thermal Inertia: PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="architecture/spectrum/KAN.html">Kolmogorov-Arnold Network Edge Splines: PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="architecture/spectrum/SINGLE_INDEX.html">Penalized Single-Index Distributed Lags: PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="architecture/spectrum/SIGNATURE.html">Path Signature and Log-Signature Effect: PyTorch Architecture &amp; Implementation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="architecture/core/07_the_statistics_api.html">The Statistics API: One Atom, Many Schedules</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">🔬 Architecture: The Statistics Engine</span></p>
@@ -323,7 +345,7 @@
         </div>
         <article role="main" id="furo-main-content">
           <section class="tex2jax_ignore mathjax_ignore" id="theory-introduction-of-tam-and-cheatsheet">
-<h1>📚 Theory Introduction of TAM and Cheatsheet<a class="headerlink" href="#theory-introduction-of-tam-and-cheatsheet" title="Link to this heading">¶</a></h1>
+<span id="-theory-introduction-of-tam-and-cheatsheet"></span><h1>📚 Theory Introduction of TAM and Cheatsheet<a class="headerlink" href="#theory-introduction-of-tam-and-cheatsheet" title="Link to this heading">¶</a></h1>
 <p><a class="reference internal" href="README.html"><span class="std std-doc">⬅️ <code class="docutils literal notranslate"><span class="pre">README</span></code></span></a> | <a class="reference internal" href="EXAMPLES.html"><span class="std std-doc">🧪 <code class="docutils literal notranslate"><span class="pre">EXAMPLES</span></code></span></a> | <a class="reference internal" href="AUTHORS.html"><span class="std std-doc">👥 <code class="docutils literal notranslate"><span class="pre">AUTHORS</span></code></span></a> | <a class="reference internal" href="ACKNOWLEDGEMENTS.html"><span class="std std-doc">📝 <code class="docutils literal notranslate"><span class="pre">ACKNOWLEDGEMENTS</span></code></span></a></p>
 <p>This document serves as the central mathematical reference and directory for the Time series Additive Model (TAM) framework.</p>
 <hr class="docutils" />
@@ -371,6 +393,9 @@
 <span class="n">predictions</span> <span class="o">=</span> <span class="n">model_phys</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">test_df</span><span class="p">)</span>
 </pre></div>
 </div>
+<blockquote>
+<div><p><strong>Opt-in Large-Scale Solvers &amp; Trace Estimators (v1.6.0-dev):</strong> <code class="docutils literal notranslate"><span class="pre">solve_sparse_cg(...,</span> <span class="pre">preconditioner='diag'|'block')</span></code>, <code class="docutils literal notranslate"><span class="pre">solve_block_qr</span></code>, <code class="docutils literal notranslate"><span class="pre">compute_gcv_score(...,</span> <span class="pre">trace_method='hutchinson')</span></code>, <code class="docutils literal notranslate"><span class="pre">compute_gcv_score_and_grad</span></code>, <code class="docutils literal notranslate"><span class="pre">solve_sqrt_group_lasso</span></code>, and <code class="docutils literal notranslate"><span class="pre">compute_scale_stability_penalty</span></code>. Defaults remain exact.</p>
+</div></blockquote>
 </section>
 <section id="the-meta-models-cheatsheet">
 <h3>The Meta-Models Cheatsheet<a class="headerlink" href="#the-meta-models-cheatsheet" title="Link to this heading">¶</a></h3>
@@ -453,10 +478,16 @@
 <li><p><em>Code:</em> <code class="docutils literal notranslate"><span class="pre">AutoTAM(formula=&quot;y</span> <span class="pre">~</span> <span class="pre">AutoPipe(x1,</span> <span class="pre">x2,</span> <span class="pre">Lag_y)&quot;,</span> <span class="pre">n_experts=10,</span> <span class="pre">pop_size=50,</span> <span class="pre">use_opera=True)</span></code></p></li>
 </ul>
 </li>
+<li><p><strong>Hierarchical Multi-Basis Ensembling (<code class="docutils literal notranslate"><span class="pre">HierarchicalOperaTAM</span></code> &amp; BOA)</strong></p>
+<ul class="simple">
+<li><p><em>Use case:</em> Two-level online aggregation (intra-family <code class="docutils literal notranslate"><span class="pre">MLpol</span></code> + cross-family <code class="docutils literal notranslate"><span class="pre">BOA</span></code> Bernstein Online Aggregation) across separated basis families.</p></li>
+<li><p><em>Code:</em> <code class="docutils literal notranslate"><span class="pre">ta.HierarchicalOperaTAM(families={'splines':</span> <span class="pre">[...],</span> <span class="pre">'neural':</span> <span class="pre">[...]},</span> <span class="pre">target_col='y',</span> <span class="pre">date_col='date')</span></code></p></li>
+</ul>
+</li>
 </ul>
 </section>
 <section id="the-statistical-risk-ecosystem-v1-3-0">
-<h3>The Statistical &amp; Risk Ecosystem (v1.3.0)<a class="headerlink" href="#the-statistical-risk-ecosystem-v1-3-0" title="Link to this heading">¶</a></h3>
+<span id="the-statistical--risk-ecosystem-v130"></span><h3>The Statistical &amp; Risk Ecosystem (v1.3.0)<a class="headerlink" href="#the-statistical-risk-ecosystem-v1-3-0" title="Link to this heading">¶</a></h3>
 <p>The <code class="docutils literal notranslate"><span class="pre">statistics</span></code> layer reuses the single P-WLS atom for every non-Gaussian target, the structural “what” (the Spectrum) stays fixed while the statistical “how” (the schedule) changes. See <a class="reference internal" href="math/core/07_the_statistics_api.html"><span class="std std-doc">The Statistics Dictionary</span></a>.</p>
 <ul class="simple">
 <li><p><strong>Reweighting / GLMs &amp; Robust</strong> <span class="math notranslate nohighlight">\(\rightarrow\)</span> a scalar <code class="docutils literal notranslate"><span class="pre">loss</span></code></p>
@@ -493,6 +524,12 @@
 <ul>
 <li><p><em>Use case:</em> Asymptotically-justified extreme-tail scores, and parameter (epistemic) uncertainty bands.</p></li>
 <li><p><em>Code:</em> <code class="docutils literal notranslate"><span class="pre">ta.fit_gpd_tail(model,</span> <span class="pre">data)</span></code> · <code class="docutils literal notranslate"><span class="pre">ta.model.posterior_prediction(model,</span> <span class="pre">train,</span> <span class="pre">new)</span></code></p></li>
+</ul>
+</li>
+<li><p><strong>Conformal Risk Control (<code class="docutils literal notranslate"><span class="pre">SafetyTAM</span></code> / <code class="docutils literal notranslate"><span class="pre">StaticTAM</span></code>)</strong> <span class="math notranslate nohighlight">\(\rightarrow\)</span> <strong><code class="docutils literal notranslate"><span class="pre">calibrate_crc()</span></code> / <code class="docutils literal notranslate"><span class="pre">predict_crc_intervals()</span></code></strong></p>
+<ul>
+<li><p><em>Use case:</em> Distribution-free finite-sample risk control on asymmetric losses and Sinkhorn OT temporal coherence (<code class="docutils literal notranslate"><span class="pre">coherence_loss='sinkhorn'</span></code>) in <code class="docutils literal notranslate"><span class="pre">HierarchicalTAM</span></code>.</p></li>
+<li><p><em>Code:</em> <code class="docutils literal notranslate"><span class="pre">model.calibrate_crc(cal_df,</span> <span class="pre">alpha=0.1,</span> <span class="pre">w_under=2.0,</span> <span class="pre">w_over=1.0)</span></code></p></li>
 </ul>
 </li>
 </ul>
@@ -634,10 +671,98 @@
 <li><p>📖 <em>Note: This effect natively encapsulates the piecewise logic to fully support multi-dimensional spatial interactions without requiring formula macro expansions.</em></p></li>
 </ul>
 </section>
+<hr class="docutils" />
+<section id="causal-path-signature-sig-beta">
+<h3><a class="reference internal" href="math/spectrum/SIGNATURE.html"><span class="std std-doc">Causal Path Signature (<code class="docutils literal notranslate"><span class="pre">sig</span></code>)</span></a> (BETA)<a class="headerlink" href="#causal-path-signature-sig-beta" title="Link to this heading">¶</a></h3>
+<ul class="simple">
+<li><p><strong>Syntax:</strong> <code class="docutils literal notranslate"><span class="pre">sig(x1,</span> <span class="pre">others=x2,</span> <span class="pre">depth=3,</span> <span class="pre">window=16,</span> <span class="pre">log_sig=False)</span></code></p></li>
+<li><p><strong>Mapping &amp; Penalty:</strong> Causal sliding-window iterated Chen path signatures (or Lyndon log-signatures) with factorial degree-scaled Ridge penalty; <a class="reference internal" href="architecture/spectrum/SIGNATURE.html"><span class="std std-doc">Architecture</span></a>.</p></li>
+</ul>
+</section>
+<hr class="docutils" />
+<section id="single-index-distributed-lag-si-beta">
+<h3><a class="reference internal" href="math/spectrum/SINGLE_INDEX.html"><span class="std std-doc">Single-Index Distributed Lag (<code class="docutils literal notranslate"><span class="pre">si</span></code>)</span></a> (BETA)<a class="headerlink" href="#single-index-distributed-lag-si-beta" title="Link to this heading">¶</a></h3>
+<ul class="simple">
+<li><p><strong>Syntax:</strong> <code class="docutils literal notranslate"><span class="pre">si(x,</span> <span class="pre">lag_window=24,</span> <span class="pre">k=8)</span></code></p></li>
+<li><p><strong>Mapping &amp; Penalty:</strong> Causal lag-trajectory projection onto unit index direction composed with penalized outer B-spline; <a class="reference internal" href="architecture/spectrum/SINGLE_INDEX.html"><span class="std std-doc">Architecture</span></a>.</p></li>
+</ul>
+</section>
+<hr class="docutils" />
+<section id="kolmogorov-arnold-edge-splines-kan-beta">
+<h3><a class="reference internal" href="math/spectrum/KAN.html"><span class="std std-doc">Kolmogorov-Arnold Edge Splines (<code class="docutils literal notranslate"><span class="pre">kan</span></code>)</span></a> (BETA)<a class="headerlink" href="#kolmogorov-arnold-edge-splines-kan-beta" title="Link to this heading">¶</a></h3>
+<ul class="simple">
+<li><p><strong>Syntax:</strong> <code class="docutils literal notranslate"><span class="pre">kan(x1,</span> <span class="pre">others=x2,</span> <span class="pre">k=5,</span> <span class="pre">n_hidden=8)</span></code></p></li>
+<li><p><strong>Mapping &amp; Penalty:</strong> Per-feature standardized inner SiLU+B-spline edges, pre-tanh scale stability, and edge-roughness weighted outer B-spline penalty; <a class="reference internal" href="architecture/spectrum/KAN.html"><span class="std std-doc">Architecture</span></a>.</p></li>
+</ul>
+</section>
+<hr class="docutils" />
+<section id="thermal-inertia-inertia-thermal-beta">
+<span id="thermal-inertia-inertia--thermal-beta"></span><h3><a class="reference internal" href="math/spectrum/THERMAL_INERTIA.html"><span class="std std-doc">Thermal Inertia (<code class="docutils literal notranslate"><span class="pre">inertia</span></code> / <code class="docutils literal notranslate"><span class="pre">thermal</span></code>)</span></a> (BETA)<a class="headerlink" href="#thermal-inertia-inertia-thermal-beta" title="Link to this heading">¶</a></h3>
+<ul class="simple">
+<li><p><strong>Syntax:</strong> <code class="docutils literal notranslate"><span class="pre">inertia(temperature,</span> <span class="pre">type='thermal',</span> <span class="pre">alphas='0.05|0.01',</span> <span class="pre">k=4)</span></code></p></li>
+<li><p><strong>Mapping &amp; Penalty:</strong> Causal RC low-pass filtered covariates with cached domain normalization, linear boundary extrapolation, and state continuation; <a class="reference internal" href="architecture/spectrum/THERMAL_INERTIA.html"><span class="std std-doc">Architecture</span></a>.</p></li>
+</ul>
+</section>
+<hr class="docutils" />
+<section id="smooth-degree-days-dd-hdd-cdd-beta">
+<span id="smooth-degree-days-dd--hdd_cdd-beta"></span><h3><a class="reference internal" href="math/spectrum/DEGREE_DAY.html"><span class="std std-doc">Smooth Degree Days (<code class="docutils literal notranslate"><span class="pre">dd</span></code> / <code class="docutils literal notranslate"><span class="pre">hdd_cdd</span></code>)</span></a> (BETA)<a class="headerlink" href="#smooth-degree-days-dd-hdd-cdd-beta" title="Link to this heading">¶</a></h3>
+<ul class="simple">
+<li><p><strong>Syntax:</strong> <code class="docutils literal notranslate"><span class="pre">dd(temperature,</span> <span class="pre">t_heat=15.0,</span> <span class="pre">t_cool=22.0,</span> <span class="pre">sharpness=5.0,</span> <span class="pre">quad=False)</span></code></p></li>
+<li><p><strong>Mapping &amp; Penalty:</strong> Smooth <span class="math notranslate nohighlight">\(C^\infty\)</span> softplus heating/cooling degree-day ramps with optional quadratic cold saturation; <a class="reference internal" href="architecture/spectrum/DEGREE_DAY.html"><span class="std std-doc">Architecture</span></a>.</p></li>
+</ul>
+</section>
+<hr class="docutils" />
+<section id="warped-calendar-wcal-beta">
+<h3><a class="reference internal" href="math/spectrum/WARPED_CALENDAR.html"><span class="std std-doc">Warped Calendar (<code class="docutils literal notranslate"><span class="pre">wcal</span></code>)</span></a> (BETA)<a class="headerlink" href="#warped-calendar-wcal-beta" title="Link to this heading">¶</a></h3>
+<ul class="simple">
+<li><p><strong>Syntax:</strong> <code class="docutils literal notranslate"><span class="pre">wcal(time,</span> <span class="pre">regime,</span> <span class="pre">k=4,</span> <span class="pre">period=365.25)</span></code></p></li>
+<li><p><strong>Mapping &amp; Penalty:</strong> Full-rank <span class="math notranslate nohighlight">\(6K\)</span> diffeomorphic calendar phase-modulation harmonics; <a class="reference internal" href="architecture/spectrum/WARPED_CALENDAR.html"><span class="std std-doc">Architecture</span></a>.</p></li>
+</ul>
+</section>
+<hr class="docutils" />
+<section id="macro-trend-hp-trend-beta">
+<span id="macro-trend-hp_trend-beta"></span><h3><a class="reference internal" href="math/spectrum/MACRO_TREND.html"><span class="std std-doc">Macro Trend (<code class="docutils literal notranslate"><span class="pre">hp_trend</span></code>)</span></a> (BETA)<a class="headerlink" href="#macro-trend-hp-trend-beta" title="Link to this heading">¶</a></h3>
+<ul class="simple">
+<li><p><strong>Syntax:</strong> <code class="docutils literal notranslate"><span class="pre">hp_trend(time,</span> <span class="pre">k=20)</span></code></p></li>
+<li><p><strong>Mapping &amp; Penalty:</strong> Natural cubic B-spline trend with the Hodrick-Prescott second-difference penalty and linear extrapolation; <a class="reference internal" href="architecture/spectrum/MACRO_TREND.html"><span class="std std-doc">Architecture</span></a>.</p></li>
+</ul>
+</section>
+<hr class="docutils" />
+<section id="form-b-temporal-operators-op-attn-op-hippo-op-ssa-beta">
+<span id="form-b-temporal-operators-op_attn--op_hippo--op_ssa-beta"></span><h3><a class="reference internal" href="math/spectrum/TEMPORAL_OPERATOR.html"><span class="std std-doc">Form B Temporal Operators (<code class="docutils literal notranslate"><span class="pre">op_attn</span></code> / <code class="docutils literal notranslate"><span class="pre">op_hippo</span></code> / <code class="docutils literal notranslate"><span class="pre">op_ssa</span></code>)</span></a> (BETA)<a class="headerlink" href="#form-b-temporal-operators-op-attn-op-hippo-op-ssa-beta" title="Link to this heading">¶</a></h3>
+<ul class="simple">
+<li><p><strong>Syntax:</strong> <code class="docutils literal notranslate"><span class="pre">op_attn(x,</span> <span class="pre">inner='spline',</span> <span class="pre">k_base=8,</span> <span class="pre">decay=0.9)</span></code></p></li>
+<li><p><strong>Mapping &amp; Penalty:</strong> Causal temporal mixing operators applied over an evaluated inner basis matrix with exact state continuation; <a class="reference internal" href="architecture/spectrum/TEMPORAL_OPERATOR.html"><span class="std std-doc">Architecture</span></a>.</p></li>
+</ul>
+</section>
+<hr class="docutils" />
+<section id="causal-revin-patch-basis-patch-basis-beta">
+<span id="causal-revin-patch-basis-patch_basis-beta"></span><h3><a class="reference internal" href="math/spectrum/PATCH_BASIS.html"><span class="std std-doc">Causal RevIN Patch Basis (<code class="docutils literal notranslate"><span class="pre">patch_basis</span></code>)</span></a> (BETA)<a class="headerlink" href="#causal-revin-patch-basis-patch-basis-beta" title="Link to this heading">¶</a></h3>
+<ul class="simple">
+<li><p><strong>Syntax:</strong> <code class="docutils literal notranslate"><span class="pre">patch_basis(x,</span> <span class="pre">others=x2,</span> <span class="pre">patch_len=16,</span> <span class="pre">n_tokens=16)</span></code></p></li>
+<li><p><strong>Mapping &amp; Penalty:</strong> Causal rolling RevIN patch projection with optional Level-2 antisymmetric Lévy Area hysteresis; <a class="reference internal" href="architecture/spectrum/PATCH_BASIS.html"><span class="std std-doc">Architecture</span></a>.</p></li>
+</ul>
+</section>
+<hr class="docutils" />
+<section id="universal-foundation-basis-foundation-beta">
+<h3><a class="reference internal" href="math/spectrum/FOUNDATION.html"><span class="std std-doc">Universal Foundation Basis (<code class="docutils literal notranslate"><span class="pre">foundation</span></code>)</span></a> (BETA)<a class="headerlink" href="#universal-foundation-basis-foundation-beta" title="Link to this heading">¶</a></h3>
+<ul class="simple">
+<li><p><strong>Syntax:</strong> <code class="docutils literal notranslate"><span class="pre">foundation(x,</span> <span class="pre">others=x2,</span> <span class="pre">patch_len=16,</span> <span class="pre">n_tokens=16,</span> <span class="pre">n_bins=16,</span> <span class="pre">n_pfn=16)</span></code></p></li>
+<li><p><strong>Mapping &amp; Penalty:</strong> Closed-form penalized universal basis combining Causal RevIN Patches, Quantile Histogram embeddings, Multi-Rate Filterbanks, and PFN Ridge features; <a class="reference internal" href="architecture/spectrum/FOUNDATION.html"><span class="std std-doc">Architecture</span></a>.</p></li>
+</ul>
+</section>
+<hr class="docutils" />
+<section id="koopman-edmd-koopman-beta">
+<h3><a class="reference internal" href="math/spectrum/KOOPMAN_DMD.html"><span class="std std-doc">Koopman EDMD (<code class="docutils literal notranslate"><span class="pre">koopman</span></code>)</span></a> (BETA)<a class="headerlink" href="#koopman-edmd-koopman-beta" title="Link to this heading">¶</a></h3>
+<ul class="simple">
+<li><p><strong>Syntax:</strong> <code class="docutils literal notranslate"><span class="pre">koopman(x,</span> <span class="pre">k=12,</span> <span class="pre">n_lift=64,</span> <span class="pre">delay_embed=1)</span></code></p></li>
+<li><p><strong>Mapping &amp; Penalty:</strong> Extended Dynamic Mode Decomposition eigenfunctions with residual stability penalty; <a class="reference internal" href="architecture/spectrum/KOOPMAN_DMD.html"><span class="std std-doc">Architecture</span></a>.</p></li>
+</ul>
+</section>
 </section>
 <hr class="docutils" />
 <section id="benchmark-proof-the-power-of-topology-meta-learning">
-<h2>📊 Benchmark Proof: The Power of Topology &amp; Meta-Learning<a class="headerlink" href="#benchmark-proof-the-power-of-topology-meta-learning" title="Link to this heading">¶</a></h2>
+<span id="-benchmark-proof-the-power-of-topology--meta-learning"></span><h2>📊 Benchmark Proof: The Power of Topology &amp; Meta-Learning<a class="headerlink" href="#benchmark-proof-the-power-of-topology-meta-learning" title="Link to this heading">¶</a></h2>
 <p><em>(To reproduce these results, execute <code class="docutils literal notranslate"><span class="pre">python</span> <span class="pre">use_cases/cheatsheet.py</span></code> located in the repository, note: results of BETA/EXP modules may differ, timing depends on the hardware configuration).</em></p>
 <p>To demonstrate the framework’s mathematical guarantees, we ran a comprehensive benchmark (<code class="docutils literal notranslate"><span class="pre">cheatsheet.py</span></code>) simulating a complex Data Generation Process (DGP). The DGP contained a mix of linear trends, periodic seasonality, a hidden physical Damped Harmonic Oscillator, complex tensor interactions, and high-frequency non-linear noise.</p>
 <p>We deployed the entire TAM spectrum (Static bases, Neural Networks, Physics operators) and wrapped them in all available Meta-Learners. Here is the final Test Set performance (ranked by <strong>RMSE</strong>):</p>
@@ -652,7 +777,7 @@
 <li><p>🚧 <strong><code class="docutils literal notranslate"><span class="pre">E_AutoTAM_Champion</span></code></strong> (Test RMSE: <strong>10.02</strong>): <strong>[BETA]</strong> The AutoML meta-model is still under construction. This run uses the script’s quick settings (1 expert, population of 2); 5 experts and a population of 20 do better, at a longer run time.</p></li>
 </ul>
 <section id="key-takeaways-for-practitioners">
-<h3>💡 Key Takeaways for Practitioners:<a class="headerlink" href="#key-takeaways-for-practitioners" title="Link to this heading">¶</a></h3>
+<span id="-key-takeaways-for-practitioners"></span><h3>💡 Key Takeaways for Practitioners:<a class="headerlink" href="#key-takeaways-for-practitioners" title="Link to this heading">¶</a></h3>
 <ol class="arabic simple">
 <li><p><strong>Topology Matters:</strong> Choosing the correct mathematical basis (e.g., <code class="docutils literal notranslate"><span class="pre">phys()</span></code> for differential equations) provides a massive performance baseline. Furthermore, properly integrating neural layers (<code class="docutils literal notranslate"><span class="pre">n()</span></code>) helps capture complex residual interactions that classical models miss.</p></li>
 <li><p><strong>Drift is Inevitable (But Fixable):</strong> Time-series data is inherently non-stationary. Wrapping your base models in <strong>Adaptive</strong> or <strong>Kalman</strong> drift-correction layers significantly reduces error.</p></li>
@@ -661,7 +786,7 @@
 </section>
 <hr class="docutils" />
 <section id="visualizing-the-benchmark-benchmarktracker">
-<h3>📈 Visualizing the Benchmark (<code class="docutils literal notranslate"><span class="pre">BenchmarkTracker</span></code>)<a class="headerlink" href="#visualizing-the-benchmark-benchmarktracker" title="Link to this heading">¶</a></h3>
+<span id="-visualizing-the-benchmark-benchmarktracker"></span><h3>📈 Visualizing the Benchmark (<code class="docutils literal notranslate"><span class="pre">BenchmarkTracker</span></code>)<a class="headerlink" href="#visualizing-the-benchmark-benchmarktracker" title="Link to this heading">¶</a></h3>
 <p>The performance table above is extracted directly from TAM’s built-in <code class="docutils literal notranslate"><span class="pre">BenchmarkTracker</span></code> module, which automatically compiles MLOps diagnostic dashboards.</p>
 <p>Below is the visual output of this exact benchmark. Notice how the dashboard not only ranks the models but also provides a Chronological Forecast to verify stage-by-stage alignment (Train vs. Validation vs. Test) and a Test Set Vulnerability heatmap to identify exactly where specific models struggle across different feature regimes.</p>
 <div align="center">
@@ -670,7 +795,7 @@
 </section>
 <hr class="docutils" />
 <section id="deep-dive-inside-the-meta-ensembles">
-<h3>🔬 Deep Dive: Inside the Meta-Ensembles<a class="headerlink" href="#deep-dive-inside-the-meta-ensembles" title="Link to this heading">¶</a></h3>
+<span id="-deep-dive-inside-the-meta-ensembles"></span><h3>🔬 Deep Dive: Inside the Meta-Ensembles<a class="headerlink" href="#deep-dive-inside-the-meta-ensembles" title="Link to this heading">¶</a></h3>
 <p>Each Meta-Learner is itself an ensemble of different mathematical bases. To achieve the final scores shown in the benchmark above, the framework uses the <code class="docutils literal notranslate"><span class="pre">OperaTAM</span></code> algorithm internally to dynamically route trust to the best-performing topological components over time. Below is the visual gallery of these internal weight allocations.</p>
 <p><strong>1. The Ultimate Aggregation: GlobalTAM</strong></p>
 <div align="center">
@@ -704,10 +829,10 @@
 </section>
 <hr class="docutils" />
 <section id="full-documentation-map">
-<h2>🧭 Full Documentation Map<a class="headerlink" href="#full-documentation-map" title="Link to this heading">¶</a></h2>
+<span id="-full-documentation-map"></span><h2>🧭 Full Documentation Map<a class="headerlink" href="#full-documentation-map" title="Link to this heading">¶</a></h2>
 <p>TAM enforces a strict <strong>Mirror Architecture</strong> in its documentation: every mathematical concept (The “Why”) has a direct PyTorch engineering counterpart (The “How”).</p>
 <section id="the-core-engine">
-<h3>⚙️ The Core Engine<a class="headerlink" href="#the-core-engine" title="Link to this heading">¶</a></h3>
+<span id="-the-core-engine"></span><h3>⚙️ The Core Engine<a class="headerlink" href="#the-core-engine" title="Link to this heading">¶</a></h3>
 <ul class="simple">
 <li><p><strong>The Primal Model:</strong> <a class="reference internal" href="math/core/01_primal_model.html"><span class="std std-doc">🧠 Theory</span></a> | <a class="reference internal" href="architecture/core/01_additive_api.html"><span class="std std-doc">💻 Architecture</span></a></p></li>
 <li><p><strong>Tensorization &amp; Data:</strong> <a class="reference internal" href="math/core/02_tensorization.html"><span class="std std-doc">🧠 Theory</span></a> | <a class="reference internal" href="architecture/core/02_data_pipeline.html"><span class="std std-doc">💻 Architecture</span></a></p></li>
@@ -719,7 +844,7 @@
 </ul>
 </section>
 <section id="meta-learners-inference">
-<h3>🛡️ Meta-Learners &amp; Inference<a class="headerlink" href="#meta-learners-inference" title="Link to this heading">¶</a></h3>
+<span id="-meta-learners--inference"></span><h3>🛡️ Meta-Learners &amp; Inference<a class="headerlink" href="#meta-learners-inference" title="Link to this heading">¶</a></h3>
 <ul class="simple">
 <li><p><strong>Adaptive Online Learning:</strong> <a class="reference internal" href="math/meta/01_adaptive_online.html"><span class="std std-doc">🧠 Theory</span></a> | <a class="reference internal" href="architecture/meta/01_adaptive_code.html"><span class="std std-doc">💻 Architecture</span></a></p></li>
 <li><p><strong>Extended Kalman Filter</strong> (BETA) : <a class="reference internal" href="math/meta/02_kalman_filter.html"><span class="std std-doc">🧠 Theory</span></a> | <a class="reference internal" href="architecture/meta/02_kalman_torchscript.html"><span class="std std-doc">💻 Architecture</span></a></p></li>
@@ -820,6 +945,17 @@
 <li><a class="reference internal" href="#physics-phys"><span class="xref myst">Physics (<code class="docutils literal notranslate"><span class="pre">phys</span></code>)</span></a></li>
 <li><a class="reference internal" href="#pid-pid"><span class="xref myst">PID (<code class="docutils literal notranslate"><span class="pre">pid</span></code>)</span></a></li>
 <li><a class="reference internal" href="#linear-tree-lt"><span class="xref myst">Linear Tree (<code class="docutils literal notranslate"><span class="pre">lt</span></code>)</span></a></li>
+<li><a class="reference internal" href="#causal-path-signature-sig-beta"><span class="xref myst">Causal Path Signature (<code class="docutils literal notranslate"><span class="pre">sig</span></code>)</span> (BETA)</a></li>
+<li><a class="reference internal" href="#single-index-distributed-lag-si-beta"><span class="xref myst">Single-Index Distributed Lag (<code class="docutils literal notranslate"><span class="pre">si</span></code>)</span> (BETA)</a></li>
+<li><a class="reference internal" href="#kolmogorov-arnold-edge-splines-kan-beta"><span class="xref myst">Kolmogorov-Arnold Edge Splines (<code class="docutils literal notranslate"><span class="pre">kan</span></code>)</span> (BETA)</a></li>
+<li><a class="reference internal" href="#thermal-inertia-inertia-thermal-beta"><span class="xref myst">Thermal Inertia (<code class="docutils literal notranslate"><span class="pre">inertia</span></code> / <code class="docutils literal notranslate"><span class="pre">thermal</span></code>)</span> (BETA)</a></li>
+<li><a class="reference internal" href="#smooth-degree-days-dd-hdd-cdd-beta"><span class="xref myst">Smooth Degree Days (<code class="docutils literal notranslate"><span class="pre">dd</span></code> / <code class="docutils literal notranslate"><span class="pre">hdd_cdd</span></code>)</span> (BETA)</a></li>
+<li><a class="reference internal" href="#warped-calendar-wcal-beta"><span class="xref myst">Warped Calendar (<code class="docutils literal notranslate"><span class="pre">wcal</span></code>)</span> (BETA)</a></li>
+<li><a class="reference internal" href="#macro-trend-hp-trend-beta"><span class="xref myst">Macro Trend (<code class="docutils literal notranslate"><span class="pre">hp_trend</span></code>)</span> (BETA)</a></li>
+<li><a class="reference internal" href="#form-b-temporal-operators-op-attn-op-hippo-op-ssa-beta"><span class="xref myst">Form B Temporal Operators (<code class="docutils literal notranslate"><span class="pre">op_attn</span></code> / <code class="docutils literal notranslate"><span class="pre">op_hippo</span></code> / <code class="docutils literal notranslate"><span class="pre">op_ssa</span></code>)</span> (BETA)</a></li>
+<li><a class="reference internal" href="#causal-revin-patch-basis-patch-basis-beta"><span class="xref myst">Causal RevIN Patch Basis (<code class="docutils literal notranslate"><span class="pre">patch_basis</span></code>)</span> (BETA)</a></li>
+<li><a class="reference internal" href="#universal-foundation-basis-foundation-beta"><span class="xref myst">Universal Foundation Basis (<code class="docutils literal notranslate"><span class="pre">foundation</span></code>)</span> (BETA)</a></li>
+<li><a class="reference internal" href="#koopman-edmd-koopman-beta"><span class="xref myst">Koopman EDMD (<code class="docutils literal notranslate"><span class="pre">koopman</span></code>)</span> (BETA)</a></li>
 </ul>
 </li>
 <li><a class="reference internal" href="#benchmark-proof-the-power-of-topology-meta-learning">📊 Benchmark Proof: The Power of Topology &amp; Meta-Learning</a><ul>

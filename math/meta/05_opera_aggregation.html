@@ -221,6 +221,17 @@
 <li class="toctree-l1"><a class="reference internal" href="../spectrum/CATEGORICAL.html">The Categorical Effect (Discrete Topologies)</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../spectrum/CROSS_TENSOR.html">The Tensor Product Effect (Interactions)</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../spectrum/PHYSICS_PIKL.html">Physics-Informed Kernel Learning (PIKL)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../spectrum/KOOPMAN_DMD.html">KOOPMAN_DMD: Global Linearization of Non-linear Dynamical Systems via Kernel / Extended Dynamic Mode Decomposition (EDMD / kDMD)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../spectrum/FOUNDATION.html">Universal Foundation Basis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../spectrum/PATCH_BASIS.html">Causal Patch Basis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../spectrum/TEMPORAL_OPERATOR.html">Temporal Operators on an Evaluated Basis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../spectrum/WARPED_CALENDAR.html">Warped Calendar Harmonics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../spectrum/MACRO_TREND.html">Hodrick-Prescott Macro-Trend</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../spectrum/DEGREE_DAY.html">Smooth Degree-Day Hinges</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../spectrum/THERMAL_INERTIA.html">Thermal Inertia</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../spectrum/KAN.html">Kolmogorov-Arnold Network Edge Splines</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../spectrum/SINGLE_INDEX.html">Penalized Single-Index Distributed Lags</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../spectrum/SIGNATURE.html">The Path Signature and Log-Signature Effect (Rough Path Iterated Integrals)</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../spectrum/PID.html">The PID Effect (Autoregressive Control Dynamics)</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../spectrum/LINEAR_TREE.html">The Linear Tree Effect (Varying-Coefficient Models)</a></li>
 </ul>
@@ -251,6 +262,17 @@
 <li class="toctree-l1"><a class="reference internal" href="../../architecture/core/04_hardware_memory.html">Hardware Memory Dispatch &amp; Anti-OOM Systems</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../architecture/core/05_gcv_implementation.html">Auto-ML via Generalized Cross-Validation (GCV)</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../architecture/core/06_the_spectrum_api.html">The Spectral Dictionary: PyTorch Implementations &amp; Factory Assembly</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/spectrum/KOOPMAN_DMD.html">Koopman Kernel DMD: PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/spectrum/FOUNDATION.html">Universal Foundation Basis: PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/spectrum/PATCH_BASIS.html">Causal RevIN Patch Basis: PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/spectrum/TEMPORAL_OPERATOR.html">Form B Temporal Operators: PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/spectrum/WARPED_CALENDAR.html">Warped Calendar Harmonics: PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/spectrum/MACRO_TREND.html">Macro-Trend (<code class="docutils literal notranslate"><span class="pre">hp_trend</span></code>): PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/spectrum/DEGREE_DAY.html">Smooth Degree-Day Hinges: PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/spectrum/THERMAL_INERTIA.html">Thermal Inertia: PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/spectrum/KAN.html">Kolmogorov-Arnold Network Edge Splines: PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/spectrum/SINGLE_INDEX.html">Penalized Single-Index Distributed Lags: PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/spectrum/SIGNATURE.html">Path Signature and Log-Signature Effect: PyTorch Architecture &amp; Implementation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../architecture/core/07_the_statistics_api.html">The Statistics API: One Atom, Many Schedules</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">🔬 Architecture: The Statistics Engine</span></p>
@@ -410,11 +432,22 @@ To mathematically guarantee that the algorithm operates within optimal theoretic
 </section>
 <hr class="docutils" />
 <section id="d-tensor-batching-gigadata-scaling">
-<h2>3D Tensor Batching (Gigadata Scaling)<a class="headerlink" href="#d-tensor-batching-gigadata-scaling" title="Link to this heading">¶</a></h2>
+<span id="3d-tensor-batching-gigadata-scaling"></span><h2>3D Tensor Batching (Gigadata Scaling)<a class="headerlink" href="#d-tensor-batching-gigadata-scaling" title="Link to this heading">¶</a></h2>
 <p>The original OPERA implementation sequentially loops through the time series step-by-step. However, executing a standard <code class="docutils literal notranslate"><span class="pre">for</span> <span class="pre">t</span> <span class="pre">in</span> <span class="pre">range(T):</span></code> loop in Python over millions of smart-meter rows triggers severe CPU-GPU kernel launch bottlenecks, effectively paralyzing the hardware.</p>
 <p>To solve this, <code class="docutils literal notranslate"><span class="pre">OperaTAM</span></code> re-architects the online aggregation into a <strong>3D Tensor Batching</strong> paradigm.
 The historical data is padded and reshaped into a contiguous GPU tensor of dimensions <code class="docutils literal notranslate"><span class="pre">(Batch,</span> <span class="pre">Time,</span> <span class="pre">Experts)</span></code>, where the <code class="docutils literal notranslate"><span class="pre">Batch</span></code> dimension represents independent spatial groups (e.g., thousands of distinct energy substations).</p>
 <p>The sequential mathematical loop is then decorated with <code class="docutils literal notranslate"><span class="pre">&#64;torch.jit.script</span></code>. This compiles the sequential MLpol evaluation, simultaneously tracking the regret sequences for thousands of independent groups in a single pass without standard Python loop overhead. This fuses the theoretical purity of the OPERA framework <span class="bibtex-citation" id="id9">[<a class="reference internal" href="../../bibliography.html#id33" title="Pierre Gaillard, Yannig Goude, Laurent Plagne, Thibaut Dubois, and Benoit Thieurmel. Opera, a r package, online prediction by expert aggregation (v1.1). 2016.">Gaillard <em>et al.</em>, 2016</a>]</span> with the raw computational velocity of modern deep learning infrastructures.</p>
+</section>
+<hr class="docutils" />
+<section id="bernstein-online-aggregation-boa-two-tier-hierarchical-ensembling">
+<span id="bernstein-online-aggregation-boa--two-tier-hierarchical-ensembling"></span><h2>Bernstein Online Aggregation (BOA) &amp; Two-Tier Hierarchical Ensembling<a class="headerlink" href="#bernstein-online-aggregation-boa-two-tier-hierarchical-ensembling" title="Link to this heading">¶</a></h2>
+<p>When heterogeneous basis families (e.g., Splines, Neural, Trees, Foundation bases) are aggregated together, <strong>Bernstein Online Aggregation (BOA)</strong> stabilizes weight updates via second-order gradient variance adaptation:</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[w_{k,t+1} \propto w_{k,t}\, \exp\left(-\eta_{k,t}\, r_{k,t} - \eta_{k,t}^2\, r_{k,t}^2\right), \qquad \eta_{k,t} = \min\left(\frac{1}{2 \max_{s \le t} |r_{k,s}|},\; \sqrt{\frac{\ln K}{\sum_{s=1}^{t} r_{k,s}^2}}\right)\]</div>
+</div>
+<p>where <span class="math notranslate nohighlight">\(r_{k,t}\)</span> is the linearized regret defined above, <span class="math notranslate nohighlight">\(K\)</span> is the number of experts, and the weights are renormalized to sum to one at every step.</p>
+<p>achieving fast <span class="math notranslate nohighlight">\(\mathcal{O}(\ln K / T)\)</span> excess risk rates under small-loss regimes. In <strong>Hierarchical Online Aggregation</strong>, experts are partitioned by basis family: Level 1 computes intra-family aggregates via MLpol, and Level 2 combines the <span class="math notranslate nohighlight">\(F\)</span> family meta-experts via BOA, preventing collinearity within a family from diluting cross-family diversity.</p>
 </section>
 </section>
 
@@ -481,6 +514,7 @@ The historical data is padded and reshaped into a contiguous GPU tensor of dimen
 </li>
 <li><a class="reference internal" href="#polynomial-minimax-strategy-mlpol">Polynomial Minimax Strategy (MLpol)</a></li>
 <li><a class="reference internal" href="#d-tensor-batching-gigadata-scaling">3D Tensor Batching (Gigadata Scaling)</a></li>
+<li><a class="reference internal" href="#bernstein-online-aggregation-boa-two-tier-hierarchical-ensembling">Bernstein Online Aggregation (BOA) &amp; Two-Tier Hierarchical Ensembling</a></li>
 </ul>
 </li>
 </ul>

@@ -221,6 +221,17 @@
 <li class="toctree-l1"><a class="reference internal" href="../spectrum/CATEGORICAL.html">The Categorical Effect (Discrete Topologies)</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../spectrum/CROSS_TENSOR.html">The Tensor Product Effect (Interactions)</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../spectrum/PHYSICS_PIKL.html">Physics-Informed Kernel Learning (PIKL)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../spectrum/KOOPMAN_DMD.html">KOOPMAN_DMD: Global Linearization of Non-linear Dynamical Systems via Kernel / Extended Dynamic Mode Decomposition (EDMD / kDMD)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../spectrum/FOUNDATION.html">Universal Foundation Basis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../spectrum/PATCH_BASIS.html">Causal Patch Basis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../spectrum/TEMPORAL_OPERATOR.html">Temporal Operators on an Evaluated Basis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../spectrum/WARPED_CALENDAR.html">Warped Calendar Harmonics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../spectrum/MACRO_TREND.html">Hodrick-Prescott Macro-Trend</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../spectrum/DEGREE_DAY.html">Smooth Degree-Day Hinges</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../spectrum/THERMAL_INERTIA.html">Thermal Inertia</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../spectrum/KAN.html">Kolmogorov-Arnold Network Edge Splines</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../spectrum/SINGLE_INDEX.html">Penalized Single-Index Distributed Lags</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../spectrum/SIGNATURE.html">The Path Signature and Log-Signature Effect (Rough Path Iterated Integrals)</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../spectrum/PID.html">The PID Effect (Autoregressive Control Dynamics)</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../spectrum/LINEAR_TREE.html">The Linear Tree Effect (Varying-Coefficient Models)</a></li>
 </ul>
@@ -251,6 +262,17 @@
 <li class="toctree-l1"><a class="reference internal" href="../../architecture/core/04_hardware_memory.html">Hardware Memory Dispatch &amp; Anti-OOM Systems</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../architecture/core/05_gcv_implementation.html">Auto-ML via Generalized Cross-Validation (GCV)</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../architecture/core/06_the_spectrum_api.html">The Spectral Dictionary: PyTorch Implementations &amp; Factory Assembly</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/spectrum/KOOPMAN_DMD.html">Koopman Kernel DMD: PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/spectrum/FOUNDATION.html">Universal Foundation Basis: PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/spectrum/PATCH_BASIS.html">Causal RevIN Patch Basis: PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/spectrum/TEMPORAL_OPERATOR.html">Form B Temporal Operators: PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/spectrum/WARPED_CALENDAR.html">Warped Calendar Harmonics: PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/spectrum/MACRO_TREND.html">Macro-Trend (<code class="docutils literal notranslate"><span class="pre">hp_trend</span></code>): PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/spectrum/DEGREE_DAY.html">Smooth Degree-Day Hinges: PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/spectrum/THERMAL_INERTIA.html">Thermal Inertia: PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/spectrum/KAN.html">Kolmogorov-Arnold Network Edge Splines: PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/spectrum/SINGLE_INDEX.html">Penalized Single-Index Distributed Lags: PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/spectrum/SIGNATURE.html">Path Signature and Log-Signature Effect: PyTorch Architecture &amp; Implementation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../architecture/core/07_the_statistics_api.html">The Statistics API: One Atom, Many Schedules</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">🔬 Architecture: The Statistics Engine</span></p>
@@ -380,8 +402,13 @@ To counter this vulnerability and guarantee strict determinism (Float64), the fr
 \[\delta I = 10^{-6} \times T \times I\]</div>
 </div>
 <p>This acts as a microscopic, baseline Ridge regularization <span class="bibtex-citation" id="id6">[<a class="reference internal" href="../../bibliography.html#id44" title="Arthur E Hoerl and Robert W Kennard. Ridge regression: biased estimation for nonorthogonal problems. Technometrics, 12(1):55–67, 1970.">Hoerl and Kennard, 1970</a>]</span>. The covariances are sums over the <span class="math notranslate nohighlight">\(T\)</span> samples, so the system actually solved is <span class="math notranslate nohighlight">\((\Phi^\top\Phi / T) + P + 10^{-6} I\)</span>: a penalty weight below about <span class="math notranslate nohighlight">\(10^{-6}\)</span> (<code class="docutils literal notranslate"><span class="pre">ap</span> <span class="pre">&lt;</span> <span class="pre">-6</span></code>) is dominated by this floor, and that part of the search space is flat. The direct solver, the iterative solver and the GCV score (see the GCV chapter) all add the same floor, so the penalty GCV selects gives the same coefficients when the model is refitted. While this “numerical anvil” forcefully guarantees the positive-definiteness of the matrix and stabilizes the Krylov subspace, it fundamentally deviates from the purity of classic preconditioning methods.</p>
-<p><strong>Update Roadmap (PCG):</strong>
-The mathematical implementation must evolve towards a Preconditioned Conjugate Gradient (PCG). The addition of a diagonal preconditioner (Jacobi)-which involves estimating and dividing by the diagonal of the implicit matrix-is an operation with a negligible memory cost of <span class="math notranslate nohighlight">\(\mathcal{O}(D)\)</span>. This theoretical upgrade will allow the removal of the massive Jitter while drastically dividing the number of iterations required to solve extreme systems (<span class="math notranslate nohighlight">\(D &gt; 7500\)</span>), aligning the framework perfectly with the mathematical state-of-the-art for iterative solvers.</p>
+<p><strong>Preconditioned Conjugate Gradient (PCG), Tall-Skinny Block-QR, and Pivotal Group LASSO:</strong>
+For high-dimensional or ill-conditioned systems, three complementary solver extensions are supported:</p>
+<ol class="arabic simple">
+<li><p><strong>Jacobi &amp; Block-Diagonal Preconditioning (PCG)</strong>: Dividing the Krylov residual by a diagonal or block-diagonal preconditioner <span class="math notranslate nohighlight">\(M^{-1}\)</span> reduces the effective condition number <span class="math notranslate nohighlight">\(\kappa(M^{-1}A)\)</span> at negligible <span class="math notranslate nohighlight">\(\mathcal{O}(D)\)</span> memory cost.</p></li>
+<li><p><strong>Incremental Tall-Skinny Block-QR</strong>: Streaming row blocks <span class="math notranslate nohighlight">\(\Phi_b\)</span> through Householder QR reductions <span class="math notranslate nohighlight">\(R_{\text{new}} = \operatorname{qr}([R; \Phi_b])\)</span> solves the normal equations directly in <span class="math notranslate nohighlight">\(\mathcal{O}(D^2)\)</span> storage without forming <span class="math notranslate nohighlight">\(\Phi^\top \Phi\)</span>, preserving numerical stability when <span class="math notranslate nohighlight">\(\kappa(\Phi) \sim 10^8\)</span>.</p></li>
+<li><p><strong>Pivotal Square-Root Group LASSO &amp; Scale-Stability Penalty</strong>: Solving <span class="math notranslate nohighlight">\(\min_\theta \|\sqrt{W}(y - \Phi\theta)\|_2 + \lambda \sum_g \sqrt{d_g}\|\theta_g\|_2\)</span> via proximal block soft-thresholding makes <span class="math notranslate nohighlight">\(\lambda\)</span> scale-invariant with respect to unknown noise variance <span class="math notranslate nohighlight">\(\sigma\)</span>, while the nested scale-stability penalty normalizes inner node activations by frozen training <span class="math notranslate nohighlight">\((\hat{\mu}_q, \hat{\sigma}_q)\)</span>.</p></li>
+</ol>
 </section>
 </section>
 

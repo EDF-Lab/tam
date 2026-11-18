@@ -221,6 +221,17 @@
 <li class="toctree-l1"><a class="reference internal" href="../spectrum/CATEGORICAL.html">The Categorical Effect (Discrete Topologies)</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../spectrum/CROSS_TENSOR.html">The Tensor Product Effect (Interactions)</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../spectrum/PHYSICS_PIKL.html">Physics-Informed Kernel Learning (PIKL)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../spectrum/KOOPMAN_DMD.html">KOOPMAN_DMD: Global Linearization of Non-linear Dynamical Systems via Kernel / Extended Dynamic Mode Decomposition (EDMD / kDMD)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../spectrum/FOUNDATION.html">Universal Foundation Basis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../spectrum/PATCH_BASIS.html">Causal Patch Basis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../spectrum/TEMPORAL_OPERATOR.html">Temporal Operators on an Evaluated Basis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../spectrum/WARPED_CALENDAR.html">Warped Calendar Harmonics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../spectrum/MACRO_TREND.html">Hodrick-Prescott Macro-Trend</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../spectrum/DEGREE_DAY.html">Smooth Degree-Day Hinges</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../spectrum/THERMAL_INERTIA.html">Thermal Inertia</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../spectrum/KAN.html">Kolmogorov-Arnold Network Edge Splines</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../spectrum/SINGLE_INDEX.html">Penalized Single-Index Distributed Lags</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../spectrum/SIGNATURE.html">The Path Signature and Log-Signature Effect (Rough Path Iterated Integrals)</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../spectrum/PID.html">The PID Effect (Autoregressive Control Dynamics)</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../spectrum/LINEAR_TREE.html">The Linear Tree Effect (Varying-Coefficient Models)</a></li>
 </ul>
@@ -251,6 +262,17 @@
 <li class="toctree-l1"><a class="reference internal" href="../../architecture/core/04_hardware_memory.html">Hardware Memory Dispatch &amp; Anti-OOM Systems</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../architecture/core/05_gcv_implementation.html">Auto-ML via Generalized Cross-Validation (GCV)</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../architecture/core/06_the_spectrum_api.html">The Spectral Dictionary: PyTorch Implementations &amp; Factory Assembly</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/spectrum/KOOPMAN_DMD.html">Koopman Kernel DMD: PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/spectrum/FOUNDATION.html">Universal Foundation Basis: PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/spectrum/PATCH_BASIS.html">Causal RevIN Patch Basis: PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/spectrum/TEMPORAL_OPERATOR.html">Form B Temporal Operators: PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/spectrum/WARPED_CALENDAR.html">Warped Calendar Harmonics: PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/spectrum/MACRO_TREND.html">Macro-Trend (<code class="docutils literal notranslate"><span class="pre">hp_trend</span></code>): PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/spectrum/DEGREE_DAY.html">Smooth Degree-Day Hinges: PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/spectrum/THERMAL_INERTIA.html">Thermal Inertia: PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/spectrum/KAN.html">Kolmogorov-Arnold Network Edge Splines: PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/spectrum/SINGLE_INDEX.html">Penalized Single-Index Distributed Lags: PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/spectrum/SIGNATURE.html">Path Signature and Log-Signature Effect: PyTorch Architecture &amp; Implementation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../architecture/core/07_the_statistics_api.html">The Statistics API: One Atom, Many Schedules</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">🔬 Architecture: The Statistics Engine</span></p>
@@ -323,7 +345,7 @@
         </div>
         <article role="main" id="furo-main-content">
           <section class="tex2jax_ignore mathjax_ignore" id="risk-conformal-aci-evt-epistemic-uncertainty">
-<h1>Risk: Conformal, ACI, EVT &amp; Epistemic Uncertainty<a class="headerlink" href="#risk-conformal-aci-evt-epistemic-uncertainty" title="Link to this heading">¶</a></h1>
+<span id="risk-conformal-aci-evt--epistemic-uncertainty"></span><h1>Risk: Conformal, ACI, EVT &amp; Epistemic Uncertainty<a class="headerlink" href="#risk-conformal-aci-evt-epistemic-uncertainty" title="Link to this heading">¶</a></h1>
 <p><strong>Navigation:</strong></p>
 <ul class="simple">
 <li><p><strong>Theory introduction:</strong> <a class="reference internal" href="../../THEORY.html"><span class="std std-doc">See the Intro</span></a></p></li>
@@ -334,7 +356,7 @@
 <p>One source of truth: the static engine <code class="docutils literal notranslate"><span class="pre">SafetyTAM</span></code> holds the finite-sample quantile and p-value; the layers below build on it.</p>
 <hr class="docutils" />
 <section id="split-conformal-prediction-cqr">
-<h2>Split Conformal Prediction &amp; CQR<a class="headerlink" href="#split-conformal-prediction-cqr" title="Link to this heading">¶</a></h2>
+<span id="split-conformal-prediction--cqr"></span><h2>Split Conformal Prediction &amp; CQR<a class="headerlink" href="#split-conformal-prediction-cqr" title="Link to this heading">¶</a></h2>
 <p>Unlike traditional Bayesian confidence intervals (which depend heavily on prior distributional assumptions) or bootstrap methods, Conformal Prediction offers a finite-sample marginal coverage guarantee without assuming anything about the underlying error distribution, provided the data points are <em>exchangeable</em> <span class="bibtex-citation" id="id1">[<a class="reference internal" href="../../bibliography.html#id102" title="Anastasios N Angelopoulos and Stephen Bates. Conformal prediction: a gentle introduction. Foundations and Trends in Machine Learning, 16(4):494–591, 2023. Standard pedagogical reference for the &quot;Split Conformal&quot; method implemented in the base version of SafetyTAM.">Angelopoulos and Bates, 2023</a>, <a class="reference internal" href="../../bibliography.html#id118" title="Vladimir Vovk, Alexander Gammerman, and Glenn Shafer. Algorithmic learning in a random world. Springer, 2005.">Vovk <em>et al.</em>, 2005</a>]</span>.</p>
 <p>The framework implements the <strong>Split Conformal</strong> method <span class="bibtex-citation" id="id2">[<a class="reference internal" href="../../bibliography.html#id119" title="Jing Lei, Max G’Sell, Alessandro Rinaldo, Ryan J Tibshirani, and Larry Wasserman. Distribution-free predictive inference for regression. Journal of the American Statistical Association, 113(523):1094–1111, 2018.">Lei <em>et al.</em>, 2018</a>]</span> to ensure computational efficiency. The mathematical procedure is defined as follows:</p>
 <ol class="arabic">
@@ -379,9 +401,15 @@ under exchangeability <span class="bibtex-citation" id="id4">[<a class="referenc
 </section>
 <hr class="docutils" />
 <section id="hierarchical-limitations-future-upgrades">
-<h2>Hierarchical Limitations &amp; Future Upgrades<a class="headerlink" href="#hierarchical-limitations-future-upgrades" title="Link to this heading">¶</a></h2>
+<span id="hierarchical-limitations--future-upgrades"></span><h2>Hierarchical Limitations &amp; Future Upgrades<a class="headerlink" href="#hierarchical-limitations-future-upgrades" title="Link to this heading">¶</a></h2>
 <p>The current <code class="docutils literal notranslate"><span class="pre">SafetyTAM</span></code> module operates marginally—meaning it calculates safety bounds for each node independently. However, Conformal Prediction intervals do not obey linear summation. Summing the marginal intervals of the children (via Minkowski sum) does not mathematically yield the correct joint interval for the aggregated parent <span class="bibtex-citation" id="id10">[<a class="reference internal" href="../../bibliography.html#id101" title="Guillaume Principato, Gilles Stoltz, Yvenn Amara-Ouali, Yannig Goude, Bachir Hamrouche, and Jean-Michel Poggi. Conformal prediction for hierarchical data. arXiv preprint arXiv:2411.13479, 2024. Demonstrates that naive application of conformal prediction level-by-level breaks hierarchical coherence and proposes interval reconciliation algorithms.">Principato <em>et al.</em>, 2024</a>]</span>. Applying ACI independently level-by-level inevitably breaks the physical realities of the hierarchy.</p>
-<p><strong>Roadmap:</strong> Future iterations of the framework must implement interval reconciliation via polytope projection to strictly enforce hierarchical aggregation constraints across the entire uncertainty band <span class="bibtex-citation" id="id11">[<a class="reference internal" href="../../bibliography.html#id101" title="Guillaume Principato, Gilles Stoltz, Yvenn Amara-Ouali, Yannig Goude, Bachir Hamrouche, and Jean-Michel Poggi. Conformal prediction for hierarchical data. arXiv preprint arXiv:2411.13479, 2024. Demonstrates that naive application of conformal prediction level-by-level breaks hierarchical coherence and proposes interval reconciliation algorithms.">Principato <em>et al.</em>, 2024</a>]</span>.</p>
+<p><strong>Conformal Risk Control (CRC) &amp; Polytope Reconciliation:</strong>
+Beyond symmetric quantile coverage, <strong>Conformal Risk Control</strong> calibrates a threshold <span class="math notranslate nohighlight">\(\hat{\lambda}\)</span> over any bounded monotone non-increasing loss <span class="math notranslate nohighlight">\(L_i(\lambda) \in [0, B]\)</span> (such as interval miscoverage, pinball, or operational cost) by finding the smallest <span class="math notranslate nohighlight">\(\lambda\)</span> satisfying:</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[\frac{n}{n + 1} \hat{R}_n(\lambda) + \frac{B}{n + 1} \le \alpha\]</div>
+</div>
+<p>providing finite-sample distribution-free risk control <span class="math notranslate nohighlight">\(\mathbb{E}[L_{n+1}(\hat{\lambda})] \le \alpha\)</span>. Future iterations of the framework will combine CRC with interval reconciliation via polytope projection to enforce hierarchical aggregation constraints across the uncertainty band <span class="bibtex-citation" id="id11">[<a class="reference internal" href="../../bibliography.html#id101" title="Guillaume Principato, Gilles Stoltz, Yvenn Amara-Ouali, Yannig Goude, Bachir Hamrouche, and Jean-Michel Poggi. Conformal prediction for hierarchical data. arXiv preprint arXiv:2411.13479, 2024. Demonstrates that naive application of conformal prediction level-by-level breaks hierarchical coherence and proposes interval reconciliation algorithms.">Principato <em>et al.</em>, 2024</a>]</span>.</p>
 </section>
 </section>
 

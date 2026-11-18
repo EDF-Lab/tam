@@ -221,6 +221,17 @@
 <li class="toctree-l1"><a class="reference internal" href="CATEGORICAL.html">The Categorical Effect (Discrete Topologies)</a></li>
 <li class="toctree-l1"><a class="reference internal" href="CROSS_TENSOR.html">The Tensor Product Effect (Interactions)</a></li>
 <li class="toctree-l1"><a class="reference internal" href="PHYSICS_PIKL.html">Physics-Informed Kernel Learning (PIKL)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="KOOPMAN_DMD.html">KOOPMAN_DMD: Global Linearization of Non-linear Dynamical Systems via Kernel / Extended Dynamic Mode Decomposition (EDMD / kDMD)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="FOUNDATION.html">Universal Foundation Basis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="PATCH_BASIS.html">Causal Patch Basis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="TEMPORAL_OPERATOR.html">Temporal Operators on an Evaluated Basis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="WARPED_CALENDAR.html">Warped Calendar Harmonics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="MACRO_TREND.html">Hodrick-Prescott Macro-Trend</a></li>
+<li class="toctree-l1"><a class="reference internal" href="DEGREE_DAY.html">Smooth Degree-Day Hinges</a></li>
+<li class="toctree-l1"><a class="reference internal" href="THERMAL_INERTIA.html">Thermal Inertia</a></li>
+<li class="toctree-l1"><a class="reference internal" href="KAN.html">Kolmogorov-Arnold Network Edge Splines</a></li>
+<li class="toctree-l1"><a class="reference internal" href="SINGLE_INDEX.html">Penalized Single-Index Distributed Lags</a></li>
+<li class="toctree-l1"><a class="reference internal" href="SIGNATURE.html">The Path Signature and Log-Signature Effect (Rough Path Iterated Integrals)</a></li>
 <li class="toctree-l1"><a class="reference internal" href="PID.html">The PID Effect (Autoregressive Control Dynamics)</a></li>
 <li class="toctree-l1"><a class="reference internal" href="LINEAR_TREE.html">The Linear Tree Effect (Varying-Coefficient Models)</a></li>
 </ul>
@@ -251,6 +262,17 @@
 <li class="toctree-l1"><a class="reference internal" href="../../architecture/core/04_hardware_memory.html">Hardware Memory Dispatch &amp; Anti-OOM Systems</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../architecture/core/05_gcv_implementation.html">Auto-ML via Generalized Cross-Validation (GCV)</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../architecture/core/06_the_spectrum_api.html">The Spectral Dictionary: PyTorch Implementations &amp; Factory Assembly</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/spectrum/KOOPMAN_DMD.html">Koopman Kernel DMD: PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/spectrum/FOUNDATION.html">Universal Foundation Basis: PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/spectrum/PATCH_BASIS.html">Causal RevIN Patch Basis: PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/spectrum/TEMPORAL_OPERATOR.html">Form B Temporal Operators: PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/spectrum/WARPED_CALENDAR.html">Warped Calendar Harmonics: PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/spectrum/MACRO_TREND.html">Macro-Trend (<code class="docutils literal notranslate"><span class="pre">hp_trend</span></code>): PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/spectrum/DEGREE_DAY.html">Smooth Degree-Day Hinges: PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/spectrum/THERMAL_INERTIA.html">Thermal Inertia: PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/spectrum/KAN.html">Kolmogorov-Arnold Network Edge Splines: PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/spectrum/SINGLE_INDEX.html">Penalized Single-Index Distributed Lags: PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/spectrum/SIGNATURE.html">Path Signature and Log-Signature Effect: PyTorch Architecture &amp; Implementation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../architecture/core/07_the_statistics_api.html">The Statistics API: One Atom, Many Schedules</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">🔬 Architecture: The Statistics Engine</span></p>
@@ -323,7 +345,7 @@
         </div>
         <article role="main" id="furo-main-content">
           <section class="tex2jax_ignore mathjax_ignore" id="the-tree-effect-random-forests-binning-features">
-<h1>The Tree Effect (Random Forests &amp; Binning Features)<a class="headerlink" href="#the-tree-effect-random-forests-binning-features" title="Link to this heading">¶</a></h1>
+<span id="the-tree-effect-random-forests--binning-features"></span><h1>The Tree Effect (Random Forests &amp; Binning Features)<a class="headerlink" href="#the-tree-effect-random-forests-binning-features" title="Link to this heading">¶</a></h1>
 <p><strong>Navigation:</strong></p>
 <ul class="simple">
 <li><p><strong>Theory introduction:</strong> <a class="reference internal" href="../../THEORY.html"><span class="std std-doc">See the Intro</span></a></p></li>
@@ -348,7 +370,7 @@
 </section>
 </section>
 <section id="the-primal-matrix-schema-hyperparameter-topology">
-<h2>The Primal Matrix Schema &amp; Hyperparameter Topology<a class="headerlink" href="#the-primal-matrix-schema-hyperparameter-topology" title="Link to this heading">¶</a></h2>
+<span id="the-primal-matrix-schema--hyperparameter-topology"></span><h2>The Primal Matrix Schema &amp; Hyperparameter Topology<a class="headerlink" href="#the-primal-matrix-schema-hyperparameter-topology" title="Link to this heading">¶</a></h2>
 <p>To fully understand the hardware geometry, we must decompose how the user-defined hyperparameters strictly map to the global Design Matrix (<span class="math notranslate nohighlight">\(\Phi\)</span>) and the Penalty Matrix (<span class="math notranslate nohighlight">\(P\)</span>). Let <span class="math notranslate nohighlight">\(B\)</span> be the number of trees, and <span class="math notranslate nohighlight">\(L\)</span> be the total leaves per tree.</p>
 <p><strong>1. The Design Matrix Schema (<span class="math notranslate nohighlight">\(\Phi\)</span>):</strong>
 The global matrix horizontally concatenates <span class="math notranslate nohighlight">\(B\)</span> independent One-Hot encoded blocks, scaled globally:</p>
@@ -383,7 +405,7 @@ The global matrix horizontally concatenates <span class="math notranslate nohigh
 <p><strong>Hardware Translation:</strong> Because <span class="math notranslate nohighlight">\(B \times L\)</span> can easily reach into the millions, materializing this diagonal matrix densely would cause immediate VRAM exhaustion. Therefore, the framework strictly initializes <span class="math notranslate nohighlight">\(P_{tree}\)</span> natively as a <code class="docutils literal notranslate"><span class="pre">torch.sparse_coo_tensor</span></code>, consuming virtually zero memory while seamlessly integrating into the Sparse Conjugate Gradient solver.</p>
 </section>
 <section id="rkhs-eligibility-kernel-equivalence-sparsity-adaptation">
-<h2>RKHS Eligibility, Kernel Equivalence &amp; Sparsity Adaptation<a class="headerlink" href="#rkhs-eligibility-kernel-equivalence-sparsity-adaptation" title="Link to this heading">¶</a></h2>
+<span id="rkhs-eligibility-kernel-equivalence--sparsity-adaptation"></span><h2>RKHS Eligibility, Kernel Equivalence &amp; Sparsity Adaptation<a class="headerlink" href="#rkhs-eligibility-kernel-equivalence-sparsity-adaptation" title="Link to this heading">¶</a></h2>
 <p>In classical statistical software, tree predictions are strictly evaluated as algorithmic jump logic. However, projecting shift-invariant kernels into finite Primal spaces using randomized Monte Carlo sampling is a mathematically proven technique for scalable kernel machine resolution <span class="bibtex-citation" id="id3">[<a class="reference internal" href="../../bibliography.html#id62" title="Ali Rahimi and Benjamin Recht. Random features for large-scale kernel machines. In J. Platt, D. Koller, Y. Singer, and S. Roweis, editors, Advances in Neural Information Processing Systems, volume 20. Curran Associates, Inc., 2007. URL: https://proceedings.neurips.cc/paper_files/paper/2007/file/013a006f03dbc5392effeb8f18fda755-Paper.pdf.">Rahimi and Recht, 2007</a>]</span>.</p>
 <p>Building on this, Scornet (2016) provides the rigorous functional analysis proving that infinite random forests are strictly equivalent to specific Kernel estimators <span class="bibtex-citation" id="id4">[<a class="reference internal" href="../../bibliography.html#id68" title="Erwan Scornet. Random forests and kernel methods. IEEE Transactions on Information Theory, 62(3):1485–1500, 2016.">Scornet, 2016</a>]</span>. Within TAM, the <code class="docutils literal notranslate"><span class="pre">TreeEffect</span></code> operates exactly as a finite-dimensional Primal realization of this Random Forest Kernel. Taking the dot product of two scaled bit-strings over an infinite ensemble evaluates the exact probability that two points <span class="math notranslate nohighlight">\(x\)</span> and <span class="math notranslate nohighlight">\(x'\)</span> fall into the identical bin. The sparse random bins approximate a Laplacian-like continuous similarity metric, converging at <span class="math notranslate nohighlight">\(\mathcal{O}(1/B)\)</span>-orders of magnitude faster than standard random Fourier features <span class="bibtex-citation" id="id5">[<a class="reference internal" href="../../bibliography.html#id85" title="Lingfei Wu, Ian EH Yen, Jie Chen, and Rui Yan. Revisiting random binning features: fast convergence and strong parallelizability. In Proceedings of the 22nd ACM SIGKDD International Conference on Knowledge Discovery and Data Mining, 1265–1274. 2016.">Wu <em>et al.</em>, 2016</a>]</span>.</p>
 <p>Furthermore, the theoretical analysis of Breiman’s original algorithm proves that this specific feature map inherently <strong>adapts to sparsity</strong> <span class="bibtex-citation" id="id6">[<a class="reference internal" href="../../bibliography.html#id11" title="Gérard Biau. Analysis of a random forests model. The Journal of Machine Learning Research, 13:1063–1095, 2012.">Biau, 2012</a>]</span>. The statistical convergence rate of the tree ensemble depends strictly on the number of strong, active features rather than the ambient dimension of the noise. This guarantees that the TAM solver remains statistically efficient even when the spatial dictionary is bombarded with irrelevant exogenous variables.</p>

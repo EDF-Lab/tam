@@ -221,6 +221,17 @@
 <li class="toctree-l1"><a class="reference internal" href="CATEGORICAL.html">The Categorical Effect (Discrete Topologies)</a></li>
 <li class="toctree-l1 current current-page"><a class="current reference internal" href="#">The Tensor Product Effect (Interactions)</a></li>
 <li class="toctree-l1"><a class="reference internal" href="PHYSICS_PIKL.html">Physics-Informed Kernel Learning (PIKL)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="KOOPMAN_DMD.html">KOOPMAN_DMD: Global Linearization of Non-linear Dynamical Systems via Kernel / Extended Dynamic Mode Decomposition (EDMD / kDMD)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="FOUNDATION.html">Universal Foundation Basis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="PATCH_BASIS.html">Causal Patch Basis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="TEMPORAL_OPERATOR.html">Temporal Operators on an Evaluated Basis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="WARPED_CALENDAR.html">Warped Calendar Harmonics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="MACRO_TREND.html">Hodrick-Prescott Macro-Trend</a></li>
+<li class="toctree-l1"><a class="reference internal" href="DEGREE_DAY.html">Smooth Degree-Day Hinges</a></li>
+<li class="toctree-l1"><a class="reference internal" href="THERMAL_INERTIA.html">Thermal Inertia</a></li>
+<li class="toctree-l1"><a class="reference internal" href="KAN.html">Kolmogorov-Arnold Network Edge Splines</a></li>
+<li class="toctree-l1"><a class="reference internal" href="SINGLE_INDEX.html">Penalized Single-Index Distributed Lags</a></li>
+<li class="toctree-l1"><a class="reference internal" href="SIGNATURE.html">The Path Signature and Log-Signature Effect (Rough Path Iterated Integrals)</a></li>
 <li class="toctree-l1"><a class="reference internal" href="PID.html">The PID Effect (Autoregressive Control Dynamics)</a></li>
 <li class="toctree-l1"><a class="reference internal" href="LINEAR_TREE.html">The Linear Tree Effect (Varying-Coefficient Models)</a></li>
 </ul>
@@ -251,6 +262,17 @@
 <li class="toctree-l1"><a class="reference internal" href="../../architecture/core/04_hardware_memory.html">Hardware Memory Dispatch &amp; Anti-OOM Systems</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../architecture/core/05_gcv_implementation.html">Auto-ML via Generalized Cross-Validation (GCV)</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../architecture/core/06_the_spectrum_api.html">The Spectral Dictionary: PyTorch Implementations &amp; Factory Assembly</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/spectrum/KOOPMAN_DMD.html">Koopman Kernel DMD: PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/spectrum/FOUNDATION.html">Universal Foundation Basis: PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/spectrum/PATCH_BASIS.html">Causal RevIN Patch Basis: PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/spectrum/TEMPORAL_OPERATOR.html">Form B Temporal Operators: PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/spectrum/WARPED_CALENDAR.html">Warped Calendar Harmonics: PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/spectrum/MACRO_TREND.html">Macro-Trend (<code class="docutils literal notranslate"><span class="pre">hp_trend</span></code>): PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/spectrum/DEGREE_DAY.html">Smooth Degree-Day Hinges: PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/spectrum/THERMAL_INERTIA.html">Thermal Inertia: PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/spectrum/KAN.html">Kolmogorov-Arnold Network Edge Splines: PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/spectrum/SINGLE_INDEX.html">Penalized Single-Index Distributed Lags: PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/spectrum/SIGNATURE.html">Path Signature and Log-Signature Effect: PyTorch Architecture &amp; Implementation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../architecture/core/07_the_statistics_api.html">The Statistics API: One Atom, Many Schedules</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">🔬 Architecture: The Statistics Engine</span></p>
@@ -422,7 +444,7 @@ p_{21} &amp; 0 &amp; 0 &amp; p_{22} &amp; 0 &amp; 0 \\
 <p>GAMI-Net highlights that to prevent this entanglement, interaction components must be structurally orthogonalized against their main effects <span class="bibtex-citation" id="id8">[<a class="reference internal" href="../../bibliography.html#id86" title="Zebin Yang, Aijun Zhang, and Agus Sudjianto. Gami-net: an explainable neural network based on generalized additive models with structured interactions. Pattern Recognition, 120:108192, 2021.">Yang <em>et al.</em>, 2021</a>]</span>. Within the TAM Primal resolution, this means that whenever a <code class="docutils literal notranslate"><span class="pre">TensorProductEffect</span></code> involving neural networks is declared, the underlying main effects must either be explicitly defined as separate additive terms in the formula, or the interaction penalty <span class="math notranslate nohighlight">\(\lambda\)</span> must be heavily regularized to ensure it only captures the residual joint variance that the marginal main effects fail to explain.</p>
 </section>
 <section id="theoretical-integration-hardware-translation">
-<h2>Theoretical Integration &amp; Hardware Translation<a class="headerlink" href="#theoretical-integration-hardware-translation" title="Link to this heading">¶</a></h2>
+<span id="theoretical-integration--hardware-translation"></span><h2>Theoretical Integration &amp; Hardware Translation<a class="headerlink" href="#theoretical-integration-hardware-translation" title="Link to this heading">¶</a></h2>
 <p>If a model interacts a Spline (<span class="math notranslate nohighlight">\(D_A = 100\)</span>) with a spatial Fourier grid (<span class="math notranslate nohighlight">\(D_B = 100\)</span>), the resulting interaction generates <span class="math notranslate nohighlight">\(10,000\)</span> unique features. The dense Primal covariance matrix (<span class="math notranslate nohighlight">\(\Phi_{cross}^\top \Phi_{cross}\)</span>) and the penalty matrix (<span class="math notranslate nohighlight">\(P_{cross}\)</span>) will scale to <span class="math notranslate nohighlight">\(10,000 \times 10,000\)</span>. Adding a third interaction term pushes this to <span class="math notranslate nohighlight">\(1,000,000 \times 1,000,000\)</span>.</p>
 <p>In classical statistical computing environments, resolving these high-dimensional tensor product smooths creates rank-deficient design matrices that exhaust physical RAM and require complex iterative orthogonalization routines.</p>
 <p>By natively embedding the recursive Kronecker basis expansion <span class="math notranslate nohighlight">\(\Phi_{cross}\)</span> and the anisotropic block penalty <span class="math notranslate nohighlight">\(P_{cross}\)</span> directly into the global Primal architecture using highly parallelized GPU tensor algebra (<code class="docutils literal notranslate"><span class="pre">torch.kron</span></code>, <code class="docutils literal notranslate"><span class="pre">einsum</span></code>), the TAM framework bypasses these numerical bottlenecks entirely. This forces models with extreme dimensionality into the matrix-free Sparse Conjugate Gradient solver, allowing multidimensional interactions to be solved simultaneously with the rest of the GAM without triggering memory faults.</p>

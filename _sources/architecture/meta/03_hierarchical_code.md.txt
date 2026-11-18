@@ -27,3 +27,7 @@ With a `group_col` every node keeps its group axis `(G, T, F)`; all nodes must h
 ```
 
 The memory check counts the `G * D^2 * 8` bytes of the dense covariance against 40 % of the available memory. Direct inversion is one batched solve over the groups; the dense and the matrix-free conjugate-gradient solvers loop over the groups, so one group's system is applied at a time. Both stop at a relative tolerance of `1e-6`, so their coefficients agree with the direct solve to about `1e-3` of the largest coefficient on an ill-conditioned system (predictions to a few `1e-6`).
+
+## Sinkhorn Coherence Option
+
+`HierarchicalTAM(..., coherence_loss="sinkhorn", sinkhorn_reg=0.1)` constructs the doubly-stochastic Sinkhorn transport matrix via `compute_sinkhorn_coherence_matrix` and injects the resulting positive semi-definite temporal coherence penalty $L_{\text{sinkhorn}}^\top L_{\text{sinkhorn}}$ into the joint hierarchical solve.

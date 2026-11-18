@@ -221,6 +221,17 @@
 <li class="toctree-l1"><a class="reference internal" href="../spectrum/CATEGORICAL.html">The Categorical Effect (Discrete Topologies)</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../spectrum/CROSS_TENSOR.html">The Tensor Product Effect (Interactions)</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../spectrum/PHYSICS_PIKL.html">Physics-Informed Kernel Learning (PIKL)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../spectrum/KOOPMAN_DMD.html">KOOPMAN_DMD: Global Linearization of Non-linear Dynamical Systems via Kernel / Extended Dynamic Mode Decomposition (EDMD / kDMD)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../spectrum/FOUNDATION.html">Universal Foundation Basis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../spectrum/PATCH_BASIS.html">Causal Patch Basis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../spectrum/TEMPORAL_OPERATOR.html">Temporal Operators on an Evaluated Basis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../spectrum/WARPED_CALENDAR.html">Warped Calendar Harmonics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../spectrum/MACRO_TREND.html">Hodrick-Prescott Macro-Trend</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../spectrum/DEGREE_DAY.html">Smooth Degree-Day Hinges</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../spectrum/THERMAL_INERTIA.html">Thermal Inertia</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../spectrum/KAN.html">Kolmogorov-Arnold Network Edge Splines</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../spectrum/SINGLE_INDEX.html">Penalized Single-Index Distributed Lags</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../spectrum/SIGNATURE.html">The Path Signature and Log-Signature Effect (Rough Path Iterated Integrals)</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../spectrum/PID.html">The PID Effect (Autoregressive Control Dynamics)</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../spectrum/LINEAR_TREE.html">The Linear Tree Effect (Varying-Coefficient Models)</a></li>
 </ul>
@@ -251,6 +262,17 @@
 <li class="toctree-l1"><a class="reference internal" href="../../architecture/core/04_hardware_memory.html">Hardware Memory Dispatch &amp; Anti-OOM Systems</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../architecture/core/05_gcv_implementation.html">Auto-ML via Generalized Cross-Validation (GCV)</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../architecture/core/06_the_spectrum_api.html">The Spectral Dictionary: PyTorch Implementations &amp; Factory Assembly</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/spectrum/KOOPMAN_DMD.html">Koopman Kernel DMD: PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/spectrum/FOUNDATION.html">Universal Foundation Basis: PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/spectrum/PATCH_BASIS.html">Causal RevIN Patch Basis: PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/spectrum/TEMPORAL_OPERATOR.html">Form B Temporal Operators: PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/spectrum/WARPED_CALENDAR.html">Warped Calendar Harmonics: PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/spectrum/MACRO_TREND.html">Macro-Trend (<code class="docutils literal notranslate"><span class="pre">hp_trend</span></code>): PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/spectrum/DEGREE_DAY.html">Smooth Degree-Day Hinges: PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/spectrum/THERMAL_INERTIA.html">Thermal Inertia: PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/spectrum/KAN.html">Kolmogorov-Arnold Network Edge Splines: PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/spectrum/SINGLE_INDEX.html">Penalized Single-Index Distributed Lags: PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/spectrum/SIGNATURE.html">Path Signature and Log-Signature Effect: PyTorch Architecture &amp; Implementation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../architecture/core/07_the_statistics_api.html">The Statistics API: One Atom, Many Schedules</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">🔬 Architecture: The Statistics Engine</span></p>
@@ -333,7 +355,7 @@
 <p>This chapter details the mathematical and geometric preparation of data before its injection into the Primal solver. To guarantee computational efficiency on hardware accelerators (GPUs) and the numerical stability of the regression, raw data (heterogeneous time series) must be projected into a strict tensor space and a normalized continuous domain.</p>
 <hr class="docutils" />
 <section id="group-normalization-and-the-1-1-domain">
-<h2>Group Normalization and the <span class="math notranslate nohighlight">\([-1, 1]\)</span> Domain<a class="headerlink" href="#group-normalization-and-the-1-1-domain" title="Link to this heading">¶</a></h2>
+<span id="group-normalization-and-the--domain"></span><h2>Group Normalization and the <span class="math notranslate nohighlight">\([-1, 1]\)</span> Domain<a class="headerlink" href="#group-normalization-and-the-1-1-domain" title="Link to this heading">¶</a></h2>
 <p>In the TAM framework, input variables are not injected at their raw scale. They undergo a rigorous affine transformation to bound them within the <span class="math notranslate nohighlight">\([-1, 1]\)</span> interval. Unlike standard statistical scaling (zero mean, unit variance) or <span class="math notranslate nohighlight">\([0, 1]\)</span> min-max scaling, the <span class="math notranslate nohighlight">\([-1, 1]\)</span> domain is a fundamental mathematical prerequisite for several topological reasons:</p>
 <ol class="arabic simple">
 <li><p><strong>Polynomial Orthogonality &amp; Minimax Properties:</strong> The standard Chebyshev polynomials are fundamentally orthogonal on <span class="math notranslate nohighlight">\([-1, 1]\)</span> with respect to the weight <span class="math notranslate nohighlight">\((1-x^2)^{-1/2}\)</span> <span class="bibtex-citation" id="id1">[<a class="reference internal" href="../../bibliography.html#id64" title="Theodore J. Rivlin. The Chebyshev Polynomials. John Wiley &amp; Sons, 2nd edition, 1990.">Rivlin, 1990</a>]</span>. Their unique minimax property, acting as the monic polynomial of least deviation from zero, is strictly confined to this interval. Attempting to extrapolate outside <span class="math notranslate nohighlight">\([-1, 1]\)</span> destroys this optimal convergence due to the rapid exponential growth of the polynomials, while inside the interval, evaluating at Chebyshev nodes is necessary to suppress the Runge phenomenon associated with uniform grids.</p></li>
@@ -367,7 +389,7 @@
 <li><p><span class="math notranslate nohighlight">\(D\)</span>: The Primal Dimension (the total number of evaluated functional bases or degrees of freedom).</p></li>
 </ul>
 <section id="the-transitivity-shield-and-masking-lambda-g">
-<h3>The Transitivity Shield and Masking (<span class="math notranslate nohighlight">\(\Lambda_g\)</span>)<a class="headerlink" href="#the-transitivity-shield-and-masking-lambda-g" title="Link to this heading">¶</a></h3>
+<span id="the-transitivity-shield-and-masking-"></span><h3>The Transitivity Shield and Masking (<span class="math notranslate nohighlight">\(\Lambda_g\)</span>)<a class="headerlink" href="#the-transitivity-shield-and-masking-lambda-g" title="Link to this heading">¶</a></h3>
 <p>This rigid matrix representation strictly requires that all groups possess the exact same number of temporal observations <span class="math notranslate nohighlight">\(T\)</span>. Because real-world time series are often asynchronous, of varying lengths, or entirely cross-sectional, the framework employs an automated “Transitivity Shield”.</p>
 <p>Before tensorization, the framework balances the groups. During the training phase (<code class="docutils literal notranslate"><span class="pre">fit</span></code>), the algorithm drops surplus rows, forcing all groups to match the temporal length of the shortest group. During the inference phase (<code class="docutils literal notranslate"><span class="pre">predict</span></code>), the framework switches to a “fill” strategy, padding the tensors with <code class="docutils literal notranslate"><span class="pre">NaN</span></code>s to align the manifold without discarding any user data.</p>
 <p>Mathematically, these padded <code class="docutils literal notranslate"><span class="pre">NaN</span></code>s are functionally isolated via the diagonal observation weighting matrix <span class="math notranslate nohighlight">\(\Lambda_g \in \mathbb{R}^{T \times T}\)</span> introduced in the core equations. If a time step <span class="math notranslate nohighlight">\(t\)</span> is padded, its corresponding diagonal entry is set to zero (<span class="math notranslate nohighlight">\(\Lambda_{g, t,t} = 0\)</span>). This strictly annihilates the invalid timestamp during the inner product accumulation <span class="math notranslate nohighlight">\(\Phi_g^\top \Lambda_g^\top \Lambda_g \Phi_g\)</span>, maintaining the GPU memory contiguity without corrupting the exact Primal resolution.</p>

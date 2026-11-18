@@ -3,7 +3,7 @@
   <head><meta charset="utf-8">
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
-<link rel="index" title="Index" href="../../genindex.html"><link rel="search" title="Search" href="../../search.html"><link rel="next" title="The Statistics API: One Atom, Many Schedules" href="07_the_statistics_api.html"><link rel="prev" title="Auto-ML via Generalized Cross-Validation (GCV)" href="05_gcv_implementation.html">
+<link rel="index" title="Index" href="../../genindex.html"><link rel="search" title="Search" href="../../search.html"><link rel="next" title="Koopman Kernel DMD: PyTorch Architecture" href="../spectrum/KOOPMAN_DMD.html"><link rel="prev" title="Auto-ML via Generalized Cross-Validation (GCV)" href="05_gcv_implementation.html">
         <link rel="prefetch" href="../../_static/logo.png" as="image">
 
     <!-- Generated with Sphinx 9.1.1 and Furo 2025.12.19 -->
@@ -221,6 +221,17 @@
 <li class="toctree-l1"><a class="reference internal" href="../../math/spectrum/CATEGORICAL.html">The Categorical Effect (Discrete Topologies)</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../math/spectrum/CROSS_TENSOR.html">The Tensor Product Effect (Interactions)</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../math/spectrum/PHYSICS_PIKL.html">Physics-Informed Kernel Learning (PIKL)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../math/spectrum/KOOPMAN_DMD.html">KOOPMAN_DMD: Global Linearization of Non-linear Dynamical Systems via Kernel / Extended Dynamic Mode Decomposition (EDMD / kDMD)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../math/spectrum/FOUNDATION.html">Universal Foundation Basis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../math/spectrum/PATCH_BASIS.html">Causal Patch Basis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../math/spectrum/TEMPORAL_OPERATOR.html">Temporal Operators on an Evaluated Basis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../math/spectrum/WARPED_CALENDAR.html">Warped Calendar Harmonics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../math/spectrum/MACRO_TREND.html">Hodrick-Prescott Macro-Trend</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../math/spectrum/DEGREE_DAY.html">Smooth Degree-Day Hinges</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../math/spectrum/THERMAL_INERTIA.html">Thermal Inertia</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../math/spectrum/KAN.html">Kolmogorov-Arnold Network Edge Splines</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../math/spectrum/SINGLE_INDEX.html">Penalized Single-Index Distributed Lags</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../math/spectrum/SIGNATURE.html">The Path Signature and Log-Signature Effect (Rough Path Iterated Integrals)</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../math/spectrum/PID.html">The PID Effect (Autoregressive Control Dynamics)</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../math/spectrum/LINEAR_TREE.html">The Linear Tree Effect (Varying-Coefficient Models)</a></li>
 </ul>
@@ -251,6 +262,17 @@
 <li class="toctree-l1"><a class="reference internal" href="04_hardware_memory.html">Hardware Memory Dispatch &amp; Anti-OOM Systems</a></li>
 <li class="toctree-l1"><a class="reference internal" href="05_gcv_implementation.html">Auto-ML via Generalized Cross-Validation (GCV)</a></li>
 <li class="toctree-l1 current current-page"><a class="current reference internal" href="#">The Spectral Dictionary: PyTorch Implementations &amp; Factory Assembly</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../spectrum/KOOPMAN_DMD.html">Koopman Kernel DMD: PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../spectrum/FOUNDATION.html">Universal Foundation Basis: PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../spectrum/PATCH_BASIS.html">Causal RevIN Patch Basis: PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../spectrum/TEMPORAL_OPERATOR.html">Form B Temporal Operators: PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../spectrum/WARPED_CALENDAR.html">Warped Calendar Harmonics: PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../spectrum/MACRO_TREND.html">Macro-Trend (<code class="docutils literal notranslate"><span class="pre">hp_trend</span></code>): PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../spectrum/DEGREE_DAY.html">Smooth Degree-Day Hinges: PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../spectrum/THERMAL_INERTIA.html">Thermal Inertia: PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../spectrum/KAN.html">Kolmogorov-Arnold Network Edge Splines: PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../spectrum/SINGLE_INDEX.html">Penalized Single-Index Distributed Lags: PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../spectrum/SIGNATURE.html">Path Signature and Log-Signature Effect: PyTorch Architecture &amp; Implementation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="07_the_statistics_api.html">The Statistics API: One Atom, Many Schedules</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">🔬 Architecture: The Statistics Engine</span></p>
@@ -323,7 +345,7 @@
         </div>
         <article role="main" id="furo-main-content">
           <section class="tex2jax_ignore mathjax_ignore" id="the-spectral-dictionary-pytorch-implementations-factory-assembly">
-<h1>The Spectral Dictionary: PyTorch Implementations &amp; Factory Assembly<a class="headerlink" href="#the-spectral-dictionary-pytorch-implementations-factory-assembly" title="Link to this heading">¶</a></h1>
+<span id="the-spectral-dictionary-pytorch-implementations--factory-assembly"></span><h1>The Spectral Dictionary: PyTorch Implementations &amp; Factory Assembly<a class="headerlink" href="#the-spectral-dictionary-pytorch-implementations-factory-assembly" title="Link to this heading">¶</a></h1>
 <p><strong>Navigation:</strong></p>
 <ul class="simple">
 <li><p><strong>Theory introduction:</strong> <a class="reference internal" href="../../THEORY.html"><span class="std std-doc">See the Intro</span></a></p></li>
@@ -543,6 +565,11 @@ has its last value glued onto its first (hours 0 to 23 give 23:00 = 0:00; use <c
             <span class="n">known</span> <span class="o">=</span> <span class="n">periods</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="n">effect</span><span class="o">.</span><span class="n">feature_name</span><span class="p">,</span> <span class="n">effect</span><span class="o">.</span><span class="n">period</span><span class="p">)</span>
             <span class="k">if</span> <span class="n">known</span> <span class="o">!=</span> <span class="n">effect</span><span class="o">.</span><span class="n">period</span><span class="p">:</span>
                 <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Two periods declared for '</span><span class="si">{</span><span class="n">effect</span><span class="o">.</span><span class="n">feature_name</span><span class="si">}</span><span class="s2">': </span><span class="si">{</span><span class="n">known</span><span class="si">}</span><span class="s2"> and </span><span class="si">{</span><span class="n">effect</span><span class="o">.</span><span class="n">period</span><span class="si">}</span><span class="s2">."</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">effect</span><span class="p">,</span> <span class="n">WarpedCalendarEffect</span><span class="p">):</span>
+            <span class="n">wcal_range</span> <span class="o">=</span> <span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="nb">float</span><span class="p">(</span><span class="n">effect</span><span class="o">.</span><span class="n">period</span><span class="p">))</span>
+            <span class="n">known</span> <span class="o">=</span> <span class="n">periods</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="n">effect</span><span class="o">.</span><span class="n">feature_name</span><span class="p">,</span> <span class="n">wcal_range</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">known</span> <span class="o">!=</span> <span class="n">wcal_range</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Two periods declared for '</span><span class="si">{</span><span class="n">effect</span><span class="o">.</span><span class="n">feature_name</span><span class="si">}</span><span class="s2">': </span><span class="si">{</span><span class="n">known</span><span class="si">}</span><span class="s2"> and </span><span class="si">{</span><span class="n">wcal_range</span><span class="si">}</span><span class="s2">."</span><span class="p">)</span>
 
     <span class="k">for</span> <span class="n">effect</span> <span class="ow">in</span> <span class="n">effects_list</span><span class="p">:</span>
         <span class="n">visit</span><span class="p">(</span><span class="n">effect</span><span class="p">)</span>
@@ -1085,7 +1112,7 @@ Applies an isotropic Ridge penalty (<span class="math notranslate nohighlight">\
 </section>
 <hr class="docutils" />
 <section id="tree-random-forest">
-<h2>Tree / Random Forest<a class="headerlink" href="#tree-random-forest" title="Link to this heading">¶</a></h2>
+<span id="tree--random-forest"></span><h2>Tree / Random Forest<a class="headerlink" href="#tree-random-forest" title="Link to this heading">¶</a></h2>
 <p><strong>1. Factory Parsing</strong></p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span>        <span class="k">elif</span> <span class="n">ttype</span> <span class="o">==</span> <span class="s1">'t'</span><span class="p">:</span>
             <span class="n">n_trees</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">params_resolved</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">'n_trees'</span><span class="p">,</span> <span class="mi">50</span><span class="p">))</span>
@@ -1867,12 +1894,12 @@ Constructs the block-diagonal encapsulation of the anisotropic sparsity-adaptive
       <footer>
         
         <div class="related-pages">
-          <a class="next-page" href="07_the_statistics_api.html">
+          <a class="next-page" href="../spectrum/KOOPMAN_DMD.html">
               <div class="page-info">
                 <div class="context">
                   <span>Next</span>
                 </div>
-                <div class="title">The Statistics API: One Atom, Many Schedules</div>
+                <div class="title">Koopman Kernel DMD: PyTorch Architecture</div>
               </div>
               <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
             </a>

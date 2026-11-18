@@ -221,6 +221,17 @@
 <li class="toctree-l1"><a class="reference internal" href="math/spectrum/CATEGORICAL.html">The Categorical Effect (Discrete Topologies)</a></li>
 <li class="toctree-l1"><a class="reference internal" href="math/spectrum/CROSS_TENSOR.html">The Tensor Product Effect (Interactions)</a></li>
 <li class="toctree-l1"><a class="reference internal" href="math/spectrum/PHYSICS_PIKL.html">Physics-Informed Kernel Learning (PIKL)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="math/spectrum/KOOPMAN_DMD.html">KOOPMAN_DMD: Global Linearization of Non-linear Dynamical Systems via Kernel / Extended Dynamic Mode Decomposition (EDMD / kDMD)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="math/spectrum/FOUNDATION.html">Universal Foundation Basis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="math/spectrum/PATCH_BASIS.html">Causal Patch Basis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="math/spectrum/TEMPORAL_OPERATOR.html">Temporal Operators on an Evaluated Basis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="math/spectrum/WARPED_CALENDAR.html">Warped Calendar Harmonics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="math/spectrum/MACRO_TREND.html">Hodrick-Prescott Macro-Trend</a></li>
+<li class="toctree-l1"><a class="reference internal" href="math/spectrum/DEGREE_DAY.html">Smooth Degree-Day Hinges</a></li>
+<li class="toctree-l1"><a class="reference internal" href="math/spectrum/THERMAL_INERTIA.html">Thermal Inertia</a></li>
+<li class="toctree-l1"><a class="reference internal" href="math/spectrum/KAN.html">Kolmogorov-Arnold Network Edge Splines</a></li>
+<li class="toctree-l1"><a class="reference internal" href="math/spectrum/SINGLE_INDEX.html">Penalized Single-Index Distributed Lags</a></li>
+<li class="toctree-l1"><a class="reference internal" href="math/spectrum/SIGNATURE.html">The Path Signature and Log-Signature Effect (Rough Path Iterated Integrals)</a></li>
 <li class="toctree-l1"><a class="reference internal" href="math/spectrum/PID.html">The PID Effect (Autoregressive Control Dynamics)</a></li>
 <li class="toctree-l1"><a class="reference internal" href="math/spectrum/LINEAR_TREE.html">The Linear Tree Effect (Varying-Coefficient Models)</a></li>
 </ul>
@@ -251,6 +262,17 @@
 <li class="toctree-l1"><a class="reference internal" href="architecture/core/04_hardware_memory.html">Hardware Memory Dispatch &amp; Anti-OOM Systems</a></li>
 <li class="toctree-l1"><a class="reference internal" href="architecture/core/05_gcv_implementation.html">Auto-ML via Generalized Cross-Validation (GCV)</a></li>
 <li class="toctree-l1"><a class="reference internal" href="architecture/core/06_the_spectrum_api.html">The Spectral Dictionary: PyTorch Implementations &amp; Factory Assembly</a></li>
+<li class="toctree-l1"><a class="reference internal" href="architecture/spectrum/KOOPMAN_DMD.html">Koopman Kernel DMD: PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="architecture/spectrum/FOUNDATION.html">Universal Foundation Basis: PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="architecture/spectrum/PATCH_BASIS.html">Causal RevIN Patch Basis: PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="architecture/spectrum/TEMPORAL_OPERATOR.html">Form B Temporal Operators: PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="architecture/spectrum/WARPED_CALENDAR.html">Warped Calendar Harmonics: PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="architecture/spectrum/MACRO_TREND.html">Macro-Trend (<code class="docutils literal notranslate"><span class="pre">hp_trend</span></code>): PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="architecture/spectrum/DEGREE_DAY.html">Smooth Degree-Day Hinges: PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="architecture/spectrum/THERMAL_INERTIA.html">Thermal Inertia: PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="architecture/spectrum/KAN.html">Kolmogorov-Arnold Network Edge Splines: PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="architecture/spectrum/SINGLE_INDEX.html">Penalized Single-Index Distributed Lags: PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="architecture/spectrum/SIGNATURE.html">Path Signature and Log-Signature Effect: PyTorch Architecture &amp; Implementation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="architecture/core/07_the_statistics_api.html">The Statistics API: One Atom, Many Schedules</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">🔬 Architecture: The Statistics Engine</span></p>
@@ -323,17 +345,17 @@
         </div>
         <article role="main" id="furo-main-content">
           <section class="tex2jax_ignore mathjax_ignore" id="scientific-background-acknowledgments">
-<h1>🔬 Scientific Background &amp; Acknowledgments<a class="headerlink" href="#scientific-background-acknowledgments" title="Link to this heading">¶</a></h1>
+<span id="-scientific-background--acknowledgments"></span><h1>🔬 Scientific Background &amp; Acknowledgments<a class="headerlink" href="#scientific-background-acknowledgments" title="Link to this heading">¶</a></h1>
 <p><a class="reference internal" href="README.html"><span class="std std-doc"><code class="docutils literal notranslate"><span class="pre">⬅️</span> <span class="pre">README</span></code></span></a> | <a class="reference internal" href="THEORY.html"><span class="std std-doc"><code class="docutils literal notranslate"><span class="pre">📚</span> <span class="pre">THEORY</span></code></span></a> | <a class="reference internal" href="AUTHORS.html"><span class="std std-doc"><code class="docutils literal notranslate"><span class="pre">👥</span> <span class="pre">AUTHORS</span></code></span></a></p>
 <p>This project came to life by implementing cutting-edge research in white-box machine learning. We would like to deeply acknowledge the following colleagues for the works, research teams, and foundational authors whose theoretical breakthroughs made the TAM framework possible:</p>
 <section id="foundational-theory-inspiration-gams">
-<h2>📐 Foundational Theory &amp; Inspiration (GAMs)<a class="headerlink" href="#foundational-theory-inspiration-gams" title="Link to this heading">¶</a></h2>
+<span id="-foundational-theory--inspiration-gams"></span><h2>📐 Foundational Theory &amp; Inspiration (GAMs)<a class="headerlink" href="#foundational-theory-inspiration-gams" title="Link to this heading">¶</a></h2>
 <ul class="simple">
 <li><p><strong>Simon N. Wood:</strong> We acknowledge his definitive foundational work on Generalized Additive Models (GAMs). His research mathematically underpins continuous structural regularization, Penalized Splines, and scale-invariant tensor products.</p></li>
 </ul>
 </section>
 <section id="core-weakl-framework-statictam-adaptivetam-hierarchicaltam">
-<h2>🏗️ Core WeaKL Framework (StaticTAM, AdaptiveTAM, HierarchicalTAM)<a class="headerlink" href="#core-weakl-framework-statictam-adaptivetam-hierarchicaltam" title="Link to this heading">¶</a></h2>
+<span id="-core-weakl-framework-statictam-adaptivetam-hierarchicaltam"></span><h2>🏗️ Core WeaKL Framework (StaticTAM, AdaptiveTAM, HierarchicalTAM)<a class="headerlink" href="#core-weakl-framework-statictam-adaptivetam-hierarchicaltam" title="Link to this heading">¶</a></h2>
 <ul class="simple">
 <li><p><strong>Nathan Doumèche, Francis Bach, Éloi Bedek, Gérard Biau, Claire Boyer, and Yannig Goude:</strong> Their 2025 research on forecasting time series with constraints serves as the theoretical foundation for the WeaKL algorithm.</p></li>
 <li><p><strong>Nathan Doumèche:</strong> His 2025 PhD thesis provides the central reference for the “Online WeaKL” approach, utilized as a tensorial alternative for managing structural breaks.</p></li>
@@ -341,14 +363,14 @@
 </ul>
 </section>
 <section id="expert-aggregation-operatam">
-<h2>⚖️ Expert Aggregation (OperaTAM)<a class="headerlink" href="#expert-aggregation-operatam" title="Link to this heading">¶</a></h2>
+<span id="-expert-aggregation-operatam"></span><h2>⚖️ Expert Aggregation (OperaTAM)<a class="headerlink" href="#expert-aggregation-operatam" title="Link to this heading">¶</a></h2>
 <ul class="simple">
 <li><p><strong>Pierre Gaillard and Yannig Goude:</strong> We acknowledge their foundational 2016 <code class="docutils literal notranslate"><span class="pre">OPERA</span></code> package. Their theoretical frameworks for the MLpol and EWA algorithms are implemented natively for the OperaTAM module.</p></li>
 </ul>
 </section>
 <hr class="docutils" />
 <section id="extended-mathematical-algorithmic-influences">
-<h2>🌐 Extended Mathematical &amp; Algorithmic Influences<a class="headerlink" href="#extended-mathematical-algorithmic-influences" title="Link to this heading">¶</a></h2>
+<span id="-extended-mathematical--algorithmic-influences"></span><h2>🌐 Extended Mathematical &amp; Algorithmic Influences<a class="headerlink" href="#extended-mathematical-algorithmic-influences" title="Link to this heading">¶</a></h2>
 <p>This framework is also built upon the mathematical foundations laid by the researchers cited in the <code class="docutils literal notranslate"><span class="pre">references.bib</span></code> file, encompassing foundational breakthroughs in generalized linear models, robust statistics, extreme value theory, and conformal prediction.</p>
 </section>
 </section>

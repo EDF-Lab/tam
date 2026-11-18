@@ -221,6 +221,17 @@
 <li class="toctree-l1"><a class="reference internal" href="../../math/spectrum/CATEGORICAL.html">The Categorical Effect (Discrete Topologies)</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../math/spectrum/CROSS_TENSOR.html">The Tensor Product Effect (Interactions)</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../math/spectrum/PHYSICS_PIKL.html">Physics-Informed Kernel Learning (PIKL)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../math/spectrum/KOOPMAN_DMD.html">KOOPMAN_DMD: Global Linearization of Non-linear Dynamical Systems via Kernel / Extended Dynamic Mode Decomposition (EDMD / kDMD)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../math/spectrum/FOUNDATION.html">Universal Foundation Basis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../math/spectrum/PATCH_BASIS.html">Causal Patch Basis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../math/spectrum/TEMPORAL_OPERATOR.html">Temporal Operators on an Evaluated Basis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../math/spectrum/WARPED_CALENDAR.html">Warped Calendar Harmonics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../math/spectrum/MACRO_TREND.html">Hodrick-Prescott Macro-Trend</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../math/spectrum/DEGREE_DAY.html">Smooth Degree-Day Hinges</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../math/spectrum/THERMAL_INERTIA.html">Thermal Inertia</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../math/spectrum/KAN.html">Kolmogorov-Arnold Network Edge Splines</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../math/spectrum/SINGLE_INDEX.html">Penalized Single-Index Distributed Lags</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../math/spectrum/SIGNATURE.html">The Path Signature and Log-Signature Effect (Rough Path Iterated Integrals)</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../math/spectrum/PID.html">The PID Effect (Autoregressive Control Dynamics)</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../math/spectrum/LINEAR_TREE.html">The Linear Tree Effect (Varying-Coefficient Models)</a></li>
 </ul>
@@ -251,6 +262,17 @@
 <li class="toctree-l1"><a class="reference internal" href="../core/04_hardware_memory.html">Hardware Memory Dispatch &amp; Anti-OOM Systems</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../core/05_gcv_implementation.html">Auto-ML via Generalized Cross-Validation (GCV)</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../core/06_the_spectrum_api.html">The Spectral Dictionary: PyTorch Implementations &amp; Factory Assembly</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../spectrum/KOOPMAN_DMD.html">Koopman Kernel DMD: PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../spectrum/FOUNDATION.html">Universal Foundation Basis: PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../spectrum/PATCH_BASIS.html">Causal RevIN Patch Basis: PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../spectrum/TEMPORAL_OPERATOR.html">Form B Temporal Operators: PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../spectrum/WARPED_CALENDAR.html">Warped Calendar Harmonics: PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../spectrum/MACRO_TREND.html">Macro-Trend (<code class="docutils literal notranslate"><span class="pre">hp_trend</span></code>): PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../spectrum/DEGREE_DAY.html">Smooth Degree-Day Hinges: PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../spectrum/THERMAL_INERTIA.html">Thermal Inertia: PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../spectrum/KAN.html">Kolmogorov-Arnold Network Edge Splines: PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../spectrum/SINGLE_INDEX.html">Penalized Single-Index Distributed Lags: PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../spectrum/SIGNATURE.html">Path Signature and Log-Signature Effect: PyTorch Architecture &amp; Implementation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../core/07_the_statistics_api.html">The Statistics API: One Atom, Many Schedules</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">🔬 Architecture: The Statistics Engine</span></p>
@@ -323,7 +345,7 @@
         </div>
         <article role="main" id="furo-main-content">
           <section class="tex2jax_ignore mathjax_ignore" id="hierarchical-engineering-memory-assembly-beta">
-<h1>Hierarchical Engineering &amp; Memory Assembly  [BETA]<a class="headerlink" href="#hierarchical-engineering-memory-assembly-beta" title="Link to this heading">¶</a></h1>
+<span id="hierarchical-engineering--memory-assembly--beta"></span><h1>Hierarchical Engineering &amp; Memory Assembly  [BETA]<a class="headerlink" href="#hierarchical-engineering-memory-assembly-beta" title="Link to this heading">¶</a></h1>
 <blockquote>
 <div><p>🚧 <strong>Beta – Research Module</strong></p>
 </div></blockquote>
@@ -543,16 +565,29 @@
                     <span class="k">for</span> <span class="n">parent</span><span class="p">,</span> <span class="n">children</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">structure</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
                         <span class="n">p_start</span><span class="p">,</span> <span class="n">p_end</span> <span class="o">=</span> <span class="n">node_to_idx</span><span class="p">[</span><span class="n">parent</span><span class="p">]</span>
                         <span class="n">phi_p</span> <span class="o">=</span> <span class="n">phi_chunks</span><span class="p">[</span><span class="n">parent</span><span class="p">]</span>
+                        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">coherence_loss</span> <span class="o">==</span> <span class="s2">"sinkhorn"</span><span class="p">:</span>
+                            <span class="n">K_sink</span> <span class="o">=</span> <span class="n">compute_sinkhorn_coherence_matrix</span><span class="p">(</span>
+                                <span class="n">phi_p</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span>
+                                <span class="n">window</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">sinkhorn_window</span><span class="p">,</span>
+                                <span class="n">eps</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">sinkhorn_eps</span><span class="p">,</span>
+                                <span class="n">n_iters</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">sinkhorn_iters</span><span class="p">,</span>
+                                <span class="n">device</span><span class="o">=</span><span class="n">phi_p</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
+                                <span class="n">dtype</span><span class="o">=</span><span class="n">phi_p</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
+                            <span class="p">)</span>
+                            <span class="n">phi_p_eff</span> <span class="o">=</span> <span class="n">K_sink</span> <span class="o">@</span> <span class="n">phi_p</span>
+                        <span class="k">else</span><span class="p">:</span>
+                            <span class="n">phi_p_eff</span> <span class="o">=</span> <span class="n">phi_p</span>
 
-                        <span class="n">cov_X_global</span><span class="p">[:,</span> <span class="n">p_start</span><span class="p">:</span><span class="n">p_end</span><span class="p">,</span> <span class="n">p_start</span><span class="p">:</span><span class="n">p_end</span><span class="p">]</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">lambda_p_hier</span> <span class="o">*</span> <span class="p">(</span><span class="n">phi_p</span><span class="o">.</span><span class="n">mT</span> <span class="o">@</span> <span class="n">phi_p</span><span class="p">)</span>
+                        <span class="n">cov_X_global</span><span class="p">[:,</span> <span class="n">p_start</span><span class="p">:</span><span class="n">p_end</span><span class="p">,</span> <span class="n">p_start</span><span class="p">:</span><span class="n">p_end</span><span class="p">]</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">lambda_p_hier</span> <span class="o">*</span> <span class="p">(</span><span class="n">phi_p</span><span class="o">.</span><span class="n">mT</span> <span class="o">@</span> <span class="n">phi_p_eff</span><span class="p">)</span>
 
                         <span class="k">for</span> <span class="n">child</span> <span class="ow">in</span> <span class="n">children</span><span class="p">:</span>
                             <span class="n">c_start</span><span class="p">,</span> <span class="n">c_end</span> <span class="o">=</span> <span class="n">node_to_idx</span><span class="p">[</span><span class="n">child</span><span class="p">]</span>
                             <span class="n">phi_c</span> <span class="o">=</span> <span class="n">phi_chunks</span><span class="p">[</span><span class="n">child</span><span class="p">]</span>
+                            <span class="n">phi_c_eff</span> <span class="o">=</span> <span class="p">(</span><span class="n">K_sink</span> <span class="o">@</span> <span class="n">phi_c</span><span class="p">)</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">coherence_loss</span> <span class="o">==</span> <span class="s2">"sinkhorn"</span> <span class="k">else</span> <span class="n">phi_c</span>
 
-                            <span class="n">cov_X_global</span><span class="p">[:,</span> <span class="n">c_start</span><span class="p">:</span><span class="n">c_end</span><span class="p">,</span> <span class="n">c_start</span><span class="p">:</span><span class="n">c_end</span><span class="p">]</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">lambda_p_hier</span> <span class="o">*</span> <span class="p">(</span><span class="n">phi_c</span><span class="o">.</span><span class="n">mT</span> <span class="o">@</span> <span class="n">phi_c</span><span class="p">)</span>
+                            <span class="n">cov_X_global</span><span class="p">[:,</span> <span class="n">c_start</span><span class="p">:</span><span class="n">c_end</span><span class="p">,</span> <span class="n">c_start</span><span class="p">:</span><span class="n">c_end</span><span class="p">]</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">lambda_p_hier</span> <span class="o">*</span> <span class="p">(</span><span class="n">phi_c</span><span class="o">.</span><span class="n">mT</span> <span class="o">@</span> <span class="n">phi_c_eff</span><span class="p">)</span>
 
-                            <span class="n">cross</span> <span class="o">=</span> <span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">lambda_p_hier</span> <span class="o">*</span> <span class="p">(</span><span class="n">phi_p</span><span class="o">.</span><span class="n">mT</span> <span class="o">@</span> <span class="n">phi_c</span><span class="p">)</span>
+                            <span class="n">cross</span> <span class="o">=</span> <span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">lambda_p_hier</span> <span class="o">*</span> <span class="p">(</span><span class="n">phi_p</span><span class="o">.</span><span class="n">mT</span> <span class="o">@</span> <span class="n">phi_c_eff</span><span class="p">)</span>
                             <span class="n">cov_X_global</span><span class="p">[:,</span> <span class="n">p_start</span><span class="p">:</span><span class="n">p_end</span><span class="p">,</span> <span class="n">c_start</span><span class="p">:</span><span class="n">c_end</span><span class="p">]</span> <span class="o">+=</span> <span class="n">cross</span>
                             <span class="n">cov_X_global</span><span class="p">[:,</span> <span class="n">c_start</span><span class="p">:</span><span class="n">c_end</span><span class="p">,</span> <span class="n">p_start</span><span class="p">:</span><span class="n">p_end</span><span class="p">]</span> <span class="o">+=</span> <span class="n">cross</span><span class="o">.</span><span class="n">mT</span>
 
@@ -560,7 +595,8 @@
                                 <span class="k">if</span> <span class="n">sibling</span> <span class="o">!=</span> <span class="n">child</span><span class="p">:</span>
                                     <span class="n">s_start</span><span class="p">,</span> <span class="n">s_end</span> <span class="o">=</span> <span class="n">node_to_idx</span><span class="p">[</span><span class="n">sibling</span><span class="p">]</span>
                                     <span class="n">phi_s</span> <span class="o">=</span> <span class="n">phi_chunks</span><span class="p">[</span><span class="n">sibling</span><span class="p">]</span>
-                                    <span class="n">cov_X_global</span><span class="p">[:,</span> <span class="n">c_start</span><span class="p">:</span><span class="n">c_end</span><span class="p">,</span> <span class="n">s_start</span><span class="p">:</span><span class="n">s_end</span><span class="p">]</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">lambda_p_hier</span> <span class="o">*</span> <span class="p">(</span><span class="n">phi_c</span><span class="o">.</span><span class="n">mT</span> <span class="o">@</span> <span class="n">phi_s</span><span class="p">)</span>
+                                    <span class="n">phi_s_eff</span> <span class="o">=</span> <span class="p">(</span><span class="n">K_sink</span> <span class="o">@</span> <span class="n">phi_s</span><span class="p">)</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">coherence_loss</span> <span class="o">==</span> <span class="s2">"sinkhorn"</span> <span class="k">else</span> <span class="n">phi_s</span>
+                                    <span class="n">cov_X_global</span><span class="p">[:,</span> <span class="n">c_start</span><span class="p">:</span><span class="n">c_end</span><span class="p">,</span> <span class="n">s_start</span><span class="p">:</span><span class="n">s_end</span><span class="p">]</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">lambda_p_hier</span> <span class="o">*</span> <span class="p">(</span><span class="n">phi_c</span><span class="o">.</span><span class="n">mT</span> <span class="o">@</span> <span class="n">phi_s_eff</span><span class="p">)</span>
 
                     <span class="k">del</span> <span class="n">phi_chunks</span><span class="p">,</span> <span class="n">y_chunks</span>
                     <span class="n">start_idx</span> <span class="o">+=</span> <span class="n">safe_batch</span>
@@ -675,12 +711,25 @@
                                 <span class="n">phi_c</span> <span class="o">=</span> <span class="n">phi_chunks</span><span class="p">[</span><span class="n">child</span><span class="p">]</span>
                                 <span class="n">constraint_diff</span> <span class="o">-=</span> <span class="p">(</span><span class="n">phi_c</span> <span class="o">@</span> <span class="n">v</span><span class="p">[</span><span class="n">c_start</span><span class="p">:</span><span class="n">c_end</span><span class="p">,</span> <span class="p">:])</span>
 
-                            <span class="n">Av</span><span class="p">[</span><span class="n">p_start</span><span class="p">:</span><span class="n">p_end</span><span class="p">,</span> <span class="p">:]</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">lambda_p_hier</span> <span class="o">*</span> <span class="p">(</span><span class="n">phi_p</span><span class="o">.</span><span class="n">mT</span> <span class="o">@</span> <span class="n">constraint_diff</span><span class="p">)</span>
+                            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">coherence_loss</span> <span class="o">==</span> <span class="s2">"sinkhorn"</span><span class="p">:</span>
+                                <span class="n">K_sink</span> <span class="o">=</span> <span class="n">compute_sinkhorn_coherence_matrix</span><span class="p">(</span>
+                                    <span class="n">phi_p</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+                                    <span class="n">window</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">sinkhorn_window</span><span class="p">,</span>
+                                    <span class="n">eps</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">sinkhorn_eps</span><span class="p">,</span>
+                                    <span class="n">n_iters</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">sinkhorn_iters</span><span class="p">,</span>
+                                    <span class="n">device</span><span class="o">=</span><span class="n">phi_p</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
+                                    <span class="n">dtype</span><span class="o">=</span><span class="n">phi_p</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
+                                <span class="p">)</span>
+                                <span class="n">constraint_diff_eff</span> <span class="o">=</span> <span class="n">K_sink</span> <span class="o">@</span> <span class="n">constraint_diff</span>
+                            <span class="k">else</span><span class="p">:</span>
+                                <span class="n">constraint_diff_eff</span> <span class="o">=</span> <span class="n">constraint_diff</span>
+
+                            <span class="n">Av</span><span class="p">[</span><span class="n">p_start</span><span class="p">:</span><span class="n">p_end</span><span class="p">,</span> <span class="p">:]</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">lambda_p_hier</span> <span class="o">*</span> <span class="p">(</span><span class="n">phi_p</span><span class="o">.</span><span class="n">mT</span> <span class="o">@</span> <span class="n">constraint_diff_eff</span><span class="p">)</span>
 
                             <span class="k">for</span> <span class="n">child</span> <span class="ow">in</span> <span class="n">children</span><span class="p">:</span>
                                 <span class="n">c_start</span><span class="p">,</span> <span class="n">c_end</span> <span class="o">=</span> <span class="n">node_to_idx</span><span class="p">[</span><span class="n">child</span><span class="p">]</span>
                                 <span class="n">phi_c</span> <span class="o">=</span> <span class="n">phi_chunks</span><span class="p">[</span><span class="n">child</span><span class="p">]</span>
-                                <span class="n">Av</span><span class="p">[</span><span class="n">c_start</span><span class="p">:</span><span class="n">c_end</span><span class="p">,</span> <span class="p">:]</span> <span class="o">-=</span> <span class="bp">self</span><span class="o">.</span><span class="n">lambda_p_hier</span> <span class="o">*</span> <span class="p">(</span><span class="n">phi_c</span><span class="o">.</span><span class="n">mT</span> <span class="o">@</span> <span class="n">constraint_diff</span><span class="p">)</span>
+                                <span class="n">Av</span><span class="p">[</span><span class="n">c_start</span><span class="p">:</span><span class="n">c_end</span><span class="p">,</span> <span class="p">:]</span> <span class="o">-=</span> <span class="bp">self</span><span class="o">.</span><span class="n">lambda_p_hier</span> <span class="o">*</span> <span class="p">(</span><span class="n">phi_c</span><span class="o">.</span><span class="n">mT</span> <span class="o">@</span> <span class="n">constraint_diff_eff</span><span class="p">)</span>
 
                         <span class="n">local_start</span> <span class="o">+=</span> <span class="n">local_safe_batch</span>
 
@@ -713,6 +762,10 @@
 </div>
 </div>
 <p>The memory check counts the <code class="docutils literal notranslate"><span class="pre">G</span> <span class="pre">*</span> <span class="pre">D^2</span> <span class="pre">*</span> <span class="pre">8</span></code> bytes of the dense covariance against 40 % of the available memory. Direct inversion is one batched solve over the groups; the dense and the matrix-free conjugate-gradient solvers loop over the groups, so one group’s system is applied at a time. Both stop at a relative tolerance of <code class="docutils literal notranslate"><span class="pre">1e-6</span></code>, so their coefficients agree with the direct solve to about <code class="docutils literal notranslate"><span class="pre">1e-3</span></code> of the largest coefficient on an ill-conditioned system (predictions to a few <code class="docutils literal notranslate"><span class="pre">1e-6</span></code>).</p>
+</section>
+<section id="sinkhorn-coherence-option">
+<h2>Sinkhorn Coherence Option<a class="headerlink" href="#sinkhorn-coherence-option" title="Link to this heading">¶</a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">HierarchicalTAM(...,</span> <span class="pre">coherence_loss=&quot;sinkhorn&quot;,</span> <span class="pre">sinkhorn_reg=0.1)</span></code> constructs the doubly-stochastic Sinkhorn transport matrix via <code class="docutils literal notranslate"><span class="pre">compute_sinkhorn_coherence_matrix</span></code> and injects the resulting positive semi-definite temporal coherence penalty <span class="math notranslate nohighlight">\(L_{\text{sinkhorn}}^\top L_{\text{sinkhorn}}\)</span> into the joint hierarchical solve.</p>
 </section>
 </section>
 
@@ -773,6 +826,7 @@
             <ul>
 <li><a class="reference internal" href="#">Hierarchical Engineering &amp; Memory Assembly  [BETA]</a><ul>
 <li><a class="reference internal" href="#alignment-and-groups">Alignment and groups</a></li>
+<li><a class="reference internal" href="#sinkhorn-coherence-option">Sinkhorn Coherence Option</a></li>
 </ul>
 </li>
 </ul>
@@ -788,5 +842,7 @@
     <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/scripts/furo.js?v=46bd48cc"></script>
+    <script>window.MathJax = {"options": {"processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+    <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@4/tex-mml-chtml.js"></script>
     </body>
 </html>

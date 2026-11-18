@@ -221,6 +221,17 @@
 <li class="toctree-l1"><a class="reference internal" href="../spectrum/CATEGORICAL.html">The Categorical Effect (Discrete Topologies)</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../spectrum/CROSS_TENSOR.html">The Tensor Product Effect (Interactions)</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../spectrum/PHYSICS_PIKL.html">Physics-Informed Kernel Learning (PIKL)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../spectrum/KOOPMAN_DMD.html">KOOPMAN_DMD: Global Linearization of Non-linear Dynamical Systems via Kernel / Extended Dynamic Mode Decomposition (EDMD / kDMD)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../spectrum/FOUNDATION.html">Universal Foundation Basis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../spectrum/PATCH_BASIS.html">Causal Patch Basis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../spectrum/TEMPORAL_OPERATOR.html">Temporal Operators on an Evaluated Basis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../spectrum/WARPED_CALENDAR.html">Warped Calendar Harmonics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../spectrum/MACRO_TREND.html">Hodrick-Prescott Macro-Trend</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../spectrum/DEGREE_DAY.html">Smooth Degree-Day Hinges</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../spectrum/THERMAL_INERTIA.html">Thermal Inertia</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../spectrum/KAN.html">Kolmogorov-Arnold Network Edge Splines</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../spectrum/SINGLE_INDEX.html">Penalized Single-Index Distributed Lags</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../spectrum/SIGNATURE.html">The Path Signature and Log-Signature Effect (Rough Path Iterated Integrals)</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../spectrum/PID.html">The PID Effect (Autoregressive Control Dynamics)</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../spectrum/LINEAR_TREE.html">The Linear Tree Effect (Varying-Coefficient Models)</a></li>
 </ul>
@@ -251,6 +262,17 @@
 <li class="toctree-l1"><a class="reference internal" href="../../architecture/core/04_hardware_memory.html">Hardware Memory Dispatch &amp; Anti-OOM Systems</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../architecture/core/05_gcv_implementation.html">Auto-ML via Generalized Cross-Validation (GCV)</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../architecture/core/06_the_spectrum_api.html">The Spectral Dictionary: PyTorch Implementations &amp; Factory Assembly</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/spectrum/KOOPMAN_DMD.html">Koopman Kernel DMD: PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/spectrum/FOUNDATION.html">Universal Foundation Basis: PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/spectrum/PATCH_BASIS.html">Causal RevIN Patch Basis: PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/spectrum/TEMPORAL_OPERATOR.html">Form B Temporal Operators: PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/spectrum/WARPED_CALENDAR.html">Warped Calendar Harmonics: PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/spectrum/MACRO_TREND.html">Macro-Trend (<code class="docutils literal notranslate"><span class="pre">hp_trend</span></code>): PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/spectrum/DEGREE_DAY.html">Smooth Degree-Day Hinges: PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/spectrum/THERMAL_INERTIA.html">Thermal Inertia: PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/spectrum/KAN.html">Kolmogorov-Arnold Network Edge Splines: PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/spectrum/SINGLE_INDEX.html">Penalized Single-Index Distributed Lags: PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/spectrum/SIGNATURE.html">Path Signature and Log-Signature Effect: PyTorch Architecture &amp; Implementation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../architecture/core/07_the_statistics_api.html">The Statistics API: One Atom, Many Schedules</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">🔬 Architecture: The Statistics Engine</span></p>
@@ -334,10 +356,10 @@
 <p>This chapter establishes the mathematical rationale for the specific error metrics and tracking algorithms implemented in the framework’s evaluation engine.</p>
 <hr class="docutils" />
 <section id="the-mathematics-of-forecasting-metrics">
-<h2>1. The Mathematics of Forecasting Metrics<a class="headerlink" href="#the-mathematics-of-forecasting-metrics" title="Link to this heading">¶</a></h2>
+<span id="1-the-mathematics-of-forecasting-metrics"></span><h2>1. The Mathematics of Forecasting Metrics<a class="headerlink" href="#the-mathematics-of-forecasting-metrics" title="Link to this heading">¶</a></h2>
 <p>The evaluation engine computes a diverse suite of metrics because no single mathematical norm captures all dimensions of predictive failure <span class="bibtex-citation" id="id1">[<a class="reference internal" href="../../bibliography.html#id107" title="Rob J Hyndman and Anne B Koehler. Another look at measures of forecast accuracy. International journal of forecasting, 22(4):679–688, 2006.">Hyndman and Koehler, 2006</a>]</span>.</p>
 <section id="l-1-and-l-2-loss-metrics">
-<h3><span class="math notranslate nohighlight">\(L_1\)</span> and <span class="math notranslate nohighlight">\(L_2\)</span> Loss Metrics<a class="headerlink" href="#l-1-and-l-2-loss-metrics" title="Link to this heading">¶</a></h3>
+<span id="-and--loss-metrics"></span><h3><span class="math notranslate nohighlight">\(L_1\)</span> and <span class="math notranslate nohighlight">\(L_2\)</span> Loss Metrics<a class="headerlink" href="#l-1-and-l-2-loss-metrics" title="Link to this heading">¶</a></h3>
 <p>The fundamental scale-dependent metrics measure the absolute magnitude of the error:</p>
 <ul>
 <li><p><strong>Mean Absolute Error (MAE):</strong></p>
@@ -393,7 +415,7 @@
 </section>
 <hr class="docutils" />
 <section id="temporal-degradation-tracking">
-<h2>2. Temporal Degradation Tracking<a class="headerlink" href="#temporal-degradation-tracking" title="Link to this heading">¶</a></h2>
+<span id="2-temporal-degradation-tracking"></span><h2>2. Temporal Degradation Tracking<a class="headerlink" href="#temporal-degradation-tracking" title="Link to this heading">¶</a></h2>
 <p>A core tenet of time-series forecasting is that the assumption of exchangeability (i.i.d.) is false. Data generating processes undergo Concept Drift over time.</p>
 <p>To quantify this, the <code class="docutils literal notranslate"><span class="pre">detect_temporal_degradation</span></code> algorithm splits a contiguous, out-of-sample test array into two chronological halves: <span class="math notranslate nohighlight">\(\mathcal{H}_1\)</span> and <span class="math notranslate nohighlight">\(\mathcal{H}_2\)</span>.
 It computes the performance ratio:</p>
@@ -405,7 +427,7 @@ It computes the performance ratio:</p>
 </section>
 <hr class="docutils" />
 <section id="residual-autocorrelation-the-durbin-watson-proxy">
-<h2>3. Residual Autocorrelation (The Durbin-Watson Proxy)<a class="headerlink" href="#residual-autocorrelation-the-durbin-watson-proxy" title="Link to this heading">¶</a></h2>
+<span id="3-residual-autocorrelation-the-durbin-watson-proxy"></span><h2>3. Residual Autocorrelation (The Durbin-Watson Proxy)<a class="headerlink" href="#residual-autocorrelation-the-durbin-watson-proxy" title="Link to this heading">¶</a></h2>
 <p>If a Generalized Additive Model perfectly captures the conditional expectation <span class="math notranslate nohighlight">\(\mu(X)\)</span>, the residuals <span class="math notranslate nohighlight">\(\epsilon_t = Y_t - \hat{Y}_t\)</span> must be pure White Noise (<span class="math notranslate nohighlight">\(\mathbb{E}[\epsilon_t \epsilon_{t-k}] = 0\)</span> for all <span class="math notranslate nohighlight">\(k &gt; 0\)</span>).</p>
 <p>If the residuals exhibit serial correlation, it proves the current topology is missing a critical time-dependent feature (e.g., an unmodeled daily seasonality or an auto-regressive tensor product).</p>
 <p>The <code class="docutils literal notranslate"><span class="pre">analyze_residuals</span></code> module computes the <strong>Lag-1 Autocorrelation</strong> (<span class="math notranslate nohighlight">\(\rho_1\)</span>) as a highly efficient computational proxy for the canonical Durbin-Watson (<span class="math notranslate nohighlight">\(DW\)</span>) statistic <span class="bibtex-citation" id="id5">[<a class="reference internal" href="../../bibliography.html#id95" title="James Durbin and Geoffrey S Watson. Testing for serial correlation in least squares regression: i. Biometrika, 37(3/4):409–428, 1950.">Durbin and Watson, 1950</a>]</span>.</p>

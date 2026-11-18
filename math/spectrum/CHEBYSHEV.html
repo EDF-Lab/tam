@@ -221,6 +221,17 @@
 <li class="toctree-l1"><a class="reference internal" href="CATEGORICAL.html">The Categorical Effect (Discrete Topologies)</a></li>
 <li class="toctree-l1"><a class="reference internal" href="CROSS_TENSOR.html">The Tensor Product Effect (Interactions)</a></li>
 <li class="toctree-l1"><a class="reference internal" href="PHYSICS_PIKL.html">Physics-Informed Kernel Learning (PIKL)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="KOOPMAN_DMD.html">KOOPMAN_DMD: Global Linearization of Non-linear Dynamical Systems via Kernel / Extended Dynamic Mode Decomposition (EDMD / kDMD)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="FOUNDATION.html">Universal Foundation Basis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="PATCH_BASIS.html">Causal Patch Basis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="TEMPORAL_OPERATOR.html">Temporal Operators on an Evaluated Basis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="WARPED_CALENDAR.html">Warped Calendar Harmonics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="MACRO_TREND.html">Hodrick-Prescott Macro-Trend</a></li>
+<li class="toctree-l1"><a class="reference internal" href="DEGREE_DAY.html">Smooth Degree-Day Hinges</a></li>
+<li class="toctree-l1"><a class="reference internal" href="THERMAL_INERTIA.html">Thermal Inertia</a></li>
+<li class="toctree-l1"><a class="reference internal" href="KAN.html">Kolmogorov-Arnold Network Edge Splines</a></li>
+<li class="toctree-l1"><a class="reference internal" href="SINGLE_INDEX.html">Penalized Single-Index Distributed Lags</a></li>
+<li class="toctree-l1"><a class="reference internal" href="SIGNATURE.html">The Path Signature and Log-Signature Effect (Rough Path Iterated Integrals)</a></li>
 <li class="toctree-l1"><a class="reference internal" href="PID.html">The PID Effect (Autoregressive Control Dynamics)</a></li>
 <li class="toctree-l1"><a class="reference internal" href="LINEAR_TREE.html">The Linear Tree Effect (Varying-Coefficient Models)</a></li>
 </ul>
@@ -251,6 +262,17 @@
 <li class="toctree-l1"><a class="reference internal" href="../../architecture/core/04_hardware_memory.html">Hardware Memory Dispatch &amp; Anti-OOM Systems</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../architecture/core/05_gcv_implementation.html">Auto-ML via Generalized Cross-Validation (GCV)</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../architecture/core/06_the_spectrum_api.html">The Spectral Dictionary: PyTorch Implementations &amp; Factory Assembly</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/spectrum/KOOPMAN_DMD.html">Koopman Kernel DMD: PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/spectrum/FOUNDATION.html">Universal Foundation Basis: PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/spectrum/PATCH_BASIS.html">Causal RevIN Patch Basis: PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/spectrum/TEMPORAL_OPERATOR.html">Form B Temporal Operators: PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/spectrum/WARPED_CALENDAR.html">Warped Calendar Harmonics: PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/spectrum/MACRO_TREND.html">Macro-Trend (<code class="docutils literal notranslate"><span class="pre">hp_trend</span></code>): PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/spectrum/DEGREE_DAY.html">Smooth Degree-Day Hinges: PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/spectrum/THERMAL_INERTIA.html">Thermal Inertia: PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/spectrum/KAN.html">Kolmogorov-Arnold Network Edge Splines: PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/spectrum/SINGLE_INDEX.html">Penalized Single-Index Distributed Lags: PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/spectrum/SIGNATURE.html">Path Signature and Log-Signature Effect: PyTorch Architecture &amp; Implementation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../architecture/core/07_the_statistics_api.html">The Statistics API: One Atom, Many Schedules</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">🔬 Architecture: The Statistics Engine</span></p>
@@ -330,13 +352,13 @@
 <li><p><strong>Related code architecture:</strong> <a class="reference internal" href="../../architecture/core/06_the_spectrum_api.html"><span class="std std-doc">See the Code Architecture</span></a></p></li>
 </ul>
 <section id="foundational-theory-runge-s-phenomenon-minimax-approximation">
-<h2>Foundational Theory: Runge’s Phenomenon &amp; Minimax Approximation<a class="headerlink" href="#foundational-theory-runge-s-phenomenon-minimax-approximation" title="Link to this heading">¶</a></h2>
+<span id="foundational-theory-runges-phenomenon--minimax-approximation"></span><h2>Foundational Theory: Runge’s Phenomenon &amp; Minimax Approximation<a class="headerlink" href="#foundational-theory-runge-s-phenomenon-minimax-approximation" title="Link to this heading">¶</a></h2>
 <p>To model smooth, long-term secular trends and continuous macro-phenomena, classical statistical models often rely on standard polynomial regression using a monomial basis (<span class="math notranslate nohighlight">\(1, x, x^2, \dots, x^n\)</span>).</p>
 <p>However, modern approximation theory dictates that evaluating high-degree monomials yields highly ill-conditioned Vandermonde matrices. More critically, uniformly spaced polynomial interpolation systematically triggers <strong>Runge’s phenomenon</strong>, catastrophic, unbounded oscillations at the boundaries of the interval <span class="bibtex-citation" id="id1">[<a class="reference internal" href="../../bibliography.html#id73" title="Lloyd N Trefethen. Approximation theory and approximation practice, extended edition. SIAM, 2019.">Trefethen, 2019</a>]</span>.</p>
 <p>To mathematically resolve this, the TAM framework abandons the monomial basis and instead projects the continuous input space onto a basis of orthogonal <strong>Chebyshev polynomials of the first kind</strong>, <span class="math notranslate nohighlight">\(T_n(x)\)</span>. Chebyshev polynomials are mathematically proven to achieve near-optimal <strong>minimax approximation</strong> (minimizing the maximum absolute error across the domain), guaranteeing that the interpolation error is distributed evenly without explosive boundary oscillations <span class="bibtex-citation" id="id2">[<a class="reference internal" href="../../bibliography.html#id73" title="Lloyd N Trefethen. Approximation theory and approximation practice, extended edition. SIAM, 2019.">Trefethen, 2019</a>]</span>.</p>
 </section>
 <section id="topological-constraints-formula-definition-phi">
-<h2>Topological Constraints &amp; Formula Definition (<span class="math notranslate nohighlight">\(\Phi\)</span>)<a class="headerlink" href="#topological-constraints-formula-definition-phi" title="Link to this heading">¶</a></h2>
+<span id="topological-constraints--formula-definition-"></span><h2>Topological Constraints &amp; Formula Definition (<span class="math notranslate nohighlight">\(\Phi\)</span>)<a class="headerlink" href="#topological-constraints-formula-definition-phi" title="Link to this heading">¶</a></h2>
 <p>As established in the data preparation pipeline, the input variable <span class="math notranslate nohighlight">\(x\)</span> is strictly normalized to the domain <span class="math notranslate nohighlight">\([-1, 1]\)</span> via an affine transformation. This is not merely a scaling heuristic; it is a fundamental topological requirement. Chebyshev polynomials only maintain their minimax approximation properties and their strict orthogonality (with respect to the singular weight function <span class="math notranslate nohighlight">\((1-x^2)^{-1/2}\)</span>) within this specific bounded interval <span class="bibtex-citation" id="id3">[<a class="reference internal" href="../../bibliography.html#id64" title="Theodore J. Rivlin. The Chebyshev Polynomials. John Wiley &amp; Sons, 2nd edition, 1990.">Rivlin, 1990</a>]</span>.</p>
 <p>The explicit finite-dimensional feature map <span class="math notranslate nohighlight">\(\phi(x)\)</span> evaluates these polynomials up to a specified <code class="docutils literal notranslate"><span class="pre">degree</span></code> <span class="math notranslate nohighlight">\(D\)</span>. However, evaluating Chebyshev polynomials via direct trigonometric definitions (<span class="math notranslate nohighlight">\(T_n(x) = \cos(n \arccos x)\)</span>) is computationally expensive, and expanding them into standard algebraic powers induces severe numerical instability.</p>
 <p>Instead, the framework utilizes the mathematically exact <strong>three-term recurrence relation</strong> <span class="bibtex-citation" id="id4">[<a class="reference internal" href="../../bibliography.html#id64" title="Theodore J. Rivlin. The Chebyshev Polynomials. John Wiley &amp; Sons, 2nd edition, 1990.">Rivlin, 1990</a>]</span>:</p>
@@ -359,12 +381,12 @@
 </div>
 </section>
 <section id="numerical-stability-hardware-translation">
-<h2>Numerical Stability &amp; Hardware Translation<a class="headerlink" href="#numerical-stability-hardware-translation" title="Link to this heading">¶</a></h2>
+<span id="numerical-stability--hardware-translation"></span><h2>Numerical Stability &amp; Hardware Translation<a class="headerlink" href="#numerical-stability-hardware-translation" title="Link to this heading">¶</a></h2>
 <p>A core engineering novelty of the TAM framework is the translation of this recurrence relation natively into GPU tensor operations. Higham proved that evaluating polynomial bases via direct exponentiation leads to catastrophic floating-point cancellation and massive roundoff errors on modern hardware <span class="bibtex-citation" id="id5">[<a class="reference internal" href="../../bibliography.html#id43" title="Nicholas J Higham. Accuracy and stability of numerical algorithms. SIAM, 2002.">Higham, 2002</a>]</span>.</p>
 <p>By strictly utilizing the three-term recurrence relation, the <code class="docutils literal notranslate"><span class="pre">_chebyshev.py</span></code> module explicitly bounds the floating-point arithmetic. Furthermore, by evaluating this recursively in-place (updating <span class="math notranslate nohighlight">\(T_n\)</span> using only the active <span class="math notranslate nohighlight">\(T_{n-1}\)</span> and <span class="math notranslate nohighlight">\(T_{n-2}\)</span> vectors), the tensor engine entirely avoids materializing dense, ill-conditioned intermediate matrices, ensuring perfectly stable gradients even at high polynomial degrees (<span class="math notranslate nohighlight">\(D &gt; 50\)</span>).</p>
 </section>
 <section id="the-spectral-sobolev-penalty-p">
-<h2>The Spectral Sobolev Penalty (<span class="math notranslate nohighlight">\(P\)</span>)<a class="headerlink" href="#the-spectral-sobolev-penalty-p" title="Link to this heading">¶</a></h2>
+<span id="the-spectral-sobolev-penalty-"></span><h2>The Spectral Sobolev Penalty (<span class="math notranslate nohighlight">\(P\)</span>)<a class="headerlink" href="#the-spectral-sobolev-penalty-p" title="Link to this heading">¶</a></h2>
 <p>Even with the optimal minimax basis, high-degree polynomials can overfit empirical noise. To prevent this, the framework equips the Chebyshev basis with a degree-dependent <strong>Sobolev structural penalty</strong>.</p>
 <p>The structural penalty sub-matrix <span class="math notranslate nohighlight">\(P_{chebyshev}\)</span> is defined as a purely diagonal matrix where the penalty applied to each polynomial term scales geometrically with its degree <span class="math notranslate nohighlight">\(n\)</span>, governed by a user-defined smoothness parameter <span class="math notranslate nohighlight">\(s\)</span>:</p>
 <div class="math-wrapper docutils container">

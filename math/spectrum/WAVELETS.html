@@ -221,6 +221,17 @@
 <li class="toctree-l1"><a class="reference internal" href="CATEGORICAL.html">The Categorical Effect (Discrete Topologies)</a></li>
 <li class="toctree-l1"><a class="reference internal" href="CROSS_TENSOR.html">The Tensor Product Effect (Interactions)</a></li>
 <li class="toctree-l1"><a class="reference internal" href="PHYSICS_PIKL.html">Physics-Informed Kernel Learning (PIKL)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="KOOPMAN_DMD.html">KOOPMAN_DMD: Global Linearization of Non-linear Dynamical Systems via Kernel / Extended Dynamic Mode Decomposition (EDMD / kDMD)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="FOUNDATION.html">Universal Foundation Basis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="PATCH_BASIS.html">Causal Patch Basis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="TEMPORAL_OPERATOR.html">Temporal Operators on an Evaluated Basis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="WARPED_CALENDAR.html">Warped Calendar Harmonics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="MACRO_TREND.html">Hodrick-Prescott Macro-Trend</a></li>
+<li class="toctree-l1"><a class="reference internal" href="DEGREE_DAY.html">Smooth Degree-Day Hinges</a></li>
+<li class="toctree-l1"><a class="reference internal" href="THERMAL_INERTIA.html">Thermal Inertia</a></li>
+<li class="toctree-l1"><a class="reference internal" href="KAN.html">Kolmogorov-Arnold Network Edge Splines</a></li>
+<li class="toctree-l1"><a class="reference internal" href="SINGLE_INDEX.html">Penalized Single-Index Distributed Lags</a></li>
+<li class="toctree-l1"><a class="reference internal" href="SIGNATURE.html">The Path Signature and Log-Signature Effect (Rough Path Iterated Integrals)</a></li>
 <li class="toctree-l1"><a class="reference internal" href="PID.html">The PID Effect (Autoregressive Control Dynamics)</a></li>
 <li class="toctree-l1"><a class="reference internal" href="LINEAR_TREE.html">The Linear Tree Effect (Varying-Coefficient Models)</a></li>
 </ul>
@@ -251,6 +262,17 @@
 <li class="toctree-l1"><a class="reference internal" href="../../architecture/core/04_hardware_memory.html">Hardware Memory Dispatch &amp; Anti-OOM Systems</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../architecture/core/05_gcv_implementation.html">Auto-ML via Generalized Cross-Validation (GCV)</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../architecture/core/06_the_spectrum_api.html">The Spectral Dictionary: PyTorch Implementations &amp; Factory Assembly</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/spectrum/KOOPMAN_DMD.html">Koopman Kernel DMD: PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/spectrum/FOUNDATION.html">Universal Foundation Basis: PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/spectrum/PATCH_BASIS.html">Causal RevIN Patch Basis: PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/spectrum/TEMPORAL_OPERATOR.html">Form B Temporal Operators: PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/spectrum/WARPED_CALENDAR.html">Warped Calendar Harmonics: PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/spectrum/MACRO_TREND.html">Macro-Trend (<code class="docutils literal notranslate"><span class="pre">hp_trend</span></code>): PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/spectrum/DEGREE_DAY.html">Smooth Degree-Day Hinges: PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/spectrum/THERMAL_INERTIA.html">Thermal Inertia: PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/spectrum/KAN.html">Kolmogorov-Arnold Network Edge Splines: PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/spectrum/SINGLE_INDEX.html">Penalized Single-Index Distributed Lags: PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/spectrum/SIGNATURE.html">Path Signature and Log-Signature Effect: PyTorch Architecture &amp; Implementation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../architecture/core/07_the_statistics_api.html">The Statistics API: One Atom, Many Schedules</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">🔬 Architecture: The Statistics Engine</span></p>
@@ -335,7 +357,7 @@
 <p>While wavelets are proven forecasters <span class="bibtex-citation" id="id1">[<a class="reference internal" href="../../bibliography.html#id8" title="Umberto Amato, Anestis Antoniadis, Italia De Feis, Yannig Goude, and Audrey Lagache. Forecasting high resolution electricity demand data with additive models including smooth and jagged components. International Journal of Forecasting, 37(1):171–185, 2021.">Amato <em>et al.</em>, 2021</a>]</span>, TAM bypasses traditional discrete, sequential pipelines by constructing an <strong>Continuous Wavelet Transform dictionary</strong> <span class="bibtex-citation" id="id2">[<a class="reference internal" href="../../bibliography.html#id74" title="Christopher Torrence and Gilbert P Compo. A practical guide to wavelet analysis. Bulletin of the American Meteorological society, 79(1):61–78, 1998.">Torrence and Compo, 1998</a>, <a class="reference internal" href="../../bibliography.html#id54" title="Stéphane Mallat. A wavelet tour of signal processing. Elsevier, 1999.">Mallat, 1999</a>]</span>. Unlike Fourier harmonics, wavelets possess compact or rapidly decaying support, allowing them to perfectly isolate local shocks without mathematically corrupting distant time steps.</p>
 </section>
 <section id="formula-definition-the-continuous-wavelet-grid-phi">
-<h2>Formula Definition: The Continuous Wavelet Grid (<span class="math notranslate nohighlight">\(\Phi\)</span>)<a class="headerlink" href="#formula-definition-the-continuous-wavelet-grid-phi" title="Link to this heading">¶</a></h2>
+<span id="formula-definition-the-continuous-wavelet-grid-"></span><h2>Formula Definition: The Continuous Wavelet Grid (<span class="math notranslate nohighlight">\(\Phi\)</span>)<a class="headerlink" href="#formula-definition-the-continuous-wavelet-grid-phi" title="Link to this heading">¶</a></h2>
 <p>To construct the finite-dimensional feature map, the input variable <span class="math notranslate nohighlight">\(x\)</span> (strictly normalized to the domain <span class="math notranslate nohighlight">\([-1, 1]\)</span>) is mapped against a pre-defined bidimensional grid of scales (dilations) and locations (translations), following standard Continuous Wavelet Transform (CWT) protocols <span class="bibtex-citation" id="id3">[<a class="reference internal" href="../../bibliography.html#id74" title="Christopher Torrence and Gilbert P Compo. A practical guide to wavelet analysis. Bulletin of the American Meteorological society, 79(1):61–78, 1998.">Torrence and Compo, 1998</a>]</span>:</p>
 <ul class="simple">
 <li><p><strong>Locations (<span class="math notranslate nohighlight">\(b\)</span>)</strong>: A set of <span class="math notranslate nohighlight">\(n_{locations}\)</span> linearly spaced centers across the empirical <span class="math notranslate nohighlight">\([-1, 1]\)</span> interval.</p></li>
@@ -355,7 +377,7 @@
 </div>
 </section>
 <section id="the-scale-dependent-structural-penalty-p">
-<h2>The Scale-Dependent Structural Penalty (<span class="math notranslate nohighlight">\(P\)</span>)<a class="headerlink" href="#the-scale-dependent-structural-penalty-p" title="Link to this heading">¶</a></h2>
+<span id="the-scale-dependent-structural-penalty-"></span><h2>The Scale-Dependent Structural Penalty (<span class="math notranslate nohighlight">\(P\)</span>)<a class="headerlink" href="#the-scale-dependent-structural-penalty-p" title="Link to this heading">¶</a></h2>
 <p>A dense grid of localized wavelets is exceptionally prone to overfitting, particularly to high-frequency stochastic noise. The foundational theory of <strong>Wavelet Shrinkage</strong> <span class="bibtex-citation" id="id6">[<a class="reference internal" href="../../bibliography.html#id24" title="David L Donoho and Iain M Johnstone. Ideal spatial adaptation by wavelet shrinkage. biometrika, 81(3):425–455, 1994.">Donoho and Johnstone, 1994</a>]</span> dictates that to achieve ideal spatial adaptation, wavelet coefficients must be aggressively thresholded, shrinking small, noisy coefficients exactly to zero.</p>
 <p>Because TAM operates via an exact, closed-form Ridge (<span class="math notranslate nohighlight">\(L_2\)</span>) resolution rather than iterative <span class="math notranslate nohighlight">\(L_1\)</span> thresholding (Lasso), it mathematically adapts Wavelet Shrinkage into a continuous, <strong>scale-dependent structural penalty</strong>. This penalization acts as a “whitening” operator that aggressively suppresses small-scale (high-frequency) basis functions unless they are strongly supported by the empirical loss gradient.</p>
 <p>The structural penalty sub-matrix <span class="math notranslate nohighlight">\(P_{wavelet}\)</span> is defined as a strictly diagonal matrix where the penalty multiplier is inversely proportional to the squared scale <span class="math notranslate nohighlight">\(a_i^2\)</span>:</p>
@@ -366,7 +388,7 @@
 <p>Where <span class="math notranslate nohighlight">\(\lambda\)</span> is the global regularization strength. As <span class="math notranslate nohighlight">\(a_i \to 0\)</span> (narrow, high-frequency spikes), the penalty scales toward infinity. This algebraically enforces a rigorous sparsity prior, ensuring the model only activates high-frequency wavelets for genuine, statistically significant structural shocks, exactly mimicking the oracle performance proven by Donoho and Johnstone <span class="bibtex-citation" id="id7">[<a class="reference internal" href="../../bibliography.html#id24" title="David L Donoho and Iain M Johnstone. Ideal spatial adaptation by wavelet shrinkage. biometrika, 81(3):425–455, 1994.">Donoho and Johnstone, 1994</a>]</span>.</p>
 </section>
 <section id="rkhs-eligibility-exact-resolution">
-<h2>RKHS Eligibility &amp; Exact Resolution<a class="headerlink" href="#rkhs-eligibility-exact-resolution" title="Link to this heading">¶</a></h2>
+<span id="rkhs-eligibility--exact-resolution"></span><h2>RKHS Eligibility &amp; Exact Resolution<a class="headerlink" href="#rkhs-eligibility-exact-resolution" title="Link to this heading">¶</a></h2>
 <p>By equipping the continuous wavelet frame with this strictly positive, scale-dependent diagonal penalty, the localized basis functions are formally bounded in the resulting Reproducing Kernel Hilbert Space (RKHS). Because <span class="math notranslate nohighlight">\(1 / a_i^2 &gt; 0\)</span> strictly for all defined scales, the penalty matrix is strictly positive definite.</p>
 <p>This formulation structurally isolates the wavelet null space, allowing these localized transient features to be mathematically flattened alongside continuous global polynomials (e.g., Chebyshev) and deep neural random features (NNGP) into the global block-diagonal matrix <span class="math notranslate nohighlight">\(P\)</span>. This object-oriented geometry guarantees that local transients are solved simultaneously within the exact Primal Ridge solver without disrupting the global convexity of the normal equations.</p>
 </section>

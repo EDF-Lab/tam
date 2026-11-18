@@ -221,6 +221,17 @@
 <li class="toctree-l1"><a class="reference internal" href="CATEGORICAL.html">The Categorical Effect (Discrete Topologies)</a></li>
 <li class="toctree-l1"><a class="reference internal" href="CROSS_TENSOR.html">The Tensor Product Effect (Interactions)</a></li>
 <li class="toctree-l1"><a class="reference internal" href="PHYSICS_PIKL.html">Physics-Informed Kernel Learning (PIKL)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="KOOPMAN_DMD.html">KOOPMAN_DMD: Global Linearization of Non-linear Dynamical Systems via Kernel / Extended Dynamic Mode Decomposition (EDMD / kDMD)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="FOUNDATION.html">Universal Foundation Basis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="PATCH_BASIS.html">Causal Patch Basis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="TEMPORAL_OPERATOR.html">Temporal Operators on an Evaluated Basis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="WARPED_CALENDAR.html">Warped Calendar Harmonics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="MACRO_TREND.html">Hodrick-Prescott Macro-Trend</a></li>
+<li class="toctree-l1"><a class="reference internal" href="DEGREE_DAY.html">Smooth Degree-Day Hinges</a></li>
+<li class="toctree-l1"><a class="reference internal" href="THERMAL_INERTIA.html">Thermal Inertia</a></li>
+<li class="toctree-l1"><a class="reference internal" href="KAN.html">Kolmogorov-Arnold Network Edge Splines</a></li>
+<li class="toctree-l1"><a class="reference internal" href="SINGLE_INDEX.html">Penalized Single-Index Distributed Lags</a></li>
+<li class="toctree-l1"><a class="reference internal" href="SIGNATURE.html">The Path Signature and Log-Signature Effect (Rough Path Iterated Integrals)</a></li>
 <li class="toctree-l1"><a class="reference internal" href="PID.html">The PID Effect (Autoregressive Control Dynamics)</a></li>
 <li class="toctree-l1"><a class="reference internal" href="LINEAR_TREE.html">The Linear Tree Effect (Varying-Coefficient Models)</a></li>
 </ul>
@@ -251,6 +262,17 @@
 <li class="toctree-l1"><a class="reference internal" href="../../architecture/core/04_hardware_memory.html">Hardware Memory Dispatch &amp; Anti-OOM Systems</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../architecture/core/05_gcv_implementation.html">Auto-ML via Generalized Cross-Validation (GCV)</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../architecture/core/06_the_spectrum_api.html">The Spectral Dictionary: PyTorch Implementations &amp; Factory Assembly</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/spectrum/KOOPMAN_DMD.html">Koopman Kernel DMD: PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/spectrum/FOUNDATION.html">Universal Foundation Basis: PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/spectrum/PATCH_BASIS.html">Causal RevIN Patch Basis: PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/spectrum/TEMPORAL_OPERATOR.html">Form B Temporal Operators: PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/spectrum/WARPED_CALENDAR.html">Warped Calendar Harmonics: PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/spectrum/MACRO_TREND.html">Macro-Trend (<code class="docutils literal notranslate"><span class="pre">hp_trend</span></code>): PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/spectrum/DEGREE_DAY.html">Smooth Degree-Day Hinges: PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/spectrum/THERMAL_INERTIA.html">Thermal Inertia: PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/spectrum/KAN.html">Kolmogorov-Arnold Network Edge Splines: PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/spectrum/SINGLE_INDEX.html">Penalized Single-Index Distributed Lags: PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/spectrum/SIGNATURE.html">Path Signature and Log-Signature Effect: PyTorch Architecture &amp; Implementation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../architecture/core/07_the_statistics_api.html">The Statistics API: One Atom, Many Schedules</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">🔬 Architecture: The Statistics Engine</span></p>
@@ -330,13 +352,13 @@
 <li><p><strong>Related code architecture:</strong> <a class="reference internal" href="../../architecture/core/06_the_spectrum_api.html"><span class="std std-doc">See the Code Architecture</span></a></p></li>
 </ul>
 <section id="foundational-theory-structural-evolution">
-<h2>Foundational Theory &amp; Structural Evolution<a class="headerlink" href="#foundational-theory-structural-evolution" title="Link to this heading">¶</a></h2>
+<span id="foundational-theory--structural-evolution"></span><h2>Foundational Theory &amp; Structural Evolution<a class="headerlink" href="#foundational-theory-structural-evolution" title="Link to this heading">¶</a></h2>
 <p>To model rigid, deterministic seasonalities and cyclical phenomena (e.g., daily load profiles or yearly temperature variations), the framework projects the continuous input space into a frequency domain using a truncated Fourier series <span class="bibtex-citation" id="id1">[<a class="reference internal" href="../../bibliography.html#id39" title="Andrew C Harvey. Forecasting, structural time series models and the Kalman filter. Cambridge university press, 1989.">Harvey, 1989</a>]</span>.</p>
 <p>In its foundational formulation for Weak Kernel Learning (WeaKL), Doumèche et al. (2025) defined this spectral basis within a Reproducing Kernel Hilbert Space (RKHS) using complex exponentials (<span class="math notranslate nohighlight">\(e^{ikx}\)</span>). While mathematically elegant for proving convergence in Sobolev spaces <span class="bibtex-citation" id="id2">[<a class="reference internal" href="../../bibliography.html#id26" title="Nathan Doumèche, Francis Bach, Éloi Bedek, Gérard Biau, Claire Boyer, and Yannig Goude. Forecasting time series with constraints. arXiv preprint arXiv:2502.10485, 2025.">Doumèche <em>et al.</em>, 2025</a>]</span>, managing complex-number arithmetic within deep tensor autograd engines (like PyTorch) introduces severe memory and performance bottlenecks.</p>
 <p>To achieve Gigadata scalability while strictly preserving the theoretical guarantees of WeaKL, the TAM framework re-architects this spectral projection. It maps the complex formulation into an exact, equivalent real-valued basis using strictly harmonic sines and cosines, maximizing native GPU matrix multiplication throughput.</p>
 </section>
 <section id="formula-definition-the-real-spectral-basis-phi">
-<h2>Formula Definition: The Real Spectral Basis (<span class="math notranslate nohighlight">\(\Phi\)</span>)<a class="headerlink" href="#formula-definition-the-real-spectral-basis-phi" title="Link to this heading">¶</a></h2>
+<span id="formula-definition-the-real-spectral-basis-"></span><h2>Formula Definition: The Real Spectral Basis (<span class="math notranslate nohighlight">\(\Phi\)</span>)<a class="headerlink" href="#formula-definition-the-real-spectral-basis-phi" title="Link to this heading">¶</a></h2>
 <p>As established in the data preparation phase, the input variable <span class="math notranslate nohighlight">\(x\)</span> is normalized to the domain <span class="math notranslate nohighlight">\([-1, 1]\)</span>. By default the normalization
 maps the training range <span class="math notranslate nohighlight">\([\min x, \max x]\)</span> onto <span class="math notranslate nohighlight">\([-1, 1]\)</span>; for a periodic phenomenon this takes the training rows to span exactly one
 period. For a position sampled on a regular grid <span class="math notranslate nohighlight">\(x_0&lt;x_1&lt;\dots&lt;x_J\)</span> with step <span class="math notranslate nohighlight">\(\delta\)</span>, one period is <span class="math notranslate nohighlight">\([x_0, x_J+\delta]\)</span> (the last value is
@@ -363,7 +385,7 @@ The angular frequency is halved, mapping the <span class="math notranslate nohig
 </div>
 </section>
 <section id="the-sobolev-structural-penalty-p">
-<h2>The Sobolev Structural Penalty (<span class="math notranslate nohighlight">\(P\)</span>)<a class="headerlink" href="#the-sobolev-structural-penalty-p" title="Link to this heading">¶</a></h2>
+<span id="the-sobolev-structural-penalty-"></span><h2>The Sobolev Structural Penalty (<span class="math notranslate nohighlight">\(P\)</span>)<a class="headerlink" href="#the-sobolev-structural-penalty-p" title="Link to this heading">¶</a></h2>
 <p>Unpenalized Fourier series are highly susceptible to overfitting high-frequency noise. In kernel learning, this is mitigated by evaluating the function within a Sobolev space, which mathematically penalizes the roughness (derivatives) of the function <span class="bibtex-citation" id="id3">[<a class="reference internal" href="../../bibliography.html#id66" title="Bernhard Schölkopf and Alexander J Smola. Learning with kernels: support vector machines, regularization, optimization, and beyond. MIT press, 2002.">Schölkopf and Smola, 2002</a>]</span>.</p>
 <p>The TAM framework explicitly operationalizes this Sobolev norm <span class="bibtex-citation" id="id4">[<a class="reference internal" href="../../bibliography.html#id26" title="Nathan Doumèche, Francis Bach, Éloi Bedek, Gérard Biau, Claire Boyer, and Yannig Goude. Forecasting time series with constraints. arXiv preprint arXiv:2502.10485, 2025.">Doumèche <em>et al.</em>, 2025</a>, <a class="reference internal" href="../../bibliography.html#id70" title="Alex J Smola and Bernhard Schölkopf. A tutorial on support vector regression. Statistics and computing, 14(3):199–222, 2004.">Smola and Schölkopf, 2004</a>]</span>. The structural penalty sub-matrix <span class="math notranslate nohighlight">\(P_{fourier}\)</span> is defined as a strictly diagonal matrix where the penalty applied to each harmonic pair scales with its frequency <span class="math notranslate nohighlight">\(k\)</span>, governed by a smoothness parameter <span class="math notranslate nohighlight">\(s\)</span>:</p>
 <div class="math-wrapper docutils container">
@@ -373,7 +395,7 @@ The angular frequency is halved, mapping the <span class="math notranslate nohig
 <p>Because <span class="math notranslate nohighlight">\(1 + k^{2s} &gt; 0\)</span> strictly for all <span class="math notranslate nohighlight">\(k \ge 1\)</span>, the penalty matrix is strictly positive definite. This guarantees an empty null space (the unpenalized constant <span class="math notranslate nohighlight">\(k=0\)</span> is intentionally excluded from the effect and handled globally by the framework’s intercept). This rigorously satisfies Aronszajn’s conditions for a valid RKHS <span class="bibtex-citation" id="id5">[<a class="reference internal" href="../../bibliography.html#id9" title="Nachman Aronszajn. Theory of reproducing kernels. Transactions of the American mathematical society, 68(3):337–404, 1950.">Aronszajn, 1950</a>]</span>, ensuring the perfect invertibility of the global normal equations.</p>
 </section>
 <section id="theoretical-integration-hardware-translation">
-<h2>Theoretical Integration &amp; Hardware Translation<a class="headerlink" href="#theoretical-integration-hardware-translation" title="Link to this heading">¶</a></h2>
+<span id="theoretical-integration--hardware-translation"></span><h2>Theoretical Integration &amp; Hardware Translation<a class="headerlink" href="#theoretical-integration-hardware-translation" title="Link to this heading">¶</a></h2>
 <p>Classical spectral convolutions typically rely on the Fast Fourier Transform (FFT). However, FFTs strictly require perfectly spaced, equidistant temporal grids <span class="bibtex-citation" id="id6">[<a class="reference internal" href="../../bibliography.html#id14" title="John P Boyd. Chebyshev and Fourier spectral methods. Courier Corporation, 2001.">Boyd, 2001</a>]</span>, which frequently fails in real-world time series marred by missing data or irregular sampling.</p>
 <p>By formulating the Fourier effect strictly within the continuous Primal RKHS dictionary, TAM bypasses this limitation entirely. The feature map <span class="math notranslate nohighlight">\(\Phi\)</span> is constructed via massively parallelized tensor operations directly on the arbitrarily spaced continuous input <span class="math notranslate nohighlight">\(x\)</span>. Furthermore, because the penalty matrix <span class="math notranslate nohighlight">\(P_{fourier}\)</span> is strictly diagonal, it injects minimal memory overhead into the global block-diagonal system. This allows highly expressive, high-frequency seasonal models (<span class="math notranslate nohighlight">\(m &gt; 100\)</span>) to be solved instantly alongside neural features and splines within the exact <span class="math notranslate nohighlight">\(\mathcal{O}(N_{total} D^2)\)</span> Primal solver.</p>
 </section>

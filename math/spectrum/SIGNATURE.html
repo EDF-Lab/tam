@@ -1,0 +1,593 @@
+<!doctype html>
+<html class="no-js" lang="en" data-content_root="../../">
+  <head><meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="index" title="Index" href="../../genindex.html"><link rel="search" title="Search" href="../../search.html"><link rel="next" title="The PID Effect (Autoregressive Control Dynamics)" href="PID.html"><link rel="prev" title="Penalized Single-Index Distributed Lags" href="SINGLE_INDEX.html">
+        <link rel="prefetch" href="../../_static/logo.png" as="image">
+
+    <!-- Generated with Sphinx 9.1.1 and Furo 2025.12.19 -->
+        <title>The Path Signature and Log-Signature Effect (Rough Path Iterated Integrals) - TAM 1.5.1 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=d111a655" />
+    <link rel="stylesheet" type="text/css" href="../../_static/styles/furo.css?v=7bdb33bb" />
+    <link rel="stylesheet" type="text/css" href="../../_static/styles/furo-extensions.css?v=8dab3a3b" />
+    
+    
+
+
+<style>
+  body {
+    --color-code-background: #f2f2f2;
+  --color-code-foreground: #1e1e1e;
+  
+  }
+  @media not print {
+    body[data-theme="dark"] {
+      --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+    }
+    @media (prefers-color-scheme: dark) {
+      body:not([data-theme="light"]) {
+        --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+      }
+    }
+  }
+</style></head>
+  <body>
+    
+    <script>
+      document.body.dataset.theme = localStorage.getItem("theme") || "auto";
+    </script>
+    
+
+<svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
+  <symbol id="svg-toc" viewBox="0 0 24 24">
+    <title>Contents</title>
+    <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 1024 1024">
+      <path d="M408 442h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8zm-8 204c0 4.4 3.6 8 8 8h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56zm504-486H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zm0 632H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zM115.4 518.9L271.7 642c5.8 4.6 14.4.5 14.4-6.9V388.9c0-7.4-8.5-11.5-14.4-6.9L115.4 505.1a8.74 8.74 0 0 0 0 13.8z"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-menu" viewBox="0 0 24 24">
+    <title>Menu</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-menu">
+      <line x1="3" y1="12" x2="21" y2="12"></line>
+      <line x1="3" y1="6" x2="21" y2="6"></line>
+      <line x1="3" y1="18" x2="21" y2="18"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-arrow-right" viewBox="0 0 24 24">
+    <title>Expand</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-chevron-right">
+      <polyline points="9 18 15 12 9 6"></polyline>
+    </svg>
+  </symbol>
+  <symbol id="svg-sun" viewBox="0 0 24 24">
+    <title>Light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="feather-sun">
+      <circle cx="12" cy="12" r="5"></circle>
+      <line x1="12" y1="1" x2="12" y2="3"></line>
+      <line x1="12" y1="21" x2="12" y2="23"></line>
+      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+      <line x1="1" y1="12" x2="3" y2="12"></line>
+      <line x1="21" y1="12" x2="23" y2="12"></line>
+      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+      <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon" viewBox="0 0 24 24">
+    <title>Dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-moon">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454z" />
+    </svg>
+  </symbol>
+  <symbol id="svg-sun-with-moon" viewBox="0 0 24 24">
+    <title>Auto light/dark, in light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path style="opacity: 50%" d="M 5.411 14.504 C 5.471 14.504 5.532 14.504 5.591 14.504 C 3.639 16.319 4.383 19.569 6.931 20.352 C 7.693 20.586 8.512 20.551 9.25 20.252 C 8.023 23.207 4.056 23.725 2.11 21.184 C 0.166 18.642 1.702 14.949 4.874 14.536 C 5.051 14.512 5.231 14.5 5.411 14.5 L 5.411 14.504 Z"/>
+      <line x1="14.5" y1="3.25" x2="14.5" y2="1.25"/>
+      <line x1="14.5" y1="15.85" x2="14.5" y2="17.85"/>
+      <line x1="10.044" y1="5.094" x2="8.63" y2="3.68"/>
+      <line x1="19" y1="14.05" x2="20.414" y2="15.464"/>
+      <line x1="8.2" y1="9.55" x2="6.2" y2="9.55"/>
+      <line x1="20.8" y1="9.55" x2="22.8" y2="9.55"/>
+      <line x1="10.044" y1="14.006" x2="8.63" y2="15.42"/>
+      <line x1="19" y1="5.05" x2="20.414" y2="3.636"/>
+      <circle cx="14.5" cy="9.55" r="3.6"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon-with-sun" viewBox="0 0 24 24">
+    <title>Auto light/dark, in dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path d="M 8.282 7.007 C 8.385 7.007 8.494 7.007 8.595 7.007 C 5.18 10.184 6.481 15.869 10.942 17.24 C 12.275 17.648 13.706 17.589 15 17.066 C 12.851 22.236 5.91 23.143 2.505 18.696 C -0.897 14.249 1.791 7.786 7.342 7.063 C 7.652 7.021 7.965 7 8.282 7 L 8.282 7.007 Z"/>
+      <line style="opacity: 50%" x1="18" y1="3.705" x2="18" y2="2.5"/>
+      <line style="opacity: 50%" x1="18" y1="11.295" x2="18" y2="12.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="4.816" x2="14.464" y2="3.964"/>
+      <line style="opacity: 50%" x1="20.711" y1="10.212" x2="21.563" y2="11.063"/>
+      <line style="opacity: 50%" x1="14.205" y1="7.5" x2="13.001" y2="7.5"/>
+      <line style="opacity: 50%" x1="21.795" y1="7.5" x2="23" y2="7.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="10.184" x2="14.464" y2="11.036"/>
+      <line style="opacity: 50%" x1="20.711" y1="4.789" x2="21.563" y2="3.937"/>
+      <circle style="opacity: 50%" cx="18" cy="7.5" r="2.169"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-pencil" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-pencil-code">
+      <path d="M4 20h4l10.5 -10.5a2.828 2.828 0 1 0 -4 -4l-10.5 10.5v4" />
+      <path d="M13.5 6.5l4 4" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+  <symbol id="svg-eye" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-eye-code">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M10 12a2 2 0 1 0 4 0a2 2 0 0 0 -4 0" />
+      <path
+        d="M11.11 17.958c-3.209 -.307 -5.91 -2.293 -8.11 -5.958c2.4 -4 5.4 -6 9 -6c3.6 0 6.6 2 9 6c-.21 .352 -.427 .688 -.647 1.008" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+</svg>
+
+<input type="checkbox" class="sidebar-toggle" name="__navigation" id="__navigation" aria-label="Toggle site navigation sidebar">
+<input type="checkbox" class="sidebar-toggle" name="__toc" id="__toc" aria-label="Toggle table of contents sidebar">
+<label class="overlay sidebar-overlay" for="__navigation"></label>
+<label class="overlay toc-overlay" for="__toc"></label>
+
+<a class="skip-to-content muted-link" href="#furo-main-content">Skip to content</a>
+
+
+
+<div class="page">
+  <header class="mobile-header">
+    <div class="header-left">
+      <label class="nav-overlay-icon" for="__navigation">
+        <span class="icon"><svg><use href="#svg-menu"></use></svg></span>
+      </label>
+    </div>
+    <div class="header-center">
+      <a href="../../index.html"><div class="brand">TAM 1.5.1 documentation</div></a>
+    </div>
+    <div class="header-right">
+      <div class="theme-toggle-container theme-toggle-header">
+        <button class="theme-toggle" aria-label="Toggle Light / Dark / Auto color theme">
+          <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+          <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+          <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+          <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+        </button>
+      </div>
+      <label class="toc-overlay-icon toc-header-icon" for="__toc">
+        <span class="icon"><svg><use href="#svg-toc"></use></svg></span>
+      </label>
+    </div>
+  </header>
+  <aside class="sidebar-drawer">
+    <div class="sidebar-container">
+      
+      <div class="sidebar-sticky"><a class="sidebar-brand" href="../../index.html">
+  <div class="sidebar-logo-container">
+    <img class="sidebar-logo" src="../../_static/logo.png" alt="Logo"/>
+  </div>
+  
+  <span class="sidebar-brand-text">TAM 1.5.1 documentation</span>
+  
+</a><form class="sidebar-search-container" method="get" action="../../search.html" role="search">
+  <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
+  <input type="hidden" name="check_keywords" value="yes">
+  <input type="hidden" name="area" value="default">
+</form>
+<div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
+  <p class="caption" role="heading"><span class="caption-text">🚀 Getting Started</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../README.html">TAM (Time series Additive Model)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../THEORY.html">📚 Theory Introduction of TAM and Cheatsheet</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">🧠 Theory: The Core Engine</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../core/01_primal_model.html">The Exact Primal Resolution</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../core/02_tensorization.html">The Theory of N-Dim Broadcasting and Normalization</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../core/03_linear_system.html">Linear Algebra: Direct vs. Iterative Solvers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../core/04_complexity.html">Computational Complexity (<span class="math notranslate nohighlight">\(\mathcal{O}(D^3+T D^2)\)</span> vs <span class="math notranslate nohighlight">\(\mathcal{O}(T^3)\)</span>)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../core/05_gcv_theory.html">Hyperparameter Optimization: Generalized Cross-Validation (GCV)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../core/07_the_statistics_api.html">One Atom, Many Statistics: The Statistics API</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">🌈 Theory: The Spectrum Library</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="LINEAR.html">The Linear Effect (Ridge Regression)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="SPLINES.html">The Spline Effect (P-Splines)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="FOURIER.html">The Fourier Effect (Sobolev Spectral Basis)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="WAVELETS.html">The Wavelet Effect (Ricker)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="CHEBYSHEV.html">The Chebyshev Effect (Polynomial Minimax Basis)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="TREE.html">The Tree Effect (Random Forests &amp; Binning Features)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="NEURAL.html">The Neural Effect (NEPT)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="RBF.html">The Radial Basis Function (RBF) Effect</a></li>
+<li class="toctree-l1"><a class="reference internal" href="CATEGORICAL.html">The Categorical Effect (Discrete Topologies)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="CROSS_TENSOR.html">The Tensor Product Effect (Interactions)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="PHYSICS_PIKL.html">Physics-Informed Kernel Learning (PIKL)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="KOOPMAN_DMD.html">KOOPMAN_DMD: Global Linearization of Non-linear Dynamical Systems via Kernel / Extended Dynamic Mode Decomposition (EDMD / kDMD)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="FOUNDATION.html">Universal Foundation Basis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="PATCH_BASIS.html">Causal Patch Basis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="TEMPORAL_OPERATOR.html">Temporal Operators on an Evaluated Basis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="WARPED_CALENDAR.html">Warped Calendar Harmonics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="MACRO_TREND.html">Hodrick-Prescott Macro-Trend</a></li>
+<li class="toctree-l1"><a class="reference internal" href="DEGREE_DAY.html">Smooth Degree-Day Hinges</a></li>
+<li class="toctree-l1"><a class="reference internal" href="THERMAL_INERTIA.html">Thermal Inertia</a></li>
+<li class="toctree-l1"><a class="reference internal" href="KAN.html">Kolmogorov-Arnold Network Edge Splines</a></li>
+<li class="toctree-l1"><a class="reference internal" href="SINGLE_INDEX.html">Penalized Single-Index Distributed Lags</a></li>
+<li class="toctree-l1 current current-page"><a class="current reference internal" href="#">The Path Signature and Log-Signature Effect (Rough Path Iterated Integrals)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="PID.html">The PID Effect (Autoregressive Control Dynamics)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="LINEAR_TREE.html">The Linear Tree Effect (Varying-Coefficient Models)</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">📊 Theory: The Statistics Engine</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../statistics/01_reweighted_estimation.html">Reweighted Estimation: GLMs, Expectiles &amp; Robust M-Estimators</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../statistics/02_distributional.html">Distributional (Location-Scale) Models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../statistics/03_mixture_copula.html">Mixtures &amp; Gaussian Copulas</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../statistics/04_risk_conformal_evt.html">Risk: Conformal, ACI, EVT &amp; Epistemic Uncertainty</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">⚙️ Theory: Meta-Learners &amp; Inference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../meta/01_adaptive_online.html">Adaptive Online Learning (AdaptiveTAM)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../meta/02_kalman_filter.html">Dynamic Tracking via Extended Kalman Filtering [BETA]</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../meta/03_hierarchical_joint.html">Hierarchical Joint Optimization [BETA]</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../meta/05_opera_aggregation.html">Online Prediction by Expert Aggregation (OPERA)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../meta/06_deep_gam_backfitting.html">Deep-GAM Hybridization and Orthogonal Backfitting [EXP]</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../meta/07_statistical_diagnostics.html">Statistical Inference and Diagnostics (Glass-Box) [EXP]</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../meta/08_auto_orchestrator.html">Evolutionary Orchestration and Multi-Fidelity AutoML</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../meta/09_auto_data_topology.html">AutoTAM Data Topology and Structural Safeguards [EXP]</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../meta/10_mlops_evaluation.html">Empirical Evaluation and MLOps Diagnostics</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">💻 Architecture: Core Implementation</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/core/01_additive_api.html">The Additive API and Object-Oriented Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/core/02_data_pipeline.html">The Engineering of Normalization and Padding</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/core/03_math_dispatcher.html">PyTorch Math Dispatcher &amp; Matrix-Free Solvers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/core/04_hardware_memory.html">Hardware Memory Dispatch &amp; Anti-OOM Systems</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/core/05_gcv_implementation.html">Auto-ML via Generalized Cross-Validation (GCV)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/core/06_the_spectrum_api.html">The Spectral Dictionary: PyTorch Implementations &amp; Factory Assembly</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/spectrum/KOOPMAN_DMD.html">Koopman Kernel DMD: PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/spectrum/FOUNDATION.html">Universal Foundation Basis: PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/spectrum/PATCH_BASIS.html">Causal RevIN Patch Basis: PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/spectrum/TEMPORAL_OPERATOR.html">Form B Temporal Operators: PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/spectrum/WARPED_CALENDAR.html">Warped Calendar Harmonics: PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/spectrum/MACRO_TREND.html">Macro-Trend (<code class="docutils literal notranslate"><span class="pre">hp_trend</span></code>): PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/spectrum/DEGREE_DAY.html">Smooth Degree-Day Hinges: PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/spectrum/THERMAL_INERTIA.html">Thermal Inertia: PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/spectrum/KAN.html">Kolmogorov-Arnold Network Edge Splines: PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/spectrum/SINGLE_INDEX.html">Penalized Single-Index Distributed Lags: PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/spectrum/SIGNATURE.html">Path Signature and Log-Signature Effect: PyTorch Architecture &amp; Implementation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/core/07_the_statistics_api.html">The Statistics API: One Atom, Many Schedules</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">🔬 Architecture: The Statistics Engine</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/statistics/01_reweighted_estimation_code.html">Reweighted Estimation: Strategy Pattern &amp; IRLS Driver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/statistics/02_distributional_code.html">Distributional (Location-Scale): Thin Delegation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/statistics/03_mixture_copula_code.html">Mixtures &amp; Copulas: EM over the Atom, and the Standalone Joiner</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/statistics/04_risk_conformal_evt_code.html">Risk: Static Conformal, Streaming ACI, EVT &amp; Epistemic</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">🛠️ Architecture: Advanced Orchestration</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/meta/01_adaptive_code.html">Online Error Correction (AdaptiveTAM)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/meta/02_kalman_torchscript.html">Kalman TorchScript Optimizations &amp; Block Updates [BETA]</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/meta/03_hierarchical_code.html">Hierarchical Engineering &amp; Memory Assembly  [BETA]</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/meta/05_opera_gpu.html">OPERA GPU Tensor Batching</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/meta/06_neural_hybrid.html">DeepGAM Engineering &amp; Sequential Encapsulation [EXP]</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/meta/07_diagnostics_utils.html">Diagnostics, Visualization &amp; Utilities Engineering  [EXP]</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/meta/08_auto_orchestrator_code.html">Orchestrator Pipeline and Evolutionary Hub-and-Spoke Engine [EXP]</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/meta/09_auto_data_topology_code.html">AutoTAM Data Topology: Stateful Architecture &amp; Pandas Vectorization [EXP]</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/meta/10_mlops_tracking_code.html">MLOps Tracking and Empirical Benchmarking (Engineering)</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">🧪 Gallery of Examples &amp; Use Cases</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../EXAMPLES.html">🧪 Gallery of Examples &amp; Use Cases</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">📚 References &amp; Changelog</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../AUTHORS.html">👥 Authors and Contributions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../ACKNOWLEDGEMENTS.html">🔬 Scientific Background &amp; Acknowledgments</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../CHANGELOG.html">Changelog</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../CONTRIBUTING.html">🤝 Contributing to Time series Additive Model (TAM)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../README_DOC.html">📘 Documentation Generation Guide (TAM)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../bibliography.html">References</a></li>
+</ul>
+
+</div>
+</div>
+
+      </div>
+      
+    </div>
+  </aside>
+  <div class="main">
+    <div class="content">
+      <div class="article-container">
+        <a href="#" class="back-to-top muted-link">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+            <path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8v12z"></path>
+          </svg>
+          <span>Back to top</span>
+        </a>
+        <div class="content-icon-container">
+          <div class="view-this-page">
+  <a class="muted-link" href="../../_sources/math/spectrum/SIGNATURE.md.txt" title="View this page">
+    <svg><use href="#svg-eye"></use></svg>
+    <span class="visually-hidden">View this page</span>
+  </a>
+</div>
+<div class="theme-toggle-container theme-toggle-content">
+            <button class="theme-toggle" aria-label="Toggle Light / Dark / Auto color theme">
+              <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+              <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+              <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+              <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+            </button>
+          </div>
+          <label class="toc-overlay-icon toc-content-icon" for="__toc">
+            <span class="icon"><svg><use href="#svg-toc"></use></svg></span>
+          </label>
+        </div>
+        <article role="main" id="furo-main-content">
+          <section class="tex2jax_ignore mathjax_ignore" id="the-path-signature-and-log-signature-effect-rough-path-iterated-integrals">
+<h1>The Path Signature and Log-Signature Effect (Rough Path Iterated Integrals)<a class="headerlink" href="#the-path-signature-and-log-signature-effect-rough-path-iterated-integrals" title="Link to this heading">¶</a></h1>
+<p><strong>Navigation:</strong></p>
+<ul class="simple">
+<li><p><strong>Theory introduction:</strong> <a class="reference internal" href="../../THEORY.html"><span class="std std-doc">See the Intro</span></a></p></li>
+<li><p><strong>Related code architecture:</strong> <a class="reference internal" href="../../architecture/core/06_the_spectrum_api.html"><span class="std std-doc">See the Code Architecture</span></a></p></li>
+</ul>
+<section id="foundational-theory-the-path-signature">
+<h2>Foundational Theory: The Path Signature<a class="headerlink" href="#foundational-theory-the-path-signature" title="Link to this heading">¶</a></h2>
+<p>In dynamical time-series forecasting, capturing the multi-scale trajectory and memory of exogenous covariates (such as building thermal inertia driven by weather history) traditionally requires manual engineering of exponential smoothings or distributed lags. The <strong>Path Signature</strong> <span class="bibtex-citation" id="id1">[<a class="reference internal" href="../../bibliography.html#id140" title="Kuo-Tsai Chen. Integration of paths – a faithful representation of paths by non-commutative formal power series. Transactions of the American Mathematical Society, 89(2):395–407, 1958.">Chen, 1958</a>, <a class="reference internal" href="../../bibliography.html#id141" title="Terry J Lyons, Michael Caruana, and Thierry Lévy. Differential Equations Driven by Rough Paths: Ecole d'Eté de Probabilités de Saint-Flour XXXIV-2004. Volume 1908 of Lecture Notes in Mathematics. Springer, 2007.">Lyons <em>et al.</em>, 2007</a>]</span> provides a canonical, non-parametric, linear coordinate system on the space of continuous paths of bounded variation.</p>
+<p>Let <span class="math notranslate nohighlight">\(X: [s, t] \to \mathbb{R}^D\)</span> be a continuous path of bounded variation. The <strong>signature</strong> <span class="math notranslate nohighlight">\(S(X)_{s, t}\)</span> is the collection of all iterated integrals of <span class="math notranslate nohighlight">\(X\)</span>:</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[S(X)_{s, t} = \left( 1, S^1(X)_{s, t}, S^2(X)_{s, t}, \dots, S^N(X)_{s, t}, \dots \right)\]</div>
+</div>
+<p>where the level-<span class="math notranslate nohighlight">\(k\)</span> iterated integral is defined by:</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[S^k(X)_{s, t} = \int_{s &lt; u_1 &lt; \dots &lt; u_k &lt; t} dX_{u_1} \otimes \dots \otimes dX_{u_k} \in (\mathbb{R}^D)^{\otimes k}\]</div>
+</div>
+<p>Truncated to level <span class="math notranslate nohighlight">\(N\)</span>, the signature provides a rich feature map in the tensor algebra <span class="math notranslate nohighlight">\(T^N(\mathbb{R}^D) = \bigoplus_{k=0}^N (\mathbb{R}^D)^{\otimes k}\)</span>, having total dimension:</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[\dim T^N(\mathbb{R}^D) = \sum_{k=0}^N D^k = \frac{D^{N+1} - 1}{D - 1}\]</div>
+</div>
+<section id="universal-functional-approximation">
+<h3>Universal Functional Approximation<a class="headerlink" href="#universal-functional-approximation" title="Link to this heading">¶</a></h3>
+<p>By the Stone–Weierstrass theorem and Chen’s non-commutative representation theorems, any continuous functional <span class="math notranslate nohighlight">\(F(X)\)</span> of the translated trajectory can be approximated arbitrarily well by a <strong>linear functional</strong> of the truncated signature:</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[F(X) \approx \langle \theta,\, S^N(X) \rangle\]</div>
+</div>
+<p>This aligns directly with the Primal Generalized Additive Model framework: non-linear path dynamics are linearized into an explicit design matrix <span class="math notranslate nohighlight">\(\Phi_{\text{sig}}\)</span> solved globally by the penalized weighted least-squares solver.</p>
+</section>
+</section>
+<hr class="docutils" />
+<section id="algebraic-properties-chen-s-identity">
+<span id="algebraic-properties--chens-identity"></span><h2>Algebraic Properties &amp; Chen’s Identity<a class="headerlink" href="#algebraic-properties-chen-s-identity" title="Link to this heading">¶</a></h2>
+<ol class="arabic">
+<li><p><strong>Straight Line Segments:</strong>
+For a straight segment with increment <span class="math notranslate nohighlight">\(\Delta = X_t - X_s \in \mathbb{R}^D\)</span>, the signature equals the tensor exponential:</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[S^k(\Delta) = \frac{\Delta^{\otimes k}}{k!}\]</div>
+</div>
+</li>
+<li><p><strong>Chen’s Concatenation Identity:</strong>
+For two concatenated paths <span class="math notranslate nohighlight">\(X * Y\)</span>, the signature of the concatenation equals the truncated tensor product of the individual signatures:</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[S(X * Y) = S(X) \otimes S(Y), \qquad (S(X) \otimes S(Y))^{(k)} = \sum_{j=0}^k S^j(X) \otimes S^{k-j}(Y)\]</div>
+</div>
+<p>Consequently, the signature of any piecewise linear path is evaluated in closed form as the ordered product of its segment exponentials.</p>
+</li>
+<li><p><strong>Time Reversal (Tensor Inversion):</strong>
+The signature of the time-reversed path <span class="math notranslate nohighlight">\(\overleftarrow{X}\)</span> satisfies:</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[S(X) \otimes S(\overleftarrow{X}) = (1, 0, 0, \dots)\]</div>
+</div>
+</li>
+<li><p><strong>Invariances &amp; Time Augmentation:</strong>
+The signature is intrinsically invariant to translation (<span class="math notranslate nohighlight">\(X \mapsto X + c\)</span>) and monotone reparametrizations of time (<span class="math notranslate nohighlight">\(t \mapsto \psi(t)\)</span>). Appending a normalized time coordinate <span class="math notranslate nohighlight">\(t \in [0, 1]\)</span> (time augmentation, <span class="math notranslate nohighlight">\(D = d + 1\)</span>) restores speed and duration information.</p></li>
+</ol>
+</section>
+<hr class="docutils" />
+<section id="log-signature-free-lie-algebra-compression">
+<span id="log-signature--free-lie-algebra-compression"></span><h2>Log-Signature &amp; Free Lie Algebra Compression<a class="headerlink" href="#log-signature-free-lie-algebra-compression" title="Link to this heading">¶</a></h2>
+<p>Because signature coefficients satisfy <strong>shuffle product identities</strong> (<span class="math notranslate nohighlight">\(S^{\mathbf{I}} S^{\mathbf{J}} = \sum_{\mathbf{K} \in \mathbf{I} \sqcup\!\sqcup \mathbf{J}} S^{\mathbf{K}}\)</span>) <span class="bibtex-citation" id="id2">[<a class="reference internal" href="../../bibliography.html#id142" title="Jeremy Reizenstein and Benjamin Graham. Algorithm 1004: the iisignature library: efficient calculation of iterated-integral signatures and log signatures. ACM Transactions on Mathematical Software, 47(2):1–21, 2020.">Reizenstein and Graham, 2020</a>, <a class="reference internal" href="../../bibliography.html#id139" title="Ilya Chevyrev and Andrey Kormilitzin. A primer on the signature method in machine learning. arXiv preprint arXiv:1603.03788, 2016.">Chevyrev and Kormilitzin, 2016</a>]</span>, raw signature columns exhibit collinearity as <span class="math notranslate nohighlight">\(N\)</span> grows.</p>
+<p>By the Campbell–Baker–Hausdorff theorem, the signature of any path of bounded variation lies in the free nilpotent Lie group <span class="math notranslate nohighlight">\(G^N(\mathbb{R}^D) = \exp(\mathfrak{g}^N(\mathbb{R}^D))\)</span>. The <strong>Log-Signature</strong> is defined via the truncated tensor logarithm:</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[\log^{\otimes}\!\big(S^{\le N}(X)\big) = \pi_{\le N} \sum_{k=1}^N \frac{(-1)^{k-1}}{k} \big(S^{\le N}(X) - \mathbf{1}\big)^{\otimes k} \in \mathfrak{g}^N(\mathbb{R}^D)\]</div>
+</div>
+<p>where <span class="math notranslate nohighlight">\(S^{\le N}(X)\)</span> is the signature truncated at level <span class="math notranslate nohighlight">\(N\)</span>, <span class="math notranslate nohighlight">\(\mathbf{1}\)</span> the unit of the tensor algebra, and <span class="math notranslate nohighlight">\(\pi_{\le N}\)</span> the projection that keeps the levels up to <span class="math notranslate nohighlight">\(N\)</span> (the <span class="math notranslate nohighlight">\(k\)</span>-th power contains levels up to <span class="math notranslate nohighlight">\(kN\)</span>).
+The first levels are <span class="math notranslate nohighlight">\(L^1 = S^1\)</span>, <span class="math notranslate nohighlight">\(L^2 = S^2 - \tfrac12 S^1 \otimes S^1\)</span>, <span class="math notranslate nohighlight">\(L^3 = S^3 - \tfrac12 (S^1 \otimes S^2 + S^2 \otimes S^1) + \tfrac13 (S^1)^{\otimes 3}\)</span>, and the features are the coordinates of <span class="math notranslate nohighlight">\(L^m\)</span> indexed by the Lyndon words of length <span class="math notranslate nohighlight">\(m\)</span>.</p>
+<section id="witt-s-dimension-lyndon-word-basis">
+<span id="witts-dimension--lyndon-word-basis"></span><h3>Witt’s Dimension &amp; Lyndon Word Basis<a class="headerlink" href="#witt-s-dimension-lyndon-word-basis" title="Link to this heading">¶</a></h3>
+<p>The dimension of the homogeneous Lie algebra at level <span class="math notranslate nohighlight">\(k\)</span> is given by Witt’s necklace formula:</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[\beta(D, k) = \frac{1}{k} \sum_{m \mid k} \mu(m) D^{k/m}\]</div>
+</div>
+<p>A linear basis for <span class="math notranslate nohighlight">\(\mathfrak{g}^N(\mathbb{R}^D)\)</span> is given by the <strong>Lyndon words</strong> over <span class="math notranslate nohighlight">\(\{0, \dots, D-1\}\)</span> (words strictly smaller than all their proper non-trivial suffixes). Projecting the tensor logarithm onto the Lyndon basis retains exactly <span class="math notranslate nohighlight">\(\sum_{k=1}^N \beta(D, k)\)</span> features, eliminating all algebraic redundancies.</p>
+</section>
+</section>
+<hr class="docutils" />
+<section id="levy-area-hoff-s-lead-lag-transform">
+<span id="lévy-area--hoffs-lead-lag-transform"></span><h2>Lévy Area &amp; Hoff’s Lead-Lag Transform<a class="headerlink" href="#levy-area-hoff-s-lead-lag-transform" title="Link to this heading">¶</a></h2>
+<p>At level <span class="math notranslate nohighlight">\(k = 2\)</span>, the iterated integral <span class="math notranslate nohighlight">\(S^2(X)_{i, j}\)</span> decomposes into a symmetric increment component and an antisymmetric <strong>Lévy stochastic area</strong> <span class="bibtex-citation" id="id3">[<a class="reference internal" href="../../bibliography.html#id143" title="Guy Flint, Ben Hambly, and Terry Lyons. Discretely sampled signals and the rough hoff process. Stochastic Processes and their Applications, 126(9):2593–2614, 2016.">Flint <em>et al.</em>, 2016</a>, <a class="reference internal" href="../../bibliography.html#id144" title="Adeline Fermanian. Embedding and learning with signatures. Computational Statistics &amp; Data Analysis, 157:107148, 2021.">Fermanian, 2021</a>]</span>:</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[S^2(X)_{i, j} = \frac{1}{2} \Delta X^i \Delta X^j + A_{i, j}(X), \qquad A_{i, j}(X) = \frac{1}{2}\left( S^2(X)_{i, j} - S^2(X)_{j, i} \right)\]</div>
+</div>
+<p>Geometrically, <span class="math notranslate nohighlight">\(A_{i, j}(X)\)</span> is the signed chordal area enclosed by the 2D planar projection <span class="math notranslate nohighlight">\((X_u^i, X_u^j)\)</span>. If covariate <span class="math notranslate nohighlight">\(i\)</span> <strong>leads</strong> (rises before) covariate <span class="math notranslate nohighlight">\(j\)</span>, <span class="math notranslate nohighlight">\(A_{i, j}(X) &gt; 0\)</span>.</p>
+<section id="hoff-s-lead-lag-transformation">
+<span id="hoffs-lead-lag-transformation"></span><h3>Hoff’s Lead-Lag Transformation<a class="headerlink" href="#hoff-s-lead-lag-transformation" title="Link to this heading">¶</a></h3>
+<p>For discrete sampled series <span class="math notranslate nohighlight">\(\{x_0, \dots, x_{T-1}\} \subset \mathbb{R}^d\)</span>, the <strong>Hoff Lead-Lag path</strong> in <span class="math notranslate nohighlight">\(\mathbb{R}^{2d}\)</span> advances the lead component before the lag component (the coordinates are ordered lag, lead):</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[X^{\text{lead-lag}}_{2k} = (x_k, x_k), \qquad X^{\text{lead-lag}}_{2k+1} = (x_k, x_{k+1})\]</div>
+</div>
+<p>The Lévy area between lead and lag coordinates directly captures the discrete <strong>realized quadratic covariation</strong> <span class="math notranslate nohighlight">\(\sum_k \Delta x_k^i \Delta x_k^j\)</span> and cross-correlation lags.</p>
+</section>
+</section>
+<hr class="docutils" />
+<section id="factorial-level-dependent-ridge-penalty-p-text-sig">
+<span id="factorial-level-dependent-ridge-penalty-"></span><h2>Factorial Level-Dependent Ridge Penalty (<span class="math notranslate nohighlight">\(P_{\text{sig}}\)</span>)<a class="headerlink" href="#factorial-level-dependent-ridge-penalty-p-text-sig" title="Link to this heading">¶</a></h2>
+<p>By Lyons’ inequality, the iterated integrals decay factorially with degree:</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[\|S^k(X)\| \le \frac{\|X\|_{1-\text{var}}^k}{k!}\]</div>
+</div>
+<p>To regularize higher-order terms proportionally to their natural amplitude, the penalty matrix applies a level-dependent factorial weight:</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[P_{\text{sig}} = \lambda \operatorname{diag}\Big( (k!)^2 \text{ repeated for each dimension of level } k \Big)_{k=1}^N\]</div>
+</div>
+<p>guaranteeing strict positive-definiteness (<span class="math notranslate nohighlight">\(P \succ 0\)</span>) and stable GCV/REML hyperparameter estimation.</p>
+<hr class="docutils" />
+<p><img alt="Signature geometry" src="../../_images/sig_geometry.png" /></p>
+</section>
+<section id="causality-and-state-continuation">
+<h2>Causality and State Continuation<a class="headerlink" href="#causality-and-state-continuation" title="Link to this heading">¶</a></h2>
+<p>Each step <span class="math notranslate nohighlight">\(t\)</span> reads the window <span class="math notranslate nohighlight">\(x_{t-\ell-w+1:t-\ell}\)</span> of its own group (window length <span class="math notranslate nohighlight">\(w\)</span>, delay <span class="math notranslate nohighlight">\(\ell\)</span> = <code class="docutils literal notranslate"><span class="pre">lag</span></code>): the signature of step <span class="math notranslate nohighlight">\(t\)</span> never uses a later value, and two groups never share a window. The window starts <span class="math notranslate nohighlight">\(w - 1 + \ell\)</span> steps before the first row of a pass, so a pass is prepended with that many steps of history: the replicated first row when there is none, or the last <span class="math notranslate nohighlight">\(w - 1 + \ell\)</span> rows of the previous pass when <code class="docutils literal notranslate"><span class="pre">continue_state=True</span></code>. A pass of one step (or fewer steps than the lag) is therefore well defined, and predicting a test period right after the training period gives the same features as one pass over both.</p>
+<p>The increments of every window are divided by their standard deviation over the training windows (all groups together), a statistic that is frozen when the effect is initialized.</p>
+</section>
+<section id="chunk-equivalence">
+<h2>Chunk equivalence<a class="headerlink" href="#chunk-equivalence" title="Link to this heading">¶</a></h2>
+<p>The features of a series computed in one pass over it equal the features computed in two chunks when the second chunk starts from the terminal state of the first. Three mechanisms carry that state, and this effect uses a <strong>window history</strong> (the last rows of every group, which complete the windows of the next chunk) and <strong>frozen training statistics</strong> (constants estimated once on the training period, which a later chunk does not update). Because the state is exactly what a later row reads from the past, a forecast can continue a fitted series one chunk at a time without refitting or recomputing the past.</p>
+</section>
+<section id="what-is-new-here">
+<h2>What Is New Here<a class="headerlink" href="#what-is-new-here" title="Link to this heading">¶</a></h2>
+<p>The signature, the log-signature and the lead-lag transform are the ones of the cited papers. What this effect adds:</p>
+<ul class="simple">
+<li><p>the <strong>sliding causal window with a carried history</strong>, which turns the signature of a path into a feature of a time series that can be continued from the training period to the prediction period without recomputing the past;</p></li>
+<li><p>the <strong>factorial level-dependent ridge</strong> <span class="math notranslate nohighlight">\(\lambda\,(k!)^2\)</span> per level, chosen so that the penalty follows the decay of the iterated integrals (Lyons’ inequality) and is solved together with the other spectrum effects by penalized weighted least squares, with a smoothing parameter chosen by GCV or REML;</p></li>
+<li><p>the use of the <strong>Lévy area between a covariate and its lag</strong> (lead-lag) as a regressor of an additive model of the load.</p></li>
+</ul>
+</section>
+<section id="references">
+<h2>References<a class="headerlink" href="#references" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p>Chen, Kuo-Tsai (1958). <em>Integration of paths - a faithful representation of paths by non-commutative formal power series</em>. Transactions of the American Mathematical Society. <code class="docutils literal notranslate"><span class="pre">chen1958integration</span></code></p></li>
+<li><p>Lyons, Terry J, Caruana, Michael, Levy, Thierry (2007). <em>Differential Equations Driven by Rough Paths: Ecole d’Ete de Probabilites de Saint-Flour XXXIV-2004</em>. Springer. <code class="docutils literal notranslate"><span class="pre">lyons2007differential</span></code></p></li>
+<li><p>Lyons, Terry J (1998). <em>Differential equations driven by rough signals</em>. Revista Matematica Iberoamericana. <code class="docutils literal notranslate"><span class="pre">lyons1998differential</span></code></p></li>
+<li><p>Chevyrev, Ilya, Kormilitzin, Andrey (2016). <em>A Primer on the Signature Method in Machine Learning</em>. arXiv preprint arXiv:1603.03788. <code class="docutils literal notranslate"><span class="pre">chevyrev2016primer</span></code></p></li>
+<li><p>Reizenstein, Jeremy, Graham, Benjamin (2020). <em>Algorithm 1004: The iisignature library: Efficient calculation of iterated-integral signatures and log signatures</em>. ACM Transactions on Mathematical Software. <code class="docutils literal notranslate"><span class="pre">reizenstein2020algorithm</span></code></p></li>
+<li><p>Flint, Guy, Hambly, Ben, Lyons, Terry (2016). <em>Discretely sampled signals and the rough Hoff process</em>. Stochastic Processes and their Applications. <code class="docutils literal notranslate"><span class="pre">flint2016discretely</span></code></p></li>
+<li><p>Fermanian, Adeline (2021). <em>Embedding and learning with signatures</em>. Computational Statistics &amp; Data Analysis. <code class="docutils literal notranslate"><span class="pre">fermanian2021embedding</span></code></p></li>
+</ul>
+</section>
+</section>
+
+        </article>
+      </div>
+      <footer>
+        
+        <div class="related-pages">
+          <a class="next-page" href="PID.html">
+              <div class="page-info">
+                <div class="context">
+                  <span>Next</span>
+                </div>
+                <div class="title">The PID Effect (Autoregressive Control Dynamics)</div>
+              </div>
+              <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
+            </a>
+          <a class="prev-page" href="SINGLE_INDEX.html">
+              <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
+              <div class="page-info">
+                <div class="context">
+                  <span>Previous</span>
+                </div>
+                
+                <div class="title">Penalized Single-Index Distributed Lags</div>
+                
+              </div>
+            </a>
+        </div>
+        <div class="bottom-of-page">
+          <div class="left-details">
+            <div class="copyright">
+                Copyright &#169; 2025-2026 Électricité de France (contributors: Yann Allioux); 2023-2025 Électricité de France, Sorbonne Université (contributors: Nathan Doumèche, Éloi Bedek)
+            </div>
+            Made with <a href="https://www.sphinx-doc.org/">Sphinx</a> and <a class="muted-link" href="https://pradyunsg.me">@pradyunsg</a>'s
+            
+            <a href="https://github.com/pradyunsg/furo">Furo</a>
+            
+          </div>
+          <div class="right-details">
+            
+          </div>
+        </div>
+        
+      </footer>
+    </div>
+    <aside class="toc-drawer">
+      
+      
+      <div class="toc-sticky toc-scroll">
+        <div class="toc-title-container">
+          <span class="toc-title">
+            On this page
+          </span>
+        </div>
+        <div class="toc-tree-container">
+          <div class="toc-tree">
+            <ul>
+<li><a class="reference internal" href="#">The Path Signature and Log-Signature Effect (Rough Path Iterated Integrals)</a><ul>
+<li><a class="reference internal" href="#foundational-theory-the-path-signature">Foundational Theory: The Path Signature</a><ul>
+<li><a class="reference internal" href="#universal-functional-approximation">Universal Functional Approximation</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#algebraic-properties-chen-s-identity">Algebraic Properties &amp; Chen’s Identity</a></li>
+<li><a class="reference internal" href="#log-signature-free-lie-algebra-compression">Log-Signature &amp; Free Lie Algebra Compression</a><ul>
+<li><a class="reference internal" href="#witt-s-dimension-lyndon-word-basis">Witt’s Dimension &amp; Lyndon Word Basis</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#levy-area-hoff-s-lead-lag-transform">Lévy Area &amp; Hoff’s Lead-Lag Transform</a><ul>
+<li><a class="reference internal" href="#hoff-s-lead-lag-transformation">Hoff’s Lead-Lag Transformation</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#factorial-level-dependent-ridge-penalty-p-text-sig">Factorial Level-Dependent Ridge Penalty (<span class="math notranslate nohighlight">\(P_{\text{sig}}\)</span>)</a></li>
+<li><a class="reference internal" href="#causality-and-state-continuation">Causality and State Continuation</a></li>
+<li><a class="reference internal" href="#chunk-equivalence">Chunk equivalence</a></li>
+<li><a class="reference internal" href="#what-is-new-here">What Is New Here</a></li>
+<li><a class="reference internal" href="#references">References</a></li>
+</ul>
+</li>
+</ul>
+
+          </div>
+        </div>
+      </div>
+      
+      
+    </aside>
+  </div>
+</div><script src="../../_static/documentation_options.js?v=44dfd65d"></script>
+    <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="../../_static/scripts/furo.js?v=46bd48cc"></script>
+    <script>window.MathJax = {"options": {"processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+    <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@4/tex-mml-chtml.js"></script>
+    </body>
+</html>

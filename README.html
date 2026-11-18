@@ -221,6 +221,17 @@
 <li class="toctree-l1"><a class="reference internal" href="math/spectrum/CATEGORICAL.html">The Categorical Effect (Discrete Topologies)</a></li>
 <li class="toctree-l1"><a class="reference internal" href="math/spectrum/CROSS_TENSOR.html">The Tensor Product Effect (Interactions)</a></li>
 <li class="toctree-l1"><a class="reference internal" href="math/spectrum/PHYSICS_PIKL.html">Physics-Informed Kernel Learning (PIKL)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="math/spectrum/KOOPMAN_DMD.html">KOOPMAN_DMD: Global Linearization of Non-linear Dynamical Systems via Kernel / Extended Dynamic Mode Decomposition (EDMD / kDMD)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="math/spectrum/FOUNDATION.html">Universal Foundation Basis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="math/spectrum/PATCH_BASIS.html">Causal Patch Basis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="math/spectrum/TEMPORAL_OPERATOR.html">Temporal Operators on an Evaluated Basis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="math/spectrum/WARPED_CALENDAR.html">Warped Calendar Harmonics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="math/spectrum/MACRO_TREND.html">Hodrick-Prescott Macro-Trend</a></li>
+<li class="toctree-l1"><a class="reference internal" href="math/spectrum/DEGREE_DAY.html">Smooth Degree-Day Hinges</a></li>
+<li class="toctree-l1"><a class="reference internal" href="math/spectrum/THERMAL_INERTIA.html">Thermal Inertia</a></li>
+<li class="toctree-l1"><a class="reference internal" href="math/spectrum/KAN.html">Kolmogorov-Arnold Network Edge Splines</a></li>
+<li class="toctree-l1"><a class="reference internal" href="math/spectrum/SINGLE_INDEX.html">Penalized Single-Index Distributed Lags</a></li>
+<li class="toctree-l1"><a class="reference internal" href="math/spectrum/SIGNATURE.html">The Path Signature and Log-Signature Effect (Rough Path Iterated Integrals)</a></li>
 <li class="toctree-l1"><a class="reference internal" href="math/spectrum/PID.html">The PID Effect (Autoregressive Control Dynamics)</a></li>
 <li class="toctree-l1"><a class="reference internal" href="math/spectrum/LINEAR_TREE.html">The Linear Tree Effect (Varying-Coefficient Models)</a></li>
 </ul>
@@ -251,6 +262,17 @@
 <li class="toctree-l1"><a class="reference internal" href="architecture/core/04_hardware_memory.html">Hardware Memory Dispatch &amp; Anti-OOM Systems</a></li>
 <li class="toctree-l1"><a class="reference internal" href="architecture/core/05_gcv_implementation.html">Auto-ML via Generalized Cross-Validation (GCV)</a></li>
 <li class="toctree-l1"><a class="reference internal" href="architecture/core/06_the_spectrum_api.html">The Spectral Dictionary: PyTorch Implementations &amp; Factory Assembly</a></li>
+<li class="toctree-l1"><a class="reference internal" href="architecture/spectrum/KOOPMAN_DMD.html">Koopman Kernel DMD: PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="architecture/spectrum/FOUNDATION.html">Universal Foundation Basis: PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="architecture/spectrum/PATCH_BASIS.html">Causal RevIN Patch Basis: PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="architecture/spectrum/TEMPORAL_OPERATOR.html">Form B Temporal Operators: PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="architecture/spectrum/WARPED_CALENDAR.html">Warped Calendar Harmonics: PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="architecture/spectrum/MACRO_TREND.html">Macro-Trend (<code class="docutils literal notranslate"><span class="pre">hp_trend</span></code>): PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="architecture/spectrum/DEGREE_DAY.html">Smooth Degree-Day Hinges: PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="architecture/spectrum/THERMAL_INERTIA.html">Thermal Inertia: PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="architecture/spectrum/KAN.html">Kolmogorov-Arnold Network Edge Splines: PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="architecture/spectrum/SINGLE_INDEX.html">Penalized Single-Index Distributed Lags: PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="architecture/spectrum/SIGNATURE.html">Path Signature and Log-Signature Effect: PyTorch Architecture &amp; Implementation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="architecture/core/07_the_statistics_api.html">The Statistics API: One Atom, Many Schedules</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">🔬 Architecture: The Statistics Engine</span></p>
@@ -343,13 +365,13 @@
 <p>TAM gives you the transparency of standard statistical models (like linear regression and splines) with the raw processing power and scale of deep learning. Build your model using simple formula syntax, and our engine will resolve it efficiently on modern GPU architectures via PyTorch, featuring a glass-box architecture with isolated, interpretable components, robust memory management, and exact mathematical resolution.</p>
 <hr class="docutils" />
 <section id="statement-of-need-why-tam">
-<h2>🎯 Statement of Need (Why TAM?)<a class="headerlink" href="#statement-of-need-why-tam" title="Link to this heading">¶</a></h2>
+<span id="-statement-of-need-why-tam"></span><h2>🎯 Statement of Need (Why TAM?)<a class="headerlink" href="#statement-of-need-why-tam" title="Link to this heading">¶</a></h2>
 <p>Traditional Generalized Additive Models (GAMs) are strictly bound by CPU limits, making them computationally intractable for massive datasets and highly complex feature topologies. Furthermore, exact dual kernel methods like Gaussian Processes suffer from a temporal scaling bottleneck, preventing them from handling long, high-frequency time series.</p>
 <p><strong>TAM bridges the gap between classical statistics and modern tensor algebra.</strong> By solving a global convex optimization problem strictly in the Primal space, TAM completely bypasses the dual inversion bottleneck. To prevent Out-Of-Memory (OOM) crashes on extreme scales, TAM’s hardware-aware dispatcher protects the system on two fronts: it utilizes <strong>Group-Chunking</strong> to safely process infinite data volumes, and automatically routes massive feature spaces to a matrix-free <strong>Sparse Conjugate Gradient</strong> solver. This allows researchers to scale interpretable learning directly within GPU/CPU caches.</p>
 </section>
 <hr class="docutils" />
 <section id="stable-framework-v1-2">
-<h2>⚙️ Stable Framework (v1.2+)<a class="headerlink" href="#stable-framework-v1-2" title="Link to this heading">¶</a></h2>
+<span id="-stable-framework-v12"></span><h2>⚙️ Stable Framework (v1.2+)<a class="headerlink" href="#stable-framework-v1-2" title="Link to this heading">¶</a></h2>
 <p>These modules form the mathematically proven, production-ready core of the framework, designed for robust industrial deployment, covered by tests and the regression suite:</p>
 <ul class="simple">
 <li><p><strong>Machine Learning for Time Series:</strong> TAM projects a matrix of exogenous features into a finite-dimensional space via basis mappings against a target.</p></li>
@@ -367,7 +389,7 @@
 </section>
 <hr class="docutils" />
 <section id="experimental-research-lab-beta-exp">
-<h2>🔬 Experimental Research Lab (BETA / EXP)<a class="headerlink" href="#experimental-research-lab-beta-exp" title="Link to this heading">¶</a></h2>
+<span id="-experimental-research-lab-beta--exp"></span><h2>🔬 Experimental Research Lab (BETA / EXP)<a class="headerlink" href="#experimental-research-lab-beta-exp" title="Link to this heading">¶</a></h2>
 <p>We actively collaborate with the academic community to push the boundaries of TAMs. These modules are under active theoretical development:</p>
 <ul class="simple">
 <li><p><strong>Physics-Informed (<code class="docutils literal notranslate"><span class="pre">UniversalPhysicsEffect</span></code>) (BETA):</strong> Embeds physical laws (ODEs/PDEs) directly into the model as analytical regularization constraints.</p></li>
@@ -379,7 +401,7 @@
 </section>
 <hr class="docutils" />
 <section id="system-architecture-overview">
-<h2>🏗️ System Architecture Overview<a class="headerlink" href="#system-architecture-overview" title="Link to this heading">¶</a></h2>
+<span id="-system-architecture-overview"></span><h2>🏗️ System Architecture Overview<a class="headerlink" href="#system-architecture-overview" title="Link to this heading">¶</a></h2>
 <p>The modern architecture (v1.2.1+) is divided into four distinct tiers: Data Ingestion &amp; Preprocessing, the Core Engine, the Meta-Learner Orchestrators, and Output Management.</p>
 <div align="center">
   <img src="_static/architecture_diagram.png" width="1000" alt="Architecture Diagram">
@@ -388,7 +410,7 @@
 </section>
 <hr class="docutils" />
 <section id="installation">
-<h2>🛠️ Installation<a class="headerlink" href="#installation" title="Link to this heading">¶</a></h2>
+<span id="-installation"></span><h2>🛠️ Installation<a class="headerlink" href="#installation" title="Link to this heading">¶</a></h2>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>pip<span class="w"> </span>install<span class="w"> </span>tam-ml
 </pre></div>
 </div>
@@ -401,14 +423,25 @@
 </section>
 <hr class="docutils" />
 <section id="the-dictionary-of-effects">
-<h2>🧩 The Dictionary of Effects<a class="headerlink" href="#the-dictionary-of-effects" title="Link to this heading">¶</a></h2>
+<span id="-the-dictionary-of-effects"></span><h2>🧩 The Dictionary of Effects<a class="headerlink" href="#the-dictionary-of-effects" title="Link to this heading">¶</a></h2>
 <p>TAM is designed as a framework where you build models by summing generic “Effects”.</p>
 <p>To understand the deep mathematical behavior of the framework, click on any effect to read its complete theoretical documentation (including its mapping function and structural penalty):
-<strong><a class="reference internal" href="math/spectrum/LINEAR.html"><span class="std std-doc">Linear</span></a></strong> / <strong><a class="reference internal" href="math/spectrum/FOURIER.html"><span class="std std-doc">Fourier</span></a></strong> / <strong><a class="reference internal" href="math/spectrum/SPLINES.html"><span class="std std-doc">Spline</span></a></strong> / <strong><a class="reference internal" href="math/spectrum/CHEBYSHEV.html"><span class="std std-doc">Chebyshev</span></a></strong> / <strong><a class="reference internal" href="math/spectrum/CATEGORICAL.html"><span class="std std-doc">Categorical</span></a></strong> / <strong><a class="reference internal" href="math/spectrum/CROSS_TENSOR.html"><span class="std std-doc">Interaction</span></a></strong> / <strong><a class="reference internal" href="math/spectrum/RBF.html"><span class="std std-doc">RBF</span></a></strong> / <strong><a class="reference internal" href="math/spectrum/NEURAL.html"><span class="std std-doc">Neural</span></a></strong> / <strong><a class="reference internal" href="math/spectrum/TREE.html"><span class="std std-doc">Tree</span></a></strong> / <strong><a class="reference internal" href="math/spectrum/LINEAR_TREE.html"><span class="std std-doc">Linear Tree</span></a></strong> / <strong><a class="reference internal" href="math/spectrum/WAVELETS.html"><span class="std std-doc">Wavelet</span></a></strong> / <strong><a class="reference internal" href="math/spectrum/PID.html"><span class="std std-doc">PID</span></a></strong> / <strong><a class="reference internal" href="math/spectrum/PHYSICS_PIKL.html"><span class="std std-doc">Physics</span></a></strong> (BETA)</p>
+<strong><a class="reference internal" href="math/spectrum/LINEAR.html"><span class="std std-doc">Linear</span></a></strong> / <strong><a class="reference internal" href="math/spectrum/FOURIER.html"><span class="std std-doc">Fourier</span></a></strong> / <strong><a class="reference internal" href="math/spectrum/SPLINES.html"><span class="std std-doc">Spline</span></a></strong> / <strong><a class="reference internal" href="math/spectrum/CHEBYSHEV.html"><span class="std std-doc">Chebyshev</span></a></strong> / <strong><a class="reference internal" href="math/spectrum/CATEGORICAL.html"><span class="std std-doc">Categorical</span></a></strong> / <strong><a class="reference internal" href="math/spectrum/CROSS_TENSOR.html"><span class="std std-doc">Interaction</span></a></strong> / <strong><a class="reference internal" href="math/spectrum/RBF.html"><span class="std std-doc">RBF</span></a></strong> / <strong><a class="reference internal" href="math/spectrum/NEURAL.html"><span class="std std-doc">Neural</span></a></strong> / <strong><a class="reference internal" href="math/spectrum/TREE.html"><span class="std std-doc">Tree</span></a></strong> / <strong><a class="reference internal" href="math/spectrum/LINEAR_TREE.html"><span class="std std-doc">Linear Tree</span></a></strong> / <strong><a class="reference internal" href="math/spectrum/WAVELETS.html"><span class="std std-doc">Wavelet</span></a></strong> / <strong><a class="reference internal" href="math/spectrum/PID.html"><span class="std std-doc">PID</span></a></strong> / <strong><a class="reference internal" href="math/spectrum/PHYSICS_PIKL.html"><span class="std std-doc">Physics</span></a></strong> (BETA)
+/ <strong><a class="reference internal" href="math/spectrum/SIGNATURE.html"><span class="std std-doc">Signature</span></a></strong> (BETA)
+/ <strong><a class="reference internal" href="math/spectrum/SINGLE_INDEX.html"><span class="std std-doc">Single-Index</span></a></strong> (BETA)
+/ <strong><a class="reference internal" href="math/spectrum/KAN.html"><span class="std std-doc">KAN</span></a></strong> (BETA)
+/ <strong><a class="reference internal" href="math/spectrum/THERMAL_INERTIA.html"><span class="std std-doc">Thermal Inertia</span></a></strong> (BETA)
+/ <strong><a class="reference internal" href="math/spectrum/DEGREE_DAY.html"><span class="std std-doc">Degree Days</span></a></strong> (BETA)
+/ <strong><a class="reference internal" href="math/spectrum/WARPED_CALENDAR.html"><span class="std std-doc">Warped Calendar</span></a></strong> (BETA)
+/ <strong><a class="reference internal" href="math/spectrum/MACRO_TREND.html"><span class="std std-doc">Macro Trend</span></a></strong> (BETA)
+/ <strong><a class="reference internal" href="math/spectrum/TEMPORAL_OPERATOR.html"><span class="std std-doc">Temporal Operators</span></a></strong> (BETA)
+/ <strong><a class="reference internal" href="math/spectrum/PATCH_BASIS.html"><span class="std std-doc">Patch Basis</span></a></strong> (BETA)
+/ <strong><a class="reference internal" href="math/spectrum/FOUNDATION.html"><span class="std std-doc">Foundation Basis</span></a></strong> (BETA)
+/ <strong><a class="reference internal" href="math/spectrum/KOOPMAN_DMD.html"><span class="std std-doc">Koopman EDMD</span></a></strong> (BETA)</p>
 </section>
 <hr class="docutils" />
 <section id="quick-start">
-<h2>🚀 Quick Start<a class="headerlink" href="#quick-start" title="Link to this heading">¶</a></h2>
+<span id="-quick-start"></span><h2>🚀 Quick Start<a class="headerlink" href="#quick-start" title="Link to this heading">¶</a></h2>
 <p>Fit a standard interpretable model on historical data using an R-style formula syntax.</p>
 <blockquote>
 <div><p>💡<strong>For Scikit-Learn Users:</strong> You do not need to manually split your target <code class="docutils literal notranslate"><span class="pre">y</span></code> and feature matrix <code class="docutils literal notranslate"><span class="pre">X</span></code>. The framework parses the formula string to dynamically extract the target and build the tensor matrices directly from your Pandas DataFrame.</p>
@@ -452,7 +485,7 @@
 </section>
 <hr class="docutils" />
 <section id="project-structure-documentation">
-<h2>📂 Project Structure &amp; Documentation<a class="headerlink" href="#project-structure-documentation" title="Link to this heading">¶</a></h2>
+<span id="-project-structure--documentation"></span><h2>📂 Project Structure &amp; Documentation<a class="headerlink" href="#project-structure-documentation" title="Link to this heading">¶</a></h2>
 <ul class="simple">
 <li><p><strong><code class="docutils literal notranslate"><span class="pre">src/tam/</span></code></strong> - 🐍 SOURCE CODE</p></li>
 <li><p><strong><code class="docutils literal notranslate"><span class="pre">math/</span></code></strong> - 🧠 THE “WHY”: Mathematical theory, theorems, and RKHS equations.</p></li>
@@ -467,7 +500,7 @@
 </section>
 <hr class="docutils" />
 <section id="project-community">
-<h2>👥 Project &amp; Community<a class="headerlink" href="#project-community" title="Link to this heading">¶</a></h2>
+<span id="-project--community"></span><h2>👥 Project &amp; Community<a class="headerlink" href="#project-community" title="Link to this heading">¶</a></h2>
 <ul class="simple">
 <li><p><strong><a class="reference internal" href="AUTHORS.html"><span class="std std-doc">👥 Authors &amp; Contributions</span></a>:</strong> Meet the team behind TAM.</p></li>
 <li><p><strong><a class="reference internal" href="ACKNOWLEDGEMENTS.html"><span class="std std-doc">🔬 Scientific Background &amp; Acknowledgements</span></a>:</strong> Academic references and BibTeX for the foundational papers.</p></li>
@@ -508,7 +541,7 @@
 </section>
 <hr class="docutils" />
 <section id="issues-support">
-<h2>🐛 Issues &amp; Support<a class="headerlink" href="#issues-support" title="Link to this heading">¶</a></h2>
+<span id="-issues--support"></span><h2>🐛 Issues &amp; Support<a class="headerlink" href="#issues-support" title="Link to this heading">¶</a></h2>
 <ul class="simple">
 <li><p>Found a bug or VRAM leak? Please open an <strong>Issue</strong> on our repository with a minimal reproducible example.</p></li>
 <li><p>Have a question about the math? Check the <a class="reference internal" href="THEORY.html"><span class="std std-doc"><code class="docutils literal notranslate"><span class="pre">📚</span> <span class="pre">THEORY</span></code></span></a> manual or start a <strong>Discussion</strong>.</p></li>

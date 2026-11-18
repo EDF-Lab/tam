@@ -221,6 +221,17 @@
 <li class="toctree-l1"><a class="reference internal" href="CATEGORICAL.html">The Categorical Effect (Discrete Topologies)</a></li>
 <li class="toctree-l1"><a class="reference internal" href="CROSS_TENSOR.html">The Tensor Product Effect (Interactions)</a></li>
 <li class="toctree-l1"><a class="reference internal" href="PHYSICS_PIKL.html">Physics-Informed Kernel Learning (PIKL)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="KOOPMAN_DMD.html">KOOPMAN_DMD: Global Linearization of Non-linear Dynamical Systems via Kernel / Extended Dynamic Mode Decomposition (EDMD / kDMD)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="FOUNDATION.html">Universal Foundation Basis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="PATCH_BASIS.html">Causal Patch Basis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="TEMPORAL_OPERATOR.html">Temporal Operators on an Evaluated Basis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="WARPED_CALENDAR.html">Warped Calendar Harmonics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="MACRO_TREND.html">Hodrick-Prescott Macro-Trend</a></li>
+<li class="toctree-l1"><a class="reference internal" href="DEGREE_DAY.html">Smooth Degree-Day Hinges</a></li>
+<li class="toctree-l1"><a class="reference internal" href="THERMAL_INERTIA.html">Thermal Inertia</a></li>
+<li class="toctree-l1"><a class="reference internal" href="KAN.html">Kolmogorov-Arnold Network Edge Splines</a></li>
+<li class="toctree-l1"><a class="reference internal" href="SINGLE_INDEX.html">Penalized Single-Index Distributed Lags</a></li>
+<li class="toctree-l1"><a class="reference internal" href="SIGNATURE.html">The Path Signature and Log-Signature Effect (Rough Path Iterated Integrals)</a></li>
 <li class="toctree-l1"><a class="reference internal" href="PID.html">The PID Effect (Autoregressive Control Dynamics)</a></li>
 <li class="toctree-l1"><a class="reference internal" href="LINEAR_TREE.html">The Linear Tree Effect (Varying-Coefficient Models)</a></li>
 </ul>
@@ -251,6 +262,17 @@
 <li class="toctree-l1"><a class="reference internal" href="../../architecture/core/04_hardware_memory.html">Hardware Memory Dispatch &amp; Anti-OOM Systems</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../architecture/core/05_gcv_implementation.html">Auto-ML via Generalized Cross-Validation (GCV)</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../architecture/core/06_the_spectrum_api.html">The Spectral Dictionary: PyTorch Implementations &amp; Factory Assembly</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/spectrum/KOOPMAN_DMD.html">Koopman Kernel DMD: PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/spectrum/FOUNDATION.html">Universal Foundation Basis: PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/spectrum/PATCH_BASIS.html">Causal RevIN Patch Basis: PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/spectrum/TEMPORAL_OPERATOR.html">Form B Temporal Operators: PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/spectrum/WARPED_CALENDAR.html">Warped Calendar Harmonics: PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/spectrum/MACRO_TREND.html">Macro-Trend (<code class="docutils literal notranslate"><span class="pre">hp_trend</span></code>): PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/spectrum/DEGREE_DAY.html">Smooth Degree-Day Hinges: PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/spectrum/THERMAL_INERTIA.html">Thermal Inertia: PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/spectrum/KAN.html">Kolmogorov-Arnold Network Edge Splines: PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/spectrum/SINGLE_INDEX.html">Penalized Single-Index Distributed Lags: PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/spectrum/SIGNATURE.html">Path Signature and Log-Signature Effect: PyTorch Architecture &amp; Implementation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../architecture/core/07_the_statistics_api.html">The Statistics API: One Atom, Many Schedules</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">🔬 Architecture: The Statistics Engine</span></p>
@@ -352,7 +374,7 @@ Evaluated using the modified Bessel function of the second kind <span class="mat
 </div>
 </section>
 <section id="theoretical-critique-gaussian-vs-matern">
-<h2>Theoretical Critique: Gaussian vs. Matérn<a class="headerlink" href="#theoretical-critique-gaussian-vs-matern" title="Link to this heading">¶</a></h2>
+<span id="theoretical-critique-gaussian-vs-matérn"></span><h2>Theoretical Critique: Gaussian vs. Matérn<a class="headerlink" href="#theoretical-critique-gaussian-vs-matern" title="Link to this heading">¶</a></h2>
 <p>While the Gaussian kernel is the default choice in standard machine learning, it possesses a severe theoretical flaw when applied to real-world physical systems.</p>
 <p><strong>The Infinite Differentiability Fallacy:</strong> The Gaussian kernel assumes that the underlying data-generating process possesses infinitely mean-square differentiable sample paths <span class="bibtex-citation" id="id2">[<a class="reference internal" href="../../bibliography.html#id78" title="Carl Edward Rasmussen and Christopher KI Williams. Gaussian processes for machine learning. Volume 2. MIT press Cambridge, MA, 2006.">Rasmussen and Williams, 2006</a>]</span>. For chaotic physical processes (e.g., electricity load, atmospheric temperature, or wind speeds), this assumption is highly unrealistic and forces the model to generate surfaces that are excessively smooth.</p>
 <p>By contrast, the Matérn class provides rigorous control over the differentiability of the spatial field via the <span class="math notranslate nohighlight">\(\nu\)</span> parameter. A process with a Matérn covariance is <span class="math notranslate nohighlight">\(\lceil \nu - 1 \rceil\)</span> times mean-square differentiable <span class="bibtex-citation" id="id3">[<a class="reference internal" href="../../bibliography.html#id78" title="Carl Edward Rasmussen and Christopher KI Williams. Gaussian processes for machine learning. Volume 2. MIT press Cambridge, MA, 2006.">Rasmussen and Williams, 2006</a>, <a class="reference internal" href="../../bibliography.html#id38" title="Peter Guttorp and Tilmann Gneiting. Studies in the history of probability and statistics xlix on the matérn correlation family. Biometrika, 93(4):989–995, 2006.">Guttorp and Gneiting, 2006</a>]</span>. This allows the TAM framework to exactly match the fractional Sobolev regularity of the underlying physical phenomenon.</p>
@@ -373,7 +395,7 @@ Evaluated using the modified Bessel function of the second kind <span class="mat
 <p>The polynomials of degree <span class="math notranslate nohighlight">\(\ge1\)</span> are the part of the surface that the energy does not penalise (a plane for <span class="math notranslate nohighlight">\(m=2\)</span>); the constant is absorbed by the intercept of the model, and <span class="math notranslate nohighlight">\(\lambda_{\text{null}}\)</span> is a second, optional smoothing parameter that shrinks that part (a tiny ridge otherwise, for numerical regularity). As <span class="math notranslate nohighlight">\(\lambda\to\infty\)</span> the fit tends to the least-squares plane.</p>
 </section>
 <section id="structural-truncation-the-screening-effect-critique">
-<h2>Structural Truncation &amp; The Screening Effect (Critique)<a class="headerlink" href="#structural-truncation-the-screening-effect-critique" title="Link to this heading">¶</a></h2>
+<span id="structural-truncation--the-screening-effect-critique"></span><h2>Structural Truncation &amp; The Screening Effect (Critique)<a class="headerlink" href="#structural-truncation-the-screening-effect-critique" title="Link to this heading">¶</a></h2>
 <p>In standard Gaussian Processes, the RBF network is evaluated across all <span class="math notranslate nohighlight">\(N\)</span> empirical observations, requiring an intractable <span class="math notranslate nohighlight">\(\mathcal{O}(N^3)\)</span> dense Dual covariance inversion. The TAM framework explicitly truncates this space by projecting the continuous kernel strictly onto <span class="math notranslate nohighlight">\(M\)</span> localized centroids (<span class="math notranslate nohighlight">\(M \ll N\)</span>).</p>
 <p><em>Is this truncation mathematically optimal?</em></p>
 <p>Michael Stein’s research on the <strong>Screening Effect</strong> proves that optimal linear predictors can be constructed using only a localized subset of nearest observations, <em>provided</em> that the kernel’s spectral density does not decay faster than algebraically <span class="bibtex-citation" id="id5">[<a class="reference internal" href="../../bibliography.html#id71" title="Michael L Stein. The screening effect in kriging. The Annals of Statistics, 30(1):298–323, 2002.">Stein, 2002</a>]</span>.</p>
@@ -383,7 +405,7 @@ Evaluated using the modified Bessel function of the second kind <span class="mat
 </ul>
 </section>
 <section id="rkhs-eligibility-optimal-penalization">
-<h2>RKHS Eligibility &amp; Optimal Penalization<a class="headerlink" href="#rkhs-eligibility-optimal-penalization" title="Link to this heading">¶</a></h2>
+<span id="rkhs-eligibility--optimal-penalization"></span><h2>RKHS Eligibility &amp; Optimal Penalization<a class="headerlink" href="#rkhs-eligibility-optimal-penalization" title="Link to this heading">¶</a></h2>
 <p>Because the truncated RBF projection operates in a finite <span class="math notranslate nohighlight">\(M\)</span>-dimensional space, we must regularize the coefficients to prevent overfitting and collinearity among adjacent centroids. The optimal structural penalty sub-matrix is an isotropic Ridge block:</p>
 <div class="math-wrapper docutils container">
 <div class="math notranslate nohighlight">
@@ -392,7 +414,7 @@ Evaluated using the modified Bessel function of the second kind <span class="mat
 <p>Both the Gaussian and Matérn functions are strictly positive definite, shift-invariant kernels. By Aronszajn’s theorem, they natively generate well-defined Reproducing Kernel Hilbert Spaces <span class="bibtex-citation" id="id8">[<a class="reference internal" href="../../bibliography.html#id9" title="Nachman Aronszajn. Theory of reproducing kernels. Transactions of the American mathematical society, 68(3):337–404, 1950.">Aronszajn, 1950</a>]</span>. Equipping the finite-dimensional prototype projection with the strictly positive isotropic penalty rigorously bounds the hypothesis space, perfectly isolating the null space and satisfying all Mercer conditions.</p>
 </section>
 <section id="theoretical-integration-hardware-translation">
-<h2>Theoretical Integration &amp; Hardware Translation<a class="headerlink" href="#theoretical-integration-hardware-translation" title="Link to this heading">¶</a></h2>
+<span id="theoretical-integration--hardware-translation"></span><h2>Theoretical Integration &amp; Hardware Translation<a class="headerlink" href="#theoretical-integration-hardware-translation" title="Link to this heading">¶</a></h2>
 <p>In classical machine learning (e.g., standard RBF Neural Networks), training involves simultaneously learning the structural weights, the centroid locations <span class="math notranslate nohighlight">\(c_j\)</span>, and the bandwidths <span class="math notranslate nohighlight">\(\gamma\)</span> via gradient descent. This creates a notoriously unstable, highly non-convex loss landscape prone to saddle points.</p>
 <p>By strategically fixing the centroids (in the implementation, <code class="docutils literal notranslate"><span class="pre">n_centers</span></code> training points drawn at random by a generator seeded with the term’s <code class="docutils literal notranslate"><span class="pre">seed</span></code>, default 42, so the centres and the fit are reproducible) and mapping the evaluations directly into the continuous Primal design matrix <span class="math notranslate nohighlight">\(\Phi\)</span>, the framework fundamentally re-architects the optimization. The pairwise Euclidean distances (<span class="math notranslate nohighlight">\(\|x - c\|_2\)</span>) are computed natively and efficiently on the GPU via hardware-accelerated tensor routing (<code class="docutils literal notranslate"><span class="pre">torch.cdist</span></code>).</p>
 <p>The historically non-convex RBF network is rigorously flattened into a strictly convex Primal projection. It is evaluated and solved optimally alongside global polynomials and spatial trees via the core TAM group equation:</p>

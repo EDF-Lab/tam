@@ -221,6 +221,17 @@
 <li class="toctree-l1"><a class="reference internal" href="math/spectrum/CATEGORICAL.html">The Categorical Effect (Discrete Topologies)</a></li>
 <li class="toctree-l1"><a class="reference internal" href="math/spectrum/CROSS_TENSOR.html">The Tensor Product Effect (Interactions)</a></li>
 <li class="toctree-l1"><a class="reference internal" href="math/spectrum/PHYSICS_PIKL.html">Physics-Informed Kernel Learning (PIKL)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="math/spectrum/KOOPMAN_DMD.html">KOOPMAN_DMD: Global Linearization of Non-linear Dynamical Systems via Kernel / Extended Dynamic Mode Decomposition (EDMD / kDMD)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="math/spectrum/FOUNDATION.html">Universal Foundation Basis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="math/spectrum/PATCH_BASIS.html">Causal Patch Basis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="math/spectrum/TEMPORAL_OPERATOR.html">Temporal Operators on an Evaluated Basis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="math/spectrum/WARPED_CALENDAR.html">Warped Calendar Harmonics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="math/spectrum/MACRO_TREND.html">Hodrick-Prescott Macro-Trend</a></li>
+<li class="toctree-l1"><a class="reference internal" href="math/spectrum/DEGREE_DAY.html">Smooth Degree-Day Hinges</a></li>
+<li class="toctree-l1"><a class="reference internal" href="math/spectrum/THERMAL_INERTIA.html">Thermal Inertia</a></li>
+<li class="toctree-l1"><a class="reference internal" href="math/spectrum/KAN.html">Kolmogorov-Arnold Network Edge Splines</a></li>
+<li class="toctree-l1"><a class="reference internal" href="math/spectrum/SINGLE_INDEX.html">Penalized Single-Index Distributed Lags</a></li>
+<li class="toctree-l1"><a class="reference internal" href="math/spectrum/SIGNATURE.html">The Path Signature and Log-Signature Effect (Rough Path Iterated Integrals)</a></li>
 <li class="toctree-l1"><a class="reference internal" href="math/spectrum/PID.html">The PID Effect (Autoregressive Control Dynamics)</a></li>
 <li class="toctree-l1"><a class="reference internal" href="math/spectrum/LINEAR_TREE.html">The Linear Tree Effect (Varying-Coefficient Models)</a></li>
 </ul>
@@ -251,6 +262,17 @@
 <li class="toctree-l1"><a class="reference internal" href="architecture/core/04_hardware_memory.html">Hardware Memory Dispatch &amp; Anti-OOM Systems</a></li>
 <li class="toctree-l1"><a class="reference internal" href="architecture/core/05_gcv_implementation.html">Auto-ML via Generalized Cross-Validation (GCV)</a></li>
 <li class="toctree-l1"><a class="reference internal" href="architecture/core/06_the_spectrum_api.html">The Spectral Dictionary: PyTorch Implementations &amp; Factory Assembly</a></li>
+<li class="toctree-l1"><a class="reference internal" href="architecture/spectrum/KOOPMAN_DMD.html">Koopman Kernel DMD: PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="architecture/spectrum/FOUNDATION.html">Universal Foundation Basis: PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="architecture/spectrum/PATCH_BASIS.html">Causal RevIN Patch Basis: PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="architecture/spectrum/TEMPORAL_OPERATOR.html">Form B Temporal Operators: PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="architecture/spectrum/WARPED_CALENDAR.html">Warped Calendar Harmonics: PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="architecture/spectrum/MACRO_TREND.html">Macro-Trend (<code class="docutils literal notranslate"><span class="pre">hp_trend</span></code>): PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="architecture/spectrum/DEGREE_DAY.html">Smooth Degree-Day Hinges: PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="architecture/spectrum/THERMAL_INERTIA.html">Thermal Inertia: PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="architecture/spectrum/KAN.html">Kolmogorov-Arnold Network Edge Splines: PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="architecture/spectrum/SINGLE_INDEX.html">Penalized Single-Index Distributed Lags: PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="architecture/spectrum/SIGNATURE.html">Path Signature and Log-Signature Effect: PyTorch Architecture &amp; Implementation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="architecture/core/07_the_statistics_api.html">The Statistics API: One Atom, Many Schedules</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">🔬 Architecture: The Statistics Engine</span></p>
@@ -323,20 +345,20 @@
         </div>
         <article role="main" id="furo-main-content">
           <section class="tex2jax_ignore mathjax_ignore" id="contributing-to-time-series-additive-model-tam">
-<h1>🤝 Contributing to Time series Additive Model (TAM)<a class="headerlink" href="#contributing-to-time-series-additive-model-tam" title="Link to this heading">¶</a></h1>
+<span id="-contributing-to-time-series-additive-model-tam"></span><h1>🤝 Contributing to Time series Additive Model (TAM)<a class="headerlink" href="#contributing-to-time-series-additive-model-tam" title="Link to this heading">¶</a></h1>
 <p><a class="reference internal" href="README.html"><span class="std std-doc"><code class="docutils literal notranslate"><span class="pre">⬅️</span> <span class="pre">README</span></code></span></a> | <a class="reference internal" href="THEORY.html"><span class="std std-doc"><code class="docutils literal notranslate"><span class="pre">📚</span> <span class="pre">THEORY</span></code></span></a> | <a class="reference internal" href="README_DOC.html"><span class="std std-doc"><code class="docutils literal notranslate"><span class="pre">📘</span> <span class="pre">DOCS</span> <span class="pre">GUIDE</span></code></span></a> | <a class="reference internal" href="CHANGELOG.html"><span class="std std-doc"><code class="docutils literal notranslate"><span class="pre">🆕</span> <span class="pre">CHANGELOG</span></code></span></a></p>
 <p>Thank you for your interest in contributing to TAM! We welcome contributions from the community, whether you are a mathematician adding a new effect or meta-model, or a software engineer optimizing our PyTorch tensor operations.</p>
 <p>To ensure the framework remains mathematically rigorous and computationally stable, we ask all contributors to strictly follow the guidelines below.</p>
 <hr class="docutils" />
 <section id="where-to-start">
-<h2>1. Where to Start<a class="headerlink" href="#where-to-start" title="Link to this heading">¶</a></h2>
+<span id="1-where-to-start"></span><h2>1. Where to Start<a class="headerlink" href="#where-to-start" title="Link to this heading">¶</a></h2>
 <ol class="arabic simple">
 <li><p><strong>Check Existing Issues:</strong> Before starting to code, please check our [Issues tracker] to see if someone else is already working on the feature or bug.</p></li>
 <li><p><strong>Open a New Issue:</strong> If you want to add a new <strong>Meta-Model</strong> or <strong>Effect</strong>, please open an issue first to discuss the mathematical validity and implementation strategy with the maintainers.</p></li>
 </ol>
 </section>
 <section id="the-mirror-architecture-documentation">
-<h2>2. The “Mirror Architecture” (Documentation)<a class="headerlink" href="#the-mirror-architecture-documentation" title="Link to this heading">¶</a></h2>
+<span id="2-the-mirror-architecture-documentation"></span><h2>2. The “Mirror Architecture” (Documentation)<a class="headerlink" href="#the-mirror-architecture-documentation" title="Link to this heading">¶</a></h2>
 <p>Because TAM serves two distinct audiences (mathematicians and software engineers), we enforce a strict <strong>Mirror Architecture</strong> for our documentation. You must separate mathematical proofs from Python engineering.</p>
 <p>When you add a new feature, you must write a pair of Markdown files:</p>
 <ul class="simple">
@@ -344,7 +366,7 @@
 <li><p>💻 <strong><code class="docutils literal notranslate"><span class="pre">architecture/</span></code> (The Hands):</strong> Explains <em>how</em> the Python script calculates the formula without crashing. Contains PyTorch implementation details, OOP structure, and VRAM management.</p></li>
 </ul>
 <section id="documentation-golden-rules">
-<h3>🏛️ Documentation Golden Rules<a class="headerlink" href="#documentation-golden-rules" title="Link to this heading">¶</a></h3>
+<span id="-documentation-golden-rules"></span><h3>🏛️ Documentation Golden Rules<a class="headerlink" href="#documentation-golden-rules" title="Link to this heading">¶</a></h3>
 <ul class="simple">
 <li><p><strong>Read the full guide:</strong> Please read our detailed <a class="reference internal" href="README_DOC.html"><span class="std std-doc"><strong>Documentation Generation Guide</strong></span></a> before writing documentation.</p></li>
 <li><p><strong>No Redundancy:</strong> The <code class="docutils literal notranslate"><span class="pre">architecture/</span></code> files must <em>never</em> re-demonstrate the math. Link back to the <code class="docutils literal notranslate"><span class="pre">math/</span></code> files.</p></li>
@@ -353,7 +375,7 @@
 </section>
 </section>
 <section id="coding-standards">
-<h2>3. Coding Standards<a class="headerlink" href="#coding-standards" title="Link to this heading">¶</a></h2>
+<span id="3-coding-standards"></span><h2>3. Coding Standards<a class="headerlink" href="#coding-standards" title="Link to this heading">¶</a></h2>
 <p>Our core engine is built for industrial-grade performance on massive datasets. If you are modifying the Python source code in <code class="docutils literal notranslate"><span class="pre">src/tam/</span></code>:</p>
 <ul class="simple">
 <li><p><strong>OOM Safety:</strong> Ensure your PyTorch implementations strictly respect Out-Of-Memory (OOM) safety protocols. Matrix operations across the group dimension must support dynamic chunking (<code class="docutils literal notranslate"><span class="pre">try/except</span></code> memory routing).</p></li>
@@ -368,7 +390,7 @@
 </ul>
 </section>
 <section id="shared-feature-branches">
-<h2>4. Shared Feature Branches<a class="headerlink" href="#shared-feature-branches" title="Link to this heading">¶</a></h2>
+<span id="4-shared-feature-branches"></span><h2>4. Shared Feature Branches<a class="headerlink" href="#shared-feature-branches" title="Link to this heading">¶</a></h2>
 <p>A body of work too large for one pull request (a new model family, a research collaboration, a team or course project) lives on a long-lived <code class="docutils literal notranslate"><span class="pre">feat/*</span></code> branch of the main repository, kept by the maintainer.</p>
 <ol class="arabic simple">
 <li><p><strong>Fork</strong> the repository and create your working branch from the <code class="docutils literal notranslate"><span class="pre">feat/*</span></code> branch of the project you join.</p></li>
@@ -378,7 +400,7 @@
 </ol>
 </section>
 <section id="submitting-a-pull-request-pr">
-<h2>5. Submitting a Pull Request (PR)<a class="headerlink" href="#submitting-a-pull-request-pr" title="Link to this heading">¶</a></h2>
+<span id="5-submitting-a-pull-request-pr"></span><h2>5. Submitting a Pull Request (PR)<a class="headerlink" href="#submitting-a-pull-request-pr" title="Link to this heading">¶</a></h2>
 <ol class="arabic simple">
 <li><p><strong>Fork the repository</strong> and create your branch from <code class="docutils literal notranslate"><span class="pre">main</span></code>.</p></li>
 <li><p><strong>Implement your feature</strong> and ensure your code follows the coding standards.</p></li>
@@ -390,7 +412,7 @@
 </section>
 <hr class="docutils" />
 <section id="licence-of-contributions-and-sign-off-dco">
-<h2>6. Licence of Contributions and Sign-off (DCO)<a class="headerlink" href="#licence-of-contributions-and-sign-off-dco" title="Link to this heading">¶</a></h2>
+<span id="6-licence-of-contributions-and-sign-off-dco"></span><h2>6. Licence of Contributions and Sign-off (DCO)<a class="headerlink" href="#licence-of-contributions-and-sign-off-dco" title="Link to this heading">¶</a></h2>
 <p>By contributing, you agree that your contribution is licensed under the licence of the file it changes (LGPL-3.0-or-later for the code, see <code class="docutils literal notranslate"><span class="pre">LICENSES/</span></code> and <code class="docutils literal notranslate"><span class="pre">REUSE.toml</span></code> for the data and documents).</p>
 <p>Every commit must carry a sign-off line, which certifies the <a class="reference internal" href="#DCO"><span class="xref myst">Developer Certificate of Origin 1.1</span></a>:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">Signed</span><span class="o">-</span><span class="n">off</span><span class="o">-</span><span class="n">by</span><span class="p">:</span> <span class="n">Your</span> <span class="n">Name</span> <span class="o">&lt;</span><span class="n">your</span><span class="o">.</span><span class="n">email</span><span class="nd">@example</span><span class="o">.</span><span class="n">com</span><span class="o">&gt;</span>

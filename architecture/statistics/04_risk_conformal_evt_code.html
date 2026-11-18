@@ -221,6 +221,17 @@
 <li class="toctree-l1"><a class="reference internal" href="../../math/spectrum/CATEGORICAL.html">The Categorical Effect (Discrete Topologies)</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../math/spectrum/CROSS_TENSOR.html">The Tensor Product Effect (Interactions)</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../math/spectrum/PHYSICS_PIKL.html">Physics-Informed Kernel Learning (PIKL)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../math/spectrum/KOOPMAN_DMD.html">KOOPMAN_DMD: Global Linearization of Non-linear Dynamical Systems via Kernel / Extended Dynamic Mode Decomposition (EDMD / kDMD)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../math/spectrum/FOUNDATION.html">Universal Foundation Basis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../math/spectrum/PATCH_BASIS.html">Causal Patch Basis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../math/spectrum/TEMPORAL_OPERATOR.html">Temporal Operators on an Evaluated Basis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../math/spectrum/WARPED_CALENDAR.html">Warped Calendar Harmonics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../math/spectrum/MACRO_TREND.html">Hodrick-Prescott Macro-Trend</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../math/spectrum/DEGREE_DAY.html">Smooth Degree-Day Hinges</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../math/spectrum/THERMAL_INERTIA.html">Thermal Inertia</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../math/spectrum/KAN.html">Kolmogorov-Arnold Network Edge Splines</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../math/spectrum/SINGLE_INDEX.html">Penalized Single-Index Distributed Lags</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../math/spectrum/SIGNATURE.html">The Path Signature and Log-Signature Effect (Rough Path Iterated Integrals)</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../math/spectrum/PID.html">The PID Effect (Autoregressive Control Dynamics)</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../math/spectrum/LINEAR_TREE.html">The Linear Tree Effect (Varying-Coefficient Models)</a></li>
 </ul>
@@ -251,6 +262,17 @@
 <li class="toctree-l1"><a class="reference internal" href="../core/04_hardware_memory.html">Hardware Memory Dispatch &amp; Anti-OOM Systems</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../core/05_gcv_implementation.html">Auto-ML via Generalized Cross-Validation (GCV)</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../core/06_the_spectrum_api.html">The Spectral Dictionary: PyTorch Implementations &amp; Factory Assembly</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../spectrum/KOOPMAN_DMD.html">Koopman Kernel DMD: PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../spectrum/FOUNDATION.html">Universal Foundation Basis: PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../spectrum/PATCH_BASIS.html">Causal RevIN Patch Basis: PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../spectrum/TEMPORAL_OPERATOR.html">Form B Temporal Operators: PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../spectrum/WARPED_CALENDAR.html">Warped Calendar Harmonics: PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../spectrum/MACRO_TREND.html">Macro-Trend (<code class="docutils literal notranslate"><span class="pre">hp_trend</span></code>): PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../spectrum/DEGREE_DAY.html">Smooth Degree-Day Hinges: PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../spectrum/THERMAL_INERTIA.html">Thermal Inertia: PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../spectrum/KAN.html">Kolmogorov-Arnold Network Edge Splines: PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../spectrum/SINGLE_INDEX.html">Penalized Single-Index Distributed Lags: PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../spectrum/SIGNATURE.html">Path Signature and Log-Signature Effect: PyTorch Architecture &amp; Implementation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../core/07_the_statistics_api.html">The Statistics API: One Atom, Many Schedules</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">🔬 Architecture: The Statistics Engine</span></p>
@@ -323,7 +345,7 @@
         </div>
         <article role="main" id="furo-main-content">
           <section class="tex2jax_ignore mathjax_ignore" id="risk-static-conformal-streaming-aci-evt-epistemic">
-<h1>Risk: Static Conformal, Streaming ACI, EVT &amp; Epistemic<a class="headerlink" href="#risk-static-conformal-streaming-aci-evt-epistemic" title="Link to this heading">¶</a></h1>
+<span id="risk-static-conformal-streaming-aci-evt--epistemic"></span><h1>Risk: Static Conformal, Streaming ACI, EVT &amp; Epistemic<a class="headerlink" href="#risk-static-conformal-streaming-aci-evt-epistemic" title="Link to this heading">¶</a></h1>
 <p><strong>Navigation:</strong></p>
 <ul class="simple">
 <li><p><strong>Theory introduction:</strong> <a class="reference internal" href="../../THEORY.html"><span class="std std-doc">See the Intro</span></a></p></li>
@@ -420,7 +442,7 @@ sample count unless <code class="docutils literal notranslate"><span class="pre"
 </div>
 </section>
 <section id="conformalized-distributional-wrapper-cqr-mondrian-aci">
-<h2>Conformalized distributional wrapper (CQR + Mondrian + ACI)<a class="headerlink" href="#conformalized-distributional-wrapper-cqr-mondrian-aci" title="Link to this heading">¶</a></h2>
+<span id="conformalized-distributional-wrapper-cqr--mondrian--aci"></span><h2>Conformalized distributional wrapper (CQR + Mondrian + ACI)<a class="headerlink" href="#conformalized-distributional-wrapper-cqr-mondrian-aci" title="Link to this heading">¶</a></h2>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">ConformalDistributionalTAM</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""Wrap a fitted distributional StaticTAM with split-conformal calibration, p-values and ACI."""</span>
 
@@ -514,6 +536,49 @@ sample count unless <code class="docutils literal notranslate"><span class="pre"
             <span class="n">levels</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">alpha_t</span><span class="p">)</span>
             <span class="n">alpha_t</span> <span class="o">=</span> <span class="n">update_risk_level</span><span class="p">(</span><span class="n">alpha_t</span><span class="p">,</span> <span class="mf">0.0</span> <span class="k">if</span> <span class="n">inside</span> <span class="k">else</span> <span class="mf">1.0</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">alpha</span><span class="p">,</span> <span class="n">gamma</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">({</span><span class="s2">"lower"</span><span class="p">:</span> <span class="n">lowers</span><span class="p">,</span> <span class="s2">"upper"</span><span class="p">:</span> <span class="n">uppers</span><span class="p">,</span> <span class="s2">"alpha_t"</span><span class="p">:</span> <span class="n">levels</span><span class="p">},</span> <span class="n">index</span><span class="o">=</span><span class="n">ordered_data</span><span class="o">.</span><span class="n">index</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">calibrate_crc</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">calibration_data</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span>
+        <span class="n">w_under</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">2.0</span><span class="p">,</span>
+        <span class="n">w_over</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">,</span>
+        <span class="n">bound_B</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">,</span>
+        <span class="n">loss_fn</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Callable</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">"ConformalDistributionalTAM"</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Calibrate Conformal Risk Control (CRC) per stratum on the distributional model's location/scale."""</span>
+        <span class="n">mu_hat</span><span class="p">,</span> <span class="n">sigma_hat</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">_mu_sigma</span><span class="p">(</span><span class="n">calibration_data</span><span class="p">)</span>
+        <span class="n">observed</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">_to_model_scale</span><span class="p">(</span><span class="n">calibration_data</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">target_col_</span><span class="p">]</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">())</span>
+        <span class="n">strata</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_strata</span><span class="p">(</span><span class="n">calibration_data</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_crc_engine</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">object</span><span class="p">,</span> <span class="n">SafetyTAM</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="n">stratum</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">unique</span><span class="p">(</span><span class="n">strata</span><span class="p">))</span> <span class="o">+</span> <span class="p">[</span><span class="n">_ALL_STRATA</span><span class="p">]:</span>
+            <span class="n">mask</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">strata</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">bool</span><span class="p">)</span> <span class="k">if</span> <span class="n">stratum</span> <span class="ow">is</span> <span class="n">_ALL_STRATA</span> <span class="k">else</span> <span class="p">(</span><span class="n">strata</span> <span class="o">==</span> <span class="n">stratum</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_crc_engine</span><span class="p">[</span><span class="n">stratum</span><span class="p">]</span> <span class="o">=</span> <span class="n">SafetyTAM</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">alpha</span><span class="p">)</span><span class="o">.</span><span class="n">calibrate_crc</span><span class="p">(</span>
+                <span class="n">y_true</span><span class="o">=</span><span class="n">observed</span><span class="p">[</span><span class="n">mask</span><span class="p">],</span>
+                <span class="n">y_pred</span><span class="o">=</span><span class="n">mu_hat</span><span class="p">[</span><span class="n">mask</span><span class="p">],</span>
+                <span class="n">alpha</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">alpha</span><span class="p">,</span>
+                <span class="n">loss_fn</span><span class="o">=</span><span class="n">loss_fn</span><span class="p">,</span>
+                <span class="n">bound_B</span><span class="o">=</span><span class="n">bound_B</span><span class="p">,</span>
+                <span class="n">w_under</span><span class="o">=</span><span class="n">w_under</span><span class="p">,</span>
+                <span class="n">w_over</span><span class="o">=</span><span class="n">w_over</span><span class="p">,</span>
+                <span class="n">scale</span><span class="o">=</span><span class="n">sigma_hat</span><span class="p">[</span><span class="n">mask</span><span class="p">],</span>
+            <span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">predict_crc_interval</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Predict asymmetric risk-controlled intervals on the response scale."""</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">"_crc_engine"</span><span class="p">,</span> <span class="kc">None</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s2">"Call .calibrate_crc() before predicting CRC intervals."</span><span class="p">)</span>
+        <span class="n">mu_hat</span><span class="p">,</span> <span class="n">sigma_hat</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">_mu_sigma</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+        <span class="n">strata</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_strata</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+        <span class="n">lowers</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">data</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+        <span class="n">uppers</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">data</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">np</span><span class="o">.</span><span class="n">unique</span><span class="p">(</span><span class="n">strata</span><span class="p">):</span>
+            <span class="n">mask</span> <span class="o">=</span> <span class="n">strata</span> <span class="o">==</span> <span class="n">s</span>
+            <span class="n">eng</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_engine</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_crc_engine</span><span class="p">,</span> <span class="n">s</span><span class="p">)</span>
+            <span class="n">df_crc</span> <span class="o">=</span> <span class="n">eng</span><span class="o">.</span><span class="n">predict_crc_intervals</span><span class="p">(</span><span class="n">mu_hat</span><span class="p">[</span><span class="n">mask</span><span class="p">],</span> <span class="n">scale</span><span class="o">=</span><span class="n">sigma_hat</span><span class="p">[</span><span class="n">mask</span><span class="p">])</span>
+            <span class="n">lowers</span><span class="p">[</span><span class="n">mask</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">_from_model_scale</span><span class="p">(</span><span class="n">df_crc</span><span class="p">[</span><span class="s2">"Lower"</span><span class="p">]</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">(),</span> <span class="s2">"the lower bound"</span><span class="p">)</span>
+            <span class="n">uppers</span><span class="p">[</span><span class="n">mask</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">_from_model_scale</span><span class="p">(</span><span class="n">df_crc</span><span class="p">[</span><span class="s2">"Upper"</span><span class="p">]</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">(),</span> <span class="s2">"the upper bound"</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">({</span><span class="s2">"lower"</span><span class="p">:</span> <span class="n">lowers</span><span class="p">,</span> <span class="s2">"upper"</span><span class="p">:</span> <span class="n">uppers</span><span class="p">},</span> <span class="n">index</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">index</span><span class="p">)</span>
 </pre></div>
 </div>
 </section>

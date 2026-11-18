@@ -3,7 +3,7 @@
   <head><meta charset="utf-8">
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
-<link rel="index" title="Index" href="../../genindex.html"><link rel="search" title="Search" href="../../search.html"><link rel="next" title="The Linear Tree Effect (Varying-Coefficient Models)" href="LINEAR_TREE.html"><link rel="prev" title="Physics-Informed Kernel Learning (PIKL)" href="PHYSICS_PIKL.html">
+<link rel="index" title="Index" href="../../genindex.html"><link rel="search" title="Search" href="../../search.html"><link rel="next" title="The Linear Tree Effect (Varying-Coefficient Models)" href="LINEAR_TREE.html"><link rel="prev" title="The Path Signature and Log-Signature Effect (Rough Path Iterated Integrals)" href="SIGNATURE.html">
         <link rel="prefetch" href="../../_static/logo.png" as="image">
 
     <!-- Generated with Sphinx 9.1.1 and Furo 2025.12.19 -->
@@ -221,6 +221,17 @@
 <li class="toctree-l1"><a class="reference internal" href="CATEGORICAL.html">The Categorical Effect (Discrete Topologies)</a></li>
 <li class="toctree-l1"><a class="reference internal" href="CROSS_TENSOR.html">The Tensor Product Effect (Interactions)</a></li>
 <li class="toctree-l1"><a class="reference internal" href="PHYSICS_PIKL.html">Physics-Informed Kernel Learning (PIKL)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="KOOPMAN_DMD.html">KOOPMAN_DMD: Global Linearization of Non-linear Dynamical Systems via Kernel / Extended Dynamic Mode Decomposition (EDMD / kDMD)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="FOUNDATION.html">Universal Foundation Basis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="PATCH_BASIS.html">Causal Patch Basis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="TEMPORAL_OPERATOR.html">Temporal Operators on an Evaluated Basis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="WARPED_CALENDAR.html">Warped Calendar Harmonics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="MACRO_TREND.html">Hodrick-Prescott Macro-Trend</a></li>
+<li class="toctree-l1"><a class="reference internal" href="DEGREE_DAY.html">Smooth Degree-Day Hinges</a></li>
+<li class="toctree-l1"><a class="reference internal" href="THERMAL_INERTIA.html">Thermal Inertia</a></li>
+<li class="toctree-l1"><a class="reference internal" href="KAN.html">Kolmogorov-Arnold Network Edge Splines</a></li>
+<li class="toctree-l1"><a class="reference internal" href="SINGLE_INDEX.html">Penalized Single-Index Distributed Lags</a></li>
+<li class="toctree-l1"><a class="reference internal" href="SIGNATURE.html">The Path Signature and Log-Signature Effect (Rough Path Iterated Integrals)</a></li>
 <li class="toctree-l1 current current-page"><a class="current reference internal" href="#">The PID Effect (Autoregressive Control Dynamics)</a></li>
 <li class="toctree-l1"><a class="reference internal" href="LINEAR_TREE.html">The Linear Tree Effect (Varying-Coefficient Models)</a></li>
 </ul>
@@ -251,6 +262,17 @@
 <li class="toctree-l1"><a class="reference internal" href="../../architecture/core/04_hardware_memory.html">Hardware Memory Dispatch &amp; Anti-OOM Systems</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../architecture/core/05_gcv_implementation.html">Auto-ML via Generalized Cross-Validation (GCV)</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../architecture/core/06_the_spectrum_api.html">The Spectral Dictionary: PyTorch Implementations &amp; Factory Assembly</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/spectrum/KOOPMAN_DMD.html">Koopman Kernel DMD: PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/spectrum/FOUNDATION.html">Universal Foundation Basis: PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/spectrum/PATCH_BASIS.html">Causal RevIN Patch Basis: PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/spectrum/TEMPORAL_OPERATOR.html">Form B Temporal Operators: PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/spectrum/WARPED_CALENDAR.html">Warped Calendar Harmonics: PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/spectrum/MACRO_TREND.html">Macro-Trend (<code class="docutils literal notranslate"><span class="pre">hp_trend</span></code>): PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/spectrum/DEGREE_DAY.html">Smooth Degree-Day Hinges: PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/spectrum/THERMAL_INERTIA.html">Thermal Inertia: PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/spectrum/KAN.html">Kolmogorov-Arnold Network Edge Splines: PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/spectrum/SINGLE_INDEX.html">Penalized Single-Index Distributed Lags: PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/spectrum/SIGNATURE.html">Path Signature and Log-Signature Effect: PyTorch Architecture &amp; Implementation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../architecture/core/07_the_statistics_api.html">The Statistics API: One Atom, Many Schedules</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">🔬 Architecture: The Statistics Engine</span></p>
@@ -330,7 +352,7 @@
 <li><p><strong>Related code architecture:</strong> <a class="reference internal" href="../../architecture/core/06_the_spectrum_api.html"><span class="std std-doc">See the Code Architecture</span></a></p></li>
 </ul>
 <section id="theoretical-critique-ar-p-over-parameterization-vs-physical-momentum">
-<h2>Theoretical Critique: AR(<span class="math notranslate nohighlight">\(p\)</span>) Over-parameterization vs. Physical Momentum<a class="headerlink" href="#theoretical-critique-ar-p-over-parameterization-vs-physical-momentum" title="Link to this heading">¶</a></h2>
+<span id="theoretical-critique-ar-over-parameterization-vs-physical-momentum"></span><h2>Theoretical Critique: AR(<span class="math notranslate nohighlight">\(p\)</span>) Over-parameterization vs. Physical Momentum<a class="headerlink" href="#theoretical-critique-ar-p-over-parameterization-vs-physical-momentum" title="Link to this heading">¶</a></h2>
 <p>In time-series forecasting, standard models traditionally treat autoregressive target lags (e.g., <span class="math notranslate nohighlight">\(y_{t-1}, y_{t-2}, \dots, y_{t-p}\)</span>) as independent linear terms. While the Box-Jenkins methodology for ARMA modeling <span class="bibtex-citation" id="id1">[<a class="reference internal" href="../../bibliography.html#id13" title="George EP Box, Gwilym M Jenkins, Gregory C Reinsel, and Greta M Ljung. Time series analysis: forecasting and control. John Wiley &amp; Sons, 2015.">Box <em>et al.</em>, 2015</a>]</span> relies on statistical correlation to estimate these weights, this purely data-driven approach possesses a severe structural flaw when dealing with noisy physical systems (e.g., power grids or thermal masses).</p>
 <p>An unconstrained AR(<span class="math notranslate nohighlight">\(p\)</span>) process treats every lag as a free parameter, frequently overfitting to high-frequency stochastic noise and failing to explicitly capture the underlying physical momentum and inertial dynamics.</p>
 <p>To mathematically constrain the model’s internal memory, the TAM framework projects the autoregressive lags into a discrete <strong>Proportional-Integral-Derivative (PID)</strong> space. Originally formalized mathematically by Nicolas Minorsky in 1922 for the automatic steering of naval vessels <span class="bibtex-citation" id="id2">[<a class="reference internal" href="../../bibliography.html#id56" title="Nicolas Minorsky. Directional stability of automatically steered bodies. Journal of the American Society for Naval Engineers, 34(2):280–309, 1922.">Minorsky, 1922</a>]</span>, this acts as a highly interpretable, physics-informed inductive bias. It forces the hypothesis space to map the target’s past states into three explicit dynamic components <span class="bibtex-citation" id="id3">[<a class="reference internal" href="../../bibliography.html#id2" title="Karl Johan Åström and Richard Murray. Feedback systems: an introduction for scientists and engineers. Princeton university press, 2021.">Åström and Murray, 2021</a>]</span>:</p>
@@ -358,7 +380,7 @@
 <p>Minimizing this specific anisotropic quadratic form structurally forces the controller to act as a stable low-pass filter. It heavily penalizes aggressive extrapolations of the derivative trajectory while allowing the proportional and integral momentum to freely guide the global forecast.</p>
 </section>
 <section id="frequency-response-structural-stability-z-transform">
-<h2>Frequency Response &amp; Structural Stability (Z-Transform)<a class="headerlink" href="#frequency-response-structural-stability-z-transform" title="Link to this heading">¶</a></h2>
+<span id="frequency-response--structural-stability-z-transform"></span><h2>Frequency Response &amp; Structural Stability (Z-Transform)<a class="headerlink" href="#frequency-response-structural-stability-z-transform" title="Link to this heading">¶</a></h2>
 <p>A unique capability of the TAM framework is its ability to mathematically guarantee the physical stability of the learned machine learning weights. Because the PID effect is an endogenous autoregressive constraint, it forms a closed-loop dynamical system.</p>
 <p>The exact discrete digital filter applied by the GAM to the sequence is:</p>
 <div class="math-wrapper docutils container">
@@ -381,7 +403,7 @@
 <p>If the maximum magnitude of the complex roots (poles) of <span class="math notranslate nohighlight">\(D(z)\)</span> is strictly less than <span class="math notranslate nohighlight">\(1.0\)</span>, the model is mathematically proven to be <strong>BIBO (Bounded-Input Bounded-Output) stable</strong> <span class="bibtex-citation" id="id6">[<a class="reference internal" href="../../bibliography.html#id2" title="Karl Johan Åström and Richard Murray. Feedback systems: an introduction for scientists and engineers. Princeton university press, 2021.">Åström and Murray, 2021</a>]</span>. This guarantees that the machine learning forecaster will not inject resonant instabilities if deployed inside a live Model Predictive Control (MPC) loop.</p>
 </section>
 <section id="rkhs-eligibility-theoretical-integration">
-<h2>RKHS Eligibility &amp; Theoretical Integration<a class="headerlink" href="#rkhs-eligibility-theoretical-integration" title="Link to this heading">¶</a></h2>
+<span id="rkhs-eligibility--theoretical-integration"></span><h2>RKHS Eligibility &amp; Theoretical Integration<a class="headerlink" href="#rkhs-eligibility-theoretical-integration" title="Link to this heading">¶</a></h2>
 <p>The PID effect is a direct, finite-dimensional linear mapping of endogenous lag states. When equipped with the strictly positive definite penalty matrix <span class="math notranslate nohighlight">\(P_{pid}\)</span>, it rigorously satisfies Mercer’s conditions, operating as a valid Reproducing Kernel Hilbert Space (RKHS) <span class="bibtex-citation" id="id7">[<a class="reference internal" href="../../bibliography.html#id9" title="Nachman Aronszajn. Theory of reproducing kernels. Transactions of the American mathematical society, 68(3):337–404, 1950.">Aronszajn, 1950</a>]</span>.</p>
 <p>By isolating the autoregressive target dynamics into this specific functional space, the TAM framework cleanly separates the endogenous inertia of the system from the exogenous drivers (like Splines for temperature or Fourier series for seasonality). Both spaces are concatenated and solved simultaneously within the exact, closed-form inversion of the global Primal matrix on the GPU. This allows continuous hyperparameter optimization to perfectly balance statistical likelihood with rigorous physical stability.</p>
 </section>
@@ -401,14 +423,14 @@
               </div>
               <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
             </a>
-          <a class="prev-page" href="PHYSICS_PIKL.html">
+          <a class="prev-page" href="SIGNATURE.html">
               <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
               <div class="page-info">
                 <div class="context">
                   <span>Previous</span>
                 </div>
                 
-                <div class="title">Physics-Informed Kernel Learning (PIKL)</div>
+                <div class="title">The Path Signature and Log-Signature Effect (Rough Path Iterated Integrals)</div>
                 
               </div>
             </a>

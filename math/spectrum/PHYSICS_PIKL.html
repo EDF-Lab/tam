@@ -3,7 +3,7 @@
   <head><meta charset="utf-8">
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
-<link rel="index" title="Index" href="../../genindex.html"><link rel="search" title="Search" href="../../search.html"><link rel="next" title="The PID Effect (Autoregressive Control Dynamics)" href="PID.html"><link rel="prev" title="The Tensor Product Effect (Interactions)" href="CROSS_TENSOR.html">
+<link rel="index" title="Index" href="../../genindex.html"><link rel="search" title="Search" href="../../search.html"><link rel="next" title="KOOPMAN_DMD: Global Linearization of Non-linear Dynamical Systems via Kernel / Extended Dynamic Mode Decomposition (EDMD / kDMD)" href="KOOPMAN_DMD.html"><link rel="prev" title="The Tensor Product Effect (Interactions)" href="CROSS_TENSOR.html">
         <link rel="prefetch" href="../../_static/logo.png" as="image">
 
     <!-- Generated with Sphinx 9.1.1 and Furo 2025.12.19 -->
@@ -221,6 +221,17 @@
 <li class="toctree-l1"><a class="reference internal" href="CATEGORICAL.html">The Categorical Effect (Discrete Topologies)</a></li>
 <li class="toctree-l1"><a class="reference internal" href="CROSS_TENSOR.html">The Tensor Product Effect (Interactions)</a></li>
 <li class="toctree-l1 current current-page"><a class="current reference internal" href="#">Physics-Informed Kernel Learning (PIKL)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="KOOPMAN_DMD.html">KOOPMAN_DMD: Global Linearization of Non-linear Dynamical Systems via Kernel / Extended Dynamic Mode Decomposition (EDMD / kDMD)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="FOUNDATION.html">Universal Foundation Basis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="PATCH_BASIS.html">Causal Patch Basis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="TEMPORAL_OPERATOR.html">Temporal Operators on an Evaluated Basis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="WARPED_CALENDAR.html">Warped Calendar Harmonics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="MACRO_TREND.html">Hodrick-Prescott Macro-Trend</a></li>
+<li class="toctree-l1"><a class="reference internal" href="DEGREE_DAY.html">Smooth Degree-Day Hinges</a></li>
+<li class="toctree-l1"><a class="reference internal" href="THERMAL_INERTIA.html">Thermal Inertia</a></li>
+<li class="toctree-l1"><a class="reference internal" href="KAN.html">Kolmogorov-Arnold Network Edge Splines</a></li>
+<li class="toctree-l1"><a class="reference internal" href="SINGLE_INDEX.html">Penalized Single-Index Distributed Lags</a></li>
+<li class="toctree-l1"><a class="reference internal" href="SIGNATURE.html">The Path Signature and Log-Signature Effect (Rough Path Iterated Integrals)</a></li>
 <li class="toctree-l1"><a class="reference internal" href="PID.html">The PID Effect (Autoregressive Control Dynamics)</a></li>
 <li class="toctree-l1"><a class="reference internal" href="LINEAR_TREE.html">The Linear Tree Effect (Varying-Coefficient Models)</a></li>
 </ul>
@@ -251,6 +262,17 @@
 <li class="toctree-l1"><a class="reference internal" href="../../architecture/core/04_hardware_memory.html">Hardware Memory Dispatch &amp; Anti-OOM Systems</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../architecture/core/05_gcv_implementation.html">Auto-ML via Generalized Cross-Validation (GCV)</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../architecture/core/06_the_spectrum_api.html">The Spectral Dictionary: PyTorch Implementations &amp; Factory Assembly</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/spectrum/KOOPMAN_DMD.html">Koopman Kernel DMD: PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/spectrum/FOUNDATION.html">Universal Foundation Basis: PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/spectrum/PATCH_BASIS.html">Causal RevIN Patch Basis: PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/spectrum/TEMPORAL_OPERATOR.html">Form B Temporal Operators: PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/spectrum/WARPED_CALENDAR.html">Warped Calendar Harmonics: PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/spectrum/MACRO_TREND.html">Macro-Trend (<code class="docutils literal notranslate"><span class="pre">hp_trend</span></code>): PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/spectrum/DEGREE_DAY.html">Smooth Degree-Day Hinges: PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/spectrum/THERMAL_INERTIA.html">Thermal Inertia: PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/spectrum/KAN.html">Kolmogorov-Arnold Network Edge Splines: PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/spectrum/SINGLE_INDEX.html">Penalized Single-Index Distributed Lags: PyTorch Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/spectrum/SIGNATURE.html">Path Signature and Log-Signature Effect: PyTorch Architecture &amp; Implementation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../architecture/core/07_the_statistics_api.html">The Statistics API: One Atom, Many Schedules</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">🔬 Architecture: The Statistics Engine</span></p>
@@ -354,7 +376,7 @@
 <h2>The Mathematical Generalization of the Stiffness Matrix<a class="headerlink" href="#the-mathematical-generalization-of-the-stiffness-matrix" title="Link to this heading">¶</a></h2>
 <p>The construction of the penalty matrix <span class="math notranslate nohighlight">\(P\)</span> depends strictly on how the continuous operator <span class="math notranslate nohighlight">\(\mathcal{L}\)</span> interacts with the chosen functional basis.</p>
 <section id="the-fourier-basis-spectral-diagonalization">
-<h3>1. The Fourier Basis (Spectral Diagonalization)<a class="headerlink" href="#the-fourier-basis-spectral-diagonalization" title="Link to this heading">¶</a></h3>
+<span id="1-the-fourier-basis-spectral-diagonalization"></span><h3>1. The Fourier Basis (Spectral Diagonalization)<a class="headerlink" href="#the-fourier-basis-spectral-diagonalization" title="Link to this heading">¶</a></h3>
 <p>Doumèche originally focused on Fourier expansions because complex exponentials are the natural eigenfunctions of constant-coefficient differential operators <span class="bibtex-citation" id="id7">[<a class="reference internal" href="../../bibliography.html#id29" title="Nathan Doumèche, Francis Bach, Gérard Biau, and Claire Boyer. Physics-informed kernel learning. Journal of Machine Learning Research, 26(124):1–39, 2025.">Doumèche <em>et al.</em>, 2025</a>]</span>.</p>
 <p>Applying the continuous operator <span class="math notranslate nohighlight">\(\mathcal{L} = \sum w_n \frac{d^n}{dt^n}\)</span> to a Fourier basis element <span class="math notranslate nohighlight">\(e^{i\omega t}\)</span> yields:</p>
 <div class="math-wrapper docutils container">
@@ -369,7 +391,7 @@
 <p>This creates a perfect spectral filter: frequencies that naturally satisfy the PDE receive near-zero penalty, while frequencies that violate the physics are heavily suppressed.</p>
 </section>
 <section id="p-splines-discrete-difference-operators">
-<h3>2. P-Splines (Discrete Difference Operators)<a class="headerlink" href="#p-splines-discrete-difference-operators" title="Link to this heading">¶</a></h3>
+<span id="2-p-splines-discrete-difference-operators"></span><h3>2. P-Splines (Discrete Difference Operators)<a class="headerlink" href="#p-splines-discrete-difference-operators" title="Link to this heading">¶</a></h3>
 <p>To generalize this to strictly local bases like B-Splines, the framework maps continuous derivatives to discrete matrix operators. Let <span class="math notranslate nohighlight">\(I\)</span> be the identity matrix and <span class="math notranslate nohighlight">\(D^{(k)}\)</span> be the <span class="math notranslate nohighlight">\(k\)</span>-th order discrete difference operator acting on the spline coefficients <span class="math notranslate nohighlight">\(\theta\)</span>.</p>
 <p>The continuous derivative of the spline function <span class="math notranslate nohighlight">\(f^{(k)}(t)\)</span> is approximated by <span class="math notranslate nohighlight">\(D^{(k)} \theta\)</span>. The combined discrete differential operator becomes:</p>
 <div class="math-wrapper docutils container">
@@ -384,7 +406,7 @@
 <p>Because <span class="math notranslate nohighlight">\(D^{(k)}\)</span> matrices are highly banded and sparse, <span class="math notranslate nohighlight">\(P\)</span> remains a sparse positive semi-definite matrix, preserving the <span class="math notranslate nohighlight">\(\mathcal{O}(ND)\)</span> computational efficiency of local splines.</p>
 </section>
 <section id="neural-random-features-nngp-rff">
-<h3>3. Neural Random Features (NNGP &amp; RFF)<a class="headerlink" href="#neural-random-features-nngp-rff" title="Link to this heading">¶</a></h3>
+<span id="3-neural-random-features-nngp--rff"></span><h3>3. Neural Random Features (NNGP &amp; RFF)<a class="headerlink" href="#neural-random-features-nngp-rff" title="Link to this heading">¶</a></h3>
 <p>Applying physical PDE constraints to deep neural representations requires us to distinguish between two distinct topological architectures within the <code class="docutils literal notranslate"><span class="pre">NeuralEffect</span></code>:</p>
 <p><strong>A. Shallow Random Fourier Features (Analytical Diagonalization)</strong>
 If the neural topology is restricted to a single hidden layer utilizing sinusoidal activations, the network operates strictly as a Random Fourier Feature (RFF) expansion: <span class="math notranslate nohighlight">\(\phi_j(t) = \cos(W_j t + b_j)\)</span>, where <span class="math notranslate nohighlight">\(W_j\)</span> are fixed random weights drawn from a specific prior.</p>
@@ -428,7 +450,7 @@ This means the matrix inversion mathematically forces the statistical model to s
 <p>The framework analytically computes this optimal physical geometry once, solving the constrained system in a single step using the formula syntax: <code class="docutils literal notranslate"><span class="pre">phys(time,</span> <span class="pre">basis='fourier',</span> <span class="pre">D0=k,</span> <span class="pre">D1=c,</span> <span class="pre">D2=m)</span></code>.</p>
 </section>
 <section id="what-exactly-is-the-feature-map-phi-phys-x">
-<h2>What exactly is the feature map <span class="math notranslate nohighlight">\(\Phi_{phys}(x)\)</span>?<a class="headerlink" href="#what-exactly-is-the-feature-map-phi-phys-x" title="Link to this heading">¶</a></h2>
+<span id="what-exactly-is-the-feature-map-"></span><h2>What exactly is the feature map <span class="math notranslate nohighlight">\(\Phi_{phys}(x)\)</span>?<a class="headerlink" href="#what-exactly-is-the-feature-map-phi-phys-x" title="Link to this heading">¶</a></h2>
 <p>A critical realization in the TAM architecture is that a “Physics Effect” does not require a novel feature map.</p>
 <p>Mathematically:</p>
 <div class="math-wrapper docutils container">
@@ -450,12 +472,12 @@ This means the matrix inversion mathematically forces the statistical model to s
       <footer>
         
         <div class="related-pages">
-          <a class="next-page" href="PID.html">
+          <a class="next-page" href="KOOPMAN_DMD.html">
               <div class="page-info">
                 <div class="context">
                   <span>Next</span>
                 </div>
-                <div class="title">The PID Effect (Autoregressive Control Dynamics)</div>
+                <div class="title">KOOPMAN_DMD: Global Linearization of Non-linear Dynamical Systems via Kernel / Extended Dynamic Mode Decomposition (EDMD / kDMD)</div>
               </div>
               <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
             </a>

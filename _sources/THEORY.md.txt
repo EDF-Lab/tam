@@ -51,6 +51,8 @@ model_tensor = ta.StaticTAM(formula=f_tensor, date_col="date").fit(train_df)
 predictions = model_phys.predict(test_df)
 ```
 
+> **Opt-in Large-Scale Solvers & Trace Estimators (v1.6.0-dev):** `solve_sparse_cg(..., preconditioner='diag'|'block')`, `solve_block_qr`, `compute_gcv_score(..., trace_method='hutchinson')`, `compute_gcv_score_and_grad`, `solve_sqrt_group_lasso`, and `compute_scale_stability_penalty`. Defaults remain exact.
+
 ### The Meta-Models Cheatsheet
 Real-world data is chaotic. Rather than polluting the exactness of the core engine, TAM uses specialized "Meta-Learners" that wrap around the base model to handle specific industrial constraints.
 
@@ -106,6 +108,10 @@ Real-world data is chaotic. Rather than polluting the exactness of the core engi
     * *Use case:* You want an Evolutionary Engine to automatically discover the best formula topologies and hyperparameters for you.
     * *Code:* `AutoTAM(formula="y ~ AutoPipe(x1, x2, Lag_y)", n_experts=10, pop_size=50, use_opera=True)`
 
+* **Hierarchical Multi-Basis Ensembling (`HierarchicalOperaTAM` & BOA)**
+    * *Use case:* Two-level online aggregation (intra-family `MLpol` + cross-family `BOA` Bernstein Online Aggregation) across separated basis families.
+    * *Code:* `ta.HierarchicalOperaTAM(families={'splines': [...], 'neural': [...]}, target_col='y', date_col='date')`
+
 ### The Statistical & Risk Ecosystem (v1.3.0)
 
 The `statistics` layer reuses the single P-WLS atom for every non-Gaussian target, the structural "what" (the Spectrum) stays fixed while the statistical "how" (the schedule) changes. See [The Statistics Dictionary](math/core/07_the_statistics_api.md).
@@ -128,6 +134,10 @@ The `statistics` layer reuses the single P-WLS atom for every non-Gaussian targe
 * **EVT & Epistemic** $\rightarrow$ **`fit_gpd_tail`** / **`posterior_prediction`**
     * *Use case:* Asymptotically-justified extreme-tail scores, and parameter (epistemic) uncertainty bands.
     * *Code:* `ta.fit_gpd_tail(model, data)` · `ta.model.posterior_prediction(model, train, new)`
+
+* **Conformal Risk Control (`SafetyTAM` / `StaticTAM`)** $\rightarrow$ **`calibrate_crc()` / `predict_crc_intervals()`**
+    * *Use case:* Distribution-free finite-sample risk control on asymmetric losses and Sinkhorn OT temporal coherence (`coherence_loss='sinkhorn'`) in `HierarchicalTAM`.
+    * *Code:* `model.calibrate_crc(cal_df, alpha=0.1, w_under=2.0, w_over=1.0)`
 
 ## The "Spectrum" of Effects Cheatsheet
 
@@ -234,6 +244,83 @@ Different physical phenomena require different mathematical topologies. TAM flat
   * **Mapping function:** $\phi_{lt}(x_{part}, x_{slope}) = \left[ \phi_{tree_{base}}(x_{part}), \quad \phi_{tree_{slope}}(x_{part}) \otimes \phi_{lin}(x_{slope}) \right]^\top$
   * **Penalty Matrix:** Block diagonal encapsulation: $P_{lt} = \text{diag}(P_{tree}, P_{cross})$
   * 📖 *Note: This effect natively encapsulates the piecewise logic to fully support multi-dimensional spatial interactions without requiring formula macro expansions.*
+---
+
+### [Causal Path Signature (`sig`)](math/spectrum/SIGNATURE.md) (BETA)
+
+  * **Syntax:** `sig(x1, others=x2, depth=3, window=16, log_sig=False)`
+  * **Mapping & Penalty:** Causal sliding-window iterated Chen path signatures (or Lyndon log-signatures) with factorial degree-scaled Ridge penalty; [Architecture](architecture/spectrum/SIGNATURE.md).
+
+---
+
+### [Single-Index Distributed Lag (`si`)](math/spectrum/SINGLE_INDEX.md) (BETA)
+
+  * **Syntax:** `si(x, lag_window=24, k=8)`
+  * **Mapping & Penalty:** Causal lag-trajectory projection onto unit index direction composed with penalized outer B-spline; [Architecture](architecture/spectrum/SINGLE_INDEX.md).
+
+---
+
+### [Kolmogorov-Arnold Edge Splines (`kan`)](math/spectrum/KAN.md) (BETA)
+
+  * **Syntax:** `kan(x1, others=x2, k=5, n_hidden=8)`
+  * **Mapping & Penalty:** Per-feature standardized inner SiLU+B-spline edges, pre-tanh scale stability, and edge-roughness weighted outer B-spline penalty; [Architecture](architecture/spectrum/KAN.md).
+
+---
+
+### [Thermal Inertia (`inertia` / `thermal`)](math/spectrum/THERMAL_INERTIA.md) (BETA)
+
+  * **Syntax:** `inertia(temperature, type='thermal', alphas='0.05|0.01', k=4)`
+  * **Mapping & Penalty:** Causal RC low-pass filtered covariates with cached domain normalization, linear boundary extrapolation, and state continuation; [Architecture](architecture/spectrum/THERMAL_INERTIA.md).
+
+---
+
+### [Smooth Degree Days (`dd` / `hdd_cdd`)](math/spectrum/DEGREE_DAY.md) (BETA)
+
+  * **Syntax:** `dd(temperature, t_heat=15.0, t_cool=22.0, sharpness=5.0, quad=False)`
+  * **Mapping & Penalty:** Smooth $C^\infty$ softplus heating/cooling degree-day ramps with optional quadratic cold saturation; [Architecture](architecture/spectrum/DEGREE_DAY.md).
+
+---
+
+### [Warped Calendar (`wcal`)](math/spectrum/WARPED_CALENDAR.md) (BETA)
+
+  * **Syntax:** `wcal(time, regime, k=4, period=365.25)`
+  * **Mapping & Penalty:** Full-rank $6K$ diffeomorphic calendar phase-modulation harmonics; [Architecture](architecture/spectrum/WARPED_CALENDAR.md).
+
+---
+
+### [Macro Trend (`hp_trend`)](math/spectrum/MACRO_TREND.md) (BETA)
+
+  * **Syntax:** `hp_trend(time, k=20)`
+  * **Mapping & Penalty:** Natural cubic B-spline trend with the Hodrick-Prescott second-difference penalty and linear extrapolation; [Architecture](architecture/spectrum/MACRO_TREND.md).
+
+---
+
+### [Form B Temporal Operators (`op_attn` / `op_hippo` / `op_ssa`)](math/spectrum/TEMPORAL_OPERATOR.md) (BETA)
+
+  * **Syntax:** `op_attn(x, inner='spline', k_base=8, decay=0.9)`
+  * **Mapping & Penalty:** Causal temporal mixing operators applied over an evaluated inner basis matrix with exact state continuation; [Architecture](architecture/spectrum/TEMPORAL_OPERATOR.md).
+
+---
+
+### [Causal RevIN Patch Basis (`patch_basis`)](math/spectrum/PATCH_BASIS.md) (BETA)
+
+  * **Syntax:** `patch_basis(x, others=x2, patch_len=16, n_tokens=16)`
+  * **Mapping & Penalty:** Causal rolling RevIN patch projection with optional Level-2 antisymmetric Lévy Area hysteresis; [Architecture](architecture/spectrum/PATCH_BASIS.md).
+
+---
+
+### [Universal Foundation Basis (`foundation`)](math/spectrum/FOUNDATION.md) (BETA)
+
+  * **Syntax:** `foundation(x, others=x2, patch_len=16, n_tokens=16, n_bins=16, n_pfn=16)`
+  * **Mapping & Penalty:** Closed-form penalized universal basis combining Causal RevIN Patches, Quantile Histogram embeddings, Multi-Rate Filterbanks, and PFN Ridge features; [Architecture](architecture/spectrum/FOUNDATION.md).
+
+---
+
+### [Koopman EDMD (`koopman`)](math/spectrum/KOOPMAN_DMD.md) (BETA)
+
+  * **Syntax:** `koopman(x, k=12, n_lift=64, delay_embed=1)`
+  * **Mapping & Penalty:** Extended Dynamic Mode Decomposition eigenfunctions with residual stability penalty; [Architecture](architecture/spectrum/KOOPMAN_DMD.md).
+
 ---
 
 ## 📊 Benchmark Proof: The Power of Topology & Meta-Learning
