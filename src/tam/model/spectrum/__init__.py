@@ -48,6 +48,7 @@ from ._inertia import InertiaEffect, ThermalInertiaEffect, DegreeDayEffect, Warp
 from ._kan import KANEffect
 from ._single_index import SingleIndexEffect
 from ._signature import SignatureEffect
+from ._prior_spectral import PriorSpectralEffect
 
 # Utility functions exposed for the StaticTAM model
 from ._factory import (
@@ -94,6 +95,7 @@ __all__ = [
     "KANEffect",
     "SingleIndexEffect",
     "SignatureEffect",
+    "PriorSpectralEffect",
 
     # Factory / Assembly
     "create_effects_from_parsed_terms",

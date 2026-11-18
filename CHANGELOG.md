@@ -17,6 +17,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ---
 ## [Unreleased]
 
+### Added
+- Added Bochner QMC RFF spectrum effect (`pspec`, `PriorSpectralEffect`).
+
 ## [1.6.0] - 2026-11-18
 
 ### Added

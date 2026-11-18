@@ -323,6 +323,13 @@ Different physical phenomena require different mathematical topologies. TAM flat
 
 ---
 
+### [Bochner QMC RFF (`pspec`)](math/spectrum/PRIOR_SPECTRAL.md) (BETA)
+
+  * **Syntax:** `pspec(x, n_features=32, lengthscale=1.0, nu=1.5)`
+  * **Mapping & Penalty:** Quasi-Monte Carlo Random Fourier Features sampling Matérn spectral densities; [Architecture](architecture/spectrum/PRIOR_SPECTRAL.md).
+
+---
+
 ## 📊 Benchmark Proof: The Power of Topology & Meta-Learning
 
 *(To reproduce these results, execute `python use_cases/cheatsheet.py` located in the repository, note: results of BETA/EXP modules may differ, timing depends on the hardware configuration).*

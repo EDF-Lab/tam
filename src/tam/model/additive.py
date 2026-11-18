@@ -1455,6 +1455,12 @@ class StaticTAM(BaseTAM):
                 "Specific Params": "others, k, n_lift, delay_embed, reg, alpha_res, alpha_unit, seed"
             },
             {
+                "Token": "pspec(x)",
+                "Effect": "Bochner prior spectral features (QMC RFF)",
+                "Syntax Example": "pspec(load, k=64, prior='matern', nu=1.5, length_scale=1.0)",
+                "Specific Params": "k, prior, nu, length_scale, sobolev_order, qmc, seed, others"
+            },
+            {
                 "Token": "t(x)", 
                 "Effect": "Tree / Random Forest", 
                 "Syntax Example": "t(x, n_trees=50, sp_alpha=0.5, split_strategy='quantile')",

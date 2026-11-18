@@ -38,6 +38,7 @@ from ._temporal_operator import TemporalOperatorEffect
 from ._patch_basis import PatchBasisEffect
 from ._foundation import FoundationEffect
 from ._koopman import KoopmanEffect
+from ._prior_spectral import PriorSpectralEffect
 from tam.common.utils import parse_formula_to_terms
 
 #: <create_effects>
@@ -605,6 +606,34 @@ def create_effects_from_parsed_terms(
             ))
         #: </parse_koopman>
 
+        #: <parse_prior_spectral>
+        elif ttype in ('pspec', 'bochner', 'prior_spectral'):
+            k = int(params_resolved.get('k', params_resolved.get('m', 64)))
+            prior = params_resolved.get('prior', 'matern')
+            nu = float(params_resolved.get('nu', 1.5))
+            length_scale = float(params_resolved.get('length_scale', params_resolved.get('ell', 1.0)))
+            sobolev_order = float(params_resolved.get('sobolev_order', params_resolved.get('s', 1.0)))
+            qmc = str(params_resolved.get('qmc', 'halton'))
+            seed = int(params_resolved.get('seed', 42))
+            extrap_val = params_resolved.get('extrapolate', 'continue')
+
+            additional_features = _parse_additional_features(params_resolved)
+
+            effects_list.append(PriorSpectralEffect(
+                feature_name=feature_name,
+                k=k,
+                prior=prior,
+                nu=nu,
+                length_scale=length_scale,
+                sobolev_order=sobolev_order,
+                qmc=qmc,
+                seed=seed,
+                lambda_p=lambda_p,
+                extrapolate=extrap_val,
+                additional_features=additional_features
+            ))
+        #: </parse_prior_spectral>
+
         else:
             raise ValueError(f"Unknown effect type identifier: '{ttype}'")
             
@@ -860,6 +889,8 @@ def extrapolating_features(effects_list: List[BaseEffect]) -> set:
         elif isinstance(effect, FoundationEffect):
             names.update(getattr(effect, 'input_features', None) or [effect.feature_name])
         elif isinstance(effect, KoopmanEffect):
+            names.update(getattr(effect, 'input_features', None) or [effect.feature_name])
+        elif isinstance(effect, PriorSpectralEffect):
             names.update(getattr(effect, 'input_features', None) or [effect.feature_name])
 
     for effect in effects_list:
