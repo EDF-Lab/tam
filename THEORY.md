@@ -386,6 +386,13 @@ Different physical phenomena require different mathematical topologies. TAM flat
 
 ---
 
+### [Exp-Centered Units (`n(..., activation='exu')`)](math/spectrum/EXU.md) (BETA)
+
+  * **Syntax:** `n(x, activation='exu', k=64)`
+  * **Mapping & Penalty:** Log-space weight parameterization for sharp step-function regimes without Gibbs oscillation; [Architecture](architecture/spectrum/EXU.md).
+
+---
+
 ## 📊 Benchmark Proof: The Power of Topology & Meta-Learning
 
 *(To reproduce these results, execute `python use_cases/cheatsheet.py` located in the repository, note: results of BETA/EXP modules may differ, timing depends on the hardware configuration).*

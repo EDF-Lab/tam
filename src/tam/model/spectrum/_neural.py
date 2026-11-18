@@ -109,19 +109,26 @@ class NeuralEffect(BaseEffect):
         
         curr_dim = input_dim
         for i in range(self.n_hidden_layers):
-            # NNGP/Compositional Kernel Theory: The first layer maps from data variance. 
-            # Subsequent hidden layers MUST scale by 1/sqrt(N) to prevent variance explosion.
-            std_scaling = 1.0 if i == 0 else 1.0 / np.sqrt(self.n_neurons)
-            
-            w = torch.randn(curr_dim, self.n_neurons, device=TORCH_DEVICE, generator=rng) * std_scaling
-            
-            # Bias initialization
-            if self.activation == 'cos':
-                # RFF (Gaussian Kernel) requires Uniform(0, 2*pi) biases
-                b = torch.rand(self.n_neurons, device=TORCH_DEVICE, generator=rng) * 2 * np.pi
+            if self.activation == 'exu':
+                # Exp-Centered Units (Agarwal et al. 2021)
+                # w_log ~ N(3.5, 0.5^2) creates steep ramps e^w
+                w_log = torch.randn(curr_dim, self.n_neurons, device=TORCH_DEVICE, generator=rng) * 0.5 + 3.5
+                w = torch.exp(w_log)
+                b_center = torch.rand(curr_dim, self.n_neurons, device=TORCH_DEVICE, generator=rng) * 2.0 - 1.0
+                b = -torch.sum(b_center * w, dim=0)
             else:
-                # ReLU/Tanh use standard normal biases to spread kinks across the domain
-                b = torch.randn(self.n_neurons, device=TORCH_DEVICE, generator=rng)
+                # NNGP/Compositional Kernel Theory: The first layer maps from data variance.
+                # Subsequent hidden layers MUST scale by 1/sqrt(N) to prevent variance explosion.
+                std_scaling = 1.0 if i == 0 else 1.0 / np.sqrt(self.n_neurons)
+                w = torch.randn(curr_dim, self.n_neurons, device=TORCH_DEVICE, generator=rng) * std_scaling
+
+                # Bias initialization
+                if self.activation == 'cos':
+                    # RFF (Gaussian Kernel) requires Uniform(0, 2*pi) biases
+                    b = torch.rand(self.n_neurons, device=TORCH_DEVICE, generator=rng) * 2 * np.pi
+                else:
+                    # ReLU/Tanh use standard normal biases to spread kinks across the domain
+                    b = torch.randn(self.n_neurons, device=TORCH_DEVICE, generator=rng)
                 
             self.weights_list.append(w)
             self.bias_list.append(b)
@@ -185,6 +192,8 @@ class NeuralEffect(BaseEffect):
                 phi = torch.cos(projection)
             elif self.activation == 'tanh':
                 phi = torch.tanh(projection)
+            elif self.activation == 'exu':
+                phi = torch.clamp(torch.relu(projection), min=0.0, max=1.0)
             else:
                 raise ValueError(f"Unknown activation function: {self.activation}")
             

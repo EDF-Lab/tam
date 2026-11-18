@@ -111,6 +111,7 @@ To understand the deep mathematical behavior of the framework, click on any effe
 / **[FNO](math/spectrum/FNO.md)** (BETA)
 / **[Hurst fGn](math/spectrum/HURST.md)** (BETA)
 / **[Fractional Physics](math/spectrum/FRACTIONAL_PHYSICS.md)** (BETA)
+/ **[ExU Neural](math/spectrum/EXU.md)** (BETA)
 
 ---
 

@@ -27,6 +27,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added Fourier Neural Operator spectrum effect (`fno`, `OperatorEffect`).
 - Added Hurst fractional Brownian motion spectrum effect (`hurst`, `HurstEffect`).
 - Added Caputo fractional derivative orders to `UniversalPhysicsEffect` (integer `phys()` unchanged).
+- Added Exp-Centered Unit (`activation='exu'`) mode to `NeuralEffect`.
 
 ## [1.6.0] - 2026-11-18
 
