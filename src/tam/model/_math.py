@@ -221,6 +221,7 @@ def decomposition_names(effects_list: List[BaseEffect]) -> List[str]:
         'signature': 'sig',
         'prior_spectral': 'pspec',
         'hippo': 'hippo',
+        'transformer': 'attn',
         'phys_fourier': 'phys', 'phys_neural': 'phys', 'offset': 'offset'
     }
 

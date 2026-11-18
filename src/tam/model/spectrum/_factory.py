@@ -40,6 +40,7 @@ from ._foundation import FoundationEffect
 from ._koopman import KoopmanEffect
 from ._prior_spectral import PriorSpectralEffect
 from ._hippo import HiPPOEffect
+from ._transformer import TransformerEffect
 from tam.common.utils import parse_formula_to_terms
 
 #: <create_effects>
@@ -656,6 +657,38 @@ def create_effects_from_parsed_terms(
             ))
         #: </parse_hippo>
 
+        #: <parse_transformer>
+        elif ttype in ('attn', 'transformer', 'favor_plus', 'performer'):
+            m_features = int(params_resolved.get('m_features', 16))
+            n_heads = int(params_resolved.get('n_heads', 4))
+            causal_raw = params_resolved.get('causal', True)
+            causal = _as_bool(causal_raw)
+            decay = params_resolved.get('decay', (1.0, 0.99, 0.95, 0.85))
+            mode = str(params_resolved.get('mode', 'head')).lower().strip()
+            orth_raw = params_resolved.get('orthogonal', True)
+            orthogonal = _as_bool(orth_raw)
+            seed = int(params_resolved.get('seed', 42))
+            extrap_val = params_resolved.get('extrapolate', 'continue')
+            k = int(params_resolved['k']) if ('k' in params_resolved and params_resolved['k'] is not None) else None
+
+            additional_features = _parse_additional_features(params_resolved)
+
+            effects_list.append(TransformerEffect(
+                feature_name=feature_name,
+                m_features=m_features,
+                n_heads=n_heads,
+                causal=causal,
+                decay=decay,
+                mode=mode,
+                orthogonal=orthogonal,
+                seed=seed,
+                lambda_p=lambda_p,
+                extrapolate=extrap_val,
+                additional_features=additional_features,
+                k=k
+            ))
+        #: </parse_transformer>
+
         else:
             raise ValueError(f"Unknown effect type identifier: '{ttype}'")
             
@@ -915,6 +948,8 @@ def extrapolating_features(effects_list: List[BaseEffect]) -> set:
         elif isinstance(effect, PriorSpectralEffect):
             names.update(getattr(effect, 'input_features', None) or [effect.feature_name])
         elif isinstance(effect, HiPPOEffect):
+            names.update(getattr(effect, 'input_features', None) or [effect.feature_name])
+        elif isinstance(effect, TransformerEffect):
             names.update(getattr(effect, 'input_features', None) or [effect.feature_name])
 
     for effect in effects_list:

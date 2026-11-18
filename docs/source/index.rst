@@ -70,6 +70,7 @@ Time series Additive Model (TAM) Official Documentation
    math/spectrum/SIGNATURE
    math/spectrum/PRIOR_SPECTRAL
    math/spectrum/HIPPO_SSM
+   math/spectrum/TRANSFORMER_FAVOR
    math/spectrum/PID
    math/spectrum/LINEAR_TREE
 
@@ -134,6 +135,7 @@ Time series Additive Model (TAM) Official Documentation
    architecture/spectrum/SIGNATURE
    architecture/spectrum/PRIOR_SPECTRAL
    architecture/spectrum/HIPPO_SSM
+   architecture/spectrum/TRANSFORMER_FAVOR
    architecture/core/07_the_statistics_api
 
 .. raw:: latex

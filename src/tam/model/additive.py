@@ -1467,6 +1467,12 @@ class StaticTAM(BaseTAM):
                 "Specific Params": "k, measure, dt, discretization, degree_pen"
             },
             {
+                "Token": "attn(x)",
+                "Effect": "Linearized causal attention (FAVOR+)",
+                "Syntax Example": "attn(load, m_features=16, n_heads=4, causal=True)",
+                "Specific Params": "others, m_features, n_heads, causal, decay, mode, orthogonal, seed, k"
+            },
+            {
                 "Token": "t(x)", 
                 "Effect": "Tree / Random Forest", 
                 "Syntax Example": "t(x, n_trees=50, sp_alpha=0.5, split_strategy='quantile')",

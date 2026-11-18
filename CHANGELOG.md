@@ -20,6 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Added Bochner QMC RFF spectrum effect (`pspec`, `PriorSpectralEffect`).
 - Added HiPPO state-space memory spectrum effect (`hippo`, `HiPPOEffect`).
+- Added Performer FAVOR+ causal attention spectrum effect (`attn`, `TransformerEffect`).
 
 ## [1.6.0] - 2026-11-18
 

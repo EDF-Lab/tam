@@ -337,6 +337,13 @@ Different physical phenomena require different mathematical topologies. TAM flat
 
 ---
 
+### [Performer FAVOR+ Attention (`attn`)](math/spectrum/TRANSFORMER_FAVOR.md) (BETA)
+
+  * **Syntax:** `attn(x, d_model=16, n_features=32, decay=0.95)`
+  * **Mapping & Penalty:** Linearized positive orthogonal random feature causal attention; [Architecture](architecture/spectrum/TRANSFORMER_FAVOR.md).
+
+---
+
 ## 📊 Benchmark Proof: The Power of Topology & Meta-Learning
 
 *(To reproduce these results, execute `python use_cases/cheatsheet.py` located in the repository, note: results of BETA/EXP modules may differ, timing depends on the hardware configuration).*

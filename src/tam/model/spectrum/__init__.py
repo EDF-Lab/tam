@@ -50,6 +50,7 @@ from ._single_index import SingleIndexEffect
 from ._signature import SignatureEffect
 from ._prior_spectral import PriorSpectralEffect
 from ._hippo import HiPPOEffect
+from ._transformer import TransformerEffect
 
 # Utility functions exposed for the StaticTAM model
 from ._factory import (
@@ -98,6 +99,7 @@ __all__ = [
     "SignatureEffect",
     "PriorSpectralEffect",
     "HiPPOEffect",
+    "TransformerEffect",
 
     # Factory / Assembly
     "create_effects_from_parsed_terms",
