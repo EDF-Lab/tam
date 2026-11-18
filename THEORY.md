@@ -288,6 +288,13 @@ Different physical phenomena require different mathematical topologies. TAM flat
 
 ---
 
+### [Macro Trend (`hp_trend`)](math/spectrum/MACRO_TREND.md) (BETA)
+
+  * **Syntax:** `hp_trend(time, k=20)`
+  * **Mapping & Penalty:** Natural cubic B-spline trend with the Hodrick-Prescott second-difference penalty and linear extrapolation; [Architecture](architecture/spectrum/MACRO_TREND.md).
+
+---
+
 ## 📊 Benchmark Proof: The Power of Topology & Meta-Learning
 
 *(To reproduce these results, execute `python use_cases/cheatsheet.py` located in the repository, note: results of BETA/EXP modules may differ, timing depends on the hardware configuration).*

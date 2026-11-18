@@ -433,6 +433,87 @@ class WarpedCalendarEffect(CoordinatePenaltyMixin, BaseEffect):
 #: </wcal_penalty_matrix>
 
 
+class MacroTrendEffect(BaseEffect):
+    r"""Hodrick-Prescott structural macro-trend effect with natural boundary conditions.
+
+    Solves the HP L2 trend filtering problem (Hodrick & Prescott 1997) in TAM's Primal space
+    using natural cubic splines with exact second-difference penalty :math:`P = D_2^\top D_2`.
+    Beyond the training range the trend continues along its boundary tangent (a linear continuation):
+    the extrapolated level drifts linearly with the horizon.
+
+    Args:
+        feature_name (str): Input time/trend column name.
+        k (int): Number of trend knots. Defaults to 20.
+        lambda_p (float): HP smoothing penalty weight :math:`\lambda_{\text{HP}}`.
+            Defaults to 1600.0 (standard quarterly/half-hourly macro benchmark).
+        extrapolate (str): Extrapolation mode. Defaults to ``'linear'``.
+    """
+
+    def __init__(
+        self,
+        feature_name: str,
+        k: int = 20,
+        lambda_p: float = 1600.0,
+        extrapolate: str = "linear",
+    ):
+        super().__init__(feature_name, "hp_trend", lambda_p, extrapolate)
+        self.k = max(4, int(k))
+        self.spline_degree = 3
+        self._n_coeffs = self.k + self.spline_degree
+        self._x_bounds: Optional[Tuple[float, float]] = None
+
+    def initialize(self, x_col: torch.Tensor) -> None:
+        """Freezes the range of the trend axis on the training tensor; a second call replaces it."""
+        self._x_bounds = None
+        x_flat = x_col.flatten()
+        if x_flat.numel() > 0:
+            self._x_bounds = (float(x_flat.min()), float(x_flat.max()) + 1e-6)
+
+    def summary_type(self) -> str:
+        """Returns effect type name for summary."""
+        return "MacroTrend"
+
+    def summary_details(self) -> str:
+        """Returns details string for model summary."""
+        return f"k={self.k}, lambda_hp={self.lambda_p}, natural_extrap='linear'"
+
+    def get_n_coeffs(self) -> int:
+        """Returns total number of basis coefficients."""
+        return self._n_coeffs
+
+#: <hp_trend_feature_map>
+    def build_feature_map(self, x_col: torch.Tensor) -> torch.Tensor:
+        """Builds B-spline trend columns with linear extrapolation beyond bounds."""
+        orig_shape = x_col.shape
+        x_flat = x_col.flatten()
+        device = x_col.device
+        dtype = x_col.dtype
+
+        knots = build_clamped_knots(self.k, self.spline_degree, device, dtype)
+
+        if self._x_bounds is None:
+            self.initialize(x_col)
+        x_low, x_high = self._x_bounds
+        x_norm = 2.0 * (x_flat - x_low) / max(1e-6, x_high - x_low) - 1.0
+
+        phi = eval_clamped_spline_with_linear_tails(x_norm, knots, self.spline_degree)      # (N, k + degree)
+
+        return phi.reshape(*orig_shape, self._n_coeffs)
+#: </hp_trend_feature_map>
+
+#: <hp_trend_penalty_matrix>
+    def build_penalty_matrix(self) -> torch.Tensor:
+        """Constructs exact second-difference penalty D_2^T D_2."""
+        p = self.get_n_coeffs()
+        d2 = torch.zeros(p - 2, p, device=TORCH_DEVICE, dtype=torch.get_default_dtype())
+        for i in range(p - 2):
+            d2[i, i] = 1.0
+            d2[i, i + 1] = -2.0
+            d2[i, i + 2] = 1.0
+        return self.lambda_p * (d2.T @ d2)
+#: </hp_trend_penalty_matrix>
+
+
 def _build_canonical_knots(
     k: int, degree: int, device: torch.device, dtype: torch.dtype, x_min: float = -1.0, x_max: float = 1.0
 ) -> torch.Tensor:

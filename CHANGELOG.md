@@ -29,6 +29,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added physical RC thermal inertia spectrum effect (`inertia` / `thermal`).
 - Added smooth softplus degree-day spectrum effect (`dd` / `hdd_cdd`, `DegreeDayEffect`).
 - Added diffeomorphic warped calendar spectrum effect (`wcal`, `WarpedCalendarEffect`).
+- Added Hodrick-Prescott macro-trend spectrum effect (`hp_trend`, `MacroTrendEffect`).
 
 ## [1.5.1] - 2026-11-09
 

@@ -1425,6 +1425,12 @@ class StaticTAM(BaseTAM):
                 "Specific Params": "by (or others, regime_feature), period, n_harmonics (or k), sobolev_order, gamma_warp, gamma_amp"
             },
             {
+                "Token": "hp_trend(x)",
+                "Effect": "Hodrick-Prescott macro trend",
+                "Syntax Example": "hp_trend(trend, k=20, ap=-6)",
+                "Specific Params": "k, extrapolate"
+            },
+            {
                 "Token": "t(x)", 
                 "Effect": "Tree / Random Forest", 
                 "Syntax Example": "t(x, n_trees=50, sp_alpha=0.5, split_strategy='quantile')",

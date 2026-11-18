@@ -33,7 +33,7 @@ from._pid import PIDEffect
 from ._signature import SignatureEffect
 from ._single_index import SingleIndexEffect
 from ._kan import KANEffect
-from ._inertia import InertiaEffect, ThermalInertiaEffect, DegreeDayEffect, WarpedCalendarEffect
+from ._inertia import InertiaEffect, ThermalInertiaEffect, DegreeDayEffect, WarpedCalendarEffect, MacroTrendEffect
 from tam.common.utils import parse_formula_to_terms
 
 #: <create_effects>
@@ -479,6 +479,18 @@ def create_effects_from_parsed_terms(
             ))
         #: </parse_wcal>
 
+        #: <parse_hp_trend>
+        elif ttype in ('hp_trend', 'macro_trend', 'trend_hp'):
+            k = int(params_resolved.get('k', 20))
+            extrap_val = params_resolved.get('extrapolate', 'linear')
+            effects_list.append(MacroTrendEffect(
+                feature_name=feature_name,
+                k=k,
+                lambda_p=lambda_p,
+                extrapolate=extrap_val,
+            ))
+        #: </parse_hp_trend>
+
         else:
             raise ValueError(f"Unknown effect type identifier: '{ttype}'")
             
@@ -724,6 +736,8 @@ def extrapolating_features(effects_list: List[BaseEffect]) -> set:
         elif isinstance(effect, DegreeDayEffect):
             names.update(getattr(effect, 'input_features', None) or [effect.feature_name])
         elif isinstance(effect, WarpedCalendarEffect):
+            names.update(getattr(effect, 'input_features', None) or [effect.feature_name])
+        elif isinstance(effect, MacroTrendEffect):
             names.update(getattr(effect, 'input_features', None) or [effect.feature_name])
 
     for effect in effects_list:

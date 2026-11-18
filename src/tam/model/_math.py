@@ -208,6 +208,7 @@ def decomposition_names(effects_list: List[BaseEffect]) -> List[str]:
         'neural': 'n', 'rbf_gauss': 'rbf', 'rbf_matern': 'rbf', 'rbf_tps': 'rbf', 'tree': 't', 'linear_tree': 'lt', 'pid': 'pid',
         'tensor_product': 'te', 'phys_spline': 'phys',
         'warped_calendar': 'wcal',
+        'macro_trend': 'hp_trend',
         'degree_day': 'hdd_cdd',
         'thermal_inertia': 'thermal',
         'inertia': 'inertia', 'inertia_thermal': 'inertia', 'inertia_rotational': 'inertia', 'inertia_behavioral': 'inertia',
