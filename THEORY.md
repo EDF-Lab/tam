@@ -330,6 +330,13 @@ Different physical phenomena require different mathematical topologies. TAM flat
 
 ---
 
+### [HiPPO State-Space Memory (`hippo`)](math/spectrum/HIPPO_SSM.md) (BETA)
+
+  * **Syntax:** `hippo(x, order=8, dt=0.05, measure='legs')`
+  * **Mapping & Penalty:** Continuous-time Legendre polynomial projection state-space memory; [Architecture](architecture/spectrum/HIPPO_SSM.md).
+
+---
+
 ## 📊 Benchmark Proof: The Power of Topology & Meta-Learning
 
 *(To reproduce these results, execute `python use_cases/cheatsheet.py` located in the repository, note: results of BETA/EXP modules may differ, timing depends on the hardware configuration).*

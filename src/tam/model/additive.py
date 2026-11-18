@@ -1461,6 +1461,12 @@ class StaticTAM(BaseTAM):
                 "Specific Params": "k, prior, nu, length_scale, sobolev_order, qmc, seed, others"
             },
             {
+                "Token": "hippo(x)",
+                "Effect": "HiPPO state-space memory",
+                "Syntax Example": "hippo(load, k=16, measure='legt', dt=0.05)",
+                "Specific Params": "k, measure, dt, discretization, degree_pen"
+            },
+            {
                 "Token": "t(x)", 
                 "Effect": "Tree / Random Forest", 
                 "Syntax Example": "t(x, n_trees=50, sp_alpha=0.5, split_strategy='quantile')",

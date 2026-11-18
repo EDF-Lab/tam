@@ -39,6 +39,7 @@ from ._patch_basis import PatchBasisEffect
 from ._foundation import FoundationEffect
 from ._koopman import KoopmanEffect
 from ._prior_spectral import PriorSpectralEffect
+from ._hippo import HiPPOEffect
 from tam.common.utils import parse_formula_to_terms
 
 #: <create_effects>
@@ -634,6 +635,27 @@ def create_effects_from_parsed_terms(
             ))
         #: </parse_prior_spectral>
 
+        #: <parse_hippo>
+        elif ttype == 'hippo':
+            k = int(params_resolved.get('k', 16))
+            measure = str(params_resolved.get('measure', 'legt')).lower().strip()
+            dt = float(params_resolved.get('dt', 0.05))
+            discretization = str(params_resolved.get('discretization', 'bilinear')).lower().strip()
+            degree_pen = float(params_resolved.get('degree_pen', 1.0))
+            extrap_val = params_resolved.get('extrapolate', 'continue')
+
+            effects_list.append(HiPPOEffect(
+                feature_name=feature_name,
+                k=k,
+                measure=measure,
+                dt=dt,
+                discretization=discretization,
+                degree_pen=degree_pen,
+                lambda_p=lambda_p,
+                extrapolate=extrap_val
+            ))
+        #: </parse_hippo>
+
         else:
             raise ValueError(f"Unknown effect type identifier: '{ttype}'")
             
@@ -891,6 +913,8 @@ def extrapolating_features(effects_list: List[BaseEffect]) -> set:
         elif isinstance(effect, KoopmanEffect):
             names.update(getattr(effect, 'input_features', None) or [effect.feature_name])
         elif isinstance(effect, PriorSpectralEffect):
+            names.update(getattr(effect, 'input_features', None) or [effect.feature_name])
+        elif isinstance(effect, HiPPOEffect):
             names.update(getattr(effect, 'input_features', None) or [effect.feature_name])
 
     for effect in effects_list:

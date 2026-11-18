@@ -103,6 +103,7 @@ To understand the deep mathematical behavior of the framework, click on any effe
 / **[Foundation Basis](math/spectrum/FOUNDATION.md)** (BETA)
 / **[Koopman EDMD](math/spectrum/KOOPMAN_DMD.md)** (BETA)
 / **[Prior Spectral](math/spectrum/PRIOR_SPECTRAL.md)** (BETA)
+/ **[HiPPO SSM](math/spectrum/HIPPO_SSM.md)** (BETA)
 
 ---
 

@@ -17,6 +17,7 @@ import torch
 
 from tam.model.spectrum._signature import SignatureEffect
 from tam.model.spectrum._foundation import FoundationEffect
+from tam.model.spectrum._hippo import HiPPOEffect
 from tam.model.spectrum._inertia import InertiaEffect
 from tam.model.spectrum._koopman import KoopmanEffect
 from tam.model.spectrum._patch_basis import PatchBasisEffect
@@ -36,6 +37,7 @@ CASES = [
     pytest.param(lambda: TemporalOperatorEffect("x", operator_type="ssa", k_base=5, window=9), 1, id="op_ssa"),
     pytest.param(lambda: FoundationEffect("x", patch_len=8, n_tokens=6, n_bins=6, scales=(1, 4, 16), n_struct=8), 1, id="foundation"),
     pytest.param(lambda: FoundationEffect("x", additional_features=["z"], patch_len=6, n_tokens=5, n_bins=5, scales=(1, 8), n_struct=8), 2, id="foundation_multi"),
+    pytest.param(lambda: HiPPOEffect("x", k=6, measure="legt"), 1, id="hippo"),
     pytest.param(lambda: KoopmanEffect("x", k=6, n_lift=24, delay_embed=3), 1, id="koopman"),
     pytest.param(lambda: KoopmanEffect(["x", "z"], k=5, n_lift=30, delay_embed=2), 2, id="koopman_multi"),
     pytest.param(lambda: PatchBasisEffect("x", patch_len=8, n_tokens=6), 1, id="patch_basis"),
