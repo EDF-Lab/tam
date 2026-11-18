@@ -45,6 +45,7 @@ from ._bispectrum import BispectrumEffect
 from ._scattering import ScatteringEffect
 from ._tjepa import TJEPAEffect
 from ._fno import OperatorEffect
+from ._hurst import HurstEffect
 from tam.common.utils import parse_formula_to_terms
 
 #: <create_effects>
@@ -804,6 +805,23 @@ def create_effects_from_parsed_terms(
             ))
         #: </parse_fno>
 
+        #: <parse_hurst>
+        elif ttype == 'hurst':
+            k = int(params_resolved.get('k', 16))
+            H = float(params_resolved.get('H', params_resolved.get('h', 0.75)))
+            period = params_resolved.get('period', None)
+            period_val = float(period) if period is not None else None
+            extrap_val = params_resolved.get('extrapolate', 'continue')
+            effects_list.append(HurstEffect(
+                feature_name=feature_name,
+                k=k,
+                H=H,
+                period=period_val,
+                lambda_p=lambda_p,
+                extrapolate=extrap_val,
+            ))
+        #: </parse_hurst>
+
         else:
             raise ValueError(f"Unknown effect type identifier: '{ttype}'")
             
@@ -1073,6 +1091,8 @@ def extrapolating_features(effects_list: List[BaseEffect]) -> set:
         elif isinstance(effect, TJEPAEffect):
             names.update(getattr(effect, 'input_features', None) or [effect.feature_name])
         elif isinstance(effect, OperatorEffect):
+            names.update(getattr(effect, 'input_features', None) or [effect.feature_name])
+        elif isinstance(effect, HurstEffect):
             names.update(getattr(effect, 'input_features', None) or [effect.feature_name])
 
     for effect in effects_list:

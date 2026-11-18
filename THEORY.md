@@ -372,6 +372,13 @@ Different physical phenomena require different mathematical topologies. TAM flat
 
 ---
 
+### [Hurst Fractional Noise (`hurst`)](math/spectrum/HURST.md) (BETA)
+
+  * **Syntax:** `hurst(x, k=16, H=0.75)`
+  * **Mapping & Penalty:** Harmonic basis weighted by fractional Gaussian noise inverse power spectrum $|\omega|^{2H-1}$; [Architecture](architecture/spectrum/HURST.md).
+
+---
+
 ## 📊 Benchmark Proof: The Power of Topology & Meta-Learning
 
 *(To reproduce these results, execute `python use_cases/cheatsheet.py` located in the repository, note: results of BETA/EXP modules may differ, timing depends on the hardware configuration).*

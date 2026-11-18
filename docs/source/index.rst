@@ -75,6 +75,7 @@ Time series Additive Model (TAM) Official Documentation
    math/spectrum/WAVELET_SCATTERING
    math/spectrum/T_JEPA
    math/spectrum/FNO
+   math/spectrum/HURST
    math/spectrum/PID
    math/spectrum/LINEAR_TREE
 
@@ -144,6 +145,7 @@ Time series Additive Model (TAM) Official Documentation
    architecture/spectrum/WAVELET_SCATTERING
    architecture/spectrum/T_JEPA
    architecture/spectrum/FNO
+   architecture/spectrum/HURST
    architecture/core/07_the_statistics_api
 
 .. raw:: latex

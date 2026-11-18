@@ -1497,6 +1497,12 @@ class StaticTAM(BaseTAM):
                 "Specific Params": "modes, width, window (W), causal, seed"
             },
             {
+                "Token": "hurst(x)",
+                "Effect": "Long-memory harmonic basis with a fractional-noise penalty",
+                "Syntax Example": "hurst(load, k=16, H=0.75)",
+                "Specific Params": "k, H, period"
+            },
+            {
                 "Token": "t(x)", 
                 "Effect": "Tree / Random Forest", 
                 "Syntax Example": "t(x, n_trees=50, sp_alpha=0.5, split_strategy='quantile')",

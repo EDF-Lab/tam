@@ -226,6 +226,7 @@ def decomposition_names(effects_list: List[BaseEffect]) -> List[str]:
         'scattering': 'wst',
         'tjepa': 'tjepa',
         'operator': 'fno',
+        'hurst': 'hurst',
         'phys_fourier': 'phys', 'phys_neural': 'phys', 'offset': 'offset'
     }
 
