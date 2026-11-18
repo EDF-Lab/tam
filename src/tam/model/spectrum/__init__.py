@@ -40,6 +40,7 @@ from ._tensor import TensorProductEffect
 from ._tree import TreeEffect
 from ._linear_tree import LinearTreeEffect
 from ._pid import PIDEffect
+from ._single_index import SingleIndexEffect
 from ._signature import SignatureEffect
 
 # Utility functions exposed for the StaticTAM model
@@ -75,6 +76,7 @@ __all__ = [
     "TreeEffect",
     "LinearTreeEffect",
     "PIDEffect",
+    "SingleIndexEffect",
     "SignatureEffect",
 
     # Factory / Assembly

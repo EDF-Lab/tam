@@ -253,6 +253,13 @@ Different physical phenomena require different mathematical topologies. TAM flat
 
 ---
 
+### [Single-Index Distributed Lag (`si`)](math/spectrum/SINGLE_INDEX.md) (BETA)
+
+  * **Syntax:** `si(x, lag_window=24, k=8)`
+  * **Mapping & Penalty:** Causal lag-trajectory projection onto unit index direction composed with penalized outer B-spline; [Architecture](architecture/spectrum/SINGLE_INDEX.md).
+
+---
+
 ## 📊 Benchmark Proof: The Power of Topology & Meta-Learning
 
 *(To reproduce these results, execute `python use_cases/cheatsheet.py` located in the repository, note: results of BETA/EXP modules may differ, timing depends on the hardware configuration).*

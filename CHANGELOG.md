@@ -24,6 +24,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added Bernstein Online Aggregation (`algorithm='BOA'`) and `HierarchicalOperaTAM`.
 - Added `TwoTierOperaTAM`, another name for `HierarchicalOperaTAM`.
 - Added causal path signature spectrum effect (`sig`, `SignatureEffect`).
+- Added penalized single-index distributed lag spectrum effect (`si`, `SingleIndexEffect`).
 
 ## [1.5.1] - 2026-11-09
 

@@ -16,6 +16,7 @@ import pytest
 import torch
 
 from tam.model.spectrum._signature import SignatureEffect
+from tam.model.spectrum._single_index import SingleIndexEffect
 
 B, T, SPLIT = 3, 400, 250
 
@@ -23,14 +24,15 @@ B, T, SPLIT = 3, 400, 250
 CASES = [
     pytest.param(lambda: SignatureEffect("x", w=6, N=2, lag=2), 1, id="sig"),
     pytest.param(lambda: SignatureEffect("x", w=5, N=3, lag=0, log_sig=True, lead_lag=True, additional_features=["z"]), 2, id="sig_multi"),
+    pytest.param(lambda: SingleIndexEffect("x", lag_window=7, k=6), 1, id="si"),
 ]
 
 
-def _data(d: int, dtype=torch.float64) -> torch.Tensor:
+def _data(d: int, multi: bool = False, dtype=torch.float64) -> torch.Tensor:
     g = torch.Generator().manual_seed(11)
     base = torch.cumsum(torch.randn(B, T, max(d, 1), dtype=torch.float64, generator=g), dim=1) * 0.05
     x = torch.tanh(base)
-    x = x[..., 0] if d == 1 else x
+    x = x[..., 0] if (d == 1 and not multi) else x   # a one-column effect reads (B, T), or (B, T, 1) when it keeps the feature dimension
     return x.to(dtype)
 
 
@@ -41,7 +43,7 @@ def _slice(x: torch.Tensor, a, b) -> torch.Tensor:
 @pytest.mark.parametrize("factory, d", CASES)
 def test_idempotent(factory, d):
     e = factory()
-    x = _data(d)
+    x = _data(d, e.multi_input)
     e.initialize(x)
     p1 = e.build_feature_map(x)
     s1 = e._state_out
@@ -54,7 +56,7 @@ def test_idempotent(factory, d):
 @pytest.mark.parametrize("factory, d", CASES)
 def test_split_continuity(factory, d):
     e = factory()
-    x = _data(d)
+    x = _data(d, e.multi_input)
     e.initialize(x)
     whole = e.build_feature_map(x)
     e.build_feature_map(_slice(x, 0, SPLIT))
@@ -66,7 +68,7 @@ def test_split_continuity(factory, d):
 @pytest.mark.parametrize("factory, d", CASES)
 def test_group_independence(factory, d):
     e = factory()
-    x = _data(d)
+    x = _data(d, e.multi_input)
     e.initialize(x)
     whole = e.build_feature_map(x)
     for b in range(B):
@@ -77,13 +79,13 @@ def test_group_independence(factory, d):
 @pytest.mark.parametrize("factory, d", CASES)
 def test_dtype_and_shape(factory, d):
     e = factory()
-    x = _data(d)
+    x = _data(d, e.multi_input)
     e.initialize(x)
     phi = e.build_feature_map(x)
     assert phi.dtype == torch.float64 and phi.shape == (B, T, e.get_n_coeffs())
     assert torch.isfinite(phi).all()
     e32 = factory()
-    x32 = _data(d, torch.float32)
+    x32 = _data(d, e32.multi_input, torch.float32)
     e32.initialize(x32)
     assert e32.build_feature_map(x32).dtype == torch.float32
 
@@ -91,7 +93,7 @@ def test_dtype_and_shape(factory, d):
 @pytest.mark.parametrize("factory, d", CASES)
 def test_state_of_another_group_count_raises(factory, d):
     e = factory()
-    x = _data(d)
+    x = _data(d, e.multi_input)
     e.initialize(x)
     e.build_feature_map(x[:2])
     state = {k: v.clone() for k, v in e._state_out.items()}
@@ -102,7 +104,7 @@ def test_state_of_another_group_count_raises(factory, d):
 @pytest.mark.parametrize("factory, d", CASES)
 def test_no_fingerprint_heuristic(factory, d):
     e = factory()
-    x = _data(d)
+    x = _data(d, e.multi_input)
     e.initialize(x)
     e.build_feature_map(x)
     for name in ("_start_fp", "_prev_fp", "last_window", "last_state", "_prev_init_window"):

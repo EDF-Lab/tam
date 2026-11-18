@@ -31,6 +31,7 @@ from ._tree import TreeEffect
 from ._linear_tree import LinearTreeEffect
 from._pid import PIDEffect
 from ._signature import SignatureEffect
+from ._single_index import SingleIndexEffect
 from tam.common.utils import parse_formula_to_terms
 
 #: <create_effects>
@@ -356,6 +357,33 @@ def create_effects_from_parsed_terms(
             ))
         #: </parse_signature>
 
+        #: <parse_single_index>
+        elif ttype in ('si', 'single_index'):
+            k = int(params_resolved.get('k', 10))
+            deg = int(params_resolved.get('deg', params_resolved.get('spline_degree', 3)))
+            p = int(params_resolved.get('p', params_resolved.get('penalty_order', 2)))
+            lag_w_raw = params_resolved.get('lag_window', params_resolved.get('window', params_resolved.get('lags', None)))
+            lag_window = int(lag_w_raw) if lag_w_raw is not None else None
+            alpha_raw = params_resolved.get('alpha', None)
+            alpha_pen = float(params_resolved.get('alpha_pen', 1.0))
+            extrap_val = params_resolved.get('extrapolate', 'continue')
+
+            additional_features = _parse_additional_features(params_resolved)
+
+            effects_list.append(SingleIndexEffect(
+                feature_name=feature_name,
+                additional_features=additional_features,
+                k=k,
+                lag_window=lag_window,
+                alpha=alpha_raw,
+                alpha_pen=alpha_pen,
+                spline_degree=deg,
+                penalty_order=p,
+                lambda_p=lambda_p,
+                extrapolate=extrap_val,
+            ))
+        #: </parse_single_index>
+
         else:
             raise ValueError(f"Unknown effect type identifier: '{ttype}'")
             
@@ -586,6 +614,8 @@ def extrapolating_features(effects_list: List[BaseEffect]) -> set:
                                  TreeEffect, UniversalPhysicsEffect)):
             names.update(getattr(effect, 'input_features', None) or [effect.feature_name])
         elif isinstance(effect, SignatureEffect):
+            names.update(getattr(effect, 'input_features', None) or [effect.feature_name])
+        elif isinstance(effect, SingleIndexEffect):
             names.update(getattr(effect, 'input_features', None) or [effect.feature_name])
 
     for effect in effects_list:

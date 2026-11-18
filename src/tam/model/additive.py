@@ -1392,6 +1392,12 @@ class StaticTAM(BaseTAM):
                 "Specific Params": "w, N, lag, time_augment, log_sig, lead_lag, others, k"
             },
             {
+                "Token": "si(x)",
+                "Effect": "Single-index distributed lag",
+                "Syntax Example": "si(x, lag_window=12, k=10)",
+                "Specific Params": "others, k, lag_window, alpha, alpha_pen, spline_degree, penalty_order"
+            },
+            {
                 "Token": "t(x)", 
                 "Effect": "Tree / Random Forest", 
                 "Syntax Example": "t(x, n_trees=50, sp_alpha=0.5, split_strategy='quantile')",
