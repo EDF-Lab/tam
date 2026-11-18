@@ -2727,7 +2727,7 @@
 29_errors.model.unknown_group_at_predict = ValueError: TAM [Data Error]: group(s) [np.int64(99)] of column 'hour' were not seen in training; the
 29_errors.model.unknown_loss = ValueError: Unknown loss 'no_such_loss'. Supported: l2/gaussian, gamma, poisson, negative_binomial, tw
 29_errors.opera.no_expert = ValueError: No valid experts found. Ensure syntax uses 'l(expert_name)'.
-29_errors.opera.unknown_algorithm = ValueError: Algorithm must be 'EWA' or 'MLPOL'.
+29_errors.opera.unknown_algorithm = ValueError: Algorithm must be 'EWA', 'MLPOL', or 'BOA'.
 30_warnings.adaptive_in_range.classes = TAMExtrapolationWarning
 30_warnings.adaptive_in_range.count = 1
 30_warnings.adaptive_in_range.first = 'temperature' leaves the range of its training window on 14.5% of the

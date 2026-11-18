@@ -108,6 +108,10 @@ Real-world data is chaotic. Rather than polluting the exactness of the core engi
     * *Use case:* You want an Evolutionary Engine to automatically discover the best formula topologies and hyperparameters for you.
     * *Code:* `AutoTAM(formula="y ~ AutoPipe(x1, x2, Lag_y)", n_experts=10, pop_size=50, use_opera=True)`
 
+* **Hierarchical Multi-Basis Ensembling (`HierarchicalOperaTAM` & BOA)**
+    * *Use case:* Two-level online aggregation (intra-family `MLpol` + cross-family `BOA` Bernstein Online Aggregation) across separated basis families.
+    * *Code:* `ta.HierarchicalOperaTAM(families={'splines': [...], 'neural': [...]}, target_col='y', date_col='date')`
+
 ### The Statistical & Risk Ecosystem (v1.3.0)
 
 The `statistics` layer reuses the single P-WLS atom for every non-Gaussian target, the structural "what" (the Spectrum) stays fixed while the statistical "how" (the schedule) changes. See [The Statistics Dictionary](math/core/07_the_statistics_api.md).

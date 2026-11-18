@@ -21,6 +21,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added opt-in causal state continuation (`state_in` / `continue_state=True`) in `BaseTAM`, `StaticTAM`, and `build_phi_from_effects`.
 - Added opt-in Preconditioned CG, Block-QR, Hutchinson Rademacher trace, Wood analytical GCV gradient, Square-Root Group LASSO, and scale-stability penalty.
 - Added opt-in Sinkhorn entropic OT temporal coherence (`coherence_loss='sinkhorn'`) in `HierarchicalTAM` and Conformal Risk Control (`calibrate_crc()` / `predict_crc_intervals()`).
+- Added Bernstein Online Aggregation (`algorithm='BOA'`) and `HierarchicalOperaTAM`.
+- Added `TwoTierOperaTAM`, another name for `HierarchicalOperaTAM`.
 
 ## [1.5.1] - 2026-11-09
 

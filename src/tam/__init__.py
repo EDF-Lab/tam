@@ -10,6 +10,7 @@ The unified framework for interpretable, physics-informed, and high-performance 
 from .common.exceptions import TAMExtrapolationWarning
 from .model.additive import StaticTAM
 from .model.opera import OperaTAM
+from .model.opera import HierarchicalOperaTAM, TwoTierOperaTAM
 from .model.kalman import KalmanTAM
 from .model.adaptative import AdaptiveTAM, rolling_windows
 from .model.hierarchical import HierarchicalTAM
@@ -32,6 +33,8 @@ __version__ = "1.5.1"
 __all__ = [
     "StaticTAM",
     "OperaTAM",
+    "HierarchicalOperaTAM",
+    "TwoTierOperaTAM",
     "KalmanTAM",
     "AdaptiveTAM",
     "rolling_windows",

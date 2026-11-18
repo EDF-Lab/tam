@@ -187,6 +187,82 @@ def _ewa_loop_optimized_3d(
     return predictions, weights_history
 #: </torch_jit_ewa>
 
+#: <torch_jit_boa>
+@torch.jit.script
+def _boa_loop_optimized_3d(
+    experts_tensor: torch.Tensor,
+    y_true: torch.Tensor,
+    loss_type: str,
+    tau: float = 0.5
+) -> Tuple[torch.Tensor, torch.Tensor]:
+    r"""
+    Compiled TorchScript loop for BOA (Bernstein Online Aggregation, Wintenberger 2017).
+    Applies second-order sub-exponential variation penalty with adaptive learning rates:
+        w_{t+1, k} \propto w_{t, k} * exp(-eta_{t,k} * r_{t,k} - eta_{t,k}^2 * r_{t,k}^2)
+    ensuring fast adaptation across heterogeneous expert families without collapse.
+    """
+    B, T, K = experts_tensor.shape
+    dtype = experts_tensor.dtype
+    device = experts_tensor.device
+
+    scale_factor = torch.max(torch.abs(y_true), dim=1, keepdim=True)[0]
+    scale_factor = torch.where(
+        scale_factor == 0.0,
+        torch.tensor(1.0, dtype=dtype, device=device),
+        scale_factor
+    )
+    X_scaled = experts_tensor / scale_factor
+    Y_scaled = y_true / scale_factor
+
+    weights_history = torch.zeros((B, T, K), dtype=dtype, device=device)
+    predictions = torch.zeros((B, T), dtype=dtype, device=device)
+
+    w = torch.ones((B, K), dtype=dtype, device=device) / float(K)
+    cum_var = torch.ones((B, K), dtype=dtype, device=device) * 1e-6
+    max_abs_r = torch.ones((B, K), dtype=dtype, device=device) * 1e-4
+    log_K = float(torch.log(torch.tensor(max(float(K), 2.0), dtype=dtype)).item())
+    log_w = torch.zeros((B, K), dtype=dtype, device=device)
+
+    for t in range(T):
+        xt_scaled = X_scaled[:, t, :]
+        yt_scaled = Y_scaled[:, t, 0]
+
+        weights_history[:, t, :] = w
+        predictions[:, t] = torch.sum(w * experts_tensor[:, t, :], dim=1)
+
+        y_hat_scaled = torch.sum(w * xt_scaled, dim=1)
+        if loss_type == 'square':
+            r = 2.0 * (y_hat_scaled.unsqueeze(1) - yt_scaled.unsqueeze(1)) * (xt_scaled - y_hat_scaled.unsqueeze(1))
+        elif loss_type == 'pinball':
+            above = (y_hat_scaled > yt_scaled).to(dtype)
+            r = (above - tau).unsqueeze(1) * (xt_scaled - y_hat_scaled.unsqueeze(1))
+        else:
+            r = torch.sign(y_hat_scaled.unsqueeze(1) - yt_scaled.unsqueeze(1)) * (xt_scaled - y_hat_scaled.unsqueeze(1))
+
+        abs_r = torch.abs(r)
+        max_abs_r = torch.maximum(max_abs_r, abs_r)
+        cum_var = cum_var + r * r
+
+        eta_bound = 1.0 / (2.0 * max_abs_r)
+        eta_var = torch.sqrt(log_K / cum_var)
+        eta_t = torch.minimum(eta_bound, eta_var)
+
+        # Second-order Bernstein surrogate update in log-space
+        log_w = log_w - eta_t * r - (eta_t * r) ** 2
+        max_log_w = torch.max(log_w, dim=1, keepdim=True)[0]
+        log_w = log_w - max_log_w
+        w_unnorm = torch.exp(log_w)
+        w_sum = torch.sum(w_unnorm, dim=1, keepdim=True)
+        mask = w_sum > 0.0
+        w = torch.where(
+            mask,
+            w_unnorm / w_sum,
+            torch.ones((B, K), dtype=dtype, device=device) / float(K)
+        )
+
+    return predictions, weights_history
+#: </torch_jit_boa>
+
 class OperaTAM:
     r"""
     Meta-model performing Online Aggregation of external experts natively on GPU.
@@ -255,8 +331,8 @@ class OperaTAM:
         self.horizon_steps = horizon_steps
         self.tau = float(tau)
 
-        if self.algorithm not in ['EWA', 'MLPOL']:
-            raise ValueError("Algorithm must be 'EWA' or 'MLPOL'.")
+        if self.algorithm not in ['EWA', 'MLPOL', 'BOA']:
+            raise ValueError("Algorithm must be 'EWA', 'MLPOL', or 'BOA'.")
             
         if self.loss_type not in ['square', 'absolute', 'pinball']:
             raise ValueError("Unsupported loss_type. Use 'square', 'absolute' or 'pinball'.")
@@ -325,6 +401,8 @@ class OperaTAM:
         # Computation Phase: Execute the entire historical simulation in one GPU pass
         if self.algorithm == 'MLPOL':
             preds_3d, weights_3d = _mlpol_loop_optimized_3d(X_tensor_3d, Y_tensor_3d, self.loss_type, self.tau)
+        elif self.algorithm == 'BOA':
+            preds_3d, weights_3d = _boa_loop_optimized_3d(X_tensor_3d, Y_tensor_3d, self.loss_type, self.tau)
         else:
             preds_3d, weights_3d = _ewa_loop_optimized_3d(X_tensor_3d, Y_tensor_3d, self.loss_type, self.eta, self.tau)
             
@@ -603,3 +681,185 @@ def aggregate_quantiles(
     table = np.sort(np.column_stack(columns)[:, ordered], axis=1)[:, np.argsort(ordered)]
     return pd.DataFrame(table, index=index, columns=[f"q{tau}" for tau in levels])
 #: </aggregate_quantiles>
+
+
+class HierarchicalOperaTAM:
+    r"""
+    Two-Tier Hierarchical Online Expert Aggregation Engine.
+
+    Replaces monolithic multi-basis design matrices with a two-level online regret
+    minimization hierarchy over orthogonal basis families:
+      - Level 1 (Intra-Family Aggregation): For each basis family m \in {1, ..., M}
+        (e.g., 'Splines', 'KAN', 'Trees', 'LinearTrees', 'Neural', 'RBF', 'Fourier'),
+        aggregates the family's specialized experts using `level1_algorithm` (default 'MLPOL')
+        into a family meta-forecast \hat{y}_{t, fam_m}.
+      - Level 2 (Cross-Family Meta-Aggregation): Combines the M family meta-forecasts
+        using `level2_algorithm` (default 'BOA' Bernstein Online Aggregation) to produce
+        the global prediction `prediction_opera` and composite effective expert weights
+        W_{t, (m, k)} = w_{t, m}^{(2)} * w_{t, k | m}^{(1)}.
+    """
+
+    def __init__(
+        self,
+        families: Dict[str, list],
+        target_col: str,
+        level1_algorithm: str = 'MLPOL',
+        level2_algorithm: str = 'BOA',
+        eta: float = 1.0,
+        loss_type: str = 'square',
+        horizon_steps: int = 1,
+        group_col: Optional[str] = None,
+        date_col: Optional[str] = None,
+        tau: float = 0.5,
+    ):
+        if not families or not isinstance(families, dict):
+            raise ValueError("`families` must be a non-empty dict mapping family names to lists of expert columns.")
+        if not target_col:
+            raise ValueError("`target_col` must be provided.")
+
+        self.families = {str(k): list(v) for k, v in families.items() if list(v)}
+        if not self.families:
+            raise ValueError("At least one family must contain expert column names.")
+
+        self.target_col = target_col
+        self.level1_algorithm = level1_algorithm.upper()
+        self.level2_algorithm = level2_algorithm.upper()
+        self.eta = float(eta)
+        self.loss_type = loss_type
+        self.horizon_steps = int(horizon_steps)
+        self.group_col = group_col
+        self.date_col = date_col
+        self.tau = float(tau)
+
+        self.family_names = list(self.families.keys())
+        self.expert_cols = [col for fam in self.family_names for col in self.families[fam]]
+
+        self.level1_models_: Dict[str, OperaTAM] = {}
+        for fam, cols in self.families.items():
+            self.level1_models_[fam] = OperaTAM(
+                target_col=self.target_col,
+                expert_cols=cols,
+                algorithm=self.level1_algorithm,
+                eta=self.eta,
+                loss_type=self.loss_type,
+                horizon_steps=self.horizon_steps,
+                group_col=self.group_col,
+                date_col=self.date_col,
+                tau=self.tau,
+            )
+
+        self.meta_cols_ = [f"__meta_fam_{fam}__" for fam in self.family_names]
+        self.level2_model_ = OperaTAM(
+            target_col=self.target_col,
+            expert_cols=self.meta_cols_,
+            algorithm=self.level2_algorithm,
+            eta=self.eta,
+            loss_type=self.loss_type,
+            horizon_steps=self.horizon_steps,
+            group_col=self.group_col,
+            date_col=self.date_col,
+            tau=self.tau,
+        )
+
+        self.weights_history_: Dict[str, np.ndarray] = {}
+        self.family_weights_history_: Dict[str, np.ndarray] = {}
+        self.compacted_ = False
+
+    def predict_online(self, df: pd.DataFrame) -> pd.DataFrame:
+        r"""
+        Executes Level-1 intra-family online aggregation followed by Level-2
+        cross-family meta-aggregation, returning a DataFrame with `prediction_opera`,
+        `family_pred_{fam}`, `family_weight_{fam}`, and composite `weight_{expert}`.
+        """
+        working = df.copy()
+        l1_outputs: Dict[str, pd.DataFrame] = {}
+
+        for fam, meta_col in zip(self.family_names, self.meta_cols_):
+            out_fam = self.level1_models_[fam].predict_online(df)
+            l1_outputs[fam] = out_fam
+            working.loc[out_fam.index, meta_col] = out_fam["prediction_opera"]
+
+        out_l2 = self.level2_model_.predict_online(working)
+        result = df.loc[out_l2.index].copy()
+        result["prediction_opera"] = out_l2["prediction_opera"]
+
+        for fam, meta_col in zip(self.family_names, self.meta_cols_):
+            out_fam = l1_outputs[fam].loc[result.index]
+            w_fam = out_l2[f"weight_{meta_col}"].to_numpy(dtype=float)
+            result[f"family_pred_{fam}"] = out_fam["prediction_opera"].to_numpy(dtype=float)
+            result[f"family_weight_{fam}"] = w_fam
+            for col in self.families[fam]:
+                w_exp_in_fam = out_fam[f"weight_{col}"].to_numpy(dtype=float)
+                result[f"weight_{col}"] = w_fam * w_exp_in_fam
+
+        # Populate per-group composite and family weight histories
+        self.family_weights_history_ = {
+            g: w.copy() for g, w in self.level2_model_.weights_history_.items()
+        }
+        self.weights_history_ = {}
+        for g, w_l2 in self.level2_model_.weights_history_.items():
+            comp_cols = []
+            for m_idx, fam in enumerate(self.family_names):
+                w_l1 = self.level1_models_[fam].weights_history_[g]  # (T, K_m)
+                comp_cols.append(w_l2[:, m_idx:m_idx + 1] * w_l1)
+            self.weights_history_[g] = np.concatenate(comp_cols, axis=1)
+
+        return result
+
+    def fit(self, df: pd.DataFrame) -> "HierarchicalOperaTAM":
+        """Fits both Level-1 and Level-2 online aggregators on `df`."""
+        self.predict_online(df)
+        return self
+
+    def predict(self, df: pd.DataFrame) -> pd.DataFrame:
+        """Applies frozen end-of-training composite expert weights to new data `df`."""
+        if not self.weights_history_:
+            raise RuntimeError("Call fit() first to populate the hierarchical expert weights history.")
+
+        g_col = self.group_col or "__dummy_group__"
+        d_col = self.date_col or "__dummy_date__"
+        result = _ensure_dummies(df.copy(), g_col, d_col)
+        if not self.group_col:
+            result[g_col] = "all_data"
+
+        result["prediction_opera"] = 0.0
+        for fam in self.family_names:
+            result[f"family_weight_{fam}"] = 0.0
+        for col in self.expert_cols:
+            result[f"weight_{col}"] = 0.0
+
+        uniform_exp = np.ones(len(self.expert_cols)) / len(self.expert_cols)
+        uniform_fam = np.ones(len(self.family_names)) / len(self.family_names)
+
+        for g_name in result[g_col].unique():
+            g_mask = result[g_col] == g_name
+            final_w = self.weights_history_.get(g_name, None)
+            weights = final_w[-1, :] if final_w is not None else uniform_exp
+            final_fw = self.family_weights_history_.get(g_name, None)
+            f_weights = final_fw[-1, :] if final_fw is not None else uniform_fam
+
+            experts = result.loc[g_mask, self.expert_cols].values.astype(float)
+            result.loc[g_mask, "prediction_opera"] = experts @ weights
+
+            for m_idx, fam in enumerate(self.family_names):
+                result.loc[g_mask, f"family_weight_{fam}"] = f_weights[m_idx]
+            for j, col in enumerate(self.expert_cols):
+                result.loc[g_mask, f"weight_{col}"] = weights[j]
+
+        if not self.group_col and g_col in result.columns:
+            result = result.drop(columns=[g_col])
+        return _cleanup_dummies(result, g_col, d_col)
+
+    def compact(self) -> "HierarchicalOperaTAM":
+        """Retains only the final timestep weights for Level 1 and Level 2."""
+        for m in self.level1_models_.values():
+            m.compact()
+        self.level2_model_.compact()
+        self.weights_history_ = {g: w[-1:].copy() for g, w in self.weights_history_.items()}
+        self.family_weights_history_ = {g: w[-1:].copy() for g, w in self.family_weights_history_.items()}
+        self.compacted_ = True
+        return self
+
+
+#: Name of the same class that says what it is: a two-level Opera aggregation, not a hierarchical reconciliation of forecasts.
+TwoTierOperaTAM = HierarchicalOperaTAM
