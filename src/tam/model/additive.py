@@ -1410,6 +1410,12 @@ class StaticTAM(BaseTAM):
                 "Specific Params": "type, alphas, k, deg, p"
             },
             {
+                "Token": "dd(x)",
+                "Effect": "Smooth degree-day hinges (hdd_cdd / smooth_hinge)",
+                "Syntax Example": "dd(temp, heat='-0.2|0.0', cool='0.3|0.5', sharpness=10, quad=True)",
+                "Specific Params": "heat_thresholds, cool_thresholds, sharpness, quad"
+            },
+            {
                 "Token": "t(x)", 
                 "Effect": "Tree / Random Forest", 
                 "Syntax Example": "t(x, n_trees=50, sp_alpha=0.5, split_strategy='quantile')",

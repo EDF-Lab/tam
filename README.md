@@ -95,6 +95,7 @@ To understand the deep mathematical behavior of the framework, click on any effe
 / **[Single-Index](math/spectrum/SINGLE_INDEX.md)** (BETA)
 / **[KAN](math/spectrum/KAN.md)** (BETA)
 / **[Thermal Inertia](math/spectrum/THERMAL_INERTIA.md)** (BETA)
+/ **[Degree Days](math/spectrum/DEGREE_DAY.md)** (BETA)
 
 ---
 

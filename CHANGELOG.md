@@ -27,6 +27,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added penalized single-index distributed lag spectrum effect (`si`, `SingleIndexEffect`).
 - Added Kolmogorov-Arnold Network edge spline spectrum effect (`kan`, `KANEffect`).
 - Added physical RC thermal inertia spectrum effect (`inertia` / `thermal`).
+- Added smooth softplus degree-day spectrum effect (`dd` / `hdd_cdd`, `DegreeDayEffect`).
 
 ## [1.5.1] - 2026-11-09
 

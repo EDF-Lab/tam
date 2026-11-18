@@ -170,3 +170,126 @@ class InertiaEffect(CoordinatePenaltyMixin, BaseEffect):
 
 
 ThermalInertiaEffect = InertiaEffect
+
+
+class DegreeDayEffect(BaseEffect):
+    r"""Smooth Softplus Heating and Cooling Degree-Day Hinge effect.
+
+    Computes smooth :math:`C^\infty` degree-day hinge functions:
+
+    .. math::
+
+        \operatorname{HDD}_\beta(T; u_m) = \frac{1}{\beta} \ln\!\Big(1 + \exp\big(\beta (u_m - T)\big)\Big)
+        \operatorname{CDD}_\beta(T; v_j) = \frac{1}{\beta} \ln\!\Big(1 + \exp\big(\beta (T - v_j)\big)\Big)
+
+    with optional quadratic saturation terms for extreme cold/heat regimes.
+
+    Args:
+        feature_name (str): Input temperature column name.
+        heat_thresholds (Sequence[float] or str): Heating reference thresholds :math:`u_m`.
+            Defaults to ``(-0.2, 0.0)``.
+        cool_thresholds (Sequence[float] or str): Cooling reference thresholds :math:`v_j`.
+            Defaults to ``(0.3, 0.5)``.
+        sharpness (float): Softplus sharpness parameter :math:`\beta > 0`. Defaults to 10.0.
+        quad (bool): Whether to append saturated quadratic terms :math:`\operatorname{HDD}^2, \operatorname{CDD}^2`.
+            Defaults to True.
+        lambda_p (float): Regularization weight. Defaults to 1.0.
+        extrapolate (str): Extrapolation mode. Defaults to ``'continue'``.
+    """
+
+    def __init__(
+        self,
+        feature_name: str,
+        heat_thresholds: Union[Sequence[float], str, float] = (-0.2, 0.0),
+        cool_thresholds: Union[Sequence[float], str, float] = (0.3, 0.5),
+        sharpness: float = 10.0,
+        quad: bool = True,
+        lambda_p: float = 1.0,
+        extrapolate: str = "continue",
+    ):
+        super().__init__(feature_name, "degree_day", lambda_p, extrapolate)
+
+        # ascending: the penalty couples the hinges of one family in the order of their thresholds
+        self.heat_thresholds = tuple(sorted(_parse_float_sequence(heat_thresholds)))
+        self.cool_thresholds = tuple(sorted(_parse_float_sequence(cool_thresholds)))
+        self.sharpness = max(0.1, float(sharpness))
+        self.quad = bool(quad)
+
+        n_hinges = len(self.heat_thresholds) + len(self.cool_thresholds)
+        self._n_coeffs = 2 * n_hinges if self.quad else n_hinges
+
+    def summary_type(self) -> str:
+        """Returns effect type name for summary."""
+        return "DegreeDay"
+
+    def summary_details(self) -> str:
+        """Returns details string for model summary."""
+        return (
+            f"heat={self.heat_thresholds}, cool={self.cool_thresholds}, "
+            f"beta={self.sharpness}, quad={self.quad}"
+        )
+
+    def get_n_coeffs(self) -> int:
+        """Returns total number of basis coefficients."""
+        return self._n_coeffs
+
+#: <dd_feature_map>
+    def build_feature_map(self, x_col: torch.Tensor) -> torch.Tensor:
+        """Builds smooth softplus degree day columns."""
+        x_exp = x_col.unsqueeze(-1)
+        cols: List[torch.Tensor] = []
+
+        # Heating degree-day hinges: softplus(u - T, beta)
+        for u in self.heat_thresholds:
+            z = float(u) - x_exp
+            hdd = F.softplus(z, beta=self.sharpness)
+            cols.append(hdd)
+            if self.quad:
+                cols.append(hdd ** 2)
+
+        # Cooling degree-day hinges: softplus(T - v, beta)
+        for v in self.cool_thresholds:
+            z = x_exp - float(v)
+            cdd = F.softplus(z, beta=self.sharpness)
+            cols.append(cdd)
+            if self.quad:
+                cols.append(cdd ** 2)
+
+        return torch.cat(cols, dim=-1)
+#: </dd_feature_map>
+
+#: <dd_penalty_matrix>
+    def build_penalty_matrix(self) -> torch.Tensor:
+        r"""Builds the penalty: a ridge with the quadratic columns weighted 4, plus a first-difference coupling of the hinges of one family.
+
+        .. math::
+
+            P = \lambda\,\bigl(\operatorname{diag}(w) + D_1^\top D_1|_{\text{heating hinges}} + D_1^\top D_1|_{\text{cooling hinges}}\bigr),
+            \qquad w = 1 \text{ (hinge)},\; 4 \text{ (squared hinge)}
+
+        The coupling acts on the linear hinges ordered by threshold, inside each family only; with one threshold per side there is none.
+        """
+        n_coeffs = self.get_n_coeffs()
+        dtype = torch.get_default_dtype()
+        weights = torch.ones(n_coeffs, device=TORCH_DEVICE, dtype=dtype)
+        P = torch.zeros(n_coeffs, n_coeffs, device=TORCH_DEVICE, dtype=dtype)
+        step = 2 if self.quad else 1
+        position = 0
+        for count in (len(self.heat_thresholds), len(self.cool_thresholds)):
+            cols = [position + step * i for i in range(count)]
+            if self.quad:
+                for c in cols:
+                    weights[c + 1] = 4.0
+            if count > 1:
+                D1 = torch.diff(torch.eye(count, device=TORCH_DEVICE, dtype=dtype), n=1, dim=0)
+                C = D1.T @ D1
+                idx = torch.tensor(cols, device=TORCH_DEVICE)
+                P[idx.unsqueeze(1), idx.unsqueeze(0)] += C
+            position += step * count
+        P = P + torch.diag(weights)
+        return self.lambda_p * P
+#: </dd_penalty_matrix>
+
+
+# Same class under the name of its formula token ``smooth_hinge``.
+SmoothHingeEffect = DegreeDayEffect

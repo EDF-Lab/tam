@@ -274,6 +274,13 @@ Different physical phenomena require different mathematical topologies. TAM flat
 
 ---
 
+### [Smooth Degree Days (`dd` / `hdd_cdd`)](math/spectrum/DEGREE_DAY.md) (BETA)
+
+  * **Syntax:** `dd(temperature, t_heat=15.0, t_cool=22.0, sharpness=5.0, quad=False)`
+  * **Mapping & Penalty:** Smooth $C^\infty$ softplus heating/cooling degree-day ramps with optional quadratic cold saturation; [Architecture](architecture/spectrum/DEGREE_DAY.md).
+
+---
+
 ## 📊 Benchmark Proof: The Power of Topology & Meta-Learning
 
 *(To reproduce these results, execute `python use_cases/cheatsheet.py` located in the repository, note: results of BETA/EXP modules may differ, timing depends on the hardware configuration).*

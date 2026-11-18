@@ -33,7 +33,7 @@ from._pid import PIDEffect
 from ._signature import SignatureEffect
 from ._single_index import SingleIndexEffect
 from ._kan import KANEffect
-from ._inertia import InertiaEffect, ThermalInertiaEffect
+from ._inertia import InertiaEffect, ThermalInertiaEffect, DegreeDayEffect
 from tam.common.utils import parse_formula_to_terms
 
 #: <create_effects>
@@ -434,6 +434,25 @@ def create_effects_from_parsed_terms(
             ))
         #: </parse_inertia>
 
+        #: <parse_hdd_cdd>
+        elif ttype in ('hdd_cdd', 'dd', 'smooth_hinge', 'degreeday', 'degree_day'):
+            heat_raw = params_resolved.get('heat_thresholds', params_resolved.get('heat', (-0.2, 0.0)))
+            cool_raw = params_resolved.get('cool_thresholds', params_resolved.get('cool', (0.3, 0.5)))
+            sharpness = float(params_resolved.get('sharpness', params_resolved.get('beta', 10.0)))
+            quad_raw = params_resolved.get('quad', True)
+            quad = _as_bool(quad_raw)
+            extrap_val = params_resolved.get('extrapolate', 'continue')
+            effects_list.append(DegreeDayEffect(
+                feature_name=feature_name,
+                heat_thresholds=heat_raw,
+                cool_thresholds=cool_raw,
+                sharpness=sharpness,
+                quad=quad,
+                lambda_p=lambda_p,
+                extrapolate=extrap_val,
+            ))
+        #: </parse_hdd_cdd>
+
         else:
             raise ValueError(f"Unknown effect type identifier: '{ttype}'")
             
@@ -670,6 +689,8 @@ def extrapolating_features(effects_list: List[BaseEffect]) -> set:
         elif isinstance(effect, KANEffect):
             names.update(getattr(effect, 'input_features', None) or [effect.feature_name])
         elif isinstance(effect, InertiaEffect):
+            names.update(getattr(effect, 'input_features', None) or [effect.feature_name])
+        elif isinstance(effect, DegreeDayEffect):
             names.update(getattr(effect, 'input_features', None) or [effect.feature_name])
 
     for effect in effects_list:
