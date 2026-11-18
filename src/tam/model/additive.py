@@ -25,7 +25,7 @@ from tam.common.utils import (
     _ensure_dummies, _cleanup_dummies
 )
 from tam.common.exceptions import warn_extrapolation, EXTRAPOLATION_TOLERANCE
-from ._base import BaseTAM
+from ._base import BaseTAM, _index_state
 from .safety import SafetyTAM
 from ._data import (
     _resolve_fixed_ranges,
@@ -309,7 +309,7 @@ class StaticTAM(BaseTAM):
     def _model_scale_prediction(self, data: pd.DataFrame) -> np.ndarray:
         return BaseTAM.predict(self, data)[f"Estimated{self.target_col_}"].to_numpy(dtype=float, copy=True)
 
-    def predict(self, data: pd.DataFrame) -> pd.DataFrame:
+    def predict(self, data: pd.DataFrame, continue_state: bool = False) -> pd.DataFrame:
         """Predict, mapping GLM losses back to the mean scale via the inverse link.
 
         For loss='l2' and the identity-link M-estimators (expectile / huber / student_t) the base
@@ -326,7 +326,11 @@ class StaticTAM(BaseTAM):
                 "This is a mixture StaticTAM; use predict_mean(), component_means(), "
                 "responsibilities() or anomaly_score() instead of predict()."
             )
-        predicted = super().predict(data)
+        self._active_state_in_ = getattr(self, '_effect_states_', None) if continue_state else None
+        try:
+            predicted = super().predict(data)
+        finally:
+            self._active_state_in_ = None
         strategy = getattr(self, "_reweighting_strategy_", None)
         if strategy is not None and getattr(strategy, "is_glm", False):
             estimated_column = f"Estimated{self.target_col_}"
@@ -769,7 +773,10 @@ class StaticTAM(BaseTAM):
     def _build_design_matrix(self, x_data: torch.Tensor) -> torch.Tensor:
         """Builds the global design matrix."""
         feature_names = self.features_config_['features'] if self.features_config_ else None
-        return build_phi_from_effects(x_data, self.effects_list_, feature_columns=feature_names)
+        state_in = getattr(self, '_active_state_in_', None)
+        if state_in is not None and getattr(self, "_state_chunk_", None) is not None:
+            state_in = {i: _index_state(s, self._state_chunk_) for i, s in state_in.items()}
+        return build_phi_from_effects(x_data, self.effects_list_, feature_columns=feature_names, state_in=state_in)
 
     def _build_penalty_matrix(self) -> torch.Tensor:
         """Builds the global penalty matrix."""
@@ -1084,6 +1091,7 @@ class StaticTAM(BaseTAM):
             model.norm_params_ = temp_model.norm_params_
             model._vocabulary_ = getattr(temp_model, "_vocabulary_", {})
             model.unique_groups_ = unique_groups
+            model._effect_states_ = model._collect_effect_states(x_train)
             model._offset_features_ = list(getattr(self, "_offset_features_", []))
             if self._transform_active():
                 model._plain_params_ = self._plain_params_
@@ -1246,6 +1254,7 @@ class StaticTAM(BaseTAM):
                     label = effect.feature_name if len(values) == 1 else f"{effect.feature_name}#{part + 1}"
                     print(f" - {label}: {value:.2e} (log10 = {np.log10(value):.2f})")
 
+        self._effect_states_ = self._collect_effect_states(x_train)
         if self._transform_active():
             self._finish_transform_fit(transformed_train)
         return self

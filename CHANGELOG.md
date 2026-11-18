@@ -15,6 +15,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > **[0.0.6]** corresponds to the legacy `weakl` package available on PyPI.
 
 ---
+## [Unreleased]
+
+### Added
+- Added opt-in causal state continuation (`state_in` / `continue_state=True`) in `BaseTAM`, `StaticTAM`, and `build_phi_from_effects`.
+
 ## [1.5.1] - 2026-11-09
 
 Patch release, tagged on the repository (no package upload). It carries the hierarchical group axis merged after 1.5.0, a fix of the Kalman filter on missing targets and of the memory budget of the group chunks, and a wider CI. A series without missing targets, and a panel that fits in memory, give the same forecasts as 1.5.0.

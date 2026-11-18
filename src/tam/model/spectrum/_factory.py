@@ -627,10 +627,12 @@ def build_phi_from_effects(
     x_data: torch.Tensor,
     effects_list: List[BaseEffect],
     feature_columns: Optional[List[str]] = None,
-    return_components: bool = False
+    return_components: bool = False,
+    state_in: Optional[Dict[int, Any]] = None
 ) -> torch.Tensor:
     """
     Constructs the global Design Matrix by concatenating effect feature maps.
+    Optionally forwards per-effect causal continuation states `state_in[i]`.
     """
     if feature_columns is None:
         feature_columns = _infer_feature_columns(effects_list)
@@ -639,7 +641,8 @@ def build_phi_from_effects(
     col_idx = 0
     name_to_idx = {name: i for i, name in enumerate(feature_columns)} if feature_columns else None
     
-    for effect in effects_list:
+    for eff_idx, effect in enumerate(effects_list):
+        eff_state = None if state_in is None else state_in.get(eff_idx, None)
         if isinstance(effect, OffsetEffect):
             phi_components.append(effect.transform(x_data))
             
@@ -658,7 +661,7 @@ def build_phi_from_effects(
                 x_cols = x_data[..., col_idx : col_idx + n_inputs]
                 col_idx += n_inputs
             
-            phi_components.append(effect.transform(x_cols))
+            phi_components.append(effect.transform(x_cols, state_in=eff_state))
             
         else:
             if name_to_idx:
@@ -672,7 +675,7 @@ def build_phi_from_effects(
                 x_col = x_data[..., col_idx]
                 col_idx += 1
             
-            phi_components.append(effect.transform(x_col))
+            phi_components.append(effect.transform(x_col, state_in=eff_state))
             
     if return_components:
         return phi_components

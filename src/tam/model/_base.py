@@ -27,6 +27,25 @@ from ._dispatcher import smart_solve
 # Outer refits of the means when a family estimates a dispersion (negative binomial): it converges in a few.
 _DISPERSION_REFITS = 10
 
+def _concat_states(states: list):
+    r"""Concatenates the per-chunk states of one effect along the group axis (tensors and nested dicts; other values: the last chunk's)."""
+    first = states[0]
+    if isinstance(first, dict):
+        return {k: _concat_states([s[k] for s in states]) for k in first}
+    if torch.is_tensor(first) and first.dim() > 0:
+        return torch.cat(states, dim=0)
+    return states[-1]
+
+
+def _index_state(state, index):
+    r"""The rows ``index`` (a slice or an index tensor) along the group axis of a state."""
+    if isinstance(state, dict):
+        return {k: _index_state(v, index) for k, v in state.items()}
+    if torch.is_tensor(state) and state.dim() > 0:
+        return state[index]
+    return state
+
+
 #: <class_def>
 class BaseTAM(ABC):
     r"""
@@ -120,6 +139,7 @@ class BaseTAM(ABC):
         
         # Build a minimal dummy matrix to gauge memory footprint
         dummy_x = x_data[0:1, 0:1, :].to(run_device)
+        self._state_chunk_ = slice(0, 1)
         dummy_phi = self._build_design_matrix(dummy_x)
         total_d = dummy_phi.shape[-1]
         del dummy_x, dummy_phi
@@ -140,6 +160,7 @@ class BaseTAM(ABC):
             
             try:
                 x_chunk = x_data[g_start:g_end, :, :].to(run_device)
+                self._state_chunk_ = slice(g_start, g_end)
                 phi_chunk = self._build_design_matrix(x_chunk)
                 
                 beta_chunk = beta[g_start:g_end] 
@@ -165,6 +186,7 @@ class BaseTAM(ABC):
                 else:
                     raise RuntimeError("A single full group exceeds available physical memory during prediction.")
                     
+        self._state_chunk_ = None
         del beta
         hw.empty_cache()
         return torch.cat(predictions, dim=0)
@@ -294,9 +316,37 @@ class BaseTAM(ABC):
             if not bool(torch.isfinite(weights).all()) or bool((weights < 0).any()) or not bool((weights > 0).any()):
                 raise ValueError(f"The observation weights in '{weight_column}' must be finite, non-negative and not all zero.")
         self._solve_prepared(x_train, y_train, weights)
+        self._effect_states_ = self._collect_effect_states(x_train)
 
         return self
 #: </fit_method>
+
+    def _group_chunks(self, x_data: torch.Tensor) -> List[slice]:
+        r"""Slices of groups that fit in memory together when the design matrix is built (the rule of the chunked prediction)."""
+        total_groups, num_samples = x_data.shape[0], x_data.shape[1]
+        total_d = max(1, sum(int(e.get_n_coeffs()) for e in (self.effects_list_ or [])))
+        allocatable_bytes = hw.get_available_memory() * 0.8
+        batch = max(1, int(allocatable_bytes // (num_samples * total_d * 8 * 3.0)))
+        return [slice(start, min(start + batch, total_groups)) for start in range(0, total_groups, batch)]
+
+    def _collect_effect_states(self, x_data: torch.Tensor) -> Dict[int, Dict]:
+        r"""End-of-training causal state of every stateful effect, one row per group (training group order).
+
+        The design matrix is built chunk by chunk (every chunk sets the ``_state_out`` of the stateful effects for its own
+        groups); the states of the chunks are concatenated along the group axis. Returns ``{}`` when no effect is stateful, so the
+        default path costs nothing.
+        """
+        stateful = [(i, e) for i, e in enumerate(self.effects_list_ or []) if getattr(e, "stateful", False) or hasattr(e, "_state_out")]
+        if not stateful:
+            return {}
+        parts: Dict[int, list] = {i: [] for i, _ in stateful}
+        for chunk in self._group_chunks(x_data):
+            self._build_design_matrix(x_data[chunk])
+            for i, e in stateful:
+                state = getattr(e, "_state_out", None)
+                if state is not None:
+                    parts[i].append(state)
+        return {i: _concat_states(states) for i, states in parts.items() if states}
 
     def compact(self) -> 'BaseTAM':
         r"""
@@ -349,6 +399,16 @@ class BaseTAM(ABC):
         
         if self.unique_groups_ is None:
              raise RuntimeError("Training groups not found. Model state is corrupted.")
+
+        carried = getattr(self, "_active_state_in_", None)
+        if carried is not None:
+            trained = list(self.unique_groups_)
+            predicted = list(unique_groups_pred)
+            if set(map(str, trained)) != set(map(str, predicted)):
+                raise ValueError(f"continue_state=True needs the same groups as training: got {len(predicted)} groups, trained on {len(trained)}")
+            position = {str(g): j for j, g in enumerate(trained)}
+            order = torch.tensor([position[str(g)] for g in predicted], dtype=torch.long)
+            self._active_state_in_ = {i: _index_state(s, order) for i, s in carried.items()}
 
         #  Prediction
         predictions_stacked = self._get_chunked_predictions(
