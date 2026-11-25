@@ -57,3 +57,29 @@ def test_spline_knot_cache_reused(normalized):
     # A second call must reuse the cached knot vector rather than recomputing it.
     effect.build_feature_map(normalized(2, 6, seed=999))
     assert effect._cached_knots is cached
+
+
+def test_spline_bsplvb_active_span_matches_dense_and_ood_scale():
+    effect = SplineEffect("x", n_knots=18, spline_degree=3, penalty_order=2, lambda_p=1.0, extrapolate="linear")
+    x = torch.linspace(-1.0, 1.0, 15000, device=TORCH_DEVICE, dtype=torch.get_default_dtype()).unsqueeze(0)
+    knots = effect._get_knots(x).to(device=x.device, dtype=x.dtype)
+    assert x.numel() * knots.numel() >= 262144
+
+    via_dispatch = effect._cox_de_boor(x, knots, 3)
+    x_exp = x.unsqueeze(-1)
+    x_c = torch.clamp(x_exp, min=knots[3], max=knots[-4] - 1e-6)
+    dense = ((x_c >= knots[:-1]) & (x_c < knots[1:])).to(x.dtype)
+    for d in range(1, 4):
+        dt_l = knots[d:-1] - knots[:-d - 1]
+        inv_l = torch.where(dt_l > 1e-8, 1.0 / dt_l.clamp_min(1e-8), torch.zeros_like(dt_l))
+        dt_r = knots[d + 1:] - knots[1:-d]
+        inv_r = torch.where(dt_r > 1e-8, 1.0 / dt_r.clamp_min(1e-8), torch.zeros_like(dt_r))
+        dense = ((x_c - knots[:-d - 1]) * inv_l) * dense[..., :-1] + ((knots[d + 1:] - x_c) * inv_r) * dense[..., 1:]
+
+    assert torch.allclose(via_dispatch, dense, atol=1e-12, rtol=1e-12)
+    assert effect._ood_slope_scale() == 1.0
+    effect._reml_fitted = True
+    assert abs(effect._ood_slope_scale() - 2.0 / 3.0) < 1e-12
+    linear_ord = SplineEffect("x", n_knots=8, spline_degree=1, penalty_order=1, lambda_p=1.0, extrapolate="linear")
+    linear_ord._reml_fitted = True
+    assert linear_ord._ood_slope_scale() == 1.0

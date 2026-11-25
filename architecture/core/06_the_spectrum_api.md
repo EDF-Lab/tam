@@ -128,6 +128,20 @@ Constructs the structural penalty natively using consecutive finite difference m
 :end-before: "#: </penalty_matrix>"
 ```
 
+**Matrix-free evaluation.** When the grid is large (`n_panels >= 4` and `T * len(knots) >= 4096`) the basis is evaluated on the active knot span only, with the `degree + 1` non-zero functions per row (`O(T k^2)`, independent of the number of knots); the knot tables are cached per device and dtype, and repeated inputs are evaluated once (`eval_1d_dedup`). `contract_coefficients` multiplies these `degree + 1` weights directly with the matching coefficients, so a prediction never allocates the `(G, T, K)` design; `contract_batched_splines` does the same for several splines of the same degree and size in one pass. Fixed-penalty fits give the same numbers as the dense evaluation (checked to `1e-12` in `tests/spectrum/test_spline.py`).
+```{literalinclude} ../../../../src/tam/model/spectrum/_spline.py
+:language: python
+:start-after: "#: <contract_coefficients>"
+:end-before: "#: </contract_coefficients>"
+```
+
+**REML edge slope.** For a spline fitted with `auto_fit(criterion="reml")` the outward slope of `'linear'` and `'saturation'` extrapolation is multiplied by `2 / spline_degree` (degree 2 or more, penalty order 2 or more, not inside `te(...)`); the scale is read through `BaseEffect._ood_slope_scale` (1 for every other effect) by the extrapolation wrapper and by the contraction above. See [the edge slope of a clamped spline](../../math/spectrum/SPLINES.md).
+```{literalinclude} ../../../../src/tam/model/spectrum/_spline.py
+:language: python
+:start-after: "#: <ood_slope_scale>"
+:end-before: "#: </ood_slope_scale>"
+```
+
 **Extrapolation (verified by `tests/test_parameters_with_effect.py`).** The B-spline basis is held at its edge value outside the knot range, so `extrapolate='continue'` and `'constant'` give the same forecast for a spline; `'linear'` (the default of `s()`) extends the edge slope and can be far from both on a trending input, and `'saturation'` is a damped version of it.
 
 ---

@@ -15,6 +15,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > **[0.0.6]** corresponds to the legacy `weakl` package available on PyPI.
 
 ---
+## [Unreleased]
+
+### Changed
+- `SplineEffect` evaluates its B-spline basis on the active knot span only (`O(T k^2)`, independent of the number of knots), caches knot tables per device, and contracts coefficients without building the `(G, T, K)` design (`contract_coefficients`, `contract_batched_splines`); fixed-penalty fits are unchanged. Predictions can differ from 1.6.1 by about 1e-9 of the standard deviation of the target, from the summation order.
+- REML-fitted splines scale the outward slope of `linear` and `saturation` extrapolation by `2 / degree` (Greville boundary spacing of clamped knots); in-range predictions and fixed-penalty models are unchanged.
+
+---
 ## [1.6.1] - 2026-11-18
 
 ### Added
