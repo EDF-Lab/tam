@@ -28,7 +28,7 @@ from .model.statistics import (
 from .evaluation.tracker import BenchmarkTracker
 from .common.plotting import plot_component
 
-__version__ = "1.6.1"
+__version__ = "1.6.2"
 
 __all__ = [
     "StaticTAM",
