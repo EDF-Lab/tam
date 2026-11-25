@@ -17,7 +17,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ---
 ## [Unreleased]
 
+### Added
+- `reml_objective(..., compute_hess=True, hess_out=...)` returns the analytic Hessian of the REML criterion in `log(lambda)` (exact for the working system held fixed, known and unknown scale, any number of groups). `auto_fit(criterion="reml")` records `reml_stop_reason_` (`newton_ok`, `newton_bounds` or `newton_step_limit`) and `reml_iterations_` (one entry per reweighting pass for a GLM loss).
+
 ### Changed
+- `auto_fit(criterion="reml")` is much faster: the search on `log(lambda)` is a few clamped fixed-point steps followed by a safeguarded Newton search with the analytic Hessian (flat and bound coordinates are set aside, the step is a modified Newton step, the search stops on the exact Newton decrement) in place of L-BFGS-B; block-wise penalty determinants, shifted trace-ratio starting points screened in one batched float64 Cholesky, reuse of the design and of the penalty basis across reweighting passes, joint refit of the dispersion for GLM losses, a unit-mean penalised-deviance line search and a safeguarded Anderson window of 3 in the warm-started reweighted passes. Fixed-penalty fits (cold start) are unchanged. Reweighted GLM fits, and the distributional and conformal quantiles built on them, can move by up to about 6e-6 of the standard deviation of the target (within the iteration tolerance); held-out errors are unchanged.
+- Covariances are formed from a structured design (one-hot and `te(smooth, cat)` blocks), once for group-invariant effects, and in row tiles for stateless designs too large for memory; categorical and tensor margins are cached across `te()` terms; data ingestion reads columns of NumPy arrays or Polars-like frames without copying (Polars stays optional).
 - `SplineEffect` evaluates its B-spline basis on the active knot span only (`O(T k^2)`, independent of the number of knots), caches knot tables per device, and contracts coefficients without building the `(G, T, K)` design (`contract_coefficients`, `contract_batched_splines`); fixed-penalty fits are unchanged. Predictions can differ from 1.6.1 by about 1e-9 of the standard deviation of the target, from the summation order.
 - REML-fitted splines scale the outward slope of `linear` and `saturation` extrapolation by `2 / degree` (Greville boundary spacing of clamped knots); in-range predictions and fixed-penalty models are unchanged.
 

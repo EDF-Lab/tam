@@ -18,6 +18,24 @@ By utilizing `torch.mT` (batched matrix transpose) and the `@` operator, PyTorch
 :end-before: "#: </weighted_cov>"
 ```
 
+## Structured Designs and Streaming Covariances
+
+Most of the columns of a large model are not dense: a categorical effect is a one-hot block, `te(smooth, cat)` repeats a smooth basis per level. `_StructuredDesign` (used when at least half of the columns are of these kinds and `D >= 40`) keeps such a model as its dense columns plus the row index of each sparse block, and returns the exact `cov_X`, `cov_XY` and `y_sq` (and the linear predictor) from `bincount`-style contractions, so the `T x D` matrix is never formed. `try_build` returns `None` for any model it cannot represent exactly, and the dense path above is used.
+
+```{literalinclude} ../../../../src/tam/model/_math.py
+:language: python
+:start-after: "#: <structured_design>"
+:end-before: "#: </structured_design>"
+:lines: 1-2
+```
+
+When the model has several groups, `_try_group_split_covariances` evaluates the effects that do not depend on the group once on the first group instead of `G` times (`G >= 2`), and `_streamed_weighted_covariances` accumulates `Phi' W Phi` over row tiles of 4096 for row-wise stateless designs (every effect evaluates each row on its own, checked by `_is_rowwise_stateless_effects`) when the dense design would not fit.
+
+```{literalinclude} ../../../../src/tam/model/_math.py
+:language: python
+:pyobject: _streamed_weighted_covariances
+```
+
 ## Direct Solvers and the Jitter Application
 
 When the topological complexity (the feature dimension $D$) is small enough to fit safely in VRAM, the orchestrator routes the problem to the `solve_linear_system` function, which utilizes exact direct inversion via `torch.linalg.solve` {cite:p}`golub1996matrix`.

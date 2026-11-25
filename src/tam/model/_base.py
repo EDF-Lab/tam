@@ -136,20 +136,27 @@ class BaseTAM(ABC):
         total_groups = x_data.shape[0]
         num_samples = x_data.shape[1]
         run_device = TORCH_DEVICE
-        
-        # Build a minimal dummy matrix to gauge memory footprint
-        dummy_x = x_data[0:1, 0:1, :].to(run_device)
-        self._state_chunk_ = slice(0, 1)
-        dummy_phi = self._build_design_matrix(dummy_x)
-        total_d = dummy_phi.shape[-1]
-        del dummy_x, dummy_phi
-        
-        available_bytes = hw.get_available_memory()
-        allocatable_bytes = available_bytes * 0.8
-        bytes_per_group_full_n = num_samples * total_d * 8 * 3.0 
-        safe_group_batch = max(1, int(allocatable_bytes // bytes_per_group_full_n)) if bytes_per_group_full_n > 0 else 1
-        
+
         coefficients = self.coefficients_ if coefficients is None else coefficients
+        if total_groups <= 1:
+            safe_group_batch = 1
+        else:
+            if coefficients is not None and coefficients.dim() >= 2:
+                total_d = int(coefficients.shape[1])
+            elif coefficients is not None:
+                total_d = int(coefficients.shape[-1])
+            else:
+                dummy_x = x_data[0:1, 0:1, :].to(run_device)
+                self._state_chunk_ = slice(0, 1)
+                dummy_phi = self._build_design_matrix(dummy_x)
+                total_d = dummy_phi.shape[-1]
+                del dummy_x, dummy_phi
+
+            available_bytes = hw.get_available_memory()
+            allocatable_bytes = available_bytes * 0.8
+            bytes_per_group_full_n = num_samples * total_d * 8 * 3.0
+            safe_group_batch = max(1, int(allocatable_bytes // bytes_per_group_full_n)) if bytes_per_group_full_n > 0 else 1
+
         beta = coefficients.to(run_device)
         predictions = []
         g_start = 0
@@ -161,16 +168,14 @@ class BaseTAM(ABC):
             try:
                 x_chunk = x_data[g_start:g_end, :, :].to(run_device)
                 self._state_chunk_ = slice(g_start, g_end)
-                phi_chunk = self._build_design_matrix(x_chunk)
-                
-                beta_chunk = beta[g_start:g_end] 
-                y_hat_chunk = _predict_from_coeffs(phi_chunk, beta_chunk)
+                beta_chunk = beta[g_start:g_end]
+                y_hat_chunk = self._predict_chunk_from_x(x_chunk, beta_chunk)
                 offset_chunk = self._offset_of(x_chunk)
                 if offset_chunk is not None:
                     y_hat_chunk = y_hat_chunk + offset_chunk.to(device=y_hat_chunk.device, dtype=y_hat_chunk.dtype)
                 predictions.append(y_hat_chunk.cpu())
-                
-                del x_chunk, phi_chunk, y_hat_chunk, beta_chunk
+
+                del x_chunk, y_hat_chunk, beta_chunk
                 g_start += current_sub_batch_size
                 
             except (torch.OutOfMemoryError, MemoryError):
@@ -231,11 +236,24 @@ class BaseTAM(ABC):
         )
 #: </pwls_atom>
 
+    def _predict_chunk_from_x(self, x_chunk: torch.Tensor, beta_chunk: torch.Tensor) -> torch.Tensor:
+        r"""Evaluates ``Phi(x_chunk) @ beta_chunk`` for one group chunk (overridden by StaticTAM for streamed contraction)."""
+        phi_chunk = self._build_design_matrix(x_chunk)
+        return _predict_from_coeffs(phi_chunk, beta_chunk)
+
     def _stacked_column(self, data: pd.DataFrame, column: str) -> torch.Tensor:
         r"""A column of ``data`` stacked like the target (same groups, same order): shape (n_groups, n_samples, 1)."""
         raise NotImplementedError
 
-    def _solve_prepared(self, x_train: torch.Tensor, y_train: torch.Tensor, weights: Optional[torch.Tensor] = None) -> None:
+    def _solve_prepared(
+        self,
+        x_train: torch.Tensor,
+        y_train: torch.Tensor,
+        weights: Optional[torch.Tensor] = None,
+        design_matrix: Optional[torch.Tensor] = None,
+        initial_theta: Optional[torch.Tensor] = None,
+        max_dispersion_refits: int = _DISPERSION_REFITS,
+    ) -> None:
         r"""Solves the coefficients on prepared tensors: one exact solve for ``l2`` (weighted when ``weights`` is given), else the reweighted loop (and the dispersion refits)."""
         reweighting_strategy = getattr(self, "_reweighting_strategy_", None)
         if reweighting_strategy is None:
@@ -248,18 +266,35 @@ class BaseTAM(ABC):
             if validate is not None:
                 validate(y_train)
             irls = dict(max_iter=getattr(self, "_irls_max_iter_", 25), tol=getattr(self, "_irls_tol_", 1e-6))
-            design_matrix = dense_design(self, x_train)  # built once, shared by every pass and every dispersion refit
-            self.coefficients_ = reweighted_penalized_fit(self, x_train, y_train, reweighting_strategy, design_matrix=design_matrix, **irls)
+            if design_matrix is None:
+                design_matrix = dense_design(self, x_train)  # built once, shared by every pass and every dispersion refit
+            self.coefficients_ = reweighted_penalized_fit(
+                self,
+                x_train,
+                y_train,
+                reweighting_strategy,
+                design_matrix=design_matrix,
+                initial_theta=initial_theta,
+                **irls,
+            )
             # A family with a dispersion (negative binomial, Tweedie) estimates it from the fitted means and refits the means
             # with the new variance until it stops moving.
             estimate = getattr(reweighting_strategy, "estimate_dispersion", None)
             if estimate is not None:
                 y_fit = y_train.to(torch.get_default_dtype())
-                for _ in range(_DISPERSION_REFITS):
+                for _ in range(max_dispersion_refits):
                     mean = reweighting_strategy.inverse_link(_linear_predictor(self, x_train, self.coefficients_, design_matrix))
                     if not estimate(y_fit, mean):
                         break
-                    self.coefficients_ = reweighted_penalized_fit(self, x_train, y_train, reweighting_strategy, design_matrix=design_matrix, **irls)
+                    self.coefficients_ = reweighted_penalized_fit(
+                        self,
+                        x_train,
+                        y_train,
+                        reweighting_strategy,
+                        design_matrix=design_matrix,
+                        initial_theta=self.coefficients_,
+                        **irls,
+                    )
         self.dispersion_ = getattr(reweighting_strategy, "dispersion", None)
 
 #: <fit_method>

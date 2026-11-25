@@ -353,6 +353,9 @@ def _balance_groups(
     if dataset.empty:
         return pd.Series(dtype=bool), dataset.copy()
 
+    if group_col == "__dummy_group__" and "__dummy_group__" in dataset.columns:
+        return pd.Series(True, index=dataset.index), dataset.copy()
+
     group_counts = dataset[group_col].value_counts()
     
     if group_counts.empty:
@@ -369,41 +372,60 @@ def _balance_groups(
         return mask, balanced_df.copy()
 
     if method == 'fill':
-        rows_to_add = []
         groups_to_fill = group_counts[group_counts < max_count].index
+        if len(groups_to_fill) == 0:
+            return pd.Series(True, index=dataset.index), dataset.copy()
 
-        if len(dataset) > 1 and dataset[date_col].max() != dataset[date_col].min():
-            delta = (dataset[date_col].max() - dataset[date_col].min()) / len(dataset)
+        date_ser = dataset[date_col]
+        date_min = date_ser.min()
+        date_max = date_ser.max()
+        if len(dataset) > 1 and date_max != date_min:
+            delta = (date_max - date_min) / len(dataset)
         else:
             delta = pd.Timedelta(1, unit="D")
-            
-        fake_date = dataset[date_col].max() + delta
 
+        fake_date = date_max + delta
+        grouped_indices = dataset.groupby(group_col, sort=False).indices
+        has_na = bool(date_ser.isna().any())
+        if not has_na and pd.api.types.is_datetime64_any_dtype(date_ser):
+            date_arr = pd.Index(date_ser).asi8
+        elif not has_na and pd.api.types.is_numeric_dtype(date_ser):
+            date_arr = date_ser.to_numpy(copy=False)
+        else:
+            date_arr = None
+
+        all_positions = []
+        all_dates = []
         for value in groups_to_fill:
-            num_missing = max_count - group_counts[value]
-            
-            group_df = dataset[dataset[group_col] == value]
-            if group_df.empty: 
+            pos = grouped_indices.get(value)
+            if pos is None or len(pos) == 0:
                 continue
-            
-            last_row = group_df.sort_values(date_col).iloc[-1:].copy()
-            
+            num_missing = int(max_count - group_counts[value])
+
+            if date_arr is not None:
+                d_g = date_arr[pos]
+                last_pos = int(pos[len(pos) - 1 - int(np.argmax(d_g[::-1]))])
+            else:
+                df_g = pd.DataFrame({"__pos": pos, "__date": date_ser.iloc[pos].to_numpy()})
+                last_pos = int(df_g.sort_values("__date")["__pos"].iloc[-1])
+
+            all_positions.extend([last_pos] * num_missing)
             for _ in range(num_missing):
-                last_row[date_col] = fake_date
-                rows_to_add.append(last_row.copy())
+                all_dates.append(fake_date)
                 fake_date += delta
-        
-        if not rows_to_add:
+
+        if not all_positions:
             return pd.Series(True, index=dataset.index), dataset.copy()
-            
-        new_rows_df = pd.concat(rows_to_add, ignore_index=True)
+
+        new_rows_df = dataset.iloc[all_positions].reset_index(drop=True)
+        new_rows_df[date_col] = pd.Series(all_dates, index=new_rows_df.index)
         balanced_df = pd.concat([dataset, new_rows_df], ignore_index=True)
-        
+
         original_mask = pd.Series(True, index=dataset.index)
         new_mask = pd.Series(False, index=new_rows_df.index)
-        
+
         mask = pd.concat([original_mask, new_mask])
-        
+
         return mask.reset_index(drop=True), balanced_df.reset_index(drop=True)
 #: </balance>
 

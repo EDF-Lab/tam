@@ -72,13 +72,25 @@ class NegativeBinomialFamily(GLMFamily):
             return False
         observed = y.detach().cpu().numpy().ravel().astype(float)
         mean = np.clip(mu.detach().cpu().numpy().ravel().astype(float), _TINY, None)
+        pos_mask = observed > 0.0
+        obs_pos = observed[pos_mask]
+        n_obs = float(len(observed))
+        n_pos = float(len(obs_pos))
+        const_y_log_mu = float(np.sum(obs_pos * np.log(mean[pos_mask]))) if n_pos > 0 else 0.0
 
         def negative_log_likelihood(log_theta: float) -> float:
-            theta = np.exp(log_theta)
-            return -float(np.sum(
-                special.gammaln(observed + theta) - special.gammaln(theta)
-                + theta * np.log(theta / (theta + mean)) + observed * np.log(mean / (theta + mean))
-            ))
+            # Skip zero counts for gammaln because gammaln(0 + theta) - gammaln(theta) == 0 identically.
+            theta = float(np.exp(log_theta))
+            gamma_term = (
+                float(np.sum(special.gammaln(obs_pos + theta))) - n_pos * float(special.gammaln(theta))
+                if n_pos > 0 else 0.0
+            )
+            return -(
+                gamma_term
+                + n_obs * theta * log_theta
+                + const_y_log_mu
+                - float(np.sum((theta + observed) * np.log(theta + mean)))
+            )
 
         best = optimize.minimize_scalar(negative_log_likelihood, bounds=(-8.0, 12.0), method="bounded", options={"xatol": 1e-6})
         updated = float(np.exp(-best.x))

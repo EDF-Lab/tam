@@ -40,8 +40,8 @@ from ._data import (
 
 from ._dispatcher import smart_solve, smart_evaluate_rmse, smart_decompose
 from ._dispatcher_gcv import smart_solve_gcv
-from ._reml import smart_solve_reml
-from ._math import _ridge_floor
+from ._reml import smart_solve_reml, PenaltyBasis
+from ._math import _ridge_floor, _predict_from_components
 from tam.common.hardware import hw
 
 from .spectrum import (
@@ -552,10 +552,13 @@ class StaticTAM(BaseTAM):
         levels: Dict[str, int] = {}
         for col in self.features_config_.get('features', []):
             if col in data.columns and pd.api.types.is_numeric_dtype(data[col]):
-                info[col] = int(data[col].max(skipna=True)) + 1
-                codes = data[col].dropna()
-                if with_levels and len(codes) and bool((codes == np.round(codes)).all()):
-                    levels[col] = int(codes.nunique())
+                col_arr = data[col].to_numpy(dtype=np.float64, copy=False) if not isinstance(data[col].dtype, pd.api.extensions.ExtensionDtype) else data[col].to_numpy(dtype=np.float64, na_value=np.nan)
+                valid = col_arr[~np.isnan(col_arr)]
+                info[col] = int(np.max(valid)) + 1 if len(valid) > 0 else 0
+                if with_levels and len(valid):
+                    head = valid[:64]
+                    if bool(np.all(head == np.round(head))) and bool(np.all(valid == np.round(valid))):
+                        levels[col] = int(np.unique(valid).size)
         if with_levels:
             info['__levels__'] = levels
         return info
@@ -824,6 +827,18 @@ class StaticTAM(BaseTAM):
         if state_in is not None and getattr(self, "_state_chunk_", None) is not None:
             state_in = {i: _index_state(s, self._state_chunk_) for i, s in state_in.items()}
         return build_phi_from_effects(x_data, self.effects_list_, feature_columns=feature_names, state_in=state_in)
+
+    def _predict_chunk_from_x(self, x_chunk: torch.Tensor, beta_chunk: torch.Tensor) -> torch.Tensor:
+        """Streams Phi_j @ beta_j block-by-block without materializing the concatenated (G, T, D) design matrix."""
+        if type(self)._build_design_matrix is not StaticTAM._build_design_matrix or not self.effects_list_:
+            return super()._predict_chunk_from_x(x_chunk, beta_chunk)
+        feature_names = self.features_config_['features'] if self.features_config_ else None
+        state_in = getattr(self, "_active_state_in_", None)
+        if state_in is not None and getattr(self, "_state_chunk_", None) is not None:
+            state_in = {i: _index_state(s, self._state_chunk_) for i, s in state_in.items()}
+        return _predict_from_components(
+            x_chunk, beta_chunk, self.effects_list_, feature_columns=feature_names, state_in=state_in
+        )
 
     def _build_penalty_matrix(self) -> torch.Tensor:
         """Builds the global penalty matrix."""
@@ -1147,6 +1162,7 @@ class StaticTAM(BaseTAM):
             return model
 #: </grid_search_logic>
     
+#: <auto_fit_reweighted>
     def _auto_fit_reweighted(self, x_train, y_train, loss_L, alpha_p_bounds, number_of_steps, alpha_p_list, gamma, verbose, criterion="gcv"):
         """Working-weight GCV of a GLM loss: fit, score the working system, repeat until the smoothing parameters settle.
 
@@ -1154,25 +1170,56 @@ class StaticTAM(BaseTAM):
         weights w, and lets the GCV search choose the parameters of the weighted system (sqrt(w) Phi, sqrt(w) z). The final
         fit is the reweighted fit at the selected parameters, so ``coefficients_`` and ``dispersion_`` are those of ``fit()``.
         """
+        from .statistics.estimation._reweighting import dense_design
+
         strategy = self._reweighting_strategy_
+        design_matrix = dense_design(self, x_train)
+        reml_basis = PenaltyBasis(self.effects_list_) if criterion == "reml" else None
         previous = np.array([c for e in self.effects_list_ for c in e.penalty_coordinates()], dtype=np.float64)
         best_lambda_ps, gcv_score = previous, float("nan")
-        for _ in range(_GCV_REWEIGHTING_PASSES):
-            self._solve_prepared(x_train, y_train)
-            eta = _linear_predictor(self, x_train, self.coefficients_)
-            working_response, weights = strategy.working_response_and_weights(y_train.to(torch.get_default_dtype()), eta)
+        estimate = getattr(strategy, "estimate_dispersion", None)
+        y_fit = y_train.to(torch.get_default_dtype()) if estimate is not None else None
+        self._reml_pass_info_ = []
+        for pass_idx in range(_GCV_REWEIGHTING_PASSES):
+            self._solve_prepared(
+                x_train,
+                y_train,
+                design_matrix=design_matrix,
+                initial_theta=None if pass_idx == 0 else self.coefficients_,
+                max_dispersion_refits=0,
+            )
+            eta = _linear_predictor(self, x_train, self.coefficients_, design_matrix)
+            if estimate is not None:
+                estimate(y_fit, strategy.inverse_link(eta))
+                self.dispersion_ = getattr(strategy, "dispersion", None)
+            working_response, weights = strategy.working_response_and_weights(
+                y_train.to(device=eta.device, dtype=torch.get_default_dtype()), eta
+            )
             mean_weight = float(weights.mean())
             weights = weights / weights.mean().clamp_min(_TINY)
             offset = self._offset_of(x_train)
             if offset is not None:
-                working_response = working_response - offset.to(working_response.dtype)
+                working_response = working_response - offset.to(device=working_response.device, dtype=working_response.dtype)
             if criterion == "reml":
                 # Poisson, binomial and negative binomial have a known scale 1: after the unit-mean normalisation of the weights it is 1 / mean(w)
                 known = 1.0 / max(mean_weight, 1e-300) if getattr(strategy, "name", "") in ("poisson", "binomial", "negative_binomial") else None
+                pass_info: dict = {}
                 _, best_lambda_ps, gcv_score = smart_solve_reml(
-                    x_data=x_train, y_data=working_response, effects_list=self.effects_list_, loss_matrix=loss_L,
-                    alpha_p_bounds=alpha_p_bounds, alpha_p_list=alpha_p_list, sample_weights=weights, known_scale=known, verbose=verbose,
+                    x_data=x_train,
+                    y_data=working_response,
+                    effects_list=self.effects_list_,
+                    loss_matrix=loss_L,
+                    alpha_p_bounds=alpha_p_bounds,
+                    alpha_p_list=alpha_p_list,
+                    sample_weights=weights,
+                    known_scale=known,
+                    verbose=verbose,
+                    init_rho=None if pass_idx == 0 else np.log(np.maximum(previous, 1e-300)),
+                    design_matrix=design_matrix,
+                    basis=reml_basis,
+                    stop_info=pass_info,
                 )
+                self._reml_pass_info_.append(pass_info)
                 moved = float(np.max(np.abs(np.log10(best_lambda_ps) - np.log10(previous))))
                 previous = np.asarray(best_lambda_ps, dtype=np.float64)
                 if moved < _GCV_REWEIGHTING_TOL:
@@ -1194,8 +1241,10 @@ class StaticTAM(BaseTAM):
             previous = np.asarray(best_lambda_ps, dtype=np.float64)
             if moved < _GCV_REWEIGHTING_TOL:
                 break
-        self._solve_prepared(x_train, y_train)
+        final_warm = self.coefficients_ if (criterion == "reml" and alpha_p_list is None) else None
+        self._solve_prepared(x_train, y_train, design_matrix=design_matrix, initial_theta=final_warm)
         return best_lambda_ps, gcv_score
+#: </auto_fit_reweighted>
 
 #: <auto_fit>
     def auto_fit(
@@ -1206,7 +1255,7 @@ class StaticTAM(BaseTAM):
         alpha_p_list: Optional[List[float]] = None,
         gamma: float = 1.4,
         verbose: bool = False,
-        criterion: str = "gcv"
+        criterion: str = "gcv",
     ) -> 'StaticTAM':
         """
         Automatically trains the model by finding the optimal regularization per effect.
@@ -1227,9 +1276,9 @@ class StaticTAM(BaseTAM):
                    (typically 1.4 to 1.5) force smoother models, preventing GCV 
                    from overfitting when data has autocorrelated errors.
             verbose: print verbose details if True
-            criterion: ``"gcv"`` (default) or ``"reml"``. ``"reml"`` maximises the Laplace restricted marginal likelihood by L-BFGS on
-                log(lambda) (analytic gradient): less prone than GCV to undersmooth on autocorrelated or clustered data. ``gamma`` is not used.
-                The fitted model keeps ``smoothing_criterion_`` and, with ``"reml"``, ``reml_score_``.
+            criterion: ``"gcv"`` (default) or ``"reml"``. ``"reml"`` maximises the Laplace restricted marginal likelihood on log(lambda) by a few fixed-point steps and a safeguarded
+                Newton search with the analytic gradient and Hessian: less prone than GCV to undersmooth on autocorrelated or clustered data. ``gamma`` is not used.
+                The fitted model keeps ``smoothing_criterion_`` and, with ``"reml"``, ``reml_score_``, ``reml_stop_reason_`` (``newton_ok``, ``newton_bounds`` or ``newton_step_limit``, of the last pass) and ``reml_iterations_`` (per pass).
 
         Returns:
             self: The trained model instance with optimal lambda_ps applied.
@@ -1238,6 +1287,7 @@ class StaticTAM(BaseTAM):
             raise ValueError(f"criterion must be 'gcv' or 'reml'; got {criterion!r}")
         print(f"--- Auto-Fitting with MSP-{criterion.upper()} (Multiple Smoothing Parameters) ---")
         self.smoothing_criterion_, self.reml_score_ = criterion, None
+        self.reml_stop_reason_, self.reml_iterations_ = None, None
 
         data_train = self._transformed_frame(data_train, estimate=True)
         transformed_train = data_train
@@ -1258,6 +1308,7 @@ class StaticTAM(BaseTAM):
             )
         elif criterion == "reml":
             offset = self._offset_of(x_train)
+            stop_info: dict = {}
             self.coefficients_, best_lambda_ps, gcv_score = smart_solve_reml(
                 x_data=x_train,
                 y_data=y_train if offset is None else y_train - offset.to(y_train.dtype),
@@ -1266,7 +1317,9 @@ class StaticTAM(BaseTAM):
                 alpha_p_bounds=alpha_p_bounds,
                 alpha_p_list=alpha_p_list,
                 verbose=verbose,
+                stop_info=stop_info,
             )
+            self._reml_pass_info_ = [stop_info]
         else:
             offset = self._offset_of(x_train)
             self.coefficients_, best_lambda_ps, gcv_score = smart_solve_gcv(
@@ -1283,6 +1336,10 @@ class StaticTAM(BaseTAM):
         
         if criterion == "reml":
             self.reml_score_ = float(gcv_score)
+            passes = getattr(self, "_reml_pass_info_", None) or []
+            if passes:
+                self.reml_stop_reason_ = passes[-1].get("reason")
+                self.reml_iterations_ = [int(p.get("n_iter", 0)) for p in passes]
             print(f"\nFinal REML criterion: {gcv_score:.4f}")
         else:
             print(f"\nFinal GCV Score: {gcv_score:.4f}")

@@ -7,7 +7,7 @@ r"""Implements Tensor Product effects (Interactions)."""
 import numpy as np
 import torch
 import functools
-from typing import List, Optional
+from typing import Callable, Dict, List, Optional, Tuple
 from tam.common.utils import TORCH_DEVICE
 from ._base_effects import BaseEffect
 from ._categorical import CategoricalEffect
@@ -62,6 +62,8 @@ class TensorProductEffect(BaseEffect):
             lambda_p = 1.0
         super().__init__(name, "tensor_product", lambda_p, extrapolate)
         self.effects = effects
+        for margin in effects:
+            margin._in_tensor_product = True
         self._fold_weight = fold_weight
         if mode == "per_level":
             # one smoothing parameter of the smooth per level of the factor, all starting at the weight the formula gave the smooth
@@ -160,28 +162,168 @@ class TensorProductEffect(BaseEffect):
         
         Note: The factory ensures columns are correctly ordered/selected.
         """
-        #  Generate feature maps for each sub-effect
+        def _is_plain_cat(eff) -> bool:
+            return (
+                isinstance(eff, CategoricalEffect)
+                and eff.topology in ("nominal", "ordinal", "graph")
+                and eff.unseen in ("edge", "zero")
+                and (eff.extrapolate == "continue" or (eff.extrapolate == "constant" and eff.unseen == "edge"))
+                and eff.n_categories >= 2
+                and not getattr(eff, "orthogonalize", False)
+            )
+
+        last = self.effects[-1]
+        use_cat_tail = len(self.effects) >= 2 and _is_plain_cat(last)
+        first = self.effects[0]
+        use_cat_head = (not use_cat_tail) and len(self.effects) >= 2 and _is_plain_cat(first)
+
+        def _scatter_cat(phi_rest: torch.Tensor, x_cat: torch.Tensor, cat_eff: CategoricalEffect, head: bool) -> torch.Tensor:
+            n_cat = cat_eff.n_categories
+            x_indices = torch.round((x_cat + 1.0) / 2.0 * (n_cat - 1)).long()
+            x_safe = torch.clamp(x_indices, 0, n_cat - 1).to(device=phi_rest.device)
+            if cat_eff.unseen == "edge":
+                src = phi_rest
+            else:
+                known = ((x_indices >= 0) & (x_indices <= n_cat - 1)).to(device=phi_rest.device, dtype=phi_rest.dtype)
+                src = phi_rest * known.unsqueeze(-1)
+            d_rest = phi_rest.shape[-1]
+            if head:
+                out = torch.zeros((*phi_rest.shape[:-1], n_cat, d_rest), dtype=phi_rest.dtype, device=phi_rest.device)
+                idx = x_safe.unsqueeze(-1).unsqueeze(-1).expand(*phi_rest.shape[:-1], 1, d_rest)
+                out.scatter_(-2, idx, src.unsqueeze(-2))
+                return out.reshape(*phi_rest.shape[:-1], n_cat * d_rest)
+            out = torch.zeros((*phi_rest.shape, n_cat), dtype=phi_rest.dtype, device=phi_rest.device)
+            idx = x_safe.unsqueeze(-1).unsqueeze(-1).expand(*phi_rest.shape, 1)
+            out.scatter_(-1, idx, src.unsqueeze(-1))
+            return out.reshape(*phi_rest.shape[:-1], d_rest * n_cat)
+
+        if use_cat_head:
+            n_head_cols = len(first.required_features)
+            x_head = x_data[..., :n_head_cols]
+            x_head = x_head[..., 0] if first.topology == "graph" or n_head_cols == 1 else x_head.squeeze(-1)
+            phi_list = []
+            col_idx = n_head_cols
+            for effect in self.effects[1:]:
+                n_cols = len(effect.required_features)
+                x_cols = x_data[..., col_idx : col_idx + n_cols]
+                if n_cols == 1 and not effect.keeps_feature_dim:
+                    x_cols = x_cols.squeeze(-1)
+                phi_list.append(effect.transform(x_cols))
+                col_idx += n_cols
+            phi_rest = functools.reduce(self.kronecker_product_einsum, phi_list)
+            return _scatter_cat(phi_rest, x_head, first, head=True)
+
+        n_build = len(self.effects) - 1 if use_cat_tail else len(self.effects)
+
+        # Generate feature maps for each sub-effect
         phi_list = []
         col_idx = 0
-        for effect in self.effects:
+        for effect in self.effects[:n_build]:
             # Determine how many columns this sub-effect needs
             n_cols = len(effect.required_features)
 
             # Slice the exact number of columns required
             x_cols = x_data[..., col_idx : col_idx + n_cols]
-            
-            # Only squeeze the tensor for legacy 1D math effects. 
+
+            # Only squeeze the tensor for legacy 1D math effects.
             # Spatial kernels strictly require the feature dimension to remain intact.
             if n_cols == 1 and not effect.keeps_feature_dim:
                 x_cols = x_cols.squeeze(-1)
-                
+
             phi_list.append(effect.transform(x_cols))
             col_idx += n_cols
 
         # Reduce the list of tensors into a single tensor
         phi_cross = functools.reduce(self.kronecker_product_einsum, phi_list)
-        
-        return phi_cross
+        if not use_cat_tail:
+            return phi_cross
+
+        n_last_cols = len(last.required_features)
+        x_last = x_data[..., col_idx : col_idx + n_last_cols]
+        x_last = x_last[..., 0] if last.topology == "graph" or n_last_cols == 1 else x_last.squeeze(-1)
+        return _scatter_cat(phi_cross, x_last, last, head=False)
+
+    def _eval_with_cache(
+        self,
+        x_data: torch.Tensor,
+        col_indices: Optional[Tuple[int, ...]] = None,
+        margin_cache: Optional[Dict] = None,
+        eval_margin_fn: Optional[Callable[[BaseEffect, torch.Tensor, Optional[Tuple[int, ...]], Optional[Dict]], torch.Tensor]] = None,
+    ) -> torch.Tensor:
+        r"""Evaluates ``transform(x_data)`` while reusing identical stateless margin evaluations across ``te()`` terms."""
+        if self.extrapolate != "continue" or getattr(self, "stateful", False) or margin_cache is None or eval_margin_fn is None:
+            return self.transform(x_data)
+
+        def _is_plain_cat(eff) -> bool:
+            return (
+                isinstance(eff, CategoricalEffect)
+                and eff.topology in ("nominal", "ordinal", "graph")
+                and eff.unseen in ("edge", "zero")
+                and (eff.extrapolate == "continue" or (eff.extrapolate == "constant" and eff.unseen == "edge"))
+                and eff.n_categories >= 2
+                and not getattr(eff, "orthogonalize", False)
+            )
+
+        last = self.effects[-1]
+        use_cat_tail = len(self.effects) >= 2 and _is_plain_cat(last)
+        first = self.effects[0]
+        use_cat_head = (not use_cat_tail) and len(self.effects) >= 2 and _is_plain_cat(first)
+
+        def _scatter_cat(phi_rest: torch.Tensor, x_cat: torch.Tensor, cat_eff: CategoricalEffect, head: bool) -> torch.Tensor:
+            n_cat = cat_eff.n_categories
+            x_indices = torch.round((x_cat + 1.0) / 2.0 * (n_cat - 1)).long()
+            x_safe = torch.clamp(x_indices, 0, n_cat - 1).to(device=phi_rest.device)
+            if cat_eff.unseen == "edge":
+                src = phi_rest
+            else:
+                known = ((x_indices >= 0) & (x_indices <= n_cat - 1)).to(device=phi_rest.device, dtype=phi_rest.dtype)
+                src = phi_rest * known.unsqueeze(-1)
+            d_rest = phi_rest.shape[-1]
+            if head:
+                out = torch.zeros((*phi_rest.shape[:-1], n_cat, d_rest), dtype=phi_rest.dtype, device=phi_rest.device)
+                idx = x_safe.unsqueeze(-1).unsqueeze(-1).expand(*phi_rest.shape[:-1], 1, d_rest)
+                out.scatter_(-2, idx, src.unsqueeze(-2))
+                return out.reshape(*phi_rest.shape[:-1], n_cat * d_rest)
+            out = torch.zeros((*phi_rest.shape, n_cat), dtype=phi_rest.dtype, device=phi_rest.device)
+            idx = x_safe.unsqueeze(-1).unsqueeze(-1).expand(*phi_rest.shape, 1)
+            out.scatter_(-1, idx, src.unsqueeze(-1))
+            return out.reshape(*phi_rest.shape[:-1], d_rest * n_cat)
+
+        def _eval_sub_list(sub_effects: List[BaseEffect], start_col: int) -> Tuple[List[torch.Tensor], int]:
+            phi_list: List[torch.Tensor] = []
+            c_idx = start_col
+            for effect in sub_effects:
+                n_cols = len(effect.required_features)
+                x_cols = x_data[..., c_idx : c_idx + n_cols]
+                if n_cols == 1 and not effect.keeps_feature_dim:
+                    x_cols = x_cols.squeeze(-1)
+                sub_cols = None if col_indices is None else col_indices[c_idx : c_idx + n_cols]
+                phi_list.append(eval_margin_fn(effect, x_cols, sub_cols, margin_cache))
+                c_idx += n_cols
+            base_dev = phi_list[0].device
+            for i in range(1, len(phi_list)):
+                if phi_list[i].device != base_dev:
+                    phi_list[i] = phi_list[i].to(base_dev)
+            return phi_list, c_idx
+
+        if use_cat_head:
+            n_head_cols = len(first.required_features)
+            x_head = x_data[..., :n_head_cols]
+            x_head = x_head[..., 0] if first.topology == "graph" or n_head_cols == 1 else x_head.squeeze(-1)
+            phi_list, _ = _eval_sub_list(self.effects[1:], n_head_cols)
+            phi_rest = functools.reduce(self.kronecker_product_einsum, phi_list)
+            return _scatter_cat(phi_rest, x_head, first, head=True)
+
+        n_build = len(self.effects) - 1 if use_cat_tail else len(self.effects)
+        phi_list, col_idx = _eval_sub_list(self.effects[:n_build], 0)
+        phi_cross = functools.reduce(self.kronecker_product_einsum, phi_list)
+        if not use_cat_tail:
+            return phi_cross
+
+        n_last_cols = len(last.required_features)
+        x_last = x_data[..., col_idx : col_idx + n_last_cols]
+        x_last = x_last[..., 0] if last.topology == "graph" or n_last_cols == 1 else x_last.squeeze(-1)
+        return _scatter_cat(phi_cross, x_last, last, head=False)
 #: </feature_map>
 
 #: <penalty_matrix>
