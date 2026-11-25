@@ -12,7 +12,7 @@ It orchestrates:
 3.  Construction of the global block-diagonal Penalty Matrix.
 """
 
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any, Optional, Tuple
 import torch
 import numpy as np
 import re 
@@ -1189,12 +1189,63 @@ def initialize_effects(
             continue
         required = effect.required_features
         if name_to_idx:
-            x_cols = x_data[..., [name_to_idx[name] for name in required]]
+            if len(required) == 1:
+                idx = name_to_idx[required[0]]
+                x_cols = x_data[..., idx : idx + 1]
+            else:
+                x_cols = x_data[..., [name_to_idx[name] for name in required]]
         else:
             x_cols = x_data[..., col_idx : col_idx + len(required)]
             col_idx += len(required)
         effect.initialize(x_cols)  # a no-op for an effect without data-dependent state
     _estimate_projections(x_data, effects_list, feature_columns)
+
+
+def _stateless_effect_cache_key(effect: BaseEffect, col_indices: Optional[Tuple[int, ...]]) -> Optional[tuple]:
+    """Returns a collision-free cache key for stateless 1D effects whose transform depends only on x_data[..., col_indices]."""
+    if col_indices is None or getattr(effect, "_projection", None) is not None or getattr(effect, "orthogonalize", False):
+        return None
+    if isinstance(effect, SplineEffect):
+        knots = getattr(effect, "_cached_knots", None)
+        if knots is None:
+            return None
+        knots_key = getattr(effect, "_knots_key", None)
+        if knots_key is None:
+            if knots.numel() > 256:
+                return None
+            knots_key = tuple(knots.detach().cpu().tolist())
+            effect._knots_key = knots_key
+        return ("s", col_indices, effect.spline_degree, knots_key, effect.extrapolate, effect._ood_slope_scale())
+    if isinstance(effect, FourierEffect):
+        return ("f", col_indices, effect.m, effect.cyclic, effect.extrapolate)
+    if isinstance(effect, ChebyshevEffect):
+        return ("p", col_indices, effect.degree, effect.extrapolate)
+    if isinstance(effect, CategoricalEffect) and effect.unseen != "mean" and effect.topology != "graph":
+        if effect.topology == "fourier":
+            return ("cf", col_indices, effect.n_categories, effect.m, effect.extrapolate)
+        return ("c", col_indices, effect.n_categories, effect.topology, effect.unseen, effect.extrapolate)
+    return None
+
+
+def _eval_effect_cached(
+    effect: BaseEffect,
+    x_in: torch.Tensor,
+    col_indices: Optional[Tuple[int, ...]],
+    margin_cache: Optional[Dict] = None,
+    state_in: Optional[Any] = None,
+) -> torch.Tensor:
+    """Evaluates an effect, reusing identical stateless transforms from `margin_cache` when state_in is None."""
+    if state_in is None and margin_cache is not None:
+        key = _stateless_effect_cache_key(effect, col_indices)
+        if key is not None:
+            key = (key, str(x_in.device), str(x_in.dtype))
+            cached = margin_cache.get(key)
+            if cached is not None:
+                return cached
+            val = effect.transform(x_in, state_in=None)
+            margin_cache[key] = val
+            return val
+    return effect.transform(x_in, state_in=state_in)
 
 
 def build_phi_from_effects(
@@ -1214,6 +1265,7 @@ def build_phi_from_effects(
     phi_components = []
     col_idx = 0
     name_to_idx = {name: i for i, name in enumerate(feature_columns)} if feature_columns else None
+    margin_cache: Optional[Dict] = {} if state_in is None else None
     
     for eff_idx, effect in enumerate(effects_list):
         eff_state = None if state_in is None else state_in.get(eff_idx, None)
@@ -1223,19 +1275,38 @@ def build_phi_from_effects(
         elif effect.multi_input:
             req_features = effect.required_features
             if name_to_idx:
-                try:
-                    indices = [name_to_idx[name] for name in req_features]
-                except KeyError as e:
-                     raise ValueError(f"Multivariate sub-feature not found in data: {e}.")
-                x_cols = x_data[..., indices]
+                if len(req_features) == 1:
+                    name = req_features[0]
+                    if name not in name_to_idx:
+                        raise ValueError(f"Multivariate sub-feature not found in data: '{name}'.")
+                    idx = name_to_idx[name]
+                    x_cols = x_data[..., idx : idx + 1]
+                    cols_t = (idx,)
+                else:
+                    try:
+                        indices = [name_to_idx[name] for name in req_features]
+                    except KeyError as e:
+                        raise ValueError(f"Multivariate sub-feature not found in data: {e}.")
+                    x_cols = x_data[..., indices]
+                    cols_t = tuple(indices)
             else:
                 n_inputs = len(req_features)
                 if col_idx + n_inputs > x_data.shape[-1]:
                      raise ValueError(f"Not enough columns for multivariate effect at index {col_idx}.")
                 x_cols = x_data[..., col_idx : col_idx + n_inputs]
+                cols_t = tuple(range(col_idx, col_idx + n_inputs))
                 col_idx += n_inputs
             
-            phi_components.append(effect.transform(x_cols, state_in=eff_state))
+            if (
+                eff_state is None
+                and margin_cache is not None
+                and isinstance(effect, TensorProductEffect)
+            ):
+                phi_components.append(
+                    effect._eval_with_cache(x_cols, col_indices=cols_t, margin_cache=margin_cache, eval_margin_fn=_eval_effect_cached)
+                )
+            else:
+                phi_components.append(effect.transform(x_cols, state_in=eff_state))
             
         else:
             if name_to_idx:
@@ -1243,13 +1314,15 @@ def build_phi_from_effects(
                 if idx is None:
                      raise ValueError(f"Feature '{effect.feature_name}' not found in data.")
                 x_col = x_data[..., idx]
+                cols_t = (idx,)
             else:
                 if col_idx >= x_data.shape[-1]:
                      raise ValueError(f"Not enough columns for effect '{effect.feature_name}'.")
                 x_col = x_data[..., col_idx]
+                cols_t = (col_idx,)
                 col_idx += 1
             
-            phi_components.append(effect.transform(x_col, state_in=eff_state))
+            phi_components.append(_eval_effect_cached(effect, x_col, cols_t, margin_cache=margin_cache, state_in=eff_state))
             
     if return_components:
         return phi_components

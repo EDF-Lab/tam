@@ -26,7 +26,17 @@ from typing import List, Dict, Optional
 
 from tam.common.hardware import hw
 from .spectrum import BaseEffect, build_phi_from_effects
-from ._math import _compute_weighted_covariances, solve_linear_system, solve_sparse_cg, _predict_from_coeffs, _decompose_prediction_tensor
+from ._math import (
+    _compute_weighted_covariances,
+    _is_rowwise_stateless_effects,
+    _streamed_weighted_covariances,
+    _try_group_split_covariances,
+    solve_linear_system,
+    solve_sparse_cg,
+    _predict_from_coeffs,
+    _decompose_prediction_tensor,
+    _decompose_from_components,
+)
 from ._memory import can_fit_dense_matrix, get_safe_chunk_size, get_safe_group_batch_size
 
 #: <smart_solve_router>
@@ -46,10 +56,7 @@ def smart_solve(
     weighted / reweighted (GLM, expectile, robust) solve; None is the plain path.
     """
     run_device = x_data.device
-    dummy_x = x_data[:, 0:1, :].to(run_device)
-    dummy_phi = build_phi_from_effects(dummy_x, effects_list)
-    total_d = dummy_phi.shape[-1]
-    del dummy_x, dummy_phi
+    total_d = int(penalty_matrix.shape[-1])
 
     is_safe_for_direct_inversion = can_fit_dense_matrix(total_d, run_device, batch_size=1)
 
@@ -88,6 +95,12 @@ def _run_chunked_direct_solver(
     allocatable_bytes = available_bytes * 0.8
     safe_group_batch = get_safe_group_batch_size(total_samples, total_d, allocatable_bytes)
 
+    can_stream = (
+        total_samples * total_d * 8 > 512 * 1024 * 1024
+        and loss_matrix.shape == (1, 1)
+        and float(loss_matrix[0, 0]) == 1.0
+        and _is_rowwise_stateless_effects(effects_list)
+    )
     all_coeffs = []
     g_start = 0
 
@@ -99,12 +112,24 @@ def _run_chunked_direct_solver(
             x_sub = x_data[g_start:g_end].to(run_device)
             y_sub = y_data[g_start:g_end].to(run_device)
             w_sub = sample_weights[g_start:g_end].to(run_device) if sample_weights is not None else None
-            phi_sub = build_phi_from_effects(x_sub, effects_list)
-            cov_x_sub, cov_xy_sub = _compute_weighted_covariances(phi_sub, y_sub, loss_matrix, w_sub)
+            if can_stream:
+                cov_x_sub, cov_xy_sub = _streamed_weighted_covariances(
+                    x_sub, y_sub, effects_list, loss_matrix, sample_weights=w_sub, tile_size=16384
+                )
+            else:
+                split_res = _try_group_split_covariances(
+                    x_sub, y_sub, effects_list, loss_matrix, sample_weights=w_sub
+                )
+                if split_res is not None:
+                    cov_x_sub, cov_xy_sub = split_res
+                else:
+                    phi_sub = build_phi_from_effects(x_sub, effects_list)
+                    cov_x_sub, cov_xy_sub = _compute_weighted_covariances(phi_sub, y_sub, loss_matrix, w_sub)
+                    del phi_sub
             coeffs_sub = solve_linear_system(cov_x_sub, cov_xy_sub, penalty_matrix, num_samples)
             all_coeffs.append(coeffs_sub.cpu())
-            
-            del x_sub, y_sub, phi_sub, cov_x_sub, cov_xy_sub, coeffs_sub
+
+            del x_sub, y_sub, cov_x_sub, cov_xy_sub, coeffs_sub
             hw.empty_cache()
             
             g_start += current_sub_batch_size
@@ -268,10 +293,7 @@ def smart_evaluate_rmse(
     total_groups = x_val.shape[0]
     num_samples_val = x_val.shape[1]
     run_device = x_val.device
-    
-    dummy_phi = build_phi_from_effects(x_val[0:1, 0:1, :].to(run_device), effects_list)
-    total_d = dummy_phi.shape[-1]
-    del dummy_phi
+    total_d = int(beta.shape[-2])
     
     available_bytes = hw.get_available_memory()
     allocatable_bytes = available_bytes * 0.8
@@ -332,10 +354,7 @@ def smart_decompose(
     total_groups = x_data.shape[0]
     num_samples = x_data.shape[1]
     run_device = x_data.device
-    
-    dummy_phi = build_phi_from_effects(x_data[0:1, 0:1, :].to(run_device), effects_list)
-    total_d = dummy_phi.shape[-1]
-    del dummy_phi
+    total_d = int(beta.shape[-2])
     
     available_bytes = hw.get_available_memory()
     allocatable_bytes = available_bytes * 0.8
@@ -352,19 +371,18 @@ def smart_decompose(
         
         try:
             x_chunk = x_data[g_start:g_end, :, :].to(run_device)
-            phi_chunk = build_phi_from_effects(x_chunk, effects_list)
             beta_chunk = beta_eval[g_start:g_end]
-            
-            chunk_effects = _decompose_prediction_tensor(
-                phi_chunk, beta_chunk, effects_list
-            )
-            
+
+            # Streamed per-block contraction: each contribution Phi_j @ beta_j is formed from its own feature block, so the
+            # concatenated (groups, rows, D) design is never materialised only to be sliced back into its blocks.
+            chunk_effects = _decompose_from_components(x_chunk, beta_chunk, effects_list)
+
             for k, v in chunk_effects.items():
                 if k not in accumulated_effects:
                     accumulated_effects[k] = []
                 accumulated_effects[k].append(v.cpu())
-                
-            del x_chunk, phi_chunk, chunk_effects, beta_chunk
+
+            del x_chunk, chunk_effects, beta_chunk
             g_start += current_sub_batch_size
             
         except (torch.OutOfMemoryError, MemoryError):

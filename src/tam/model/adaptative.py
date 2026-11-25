@@ -53,6 +53,9 @@ from ._math import (
 from .statistics.estimation._batched_glm import batched_reweighted_solve
 from .spectrum import (
     BaseEffect,
+    OffsetEffect,
+    LinearEffect,
+    CategoricalEffect,
     create_effects_from_parsed_terms,
     categorical_ranges,
     fixed_ranges,
@@ -481,7 +484,15 @@ class AdaptiveTAM:
         dummy_phi = self.adaptive_model_._build_design_matrix(dummy_x)
         n_coeffs = dummy_phi.shape[-1]
         del dummy_x, dummy_phi
-        
+
+        if self._can_use_prefix_gram(loss_L_star_L, n_coeffs):
+            predictions_cpu = self._simulate_prefix_gram(
+                sobolev_matrix, num_samples_train, window_size_steps, n_groups, n_windows, run_device
+            )
+            mask = self.simulation_data_[6]
+            self.predictions_ = _cleanup_dummies(self._forecast_frame(predictions_cpu)[mask], self.group_col_, self.date_col_)
+            return self.predictions_
+
         safe_batch_size = get_safe_window_batch_size(
             num_samples_per_window=num_samples_train,
             total_d=n_coeffs,
@@ -531,6 +542,171 @@ class AdaptiveTAM:
         mask = self.simulation_data_[6]
         self.predictions_ = _cleanup_dummies(self._forecast_frame(predictions_cpu)[mask], self.group_col_, self.date_col_)
         return self.predictions_
+
+#: <prefix_gram>
+    def _can_use_prefix_gram(self, loss_L_star_L: torch.Tensor, n_coeffs: int) -> bool:
+        r"""Checks whether sliding-window normal equations reduce to O(1) prefix-sum outer products + affine re-scaling."""
+        if self.glm_strategy_ is not None:
+            return False
+        if loss_L_star_L.shape != (1, 1) or float(loss_L_star_L[0, 0]) != 1.0:
+            return False
+        layout = self.window_layout_
+        if layout is None or getattr(layout, "raw_x_groups", None) is None or getattr(layout, "raw_y_groups", None) is None:
+            return False
+        if n_coeffs <= 0 or n_coeffs > 256:
+            return False
+        effects = self.adaptive_model_.effects_list_
+        if any(getattr(e, "_projection", None) is not None for e in effects):
+            return False
+        has_offset = any(isinstance(e, OffsetEffect) for e in effects)
+        if not has_offset:
+            return False
+        feature_names = self.adaptive_model_.features_config_["features"]
+        name_to_idx = {name: i for i, name in enumerate(feature_names)}
+        max_rows = max((0 if g is None else g.shape[0] for g in layout.raw_x_groups), default=0)
+        if max_rows * n_coeffs * n_coeffs * 8 > 512 * 1024 * 1024:
+            return False
+        for effect in effects:
+            if isinstance(effect, OffsetEffect):
+                continue
+            if isinstance(effect, LinearEffect):
+                if getattr(effect, "raw", False) or effect.extrapolate not in ("linear", "continue"):
+                    return False
+                if effect.feature_name not in name_to_idx:
+                    return False
+                j = name_to_idx[effect.feature_name]
+                # A covariate that is constant in a window has no range to normalise by: its column is zero and the system is singular, so the
+                # window-by-window solver decides it (a difference of prefix sums would put rounding noise in a zero column).
+                if not bool((layout.norm_max[..., j] > layout.norm_min[..., j]).all()):
+                    return False
+                continue
+            if isinstance(effect, CategoricalEffect):
+                if effect.topology not in ("nominal", "ordinal") or effect.unseen not in ("edge", "zero"):
+                    return False
+                if effect.feature_name not in name_to_idx:
+                    return False
+                j = name_to_idx[effect.feature_name]
+                n_cat = effect.n_categories
+                if not bool((layout.norm_min[..., j] == 0.0).all() and (layout.norm_max[..., j] == float(n_cat - 1)).all()):
+                    return False
+                continue
+            return False
+        return True
+
+    def _simulate_prefix_gram(
+        self,
+        sobolev_matrix: torch.Tensor,
+        num_samples_train: int,
+        window_size_steps: int,
+        n_groups: int,
+        n_windows: int,
+        run_device: torch.device,
+    ) -> torch.Tensor:
+        r"""Solves all windows per group in parallel via cumulative outer-product KV-cache subtraction + affine basis transform."""
+        layout = self.window_layout_
+        effects = self.adaptive_model_.effects_list_
+        feature_names = self.adaptive_model_.features_config_["features"]
+        name_to_idx = {name: i for i, name in enumerate(feature_names)}
+        dtype = torch.get_default_dtype()
+        compute_dev = torch.device(run_device)
+        penalty_dev = sobolev_matrix.to(device=compute_dev, dtype=dtype)
+
+        # Map effect positions and static category transforms once across all groups.
+        effect_specs = []
+        col_pos = 0
+        for effect in effects:
+            n_c = effect.get_n_coeffs()
+            effect_specs.append((effect, col_pos, col_pos + n_c))
+            col_pos += n_c
+        offset_col = next(c0 for e, c0, _ in effect_specs if isinstance(e, OffsetEffect))
+        total_d = col_pos
+
+        out_preds = torch.zeros((n_groups, n_windows, window_size_steps), dtype=dtype)
+        pred_offsets = torch.arange(window_size_steps, dtype=torch.long)
+
+        for g in range(n_groups):
+            starts_g = layout.starts[g]
+            w_g = len(starts_g)
+            if w_g == 0:
+                continue
+            x_g = layout.raw_x_groups[g].to(device=compute_dev, dtype=dtype)
+            y_g = layout.raw_y_groups[g].to(device=compute_dev, dtype=dtype)
+            n_g = x_g.shape[0]
+
+            # Construct centered raw basis Psi_g in R^(n_g x D) and affine column mapping per linear covariate.
+            psi_g = torch.empty((n_g, total_d), dtype=dtype, device=compute_dev)
+            linear_maps = []
+            for effect, c0, c1 in effect_specs:
+                if isinstance(effect, OffsetEffect):
+                    psi_g[:, c0] = 1.0
+                elif isinstance(effect, LinearEffect):
+                    j = name_to_idx[effect.feature_name]
+                    col = x_g[:, j]
+                    mu = col.mean()
+                    sd = col.std(unbiased=False)
+                    if float(sd.item()) == 0.0:
+                        sd = torch.ones_like(mu)
+                    psi_g[:, c0] = (col - mu) / sd
+                    linear_maps.append((c0, j, mu, sd, float(effect.scaled)))
+                else:
+                    # Fixed-domain CategoricalEffect: identical normalized coordinates across all windows.
+                    j = name_to_idx[effect.feature_name]
+                    n_cat = effect.n_categories
+                    ctr_c = 0.5 * float(n_cat - 1) if n_cat > 1 else 0.0
+                    ha_c = 0.5 * float(n_cat - 1) if n_cat > 1 else 0.5
+                    x_norm_c = (x_g[:, j] - ctr_c) / ha_c
+                    psi_g[:, c0:c1] = effect.transform(x_norm_c).to(device=compute_dev, dtype=dtype)
+
+            # Prefix sums of rank-1 outer products for O(1) window Gram subtraction C[t1] - C[t0].
+            cum_xx = torch.zeros((n_g + 1, total_d, total_d), dtype=dtype, device=compute_dev)
+            torch.mul(psi_g.unsqueeze(-1), psi_g.unsqueeze(-2), out=cum_xx[1:])
+            cum_xx[1:].cumsum_(dim=0)
+            cum_xy = torch.zeros((n_g + 1, total_d, 1), dtype=dtype, device=compute_dev)
+            torch.mul(psi_g.unsqueeze(-1), y_g.unsqueeze(-2), out=cum_xy[1:])
+            cum_xy[1:].cumsum_(dim=0)
+
+            s_t = torch.tensor(starts_g, dtype=torch.long, device=compute_dev)
+            t1 = s_t - (self.horizon_steps_ - 1)
+            t0 = t1 - num_samples_train
+            g_raw = cum_xx[t1] - cum_xx[t0]   # (w_g, D, D)
+            r_raw = cum_xy[t1] - cum_xy[t0]   # (w_g, D, 1)
+
+            low_w = layout.norm_min[g, :w_g].to(device=compute_dev, dtype=dtype)
+            high_w = layout.norm_max[g, :w_g].to(device=compute_dev, dtype=dtype)
+            amp_w = high_w - low_w
+            amp_w = torch.where(amp_w == 0.0, torch.ones_like(amp_w), amp_w)
+            ha_w = 0.5 * amp_w
+            ctr_w = 0.5 * (high_w + low_w)
+
+            # Exact O(D^2) rank-1 + diagonal congruence T^T G T where T = diag(a) + e_offset b^T.
+            a = torch.ones((w_g, total_d), dtype=dtype, device=compute_dev)
+            b = torch.zeros((w_g, total_d), dtype=dtype, device=compute_dev)
+            for c0, j, mu, sd, sc in linear_maps:
+                inv_ha = sc / ha_w[:, j]
+                a[:, c0] = sd * inv_ha
+                b[:, c0] = (mu - ctr_w[:, j]) * inv_ha
+
+            g0 = g_raw[:, :, offset_col].clone()
+            g00 = g_raw[:, offset_col, offset_col].clone()
+            u = a * g0
+            g_raw.mul_(a.unsqueeze(2) * a.unsqueeze(1))
+            g_raw.add_(u.unsqueeze(2) * b.unsqueeze(1))
+            g_raw.add_(b.unsqueeze(2) * u.unsqueeze(1))
+            g_raw.add_(g00.unsqueeze(1).unsqueeze(2) * (b.unsqueeze(2) * b.unsqueeze(1)))
+            cov_x = g_raw
+            cov_xy = a.unsqueeze(-1) * r_raw + b.unsqueeze(-1) * r_raw[:, offset_col : offset_col + 1, :]
+            coeffs_g = solve_linear_system(cov_x, cov_xy, penalty_dev, num_samples_train)
+
+            theta_tilde = a.unsqueeze(-1) * coeffs_g
+            theta_tilde[:, offset_col, :].add_((b.unsqueeze(-1) * coeffs_g).sum(dim=1))
+            pred_idx = (s_t.unsqueeze(1) + pred_offsets.to(device=compute_dev).unsqueeze(0)).clamp(max=n_g - 1)
+            preds_g = (psi_g[pred_idx] @ theta_tilde).squeeze(-1).cpu()
+            out_preds[g, :w_g] = preds_g
+            if w_g < n_windows:
+                out_preds[g, w_g:] = preds_g[-1:].expand(n_windows - w_g, window_size_steps)
+
+        return out_preds
+#: </prefix_gram>
 #: </run_sim>
 
     def _warn_extrapolation(self, x: torch.Tensor, valid: torch.Tensor) -> None:

@@ -15,6 +15,7 @@ import torch
 import numpy as np
 from tam.common.utils import TORCH_DEVICE
 from ._base_effects import BaseEffect
+from ._temporal_utils import eval_1d_dedup
 
 #: <init_fourier>
 class FourierEffect(BaseEffect):
@@ -59,19 +60,16 @@ class FourierEffect(BaseEffect):
 #: <feature_map>
     def build_feature_map(self, x_col: torch.Tensor) -> torch.Tensor:
         r"""Builds Fourier basis functions."""
-        x_scaled = x_col * np.pi
-        x_expanded = x_scaled.unsqueeze(-1)
-        
-        freqs = torch.arange(1, self.m + 1, device=x_col.device, dtype=torch.get_default_dtype())
-        dims_to_add = x_expanded.dim() - 1
-        freqs_expanded = freqs.view(*([1] * dims_to_add), -1)
-        
-        if self.cyclic:
-            theta = x_expanded * freqs_expanded
-        else:
-            theta = x_expanded * freqs_expanded / 2
-            
-        return torch.cat([torch.cos(theta), torch.sin(theta)], dim=-1)
+        dtype = torch.get_default_dtype()
+        freqs = torch.arange(1, self.m + 1, device=x_col.device, dtype=dtype)
+        scale = np.pi if self.cyclic else (0.5 * np.pi)
+
+        def _eval(xv: torch.Tensor) -> torch.Tensor:
+            freqs_exp = freqs.view(*([1] * xv.dim()), -1)
+            theta = (xv.unsqueeze(-1) * scale) * freqs_exp
+            return torch.cat([torch.cos(theta), torch.sin(theta)], dim=-1)
+
+        return eval_1d_dedup(x_col, _eval)
 #: </feature_map>
 
 #: <penalty_matrix>

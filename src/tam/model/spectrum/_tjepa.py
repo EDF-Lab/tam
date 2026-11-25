@@ -174,14 +174,15 @@ class TJEPAEffect(BaseEffect):
             Xc = ctx_windows - mu_c
             Yc = tgt_windows - mu_t
 
-            U, S, Vh = torch.linalg.svd(Xc, full_matrices=False)
+            # Thin-QR SVD avoids materializing O(n_pairs * feat_dim) dense left singular vectors
+            Q_x, R_x = torch.linalg.qr(Xc, mode="reduced")
+            Ur, S, Vh = torch.linalg.svd(R_x, full_matrices=False)
             tol = max(float(S[0].item()) * 1e-6, 1e-9)
             valid = S > tol
             r = int(min(int(valid.sum().item()), max(d * 4, 24), feat_dim))
             r = max(r, 1)
 
-            Z_white = U[:, :r]
-            C_cross = Z_white.T @ Yc
+            C_cross = Ur[:, :r].T @ (Q_x.T @ Yc)
             Uc, _, _ = torch.linalg.svd(C_cross, full_matrices=False)
             m_use = min(d, Uc.shape[1], r)
             scale_in = math.sqrt(float(n_pairs)) / S[:r].clamp_min(1e-6)
@@ -337,7 +338,7 @@ class TJEPAEffect(BaseEffect):
         else:
             # Spline readout: k_spline B-spline functions per latent coordinate
             knots_out = self.knots_out.to(device=x3.device, dtype=x3.dtype)
-            phi = torch.cat([_cox_de_boor(z[:, j], knots_out, self.spline_degree) for j in range(self.latent_dim)], dim=-1)  # (B * T, d * k_spline)
+            phi = _cox_de_boor(z.reshape(-1), knots_out, self.spline_degree).reshape(B * T, self.latent_dim * self.n_outer_coeffs)
 
         return from_btk(phi.reshape(B, T, self.get_n_coeffs()), shape, layout)
 #: </tjepa_feature_map>

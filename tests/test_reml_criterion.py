@@ -155,3 +155,36 @@ def test_reml_with_an_offset_and_with_several_groups():
     panel = pd.concat(frames, ignore_index=True)
     grouped = ta.StaticTAM("y ~ s(x, k=10)", group_col="g", date_col="date").auto_fit(panel, criterion="reml")
     assert np.all(np.isfinite(grouped.predict(panel)["Estimatedy"].to_numpy())) and np.isfinite(grouped.reml_score_)
+
+
+def test_penalty_basis_block_spectral_matches_reduced_penalty():
+    rng = np.random.default_rng(11)
+    n = 300
+    frame = pd.DataFrame({
+        "x": rng.uniform(0, 1, n),
+        "z": rng.uniform(0, 1, n),
+        "g": rng.integers(0, 4, size=n),
+        "y": rng.normal(size=n),
+    })
+    model = ta.StaticTAM("y ~ c(g, n_cat=4) + f(x, m=5) + s(x, k=10, m_pen=3) + te(s(x, k=6), c(g, n_cat=4))")
+    _prepared(model, frame)
+    basis = PenaltyBasis(model.effects_list_)
+    assert basis._basis_cache is None
+
+    for _, nu_0, nu_list in basis._commuting_groups:
+        assert np.all(nu_0 >= 0.0)
+        assert all(np.all(nu >= 0.0) for nu in nu_list)
+
+    rho = np.linspace(-3.0, 2.0, basis.n_coordinates)
+    lam = np.exp(rho)
+    ok, ldet_blk, tr_blk = basis.block_logdet_and_traces(lam, rho, float(n), compute_grad=True)
+    assert ok
+
+    red = float(n) * basis.reduced_penalty(rho)
+    assert basis._basis_cache is not None
+    sign, ldet_ref = torch.linalg.slogdet(red)
+    inv_red = torch.linalg.inv(red)
+    tr_ref = np.array([float((inv_red * (float(n) * float(lam[c]) * basis._reduced[c]).T).sum()) for c in range(basis.n_coordinates)])
+    assert float(sign) > 0.0
+    assert np.isclose(ldet_blk, float(ldet_ref), rtol=1e-11, atol=1e-11)
+    assert np.allclose(tr_blk, tr_ref, rtol=1e-10, atol=1e-10)

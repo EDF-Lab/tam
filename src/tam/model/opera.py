@@ -27,7 +27,7 @@ import pandas as pd
 import numpy as np
 import torch
 
-from tam.common.utils import TORCH_DEVICE, _balance_groups, _ensure_dummies, _cleanup_dummies
+from tam.common.utils import DUMMY_GROUP_COL, DUMMY_GROUP_VALUE, TORCH_DEVICE, _balance_groups, _ensure_dummies, _cleanup_dummies
 
 
 #: <torch_jit_mlpol>
@@ -371,7 +371,7 @@ class OperaTAM:
         df_to_process = _ensure_dummies(df, self.group_col, self.date_col)
         
         if not self.group_col:
-            df_to_process[temp_group_col] = "all_data"
+            df_to_process[temp_group_col] = DUMMY_GROUP_VALUE
             
         # Padding Phase: Balance groups to ensure uniform tensor dimensions
         mask, balanced_df = _balance_groups(
@@ -816,11 +816,11 @@ class HierarchicalOperaTAM:
         if not self.weights_history_:
             raise RuntimeError("Call fit() first to populate the hierarchical expert weights history.")
 
-        g_col = self.group_col or "__dummy_group__"
+        # The level models fitted on one series (no group column) stored their weights under the dummy group value that `_ensure_dummies`
+        # writes: the frozen forecast must look them up under that same key.
+        g_col = self.group_col or DUMMY_GROUP_COL
         d_col = self.date_col or "__dummy_date__"
         result = _ensure_dummies(df.copy(), g_col, d_col)
-        if not self.group_col:
-            result[g_col] = "all_data"
 
         result["prediction_opera"] = 0.0
         for fam in self.family_names:

@@ -7,6 +7,7 @@ r"""Implements Wavelet effects (Time-Frequency analysis)."""
 import torch
 from tam.common.utils import TORCH_DEVICE
 from ._base_effects import BaseEffect
+from ._temporal_utils import eval_1d_dedup
 
 #: <init_wavelet>
 class WaveletEffect(BaseEffect):
@@ -85,21 +86,16 @@ class WaveletEffect(BaseEffect):
         else:
             locs, r_scales = self.locations, self.real_scales
             
-        # --- Full Tensor Broadcasting Fix (No CPU/GPU cat memory spikes) ---
-        # Expand x_col for broadcasting: (..., N) -> (..., N, 1, 1)
-        x_expanded = x_col.unsqueeze(-1).unsqueeze(-1)
-        
-        # Scales: (S) -> (1, S, 1)
         s = r_scales.view(1, -1, 1)
-        
-        # Locations: (L) -> (1, 1, L)
         locs_expanded = locs.view(1, 1, -1)
-        
-        # Compute the entire Time-Scale grid simultaneously on GPU
-        z = (x_expanded - locs_expanded) / s
-        psi = (1 - z**2) * torch.exp(-0.5 * z**2) / torch.sqrt(s)
-            
-        return psi.reshape(*x_col.shape, -1)
+
+        def _eval(xv: torch.Tensor) -> torch.Tensor:
+            x_expanded = xv.unsqueeze(-1).unsqueeze(-1)
+            z = (x_expanded - locs_expanded) / s
+            psi = (1 - z**2) * torch.exp(-0.5 * z**2) / torch.sqrt(s)
+            return psi.reshape(*xv.shape, -1)
+
+        return eval_1d_dedup(x_col, _eval)
 #: </feature_map>
 
 #: <penalty_matrix>

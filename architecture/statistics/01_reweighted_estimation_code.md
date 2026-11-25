@@ -61,3 +61,13 @@ The design matrix depends on neither the coefficients nor the weights, so when i
 :start-after: "#: <reweighting_loop>"
 :end-before: "#: </reweighting_loop>"
 ```
+
+## The smoothing-parameter loop of a GLM
+
+`StaticTAM.auto_fit` hands a model that has a reweighting strategy to `_auto_fit_reweighted`. Each pass fits the model at the current weights (`_solve_prepared`, warm-started after the first pass), asks the strategy for the working response and Fisher weights at the fitted linear predictor, normalises the weights to unit mean and passes them to `smart_solve_gcv` (`criterion="gcv"`) or to `smart_solve_reml` (`criterion="reml"`, with the known scale `1 / mean(w)` for Poisson, binomial and negative binomial, the penalty basis and the previous optimum reused through `basis=` and `init_rho=`). The design matrix is built once (`dense_design`) and shared by all passes; the loop ends when `log10(lambda)` moves by less than 0.25, at most four passes, and a last reweighted fit sets `coefficients_` and `dispersion_`. For REML the per-pass stop reason and iteration count are kept as `reml_stop_reason_` and `reml_iterations_`. See [the REML section of the theory](../../math/statistics/01_reweighted_estimation.md).
+
+```{literalinclude} ../../../../src/tam/model/additive.py
+:language: python
+:start-after: "#: <auto_fit_reweighted>"
+:end-before: "#: </auto_fit_reweighted>"
+```

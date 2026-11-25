@@ -128,6 +128,20 @@ Constructs the structural penalty natively using consecutive finite difference m
 :end-before: "#: </penalty_matrix>"
 ```
 
+**Matrix-free evaluation.** When the grid is large (`n_panels >= 4` and `T * len(knots) >= 4096`) the basis is evaluated on the active knot span only, with the `degree + 1` non-zero functions per row (`O(T k^2)`, independent of the number of knots); the knot tables are cached per device and dtype, and repeated inputs are evaluated once (`eval_1d_dedup`). `contract_coefficients` multiplies these `degree + 1` weights directly with the matching coefficients, so a prediction never allocates the `(G, T, K)` design; `contract_batched_splines` does the same for several splines of the same degree and size in one pass. Fixed-penalty fits give the same numbers as the dense evaluation (checked to `1e-12` in `tests/spectrum/test_spline.py`).
+```{literalinclude} ../../../../src/tam/model/spectrum/_spline.py
+:language: python
+:start-after: "#: <contract_coefficients>"
+:end-before: "#: </contract_coefficients>"
+```
+
+**REML edge slope.** For a spline fitted with `auto_fit(criterion="reml")` the outward slope of `'linear'` and `'saturation'` extrapolation is multiplied by `2 / spline_degree` (degree 2 or more, penalty order 2 or more, not inside `te(...)`); the scale is read through `BaseEffect._ood_slope_scale` (1 for every other effect) by the extrapolation wrapper and by the contraction above. See [the edge slope of a clamped spline](../../math/spectrum/SPLINES.md).
+```{literalinclude} ../../../../src/tam/model/spectrum/_spline.py
+:language: python
+:start-after: "#: <ood_slope_scale>"
+:end-before: "#: </ood_slope_scale>"
+```
+
 **Extrapolation (verified by `tests/test_parameters_with_effect.py`).** The B-spline basis is held at its edge value outside the knot range, so `extrapolate='continue'` and `'constant'` give the same forecast for a spline; `'linear'` (the default of `s()`) extends the edge slope and can be far from both on a trending input, and `'saturation'` is a damped version of it.
 
 ---
@@ -465,4 +479,23 @@ Constructs the block-diagonal encapsulation of the anisotropic sparsity-adaptive
 :start-after: "#: <penalty_matrix>"
 :end-before: "#: </penalty_matrix>"
 
+```
+
+---
+
+## Vectorised Forward Maps
+
+The feature maps of the temporal and learned effects are written as batched tensor operations over `(B, T, ...)`, with no Python loop over time steps, channels or heads. The columns they return are the ones of the earlier implementations (the tests compare them), and the penalties are unchanged; only the way the columns are computed differs.
+
+* **HiPPO** (`hippo`): the impulse response of the discretised state-space system is built by doubling (`O(log T)` matrix products) and applied as a causal FFT convolution; the spectrum and the matrix powers are cached per length and device.
+* **Signature** (`sig`): the truncated exponential and the Chen product are written for levels up to 4 without `einsum`, and the sliding-window signature uses block prefix and suffix products, so a window costs a constant number of products.
+* **Scattering** (`wst`): the wavelet filters are packed once and applied as one batched convolution.
+* **Attention** (`attn`) and **temporal operator** (`temporal_operator`): all heads share one projection product, and the causal running sums and the normaliser are carried by one recurrence.
+* **Bispectrum** (`bispec`), **patch basis** (`patch_basis`), **foundation** (`foundation`), **Koopman** (`koopman`), **T-JEPA** (`tjepa`), **KAN** (`kan`) and the inertia family (`inertia`): the per-triad, per-channel, per-patch and per-alpha loops are batched, Koopman subsamples the snapshots that fit the dictionary above 20 000 rows, and T-JEPA takes the thin QR before the singular value decomposition.
+* **Tree** (`tree`) and **categorical** (`cat`): the design is written into a preallocated buffer by indexing instead of materialising a one-hot matrix.
+
+```{literalinclude} ../../../../src/tam/model/spectrum/_hippo.py
+:language: python
+:pyobject: HiPPOEffect._impulse_fft_and_powers
+:caption: src/tam/model/spectrum/_hippo.py (impulse response by doubling)
 ```

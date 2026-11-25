@@ -17,12 +17,52 @@ PyTorch tensors required for model training and prediction. It manages:
 """
 
 from typing import Dict, List, Tuple, Union, Optional
+import warnings
 import pandas as pd
 import numpy as np
 import torch
+from scipy.ndimage import maximum_filter1d, minimum_filter1d
 
 from tam.common.utils import TORCH_DEVICE
 from .spectrum._factory import categorical_range
+
+
+def _as_pandas_if_polars(data):
+    r"""Converts duck-typed columnar frames (e.g., Polars DataFrames) to Pandas zero-copy where possible."""
+    if not isinstance(data, pd.DataFrame) and hasattr(data, "to_pandas"):
+        return data.to_pandas()
+    return data
+
+
+def _extract_feature_matrix(data: pd.DataFrame, features: List[str]) -> np.ndarray:
+    r"""Extracts feature columns as a 2D float64 NumPy matrix without constructing intermediate DataFrames."""
+    n_rows = len(data)
+    if not features:
+        return np.empty((n_rows, 0), dtype=np.float64)
+    cols = []
+    for f in features:
+        col = data[f]
+        if isinstance(col.dtype, pd.api.extensions.ExtensionDtype):
+            cols.append(col.to_numpy(dtype=np.float64, na_value=np.nan))
+        else:
+            try:
+                cols.append(col.to_numpy(dtype=np.float64, copy=False))
+            except (TypeError, ValueError):
+                cols.append(col.to_numpy(dtype=np.float64, na_value=np.nan))
+    if len(cols) == 1:
+        return cols[0].reshape(n_rows, 1)
+    return np.column_stack(cols)
+
+
+def _is_sorted_nondecreasing(arr: np.ndarray) -> bool:
+    r"""Returns True if a 1D array is already non-decreasing, avoiding O(N log N) sorts on ordered time series."""
+    if len(arr) <= 1:
+        return True
+    try:
+        return bool(np.all(arr[:-1] <= arr[1:]))
+    except TypeError:
+        return False
+
 
 def _fit_normalization_params(
     data: pd.DataFrame, 
@@ -49,25 +89,58 @@ def _fit_normalization_params(
           {group_name: {'min': pd.Series, 'max': pd.Series}}
         - unique_groups (List): A sorted list of all unique group names found.
     """
+    data = _as_pandas_if_polars(data)
+    group_arr = data[group_col].to_numpy()
+    feat_mat = _extract_feature_matrix(data, features)
+    feature_idx = {f: idx for idx, f in enumerate(features)}
 
-    grouped = data.groupby(group_col)
-    unique_groups = sorted(grouped.groups.keys())
-    
-    norm_params = {
-        group_name: {
-            'min': grouped.get_group(group_name)[features].min(axis=0),
-            'max': grouped.get_group(group_name)[features].max(axis=0)
-        }
-        for group_name in unique_groups
-    }
+    if len(group_arr) > 0 and not pd.isna(group_arr[0]) and bool((group_arr == group_arr[0]).all()):
+        unique_groups = [group_arr[0]]
+        if features:
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore", RuntimeWarning)
+                mins = np.nanmin(feat_mat, axis=0)
+                maxs = np.nanmax(feat_mat, axis=0)
+            norm_params = {
+                group_arr[0]: {
+                    'min': pd.Series(mins, index=features, dtype=np.float64),
+                    'max': pd.Series(maxs, index=features, dtype=np.float64),
+                }
+            }
+        else:
+            empty_s = pd.Series(dtype=np.float64)
+            norm_params = {group_arr[0]: {'min': empty_s, 'max': empty_s.copy()}}
+        group_rows = {group_arr[0]: None}
+    else:
+        grouped_indices = data.groupby(group_col, sort=True).indices
+        unique_groups = sorted(grouped_indices.keys())
+        norm_params = {}
+        group_rows = grouped_indices
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", RuntimeWarning)
+            for group_name in unique_groups:
+                if not features:
+                    empty_s = pd.Series(dtype=np.float64)
+                    norm_params[group_name] = {'min': empty_s, 'max': empty_s.copy()}
+                    continue
+                sub_mat = feat_mat[grouped_indices[group_name]]
+                norm_params[group_name] = {
+                    'min': pd.Series(np.nanmin(sub_mat, axis=0), index=features, dtype=np.float64),
+                    'max': pd.Series(np.nanmax(sub_mat, axis=0), index=features, dtype=np.float64),
+                }
+
     for group_name, params in norm_params.items():
+        pos = group_rows[group_name]
         for feature, n_cat in (categorical_levels or {}).items():
-            if feature in params['min'].index:
-                column = grouped.get_group(group_name)[feature]
+            if feature in feature_idx:
+                col_vals = feat_mat[:, feature_idx[feature]] if pos is None else feat_mat[pos, feature_idx[feature]]
+                valid = col_vals[~np.isnan(col_vals)]
+                is_int = bool(np.all(valid == np.round(valid))) if len(valid) > 0 else True
                 params['min'][feature], params['max'][feature] = categorical_range(
-                    n_cat, params['min'][feature], params['max'][feature], bool((column.dropna() == np.round(column.dropna())).all()))
+                    n_cat, params['min'][feature], params['max'][feature], is_int
+                )
         for feature, (low, high) in (fixed_ranges or {}).items():
-            if feature in params['min'].index:
+            if feature in feature_idx:
                 params['min'][feature], params['max'][feature] = float(low), float(high)
 
     return norm_params, unique_groups
@@ -88,6 +161,7 @@ def _resolve_fixed_ranges(data: pd.DataFrame, ranges: Optional[Dict]) -> Dict[st
     Returns:
         ``{feature: (low, high)}``.
     """
+    data = _as_pandas_if_polars(data)
     resolved: Dict[str, Tuple[float, float]] = {}
     for feature, value in (ranges or {}).items():
         if value != "auto":
@@ -158,42 +232,94 @@ def _transform_data_stacked(
     Raises:
         ValueError: If `unique_groups` is None.
     """
-    formatted_data = []
-    
     if unique_groups is None:
         raise ValueError("`unique_groups` cannot be None.")
 
+    data = _as_pandas_if_polars(data)
+    has_target = target_col is not None and target_col in data.columns
+    feat_mat = _extract_feature_matrix(data, features)
+    if has_target:
+        y_series = data[target_col]
+        if isinstance(y_series.dtype, pd.api.extensions.ExtensionDtype):
+            y_arr = y_series.to_numpy(dtype=np.float64, na_value=np.nan)
+        else:
+            try:
+                y_arr = y_series.to_numpy(dtype=np.float64, copy=False)
+            except (TypeError, ValueError):
+                y_arr = y_series.to_numpy(dtype=np.float64, na_value=np.nan)
+    else:
+        y_arr = None
+
+    date_keys = _date_keys(data, date_col)
+    group_arr = data[group_col].to_numpy()
+    dtype = torch.get_default_dtype()
+
+    if len(unique_groups) == 1:
+        group_name = unique_groups[0]
+        if group_name in norm_params and len(data) > 0:
+            if not pd.isna(group_arr[0]) and bool((group_arr == group_name).all()):
+                pos = None
+                if date_keys is not None and len(date_keys) > 1 and not _is_sorted_nondecreasing(date_keys):
+                    pos = np.argsort(date_keys, kind="stable")
+            else:
+                pos = np.flatnonzero(group_arr == group_name)
+                if len(pos) > 1 and date_keys is not None:
+                    dk_g = date_keys[pos]
+                    if not _is_sorted_nondecreasing(dk_g):
+                        pos = pos[np.argsort(dk_g, kind="stable")]
+                if len(pos) == 0:
+                    pos = np.empty(0, dtype=np.intp)
+            if pos is None or len(pos) > 0:
+                params = norm_params[group_name]
+                min_vals = np.asarray([params['min'][f] for f in features], dtype=np.float64) if features else np.empty(0, dtype=np.float64)
+                max_vals = np.asarray([params['max'][f] for f in features], dtype=np.float64) if features else np.empty(0, dtype=np.float64)
+                amplitude = max_vals - min_vals
+                amplitude[amplitude == 0] = 1.0
+                center = (max_vals + min_vals) / 2.0
+                x_slice = feat_mat if pos is None else feat_mat[pos]
+                norm_x = (x_slice - center) / (amplitude / 2.0)
+                x_stacked = torch.tensor(np.ascontiguousarray(norm_x), dtype=dtype, device=TORCH_DEVICE).unsqueeze(0)
+                y_stacked = None
+                if has_target:
+                    y_slice = y_arr if pos is None else y_arr[pos]
+                    y_stacked = torch.tensor(np.ascontiguousarray(y_slice), dtype=dtype, device=TORCH_DEVICE).view(1, -1, 1)
+                return x_stacked, y_stacked
+
+        x_empty = torch.empty(0, 0, len(features), device=TORCH_DEVICE)
+        y_empty = torch.empty(0, 0, 1, device=TORCH_DEVICE, dtype=dtype) if target_col else None
+        return x_empty, y_empty
+
+    grouped_indices = data.groupby(group_col, sort=False).indices
+    x_list = []
+    y_list = []
     for group_name in unique_groups:
         if group_name not in norm_params:
             continue
-            
-        group_data = data[data[group_col] == group_name]
-        if date_col is not None:
-            group_data = group_data.sort_values(date_col)
-        group_data = group_data.reset_index(drop=True)
-        if group_data.empty:
+        pos = grouped_indices.get(group_name)
+        if pos is None or len(pos) == 0:
             continue
-
+        if date_keys is not None and len(pos) > 1:
+            dk_g = date_keys[pos]
+            if not _is_sorted_nondecreasing(dk_g):
+                pos = pos[np.argsort(dk_g, kind="stable")]
         params = norm_params[group_name]
-        normalized_features = normalize(df_to_normalize=group_data[features], params=params)
-        
-        x_tensor = torch.tensor(normalized_features.values, dtype=torch.get_default_dtype(), device=TORCH_DEVICE)
-        
-        y_tensor = None
-        if target_col in data.columns:
-            y_vals = group_data[target_col].values
-            y_tensor = torch.tensor(y_vals, dtype=torch.get_default_dtype(), device=TORCH_DEVICE)
-            y_tensor = y_tensor.view(-1, 1)
+        min_vals = np.asarray([params['min'][f] for f in features], dtype=np.float64) if features else np.empty(0, dtype=np.float64)
+        max_vals = np.asarray([params['max'][f] for f in features], dtype=np.float64) if features else np.empty(0, dtype=np.float64)
+        amplitude = max_vals - min_vals
+        amplitude[amplitude == 0] = 1.0
+        center = (max_vals + min_vals) / 2.0
+        norm_x = (feat_mat[pos] - center) / (amplitude / 2.0)
+        x_list.append(torch.tensor(np.ascontiguousarray(norm_x), dtype=dtype, device=TORCH_DEVICE))
+        if has_target:
+            y_list.append(torch.tensor(np.ascontiguousarray(y_arr[pos]), dtype=dtype, device=TORCH_DEVICE).view(-1, 1))
 
-        formatted_data.append([x_tensor, y_tensor])
-
-    if not formatted_data:
+    if not x_list:
         x_empty = torch.empty(0, 0, len(features), device=TORCH_DEVICE)
-        y_empty = torch.empty(0, 0, 1, device=TORCH_DEVICE, dtype=torch.get_default_dtype()) if target_col else None
+        y_empty = torch.empty(0, 0, 1, device=TORCH_DEVICE, dtype=dtype) if target_col else None
         return x_empty, y_empty
 
-    x_stacked = torch.stack([entry[0] for entry in formatted_data])
-    y_stacked = torch.stack([entry[1] for entry in formatted_data]) if target_col in data.columns else None
+    x_stacked = torch.stack(x_list)
+    y_stacked = torch.stack(y_list) if has_target else None
 
     return x_stacked, y_stacked
 #: </transform_stacked>
@@ -254,8 +380,47 @@ def _group_positions(data: pd.DataFrame, group_col: str, group_name, date_col: O
     if date_keys is None:
         date_keys = _date_keys(data, date_col)
     if date_keys is not None and len(positions) > 1:
-        positions = positions[np.argsort(date_keys[positions], kind="stable")]
+        dk_pos = date_keys[positions]
+        if not _is_sorted_nondecreasing(dk_pos):
+            positions = positions[np.argsort(dk_pos, kind="stable")]
     return positions
+
+
+def _all_group_positions(
+    data: pd.DataFrame,
+    group_col: str,
+    unique_groups: List,
+    date_col: Optional[str] = None,
+    date_keys: Optional[np.ndarray] = None,
+) -> List[np.ndarray]:
+    r"""Computes row position arrays for all groups in a single O(N) pass."""
+    if not unique_groups:
+        return []
+    if date_keys is None:
+        date_keys = _date_keys(data, date_col)
+    if len(unique_groups) == 1:
+        g0 = unique_groups[0]
+        group_arr = data[group_col].to_numpy()
+        if len(group_arr) > 0 and not pd.isna(group_arr[0]) and bool((group_arr == g0).all()):
+            pos = np.arange(len(data), dtype=np.intp)
+            if date_keys is not None and len(pos) > 1 and not _is_sorted_nondecreasing(date_keys):
+                pos = np.argsort(date_keys, kind="stable")
+            return [pos]
+        return [_group_positions(data, group_col, g0, date_col, date_keys)]
+
+    grouped_indices = data.groupby(group_col, sort=False).indices
+    positions_list = []
+    for g in unique_groups:
+        pos = grouped_indices.get(g)
+        if pos is None:
+            positions_list.append(np.empty(0, dtype=np.intp))
+            continue
+        if date_keys is not None and len(pos) > 1:
+            dk_pos = date_keys[pos]
+            if not _is_sorted_nondecreasing(dk_pos):
+                pos = pos[np.argsort(dk_pos, kind="stable")]
+        positions_list.append(pos)
+    return positions_list
 
 
 #: <reassemble>
@@ -284,23 +449,22 @@ def _reassemble_predictions(
     Returns:
         pd.DataFrame: Original data with a new `Estimated{target_col}` column.
     """
+    original_data = _as_pandas_if_polars(original_data)
     is_3d_input = predictions_stacked.dim() == 3
     estimate = np.full(len(original_data), np.nan)
     date_keys = _date_keys(original_data, date_col)
+    active_groups = unique_groups[:predictions_stacked.shape[0]]
+    positions_list = _all_group_positions(original_data, group_col, active_groups, date_col, date_keys)
 
-    for i, group_name in enumerate(unique_groups):
-        if i >= predictions_stacked.shape[0]:
-            continue
-
+    for i, positions in enumerate(positions_list):
         if is_3d_input:
             preds_group = predictions_stacked[i].cpu().numpy().flatten()
         else:
             preds_group = predictions_stacked[i].cpu().numpy()
 
-        if len(preds_group) == 0:
+        if len(preds_group) == 0 or len(positions) == 0:
             continue
 
-        positions = _group_positions(original_data, group_col, group_name, date_col, date_keys)
         # Align to the end of the group's rows (handling potential truncation)
         estimate[positions[-len(preds_group):]] = preds_group
 
@@ -331,24 +495,25 @@ def _reassemble_decomposed_predictions(
     Returns:
         pd.DataFrame: Data with effect columns added.
     """
+    original_data = _as_pandas_if_polars(original_data)
     result_df = original_data.copy()
     date_keys = _date_keys(original_data, date_col)
+    positions_list = _all_group_positions(original_data, group_col, unique_groups, date_col, date_keys)
 
     for feature_name, effect_tensor in decomposed_effects.items():
         col_name = f"effect_{feature_name}"
         column = np.full(len(original_data), np.nan)
 
-        for i, group_name in enumerate(unique_groups):
+        for i, positions in enumerate(positions_list):
             if i >= effect_tensor.shape[0]:
                 continue
 
-            positions = _group_positions(original_data, group_col, group_name, date_col, date_keys)
             group_len = len(positions)
 
             if effect_tensor.dim() == 2:
-                effect_data = effect_tensor[i,:].cpu().numpy()
+                effect_data = effect_tensor[i, :].cpu().numpy()
             elif effect_tensor.dim() == 3:
-                effect_data = effect_tensor[i,:,:].cpu().numpy().flatten()
+                effect_data = effect_tensor[i, :, :].cpu().numpy().flatten()
             else:
                 raise ValueError(f"Unrecognized tensor shape: {effect_tensor.shape}")
 
@@ -359,10 +524,13 @@ def _reassemble_decomposed_predictions(
                 effect_data = effect_data[-group_len:]
 
             # Pad with NaNs at the beginning if necessary
-            column[positions] = np.concatenate([
-                np.full(group_len - len(effect_data), np.nan),
-                effect_data
-            ])
+            if group_len > len(effect_data):
+                column[positions] = np.concatenate([
+                    np.full(group_len - len(effect_data), np.nan),
+                    effect_data
+                ])
+            else:
+                column[positions] = effect_data
 
         result_df[col_name] = column
 
@@ -383,7 +551,7 @@ def _window_starts(n_rows: int, training_steps: int, window_steps: int, horizon_
 class _AdaptiveWindows:
     r"""Where the windows of an adaptive simulation sit in the data, and the normalisation each one trained with."""
 
-    def __init__(self, positions, starts, n_valid, norm_min, norm_max, y_min, y_max):
+    def __init__(self, positions, starts, n_valid, norm_min, norm_max, y_min, y_max, raw_x_groups=None, raw_y_groups=None):
         self.positions = positions      # per group: row positions of the group in `data`, in date order
         self.starts = starts            # per group: first forecast position of each window (the last one may be the data end)
         self.n_valid = n_valid          # per group: forecast rows of each window that exist in the data
@@ -391,6 +559,8 @@ class _AdaptiveWindows:
         self.norm_max = norm_max        # (n_groups, n_windows, n_features)
         self.y_min = y_min              # (n_groups, n_windows): target range of the training rows of the window
         self.y_max = y_max
+        self.raw_x_groups = raw_x_groups  # per group (n_rows_g, n_features) float64 unnormalized features in date order
+        self.raw_y_groups = raw_y_groups  # per group (n_rows_g, 1) float64 target in date order
 
     @property
     def final_index(self) -> List[int]:
@@ -439,6 +609,7 @@ def _transform_data_adaptive(
     """
     if unique_groups is None:
         raise ValueError("`unique_groups` cannot be None.")
+    data = _as_pandas_if_polars(data)
     learning_size_steps = training_window_periods * steps_per_period
     window_size_steps = update_interval_periods * steps_per_period
     dtype = torch.get_default_dtype()
@@ -446,17 +617,14 @@ def _transform_data_adaptive(
     categorical = categorical_levels or {}
     fixed = fixed_ranges or {}
 
-    x_all = data[features].to_numpy(dtype=np.float64)
+    x_all = _extract_feature_matrix(data, features)
     y_all = data[target_col].to_numpy(dtype=np.float64)
-    group_values = data[group_col].to_numpy()
-    date_values = data[date_col].to_numpy() if date_col is not None else None
+    all_pos = _all_group_positions(data, group_col, unique_groups, date_col=date_col)
+    n_groups = len(all_pos)
 
-    built = []
     positions, starts_all, n_valid_all = [], [], []
-    for group_name in unique_groups:
-        pos = np.flatnonzero(group_values == group_name)
-        if date_values is not None:
-            pos = pos[np.argsort(date_values[pos], kind="stable")]
+    group_lengths = []
+    for pos in all_pos:
         n = len(pos)
         starts = _window_starts(n, learning_size_steps, window_size_steps, horizon_steps)
         if n >= learning_size_steps + horizon_steps - 1 and (n - (learning_size_steps + horizon_steps - 1)) % window_size_steps == 0:
@@ -464,57 +632,122 @@ def _transform_data_adaptive(
         positions.append(pos)
         starts_all.append(starts)
         n_valid_all.append([int(min(window_size_steps, max(n - s, 0))) for s in starts])
+        group_lengths.append(n)
+
+    if all(len(st) == 0 for st in starts_all):
+        raise ValueError("No simulation data could be generated. Check dataset length/window sizes.")
+
+    n_windows = max(len(st) for st in starts_all)
+    out_x_train = torch.zeros(n_groups, n_windows, learning_size_steps, n_features, dtype=dtype)
+    out_y_train = torch.zeros(n_groups, n_windows, learning_size_steps, 1, dtype=dtype)
+    out_x_pred = torch.zeros(n_groups, n_windows, window_size_steps, n_features, dtype=dtype)
+    out_low = torch.zeros(n_groups, n_windows, n_features, dtype=torch.float64)
+    out_high = torch.ones(n_groups, n_windows, n_features, dtype=torch.float64)
+    out_ymin = torch.zeros(n_groups, n_windows, dtype=torch.float64)
+    out_ymax = torch.ones(n_groups, n_windows, dtype=torch.float64)
+
+    raw_x_groups, raw_y_groups = [], []
+    base_train_off = -(horizon_steps - 1) - learning_size_steps
+    train_offsets = torch.arange(base_train_off, -(horizon_steps - 1) if horizon_steps > 1 else 0)
+    pred_offsets = torch.arange(window_size_steps)
+    cat_cols = [(j, name, categorical[name]) for j, name in enumerate(features) if name in categorical]
+    fixed_cols = [(j, fixed[name][0], fixed[name][1]) for j, name in enumerate(features) if name in fixed and name not in categorical]
+    free_mask = [i for i, name in enumerate(features) if name not in categorical and name not in fixed]
+    origin = -(learning_size_steps // 2)
+
+    for g, (pos, starts, n) in enumerate(zip(all_pos, starts_all, group_lengths)):
         if not starts:
-            built.append(None)
+            raw_x_groups.append(None)
+            raw_y_groups.append(None)
             continue
-        s = torch.tensor(starts, dtype=torch.long)
-        x_g = torch.tensor(x_all[pos], dtype=torch.float64).view(n, n_features)
-        y_g = torch.tensor(y_all[pos], dtype=torch.float64).view(n, 1)
-        train_idx = s.view(-1, 1) + torch.arange(-(horizon_steps - 1) - learning_size_steps, -(horizon_steps - 1) if horizon_steps > 1 else 0)
-        predict_idx = (s.view(-1, 1) + torch.arange(window_size_steps)).clamp(max=n - 1)
-        x_train = x_g[train_idx]                                                  # (n_windows, L, F)
-        low = x_train.amin(dim=1, keepdim=True)
-        high = x_train.amax(dim=1, keepdim=True)
-        for j, name in enumerate(features):
-            if name in categorical:
-                n_cat = categorical[name]
+
+        w_g = len(starts)
+        x_np = np.ascontiguousarray(x_all[pos])
+        y_np = np.ascontiguousarray(y_all[pos]).reshape(n, 1)
+        x_g = torch.from_numpy(x_np).view(n, n_features)
+        y_g = torch.from_numpy(y_np).view(n, 1)
+        raw_x_groups.append(x_g)
+        raw_y_groups.append(y_g)
+
+        t0_first = starts[0] + base_train_off
+        regular_starts = (
+            w_g == 1 or (starts[-1] - starts[0] == (w_g - 1) * window_size_steps)
+        )
+        if regular_starts and t0_first >= 0 and t0_first + (w_g - 1) * window_size_steps + learning_size_steps <= n:
+            end_u = t0_first + (w_g - 1) * window_size_steps + learning_size_steps
+            x_train = x_g[t0_first:end_u].unfold(0, learning_size_steps, window_size_steps).transpose(1, 2)
+            y_train = y_g[t0_first:end_u].unfold(0, learning_size_steps, window_size_steps).transpose(1, 2)
+        else:
+            s_tensor = torch.tensor(starts, dtype=torch.long)
+            train_idx = s_tensor.view(-1, 1) + train_offsets
+            x_train = x_g[train_idx]
+            y_train = y_g[train_idx]
+
+        s_tensor = torch.tensor(starts, dtype=torch.long)
+        predict_idx = (s_tensor.view(-1, 1) + pred_offsets).clamp(max=n - 1)
+
+        t0_np = np.asarray(starts, dtype=np.intp) + base_train_off
+        use_fast_filter = (
+            w_g >= 16
+            and learning_size_steps >= 16
+            and int(t0_np.min()) >= 0
+            and int(t0_np.max()) + learning_size_steps <= n
+            and not bool(np.isnan(x_np).any())
+            and not bool(np.isnan(y_np).any())
+        )
+        if use_fast_filter:
+            # Sliding min/max via van Herk / SciPy filter1d in O(n) independent of L.
+            low_mat = torch.from_numpy(minimum_filter1d(x_np, size=learning_size_steps, axis=0, origin=origin, mode='nearest')[t0_np])
+            high_mat = torch.from_numpy(maximum_filter1d(x_np, size=learning_size_steps, axis=0, origin=origin, mode='nearest')[t0_np])
+            if cat_cols:
+                low_mat = low_mat.clone()
+                high_mat = high_mat.clone()
+            ymin_vec = torch.from_numpy(minimum_filter1d(y_np[:, 0], size=learning_size_steps, axis=0, origin=origin, mode='nearest')[t0_np])
+            ymax_vec = torch.from_numpy(maximum_filter1d(y_np[:, 0], size=learning_size_steps, axis=0, origin=origin, mode='nearest')[t0_np])
+            low = low_mat.unsqueeze(1)
+            high = high_mat.unsqueeze(1)
+        else:
+            low = x_train.amin(dim=1, keepdim=True)
+            high = x_train.amax(dim=1, keepdim=True)
+            ymin_vec = y_train.amin(dim=(1, 2))
+            ymax_vec = y_train.amax(dim=(1, 2))
+
+        for j, _, n_cat in cat_cols:
+            all_int = bool((x_g[:, j] == x_g[:, j].round()).all())
+            if all_int:
+                start = torch.where(high[..., j] <= n_cat - 1, torch.zeros_like(low[..., j]), low[..., j])
+                low[..., j] = start
+                high[..., j] = start + (n_cat - 1)
+            else:
                 integer = (x_train[..., j] == x_train[..., j].round()).all(dim=1, keepdim=True)
                 start = torch.where(high[..., j] <= n_cat - 1, torch.zeros_like(low[..., j]), low[..., j])
                 low[..., j] = torch.where(integer, start, low[..., j])
                 high[..., j] = torch.where(integer, start + (n_cat - 1), high[..., j])
-            elif name in fixed:
-                low[..., j], high[..., j] = fixed[name]
+        for j, lo_f, hi_f in fixed_cols:
+            low[..., j] = lo_f
+            high[..., j] = hi_f
+
         amplitude = high - low
         amplitude = torch.where(amplitude == 0, torch.ones_like(amplitude), amplitude)
+        half_amp = amplitude / 2.0
         center = (high + low) / 2
-        y_train = y_g[train_idx]
-        built.append((
-            ((x_train - center) / (amplitude / 2.0)).to(dtype),
-            y_train.to(dtype),
-            ((x_g[predict_idx] - center) / (amplitude / 2.0)).to(dtype),
-            low.squeeze(1), high.squeeze(1), y_train.amin(dim=(1, 2)), y_train.amax(dim=(1, 2)),
-        ))
 
-    if all(b is None for b in built):
-        raise ValueError("No simulation data could be generated. Check dataset length/window sizes.")
+        out_x_train[g, :w_g] = ((x_train - center) / half_amp).to(dtype)
+        out_y_train[g, :w_g] = y_train.to(dtype)
+        out_x_pred[g, :w_g] = ((x_g[predict_idx] - center) / half_amp).to(dtype)
+        out_low[g, :w_g] = low.squeeze(1)
+        out_high[g, :w_g] = high.squeeze(1)
+        out_ymin[g, :w_g] = ymin_vec
+        out_ymax[g, :w_g] = ymax_vec
+        if w_g < n_windows:         # a shorter group repeats its last window; the repeats are never read
+            out_x_train[g, w_g:] = out_x_train[g, w_g - 1 : w_g].expand(n_windows - w_g, -1, -1)
+            out_y_train[g, w_g:] = out_y_train[g, w_g - 1 : w_g].expand(n_windows - w_g, -1, -1)
+            out_x_pred[g, w_g:] = out_x_pred[g, w_g - 1 : w_g].expand(n_windows - w_g, -1, -1)
+            out_low[g, w_g:] = out_low[g, w_g - 1 : w_g].expand(n_windows - w_g, -1)
+            out_high[g, w_g:] = out_high[g, w_g - 1 : w_g].expand(n_windows - w_g, -1)
+            out_ymin[g, w_g:] = out_ymin[g, w_g - 1 : w_g].expand(n_windows - w_g)
+            out_ymax[g, w_g:] = out_ymax[g, w_g - 1 : w_g].expand(n_windows - w_g)
 
-    n_windows = max(len(st) for st in starts_all)
-    placeholders = (
-        torch.zeros(n_windows, learning_size_steps, n_features, dtype=dtype), torch.zeros(n_windows, learning_size_steps, 1, dtype=dtype),
-        torch.zeros(n_windows, window_size_steps, n_features, dtype=dtype), torch.zeros(n_windows, n_features, dtype=torch.float64),
-        torch.ones(n_windows, n_features, dtype=torch.float64), torch.zeros(n_windows, dtype=torch.float64), torch.ones(n_windows, dtype=torch.float64),
-    )
-    columns = [[] for _ in range(7)]
-    for entry in built:
-        for k in range(7):
-            if entry is None:
-                columns[k].append(placeholders[k])
-                continue
-            tensor = entry[k]
-            if tensor.shape[0] < n_windows:         # a shorter group repeats its last window; the repeats are never read
-                tensor = torch.cat([tensor, tensor[-1:].expand(n_windows - tensor.shape[0], *tensor.shape[1:])], dim=0)
-            columns[k].append(tensor)
-    stacked = [torch.stack(c) for c in columns]
-    windows = _AdaptiveWindows(positions, starts_all, n_valid_all, stacked[3], stacked[4], stacked[5], stacked[6])
-    return stacked[0].to(TORCH_DEVICE), stacked[1].to(TORCH_DEVICE), stacked[2].to(TORCH_DEVICE), windows
+    windows = _AdaptiveWindows(positions, starts_all, n_valid_all, out_low, out_high, out_ymin, out_ymax, raw_x_groups=raw_x_groups, raw_y_groups=raw_y_groups)
+    return out_x_train.to(TORCH_DEVICE), out_y_train.to(TORCH_DEVICE), out_x_pred.to(TORCH_DEVICE), windows
 #: </transform_adaptive>

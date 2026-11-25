@@ -17,7 +17,7 @@ import torch.nn.functional as F
 from tam.common.utils import TORCH_DEVICE
 from ._base_effects import BaseEffect
 from ._penalty_coordinates import CoordinatePenaltyMixin
-from ._temporal_utils import build_clamped_knots, causal_linear_recurrence, cox_de_boor as _cox_de_boor, eval_clamped_spline_with_linear_tails, from_btk, to_btd
+from ._temporal_utils import build_clamped_knots, causal_linear_recurrence, cox_de_boor as _cox_de_boor, eval_1d_dedup, eval_clamped_spline_with_linear_tails, from_btk, to_btd
 
 
 def _parse_float_sequence(vals: Union[Sequence[float], str, float, int]) -> Tuple[float, ...]:
@@ -144,13 +144,13 @@ class InertiaEffect(CoordinatePenaltyMixin, BaseEffect):
         y = causal_linear_recurrence(x_norm.unsqueeze(-1).expand(B, T, len(self.alphas)), 1.0 - alphas, alphas, y_prev)
 
         knots = self._build_knots(device=device, dtype=dtype)
-        smoothed_blocks: List[torch.Tensor] = []
-        for m in range(len(self.alphas)):
-            y_m = y[..., m].reshape(-1)                                   # (B * T,) smoothed input of decay constant m
-            smoothed_blocks.append(eval_clamped_spline_with_linear_tails(y_m, knots, self.spline_degree))   # (B * T, k + degree)
+        # Batched spline evaluation across all M alphas (grouped per-alpha along last dim).
+        phi_flat = eval_clamped_spline_with_linear_tails(
+            y.permute(2, 0, 1).reshape(-1), knots, self.spline_degree
+        )
+        phi = phi_flat.view(len(self.alphas), B, T, self._n_spline_coeffs).permute(1, 2, 0, 3).reshape(B, T, self._n_coeffs)
 
         self._state_out = {"y": y[:, -1, :].detach().clone()}
-        phi = torch.cat(smoothed_blocks, dim=-1).reshape(B, T, self._n_coeffs)
         return from_btk(phi, shape, layout)
 #: </inertia_feature_map>
 
@@ -236,26 +236,21 @@ class DegreeDayEffect(BaseEffect):
 #: <dd_feature_map>
     def build_feature_map(self, x_col: torch.Tensor) -> torch.Tensor:
         """Builds smooth softplus degree day columns."""
-        x_exp = x_col.unsqueeze(-1)
-        cols: List[torch.Tensor] = []
+        heat_t = torch.tensor(self.heat_thresholds, device=x_col.device, dtype=x_col.dtype) if self.heat_thresholds else None
+        cool_t = torch.tensor(self.cool_thresholds, device=x_col.device, dtype=x_col.dtype) if self.cool_thresholds else None
 
-        # Heating degree-day hinges: softplus(u - T, beta)
-        for u in self.heat_thresholds:
-            z = float(u) - x_exp
-            hdd = F.softplus(z, beta=self.sharpness)
-            cols.append(hdd)
-            if self.quad:
-                cols.append(hdd ** 2)
+        def _eval(xv: torch.Tensor) -> torch.Tensor:
+            x_exp = xv.unsqueeze(-1)
+            blocks: List[torch.Tensor] = []
+            if heat_t is not None:
+                hdd = F.softplus(heat_t.view(*([1] * xv.dim()), -1) - x_exp, beta=self.sharpness)
+                blocks.append(torch.stack([hdd, hdd * hdd], dim=-1).reshape(*xv.shape, -1) if self.quad else hdd)
+            if cool_t is not None:
+                cdd = F.softplus(x_exp - cool_t.view(*([1] * xv.dim()), -1), beta=self.sharpness)
+                blocks.append(torch.stack([cdd, cdd * cdd], dim=-1).reshape(*xv.shape, -1) if self.quad else cdd)
+            return torch.cat(blocks, dim=-1) if len(blocks) > 1 else blocks[0]
 
-        # Cooling degree-day hinges: softplus(T - v, beta)
-        for v in self.cool_thresholds:
-            z = x_exp - float(v)
-            cdd = F.softplus(z, beta=self.sharpness)
-            cols.append(cdd)
-            if self.quad:
-                cols.append(cdd ** 2)
-
-        return torch.cat(cols, dim=-1)
+        return eval_1d_dedup(x_col, _eval)
 #: </dd_feature_map>
 
 #: <dd_penalty_matrix>

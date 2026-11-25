@@ -150,10 +150,11 @@ class KANEffect(BaseEffect):
         w_silu = self.w_silu.to(device=x_std_in.device, dtype=x_std_in.dtype)
         c_spline = self.c_spline.to(device=x_std_in.device, dtype=x_std_in.dtype)
         knots_in = self._get_inner_knots(x_std_in)
-        B_in = torch.stack([_cox_de_boor(x_std_in[:, p], knots_in[p], self.spline_degree) for p in range(d)], dim=1)  # (N, d, k_inner)
-        silu_val = torch.einsum("tp, qp -> tqp", torch.nn.functional.silu(x_std_in), w_silu)
-        spl_val = torch.einsum("tpk, qpk -> tqp", B_in, c_spline)
-        return torch.sum(silu_val + spl_val, dim=-1)
+        B_in = torch.cat([_cox_de_boor(x_std_in[:, p], knots_in[p], self.spline_degree) for p in range(d)], dim=-1)
+        return (
+            torch.nn.functional.silu(x_std_in) @ w_silu.T
+            + B_in @ c_spline.reshape(self.n_nodes, -1).T
+        )
 
     def initialize(self, x_col: torch.Tensor) -> None:
         """Freezes the inner parameters, the standardization, the inner knots and the node statistics on the training rows."""
@@ -199,7 +200,7 @@ class KANEffect(BaseEffect):
         z = torch.tanh(0.28 * (u - u_mean) / u_std)  # (N_rows, Q)
 
         knots_out = self.knots_out.to(device=x_in.device, dtype=x_in.dtype)
-        phi_kan = torch.cat([_cox_de_boor(z[:, q], knots_out, self.spline_degree) for q in range(self.n_nodes)], dim=-1)
+        phi_kan = _cox_de_boor(z.reshape(-1), knots_out, self.spline_degree).reshape(z.shape[0], self.n_nodes * self.k_outer)
         return from_btk(phi_kan.reshape(B, T, self.n_nodes * self.k_outer), shape, layout)
 #: </kan_feature_map>
 

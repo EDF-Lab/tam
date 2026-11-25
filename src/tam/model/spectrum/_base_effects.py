@@ -106,6 +106,10 @@ class BaseEffect(ABC):
         """The coordinates outside [-1, 1] wrapped around the period 2; the ones inside are unchanged."""
         return torch.where((x_col < -1.0) | (x_col > 1.0), ((x_col + 1.0) % 2.0) - 1.0, x_col)
 
+    def _ood_slope_scale(self) -> float:
+        """Multiplier applied to the outward boundary derivative during linear/saturation extrapolation."""
+        return 1.0
+
     def transform(self, x_col: torch.Tensor, state_in: Optional[Dict[str, Any]] = None) -> torch.Tensor:
         r"""
         The Universal Extrapolation Wrapper (Multidimensional).
@@ -186,7 +190,7 @@ class BaseEffect(ABC):
             del self._state_out
         
         # The outward gradient (directional derivative) along the unit violation vector
-        slope_unit = (phi_base[is_ood] - phi_eps) / eps
+        slope_unit = ((phi_base[is_ood] - phi_eps) / eps) * self._ood_slope_scale()
 
         # Linear Extrapolation (First-Order Taylor Expansion)
         if self.extrapolate == 'linear':

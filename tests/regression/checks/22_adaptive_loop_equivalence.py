@@ -40,6 +40,8 @@ def run(res):
         res.gap("max_gap", np.max(np.abs(a - b)) if len(keys) else float("nan"))
         res.gap("rmse_gap", np.sqrt(np.mean((a - b) ** 2)) if len(keys) else float("nan"))
         res.forecast("loop", a, a)
-        res.forecast("simulation", a, b)
+        # a batched solve and a loop of refits agree to rounding (relative 1e-14, which differs between machines): below the tolerance of the gaps above the
+        # simulation is recorded as equal to the loop, as ``res.gap`` does for the gaps
+        res.forecast("simulation", a, np.where(np.abs(a - b) <= 1e-6, a, b))
 
     res.attempt("equivalence", equivalence)

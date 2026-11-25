@@ -16,7 +16,7 @@ import torch
 from tam.common.utils import TORCH_DEVICE
 from ._base_effects import BaseEffect
 from ._patch_basis import PatchBasisEffect
-from ._temporal_utils import causal_history, causal_linear_recurrence, causal_window_unfold, from_btk, tail_state, to_btd
+from ._temporal_utils import causal_history, causal_linear_recurrence, causal_window_unfold, eval_1d_dedup, from_btk, tail_state, to_btd
 
 
 def _build_d2_penalty(n: int, device: torch.device, dtype: torch.dtype) -> torch.Tensor:
@@ -118,16 +118,18 @@ class QuantileHistEffect(BaseEffect):
         widths = self._widths.to(device=device, dtype=dtype).view(1, 1, -1)
         # Soft triangular bin membership on current standardized value (50%) + window occupancy (50%)
         tri_curr = torch.clamp(1.0 - torch.abs(z_curr - centers) / widths, min=0.0)  # (B, T, B_bins)
-        z_win = (windows - mu_w) / std_w  # (B, T, W)
-        tri_win = torch.mean(
-            torch.clamp(
-                1.0 - torch.abs(z_win.unsqueeze(-1) - centers.unsqueeze(2)) / widths.unsqueeze(2),
-                min=0.0,
-            ),
-            dim=2,
-        )  # (B, T, B_bins)
-
-        out = 0.5 * tri_curr + 0.5 * tri_win
+        c5 = centers.unsqueeze(2)
+        w5 = widths.unsqueeze(2)
+        out = torch.empty_like(tri_curr)
+        t_chunk = 512
+        for t0 in range(0, T, t_chunk):
+            t1 = min(t0 + t_chunk, T)
+            z_win = (windows[:, t0:t1, :] - mu_w[:, t0:t1, :]) / std_w[:, t0:t1, :]
+            tri_win = torch.mean(
+                torch.clamp(1.0 - torch.abs(z_win.unsqueeze(-1) - c5) / w5, min=0.0),
+                dim=2,
+            )
+            out[:, t0:t1, :] = 0.5 * tri_curr[:, t0:t1, :] + 0.5 * tri_win
         return from_btk(out, shape, layout)
 
     def build_penalty_matrix(self) -> torch.Tensor:
@@ -293,31 +295,32 @@ class StructuralPriorEffect(BaseEffect):
         x_in = x3[..., 0]
         dtype = x_in.dtype
         device = x_in.device
-        x_exp = x_in.unsqueeze(-1)  # (B, T, 1)
         n1, n2, n3, n4 = self._counts
-        cols = []
 
-        if n1 > 0:
-            c1 = self._centers_1[:n1].to(device=device, dtype=dtype).view(1, 1, n1)
-            s1 = self._slopes_1[:n1].to(device=device, dtype=dtype).view(1, 1, n1)
-            cols.append(torch.tanh(s1 * (x_exp - c1)))
-        if n2 > 0:
-            c2 = self._centers_2[:n2].to(device=device, dtype=dtype).view(1, 1, n2)
-            sg2 = self._signs_2[:n2].to(device=device, dtype=dtype).view(1, 1, n2)
-            cols.append(torch.nn.functional.softplus(4.0 * sg2 * (x_exp - c2)) / 4.0)
-        if n3 > 0:
-            c3 = self._centers_3[:n3].to(device=device, dtype=dtype).view(1, 1, n3)
-            w3 = self._widths_3[:n3].to(device=device, dtype=dtype).view(1, 1, n3)
-            z3 = (x_exp - c3) / w3
-            # Skewed pulse: exp(-z^2 / 2) * sigmoid(1.5 * z)
-            cols.append(torch.exp(-0.5 * z3 * z3) * torch.sigmoid(1.5 * z3))
-        if n4 > 0:
-            c4 = self._centers_4[:n4].to(device=device, dtype=dtype).view(1, 1, n4)
-            sc4 = self._scales_4[:n4].to(device=device, dtype=dtype).view(1, 1, n4)
-            z4 = (x_exp - c4) / sc4
-            cols.append(z4 / (1.0 + z4 * z4))
+        def _eval_1d(xv: torch.Tensor) -> torch.Tensor:
+            x_exp = xv.unsqueeze(-1)
+            cols = []
+            if n1 > 0:
+                c1 = self._centers_1[:n1].to(device=device, dtype=dtype)
+                s1 = self._slopes_1[:n1].to(device=device, dtype=dtype)
+                cols.append(torch.tanh(s1 * (x_exp - c1)))
+            if n2 > 0:
+                c2 = self._centers_2[:n2].to(device=device, dtype=dtype)
+                sg2 = self._signs_2[:n2].to(device=device, dtype=dtype)
+                cols.append(torch.nn.functional.softplus(4.0 * sg2 * (x_exp - c2)) / 4.0)
+            if n3 > 0:
+                c3 = self._centers_3[:n3].to(device=device, dtype=dtype)
+                w3 = self._widths_3[:n3].to(device=device, dtype=dtype)
+                z3 = (x_exp - c3) / w3
+                cols.append(torch.exp(-0.5 * z3 * z3) * torch.sigmoid(1.5 * z3))
+            if n4 > 0:
+                c4 = self._centers_4[:n4].to(device=device, dtype=dtype)
+                sc4 = self._scales_4[:n4].to(device=device, dtype=dtype)
+                z4 = (x_exp - c4) / sc4
+                cols.append(z4 / (1.0 + z4 * z4))
+            return torch.cat(cols, dim=-1)
 
-        return from_btk(torch.cat(cols, dim=-1), shape, layout)
+        return from_btk(eval_1d_dedup(x_in, _eval_1d), shape, layout)
 
     def build_penalty_matrix(self) -> torch.Tensor:
         """Penalty matrix of the effect, scaled by its smoothing weights (see the class docstring)."""

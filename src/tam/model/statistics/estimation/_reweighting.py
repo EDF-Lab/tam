@@ -17,10 +17,11 @@ loop falls back on the chunked solver of the dispatcher, which builds it block b
 """
 from __future__ import annotations
 
+from typing import Optional
 import torch
 
 from tam.common.hardware import hw
-from tam.model._math import _compute_weighted_covariances, solve_linear_system
+from tam.model._math import _StructuredDesign, _compute_weighted_covariances, solve_linear_system
 from tam.model._memory import can_fit_dense_matrix
 from ._base_strategy import ReweightingStrategy
 
@@ -36,13 +37,28 @@ def dense_design(model, x_data: torch.Tensor):
     """The design matrix Phi(x), built once, or None when it does not fit in memory (the loop then rebuilds it by chunks)."""
     if not _DENSE_CACHE:
         return None
-    probe = model._build_design_matrix(x_data[:, 0:1, :])
-    total_d = int(probe.shape[-1])
+    effects_list = getattr(model, "effects_list_", None)
+    if effects_list is not None:
+        total_d = sum(e.get_n_coeffs() for e in effects_list)
+    else:
+        probe = model._build_design_matrix(x_data[:, 0:1, :])
+        total_d = int(probe.shape[-1])
     if not can_fit_dense_matrix(total_d, x_data.device, batch_size=1):
         return None
     n_groups, n_samples = int(x_data.shape[0]), int(x_data.shape[1])
     if n_groups * n_samples * total_d * 8 * _CACHE_COPIES > hw.get_available_memory() * _CACHE_MEMORY_SHARE:
         return None
+    loss_matrix = model._build_loss_matrix() if hasattr(model, "_build_loss_matrix") else None
+    if effects_list is not None and (loss_matrix is None or loss_matrix.shape == (1, 1)):
+        feat_cols = (getattr(model, "features_config_", None) or {}).get("features")
+        try:
+            struct = _StructuredDesign.try_build(x_data, effects_list, feature_columns=feat_cols)
+        except (torch.OutOfMemoryError, MemoryError):
+            struct = None
+        if struct is not None:
+            holder = torch.empty((0,), device=struct.device, dtype=struct.dtype)
+            holder._tam_structured = struct
+            return holder
     try:
         return model._build_design_matrix(x_data)
     except (torch.OutOfMemoryError, MemoryError):
@@ -51,22 +67,32 @@ def dense_design(model, x_data: torch.Tensor):
 
 def _linear_predictor(model, x_data: torch.Tensor, theta: torch.Tensor, design_matrix=None) -> torch.Tensor:
     """eta = Phi(x) @ theta on the model's design matrix (the cached one when given)."""
-    if design_matrix is None:
-        design_matrix = model._build_design_matrix(x_data)
-    eta = design_matrix @ theta.to(device=design_matrix.device, dtype=design_matrix.dtype)
+    struct = getattr(design_matrix, "_tam_structured", None) if design_matrix is not None else None
+    if struct is not None:
+        eta = struct.linear_predictor(theta)
+    else:
+        if design_matrix is None:
+            design_matrix = model._build_design_matrix(x_data)
+        eta = design_matrix @ theta.to(device=design_matrix.device, dtype=design_matrix.dtype)
     offset = model._offset_of(x_data)
-    return eta if offset is None else eta + offset.to(device=eta.device, dtype=eta.dtype)
+    if offset is not None:
+        eta = eta + offset.to(device=eta.device, dtype=eta.dtype)
+    return eta.to(x_data.device)
 
 
 def _solve_step(model, x_data, working_response, weights, design_matrix, penalty_matrix, loss_matrix):
     """One penalized weighted least-squares solve; on the cached design matrix when there is one."""
     if design_matrix is None:
-        return model._solve_pwls_step(x_data, working_response, weights=weights)
+        return model._solve_pwls_step(x_data, working_response, weights=weights).to(x_data.device)
     offset = model._offset_of(x_data)
     if offset is not None:
         working_response = working_response - offset.to(device=working_response.device, dtype=working_response.dtype)
-    cov_x, cov_xy = _compute_weighted_covariances(design_matrix, working_response, loss_matrix, weights)
-    return solve_linear_system(cov_x, cov_xy, penalty_matrix, x_data.shape[1]).cpu()
+    struct = getattr(design_matrix, "_tam_structured", None)
+    if struct is not None and loss_matrix.shape == (1, 1):
+        cov_x, cov_xy = struct.weighted_covariances(working_response, loss_matrix, weights)
+    else:
+        cov_x, cov_xy = _compute_weighted_covariances(design_matrix, working_response, loss_matrix, weights)
+    return solve_linear_system(cov_x, cov_xy, penalty_matrix, x_data.shape[1]).to(x_data.device)
 
 
 #: <reweighting_loop>
@@ -79,6 +105,7 @@ def reweighted_penalized_fit(
     tol: float = 1e-6,
     max_halvings: int = 8,
     design_matrix=None,
+    initial_theta: Optional[torch.Tensor] = None,
 ) -> torch.Tensor:
     """Fit a strategy by iteratively reweighted penalized least squares; return the coefficients.
 
@@ -91,48 +118,108 @@ def reweighted_penalized_fit(
         tol: relative change in eta for convergence.
         max_halvings: maximum step-halvings per iteration (GLM divergence guard).
         design_matrix: Phi(x) when the caller already built it (``dense_design``); built here when None.
+        initial_theta: optional warm-start coefficients from a preceding outer fit.
     """
-    y_data = y_data.to(torch.get_default_dtype())
-    eta = strategy.initial_eta(y_data)
-    theta = None
+    target_device = y_data.device
+    target_dtype = torch.get_default_dtype()
+    y_data = y_data.to(device=target_device, dtype=target_dtype)
 
-    penalty_matrix = model._build_penalty_matrix()
     if design_matrix is None:
         design_matrix = dense_design(model, x_data)
-    loss_matrix = model._build_loss_matrix() if design_matrix is not None else None
+    penalty_matrix = model._build_penalty_matrix().to(device=target_device, dtype=target_dtype)
+    loss_matrix = model._build_loss_matrix().to(device=target_device) if design_matrix is not None else None
 
-    def penalized_objective(theta_value: torch.Tensor, eta_value: torch.Tensor) -> torch.Tensor:
-        # mean deviance + roughness penalty theta.T * S * theta. Step-halving must judge the
-        # penalized objective, else a step that lowers deviance but inflates roughness is accepted.
-        base = strategy.mean_objective(y_data, eta_value)
-        penalty_quadratic = theta_value.mT @ penalty_matrix.to(theta_value.dtype) @ theta_value
+    # A cold start keeps the plain iteration (the same numbers as before); the Anderson window only speeds up the warm-started passes of an outer search.
+    accelerate = initial_theta is not None
+    if initial_theta is not None:
+        theta = initial_theta.to(device=target_device, dtype=target_dtype)
+        eta = _linear_predictor(model, x_data, theta, design_matrix).to(device=target_device, dtype=target_dtype)
+    else:
+        theta = None
+        eta = strategy.initial_eta(y_data).to(device=target_device, dtype=target_dtype)
+
+    def penalized_objective(theta_value: torch.Tensor, eta_value: torch.Tensor, w_scale: torch.Tensor) -> torch.Tensor:
+        # mean deviance / w_mean + roughness penalty theta.T * S * theta, matching the unit-mean-normalized working system
+        # (Phi' (W / w_mean) Phi + n S) theta = Phi' (W / w_mean) z solved by _solve_step.
+        eta_aligned = eta_value.to(device=target_device, dtype=target_dtype)
+        theta_aligned = theta_value.to(device=target_device, dtype=target_dtype)
+        base = strategy.mean_objective(y_data, eta_aligned) / w_scale
+        penalty_quadratic = theta_aligned.mT @ penalty_matrix @ theta_aligned
         return base + penalty_quadratic.mean()
 
-    for _ in range(max_iter):
-        working_response, weights = strategy.working_response_and_weights(y_data, eta)
-        weights = weights / weights.mean().clamp_min(_TINY)
-        theta_candidate = _solve_step(model, x_data, working_response, weights, design_matrix, penalty_matrix, loss_matrix)
-        eta_candidate = _linear_predictor(model, x_data, theta_candidate, design_matrix)
+    aa_g_hist = []
+    aa_f_hist = []
+    aa_max_m = 3
 
-        if theta is not None and strategy.is_glm:
+    for iter_idx in range(max_iter):
+        working_response, weights = strategy.working_response_and_weights(y_data, eta)
+        w_mean = weights.mean().clamp_min(_TINY)
+        weights = weights / w_mean
+        theta_candidate = _solve_step(
+            model, x_data, working_response, weights, design_matrix, penalty_matrix, loss_matrix
+        ).to(device=target_device, dtype=target_dtype)
+        eta_candidate = _linear_predictor(model, x_data, theta_candidate, design_matrix).to(
+            device=target_device, dtype=target_dtype
+        )
+
+        if iter_idx >= 1 and theta is not None and strategy.is_glm:
             theta_full_step = theta_candidate
-            objective_previous = penalized_objective(theta, eta)
-            objective_candidate = penalized_objective(theta_candidate, eta_candidate)
+            objective_previous = penalized_objective(theta, eta, w_mean)
+            objective_candidate = penalized_objective(theta_candidate, eta_candidate, w_mean)
             step = 1.0
             halving = 0
             while (not torch.isfinite(objective_candidate) or objective_candidate > objective_previous) \
                     and halving < max_halvings:
                 step *= 0.5
                 theta_candidate = theta + step * (theta_full_step - theta)
-                eta_candidate = _linear_predictor(model, x_data, theta_candidate, design_matrix)
-                objective_candidate = penalized_objective(theta_candidate, eta_candidate)
+                eta_candidate = _linear_predictor(model, x_data, theta_candidate, design_matrix).to(
+                    device=target_device, dtype=target_dtype
+                )
+                objective_candidate = penalized_objective(theta_candidate, eta_candidate, w_mean)
                 halving += 1
+            if halving == max_halvings and (not torch.isfinite(objective_candidate) or objective_candidate > objective_previous):
+                break
 
-        relative_change = (eta_candidate - eta).norm() / eta.norm().clamp_min(_TINY)
+            # Safeguarded Type-II Anderson acceleration (window m = 3) to accelerate fixed-point PIRLS contraction.
+            g_flat = theta_candidate.reshape(-1)
+            f_flat = g_flat - theta.reshape(-1)
+            aa_g_hist.append(g_flat)
+            aa_f_hist.append(f_flat)
+            if len(aa_g_hist) > aa_max_m + 1:
+                aa_g_hist.pop(0)
+                aa_f_hist.pop(0)
+            if accelerate and iter_idx >= 2 and len(aa_f_hist) >= 3 and torch.isfinite(objective_candidate):
+                k_aa = len(aa_f_hist) - 1
+                d_g = torch.stack([aa_g_hist[j + 1] - aa_g_hist[j] for j in range(k_aa)], dim=1)
+                d_f = torch.stack([aa_f_hist[j + 1] - aa_f_hist[j] for j in range(k_aa)], dim=1)
+                gram = d_f.T @ d_f
+                scale_diag = float(gram.diagonal().abs().max().item())
+                if scale_diag > 1e-24:
+                    gram.diagonal().add_(1e-10 * scale_diag)
+                    try:
+                        gamma_aa = torch.linalg.solve(gram, d_f.T @ f_flat)
+                        if float(gamma_aa.abs().max().item()) <= 50.0:
+                            theta_aa = (g_flat - d_g @ gamma_aa).view_as(theta_candidate)
+                            eta_aa = _linear_predictor(model, x_data, theta_aa, design_matrix).to(
+                                device=target_device, dtype=target_dtype
+                            )
+                            obj_aa = penalized_objective(theta_aa, eta_aa, w_mean)
+                            if torch.isfinite(obj_aa) and obj_aa < objective_candidate:
+                                theta_candidate = theta_aa
+                                eta_candidate = eta_aa
+                    except RuntimeError:
+                        pass
+
+        diff_eta = eta_candidate - eta
+        relative_change = float((diff_eta.norm() / eta.norm().clamp_min(_TINY)).item())
+        if iter_idx >= 1 and strategy.is_glm:
+            root_w = weights.clamp_min(0.0).sqrt()
+            w_rel = float(((diff_eta * root_w).norm() / (eta * root_w).norm().clamp_min(_TINY)).item())
+            relative_change = min(relative_change, w_rel)
         theta = theta_candidate
         eta = eta_candidate
         if relative_change < tol:
             break
 
-    return theta
+    return theta.cpu()
 #: </reweighting_loop>

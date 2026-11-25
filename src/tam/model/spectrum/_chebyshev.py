@@ -12,6 +12,7 @@ intervals while minimizing Runge's phenomenon.
 
 import torch
 from ._base_effects import BaseEffect
+from ._temporal_utils import eval_1d_dedup
 from tam.common.utils import TORCH_DEVICE
 
 #: <init_chebyshev>
@@ -60,22 +61,20 @@ class ChebyshevEffect(BaseEffect):
             Design matrix of shape (..., n_samples, degree).
         """
         
-        # Pre-allocate the full tensor to avoid `cat` memory spikes
-        out_shape = list(x.shape) + [self.degree]
-        phi_out = torch.empty(out_shape, dtype=torch.get_default_dtype(), device=x.device)
-        
-        # Fill iteratively in-place
-        t_n_minus_1 = torch.ones_like(x) 
-        t_n = x
-        phi_out[..., 0] = t_n
-        
-        for i in range(1, self.degree):
-            t_next = 2 * x * t_n - t_n_minus_1
-            phi_out[..., i] = t_next
-            t_n_minus_1 = t_n
-            t_n = t_next
-            
-        return phi_out
+        def _eval(xv: torch.Tensor) -> torch.Tensor:
+            out_shape = list(xv.shape) + [self.degree]
+            phi_out = torch.empty(out_shape, dtype=torch.get_default_dtype(), device=xv.device)
+            t_n_minus_1 = torch.ones_like(xv)
+            t_n = xv
+            phi_out[..., 0] = t_n
+            for i in range(1, self.degree):
+                t_next = 2 * xv * t_n - t_n_minus_1
+                phi_out[..., i] = t_next
+                t_n_minus_1 = t_n
+                t_n = t_next
+            return phi_out
+
+        return eval_1d_dedup(x, _eval)
 #: </feature_map>
 
 #: <penalty_matrix>

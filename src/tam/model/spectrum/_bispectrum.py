@@ -143,6 +143,7 @@ class BispectrumEffect(BaseEffect):
             self._auto_bicoherence = False
         self._freqs = sorted({f for (k1, k2) in self.triads for f in (k1, k2, k1 + k2)})
         self._scales: Optional[torch.Tensor] = None   # (k, 3): medians of |B| and |z1 z2|, and the floor of the biphase denominator
+        self._kernel_cache: Dict[Tuple[str, str], torch.Tensor] = {}
         self._check_temporal_extrapolate()
 
     def initialize(self, x_col: torch.Tensor) -> None:
@@ -159,27 +160,20 @@ class BispectrumEffect(BaseEffect):
         if self._auto_bicoherence:
             self._estimate_bicoherence(x3[..., 0].detach().cpu().to(torch.float64).numpy())
         _, _, a, b, mag = self._components(causal_history(x3, self._n_hist, None), x3.shape[1])
-        rows = []
-        for j in range(self.k):
-            median_bispectrum = _median_floor(mag[j])                                # scale of Re B and Im B
-            median_pair_modulus = _median_floor(a[j])                                # scale of |z1 z2|
-            biphase_floor = 1e-12 * (a[j] * b[j]).reshape(-1).median()               # keeps cos(biphase) finite where |z1 z2| |z3| is 0
-            rows.append(torch.stack([median_bispectrum, median_pair_modulus, biphase_floor]))
-        self._scales = torch.stack(rows).detach()                                     # (k, 3)
+        med_mag = mag.transpose(0, 1).reshape(self.k, -1).median(dim=-1).values.clamp(min=1e-12)
+        med_a = a.transpose(0, 1).reshape(self.k, -1).median(dim=-1).values.clamp(min=1e-12)
+        floor_ab = 1e-12 * (a * b).transpose(0, 1).reshape(self.k, -1).median(dim=-1).values
+        self._scales = torch.stack([med_mag, med_a, floor_ab], dim=-1).detach()          # (k, 3)
 
     def _estimate_bicoherence(self, series: np.ndarray) -> None:
         """Empirical bicoherence of each triad over the segments of every group (a segment never spans two groups)."""
         seg_len = min(self.n_fft, max(8, series.shape[1] // 2))
-        f_segs = []
-        for row in series:
-            if len(row) < 16:
-                continue
-            x_centered = row - np.mean(row)
-            for s_idx in range(max(1, len(row) // seg_len)):
-                f_segs.append(np.fft.fft(x_centered[s_idx * seg_len : (s_idx + 1) * seg_len], n=self.n_fft))
-        if not f_segs:
+        if series.shape[1] < 16 or series.shape[0] == 0:
             return
-        f_mat = np.stack(f_segs, axis=0)  # (n_segs, n_fft)
+        n_segs = max(1, series.shape[1] // seg_len)
+        x_centered = series - np.mean(series, axis=1, keepdims=True)
+        segs = x_centered[:, : n_segs * seg_len].reshape(-1, seg_len)
+        f_mat = np.fft.fft(segs, n=self.n_fft, axis=-1)  # (n_segs, n_fft)
         new_b2 = []
         for k1, k2 in self.triads:
             k3 = (k1 + k2) % self.n_fft
@@ -202,32 +196,36 @@ class BispectrumEffect(BaseEffect):
 
     def _window_kernel(self, device, dtype) -> torch.Tensor:
         """Conv kernels ``(2F, 1, n_fft)``: real and imaginary parts of ``h_s exp(+i w s)`` per frequency, in correlation order."""
-        n = self.n_fft
-        s = torch.arange(n, dtype=torch.float64)
-        hann = 0.5 - 0.5 * torch.cos(2.0 * math.pi * (s + 0.5) / n)
-        rows = []
-        for f in self._freqs:
-            w = 2.0 * math.pi * float(f) / n
-            rows.append(hann * torch.cos(w * s))
-            rows.append(hann * torch.sin(w * s))
-        kernel = torch.stack(rows, dim=0).flip(-1)       # kernel index j <-> lag s = n_fft - 1 - j
-        return kernel.unsqueeze(1).to(device=device, dtype=dtype)
+        key = (str(device), str(dtype))
+        if key not in self._kernel_cache:
+            n = self.n_fft
+            s = torch.arange(n, dtype=torch.float64)
+            hann = 0.5 - 0.5 * torch.cos(2.0 * math.pi * (s + 0.5) / n)
+            rows = []
+            for f in self._freqs:
+                w = 2.0 * math.pi * float(f) / n
+                rows.append(hann * torch.cos(w * s))
+                rows.append(hann * torch.sin(w * s))
+            kernel = torch.stack(rows, dim=0).flip(-1)       # kernel index j <-> lag s = n_fft - 1 - j
+            self._kernel_cache[key] = kernel.unsqueeze(1).to(device=device, dtype=dtype)
+        return self._kernel_cache[key]
 
     def _components(self, x_hist: torch.Tensor, T: int):
-        """Per-triad bispectral product and moduli of every step: lists over triads of ``(B, T)`` tensors."""
-        B = x_hist.shape[0]
+        """Per-triad bispectral product and moduli of every step."""
         out = F.conv1d(x_hist.transpose(1, 2), self._window_kernel(x_hist.device, x_hist.dtype))   # (B, 2F, T)
-        y = {f: torch.complex(out[:, 2 * i], out[:, 2 * i + 1]) for i, f in enumerate(self._freqs)}
-        re, im, a, b, mag = [], [], [], [], []
-        for k1, k2 in self.triads:
-            prod = y[k1] * y[k2]
-            bis = prod * torch.conj(y[k1 + k2])
-            re.append(bis.real)
-            im.append(bis.imag)
-            a.append(prod.abs())
-            b.append(y[k1 + k2].abs())
-            mag.append(bis.abs())
-        return re, im, a, b, mag
+        freq_to_idx = {f: i for i, f in enumerate(self._freqs)}
+        re_out = out[:, 0::2, :]  # (B, F, T)
+        im_out = out[:, 1::2, :]  # (B, F, T)
+        z = torch.complex(re_out, im_out)  # (B, F, T)
+        i1 = [freq_to_idx[k1] for k1, _ in self.triads]
+        i2 = [freq_to_idx[k2] for _, k2 in self.triads]
+        i3 = [freq_to_idx[k1 + k2] for k1, k2 in self.triads]
+        z1 = z[:, i1, :]
+        z2 = z[:, i2, :]
+        z3 = z[:, i3, :]
+        prod = z1 * z2
+        bis = prod * torch.conj(z3)
+        return bis.real, bis.imag, prod.abs(), z3.abs(), bis.abs()
 
 #: <bispec_feature_map>
     def build_feature_map(self, x_col: torch.Tensor, state_in: Optional[Dict[str, Any]] = None) -> torch.Tensor:
@@ -242,15 +240,17 @@ class BispectrumEffect(BaseEffect):
         self._state_out = {"hist": tail_state(x_hist, self._n_hist)}
         re, im, a, b, _ = self._components(x_hist, T)
         scales = self._scales.to(device=x3.device, dtype=x3.dtype)
-        cols = []
-        for j in range(self.k):
-            s_bis, s_a, eps = scales[j, 0], scales[j, 1], scales[j, 2]
-            real_norm = re[j] / s_bis                                                # (B, T)
-            imag_norm = im[j] / s_bis                                                # (B, T)
-            pair_amp_norm = a[j] / s_a                                               # (B, T)
-            cos_biphase = re[j] / (a[j] * b[j] + eps)                                # (B, T)
-            cols.extend([real_norm, imag_norm, pair_amp_norm, cos_biphase])
-        return from_btk(torch.stack(cols, dim=-1), shape, layout)
+        s_bis = scales[:, 0].view(1, self.k, 1)
+        s_a = scales[:, 1].view(1, self.k, 1)
+        eps = scales[:, 2].view(1, self.k, 1)
+        real_norm = re / s_bis
+        imag_norm = im / s_bis
+        pair_amp_norm = a / s_a
+        cos_biphase = re / (a * b + eps)
+        # Interleave 4 columns per triad: [real_norm_j, imag_norm_j, pair_amp_norm_j, cos_biphase_j]
+        stacked = torch.stack([real_norm, imag_norm, pair_amp_norm, cos_biphase], dim=2)  # (B, k, 4, T)
+        phi = stacked.reshape(x3.shape[0], 4 * self.k, T).transpose(1, 2)  # (B, T, 4 k)
+        return from_btk(phi, shape, layout)
 #: </bispec_feature_map>
 
 #: <bispec_penalty_matrix>
