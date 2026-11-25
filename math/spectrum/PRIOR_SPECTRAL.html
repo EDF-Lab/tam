@@ -7,7 +7,7 @@
         <link rel="prefetch" href="../../_static/logo.png" as="image">
 
     <!-- Generated with Sphinx 9.1.1 and Furo 2025.12.19 -->
-        <title>The Prior Spectral Effect (Bochner QMC-RFF Basis) - TAM 1.5.1 documentation</title>
+        <title>The Prior Spectral Effect (Bochner QMC-RFF Basis) - TAM 1.6.2 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=d111a655" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo-extensions.css?v=8dab3a3b" />
@@ -162,7 +162,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="../../index.html"><div class="brand">TAM 1.5.1 documentation</div></a>
+      <a href="../../index.html"><div class="brand">TAM 1.6.2 documentation</div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -186,7 +186,7 @@
     <img class="sidebar-logo" src="../../_static/logo.png" alt="Logo"/>
   </div>
   
-  <span class="sidebar-brand-text">TAM 1.5.1 documentation</span>
+  <span class="sidebar-brand-text">TAM 1.6.2 documentation</span>
   
 </a><form class="sidebar-search-container" method="get" action="../../search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
@@ -376,7 +376,7 @@
 <section id="foundational-theory-bochner-s-theorem-and-spectral-measure-representation">
 <span id="foundational-theory-bochners-theorem-and-spectral-measure-representation"></span><h2>Foundational Theory: Bochner’s Theorem and Spectral Measure Representation<a class="headerlink" href="#foundational-theory-bochner-s-theorem-and-spectral-measure-representation" title="Link to this heading">¶</a></h2>
 <p>In traditional generalized additive models and Weak Kernel Learning, spectral effects are typically restricted to fixed harmonic Fourier series <span class="bibtex-citation" id="id1">[<a class="reference internal" href="../../bibliography.html#id26" title="Nathan Doumèche, Francis Bach, Éloi Bedek, Gérard Biau, Claire Boyer, and Yannig Goude. Forecasting time series with constraints. arXiv preprint arXiv:2502.10485, 2025.">Doumèche <em>et al.</em>, 2025</a>, <a class="reference internal" href="../../bibliography.html#id39" title="Andrew C Harvey. Forecasting, structural time series models and the Kalman filter. Cambridge university press, 1989.">Harvey, 1989</a>]</span> or stationary radial basis functions <span class="bibtex-citation" id="id2">[<a class="reference internal" href="../../bibliography.html#id66" title="Bernhard Schölkopf and Alexander J Smola. Learning with kernels: support vector machines, regularization, optimization, and beyond. MIT press, 2002.">Schölkopf and Smola, 2002</a>]</span>. While expressive, these deterministic bases require extensive grid search or heuristic parameter tuning that degrades in short-history or cold-start regimes (<span class="math notranslate nohighlight">\(T &lt; 100\)</span>).</p>
-<p>To incorporate rich continuous spectral priors directly into the primal solver, the framework operationalizes <strong>Bochner’s Theorem</strong> <span class="bibtex-citation" id="id3">[<a class="reference internal" href="../../bibliography.html#id166" title="Salomon Bochner. Monotone Funktionen, Stieltjessche Integrale und harmonische Analyse. Mathematische Annalen, 108(1):378–410, 1933.">Bochner, 1933</a>]</span>. According to Bochner’s theorem, any continuous, shift-invariant positive-definite kernel <span class="math notranslate nohighlight">\(k(\tau) = k(x - x')\)</span> on <span class="math notranslate nohighlight">\(\mathbb{R}^d\)</span> is the Fourier transform of a non-negative finite Borel measure <span class="math notranslate nohighlight">\(\mu(d\omega) = S(\omega)\,d\omega\)</span> on the frequency domain <span class="math notranslate nohighlight">\(\mathbb{R}^d\)</span>:</p>
+<p>To incorporate rich continuous spectral priors directly into the primal solver, the framework operationalizes <strong>Bochner’s Theorem</strong> <span class="bibtex-citation" id="id3">[<a class="reference internal" href="../../bibliography.html#id169" title="Salomon Bochner. Monotone Funktionen, Stieltjessche Integrale und harmonische Analyse. Mathematische Annalen, 108(1):378–410, 1933.">Bochner, 1933</a>]</span>. According to Bochner’s theorem, any continuous, shift-invariant positive-definite kernel <span class="math notranslate nohighlight">\(k(\tau) = k(x - x')\)</span> on <span class="math notranslate nohighlight">\(\mathbb{R}^d\)</span> is the Fourier transform of a non-negative finite Borel measure <span class="math notranslate nohighlight">\(\mu(d\omega) = S(\omega)\,d\omega\)</span> on the frequency domain <span class="math notranslate nohighlight">\(\mathbb{R}^d\)</span>:</p>
 <div class="math-wrapper docutils container">
 <div class="math notranslate nohighlight">
 \[k(x - x') = \int_{\mathbb{R}^d} e^{i \omega^\top (x - x')} \, S(\omega)\, d\omega = \mathbb{E}_{\omega \sim p(\omega)} \left[ \zeta_0 \cos\big(\omega^\top (x - x')\big) \right]\]</div>
@@ -406,7 +406,7 @@
 </section>
 <section id="quasi-monte-carlo-primal-feature-map-phi-text-prior">
 <span id="quasi-monte-carlo-primal-feature-map-"></span><h2>Quasi-Monte Carlo Primal Feature Map (<span class="math notranslate nohighlight">\(\Phi_{\text{prior}}\)</span>)<a class="headerlink" href="#quasi-monte-carlo-primal-feature-map-phi-text-prior" title="Link to this heading">¶</a></h2>
-<p>Following the foundational Random Fourier Features (RFF) paradigm <span class="bibtex-citation" id="id5">[<a class="reference internal" href="../../bibliography.html#id62" title="Ali Rahimi and Benjamin Recht. Random features for large-scale kernel machines. In J. Platt, D. Koller, Y. Singer, and S. Roweis, editors, Advances in Neural Information Processing Systems, volume 20. Curran Associates, Inc., 2007. URL: https://proceedings.neurips.cc/paper_files/paper/2007/file/013a006f03dbc5392effeb8f18fda755-Paper.pdf.">Rahimi and Recht, 2007</a>]</span>, the continuous expectation is discretized into a finite set of <span class="math notranslate nohighlight">\(M\)</span> frequencies <span class="math notranslate nohighlight">\(\Omega = \{\omega_1, \dots, \omega_M\}\)</span>. Rather than drawing pseudo-random frequencies with high variance, the framework utilizes <strong>Quasi-Monte Carlo (QMC)</strong> low-discrepancy sequences (Halton or Sobol) <span class="math notranslate nohighlight">\(\{u_m\}_{m=1}^M \subset (0, 1)^d\)</span> <span class="bibtex-citation" id="id6">[<a class="reference internal" href="../../bibliography.html#id167" title="Jiyan Yang, Vikas Sindhwani, Haim Avron, and Michael Mahoney. Quasi-Monte Carlo feature maps for shift-invariant kernels. In International Conference on Machine Learning (ICML), 485–493. 2014.">Yang <em>et al.</em>, 2014</a>]</span>.</p>
+<p>Following the foundational Random Fourier Features (RFF) paradigm <span class="bibtex-citation" id="id5">[<a class="reference internal" href="../../bibliography.html#id62" title="Ali Rahimi and Benjamin Recht. Random features for large-scale kernel machines. In J. Platt, D. Koller, Y. Singer, and S. Roweis, editors, Advances in Neural Information Processing Systems, volume 20. Curran Associates, Inc., 2007. URL: https://proceedings.neurips.cc/paper_files/paper/2007/file/013a006f03dbc5392effeb8f18fda755-Paper.pdf.">Rahimi and Recht, 2007</a>]</span>, the continuous expectation is discretized into a finite set of <span class="math notranslate nohighlight">\(M\)</span> frequencies <span class="math notranslate nohighlight">\(\Omega = \{\omega_1, \dots, \omega_M\}\)</span>. Rather than drawing pseudo-random frequencies with high variance, the framework utilizes <strong>Quasi-Monte Carlo (QMC)</strong> low-discrepancy sequences (Halton or Sobol) <span class="math notranslate nohighlight">\(\{u_m\}_{m=1}^M \subset (0, 1)^d\)</span> <span class="bibtex-citation" id="id6">[<a class="reference internal" href="../../bibliography.html#id170" title="Jiyan Yang, Vikas Sindhwani, Haim Avron, and Michael Mahoney. Quasi-Monte Carlo feature maps for shift-invariant kernels. In International Conference on Machine Learning (ICML), 485–493. 2014.">Yang <em>et al.</em>, 2014</a>]</span>.</p>
 <p>The frequencies are obtained via deterministic inverse-CDF transformation <span class="math notranslate nohighlight">\(\omega_m = F_p^{-1}(u_m)\)</span>. By the trigonometric cosine addition identity:</p>
 <div class="math-wrapper docutils container">
 <div class="math notranslate nohighlight">
@@ -541,7 +541,7 @@
       
     </aside>
   </div>
-</div><script src="../../_static/documentation_options.js?v=44dfd65d"></script>
+</div><script src="../../_static/documentation_options.js?v=e15882dc"></script>
     <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/scripts/furo.js?v=46bd48cc"></script>

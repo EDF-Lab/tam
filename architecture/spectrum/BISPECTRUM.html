@@ -7,7 +7,7 @@
         <link rel="prefetch" href="../../_static/logo.png" as="image">
 
     <!-- Generated with Sphinx 9.1.1 and Furo 2025.12.19 -->
-        <title>Bispectrum Effect: PyTorch Architecture &amp; Implementation - TAM 1.5.1 documentation</title>
+        <title>Bispectrum Effect: PyTorch Architecture &amp; Implementation - TAM 1.6.2 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=d111a655" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo-extensions.css?v=8dab3a3b" />
@@ -162,7 +162,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="../../index.html"><div class="brand">TAM 1.5.1 documentation</div></a>
+      <a href="../../index.html"><div class="brand">TAM 1.6.2 documentation</div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -186,7 +186,7 @@
     <img class="sidebar-logo" src="../../_static/logo.png" alt="Logo"/>
   </div>
   
-  <span class="sidebar-brand-text">TAM 1.5.1 documentation</span>
+  <span class="sidebar-brand-text">TAM 1.6.2 documentation</span>
   
 </a><form class="sidebar-search-container" method="get" action="../../search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
@@ -508,15 +508,17 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">_state_out</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"hist"</span><span class="p">:</span> <span class="n">tail_state</span><span class="p">(</span><span class="n">x_hist</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_n_hist</span><span class="p">)}</span>
         <span class="n">re</span><span class="p">,</span> <span class="n">im</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_components</span><span class="p">(</span><span class="n">x_hist</span><span class="p">,</span> <span class="n">T</span><span class="p">)</span>
         <span class="n">scales</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_scales</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="o">=</span><span class="n">x3</span><span class="o">.</span><span class="n">device</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">x3</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
-        <span class="n">cols</span> <span class="o">=</span> <span class="p">[]</span>
-        <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">k</span><span class="p">):</span>
-            <span class="n">s_bis</span><span class="p">,</span> <span class="n">s_a</span><span class="p">,</span> <span class="n">eps</span> <span class="o">=</span> <span class="n">scales</span><span class="p">[</span><span class="n">j</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">scales</span><span class="p">[</span><span class="n">j</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span> <span class="n">scales</span><span class="p">[</span><span class="n">j</span><span class="p">,</span> <span class="mi">2</span><span class="p">]</span>
-            <span class="n">real_norm</span> <span class="o">=</span> <span class="n">re</span><span class="p">[</span><span class="n">j</span><span class="p">]</span> <span class="o">/</span> <span class="n">s_bis</span>                                                <span class="c1"># (B, T)</span>
-            <span class="n">imag_norm</span> <span class="o">=</span> <span class="n">im</span><span class="p">[</span><span class="n">j</span><span class="p">]</span> <span class="o">/</span> <span class="n">s_bis</span>                                                <span class="c1"># (B, T)</span>
-            <span class="n">pair_amp_norm</span> <span class="o">=</span> <span class="n">a</span><span class="p">[</span><span class="n">j</span><span class="p">]</span> <span class="o">/</span> <span class="n">s_a</span>                                               <span class="c1"># (B, T)</span>
-            <span class="n">cos_biphase</span> <span class="o">=</span> <span class="n">re</span><span class="p">[</span><span class="n">j</span><span class="p">]</span> <span class="o">/</span> <span class="p">(</span><span class="n">a</span><span class="p">[</span><span class="n">j</span><span class="p">]</span> <span class="o">*</span> <span class="n">b</span><span class="p">[</span><span class="n">j</span><span class="p">]</span> <span class="o">+</span> <span class="n">eps</span><span class="p">)</span>                                <span class="c1"># (B, T)</span>
-            <span class="n">cols</span><span class="o">.</span><span class="n">extend</span><span class="p">([</span><span class="n">real_norm</span><span class="p">,</span> <span class="n">imag_norm</span><span class="p">,</span> <span class="n">pair_amp_norm</span><span class="p">,</span> <span class="n">cos_biphase</span><span class="p">])</span>
-        <span class="k">return</span> <span class="n">from_btk</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">(</span><span class="n">cols</span><span class="p">,</span> <span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">),</span> <span class="n">shape</span><span class="p">,</span> <span class="n">layout</span><span class="p">)</span>
+        <span class="n">s_bis</span> <span class="o">=</span> <span class="n">scales</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">k</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="n">s_a</span> <span class="o">=</span> <span class="n">scales</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">k</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="n">eps</span> <span class="o">=</span> <span class="n">scales</span><span class="p">[:,</span> <span class="mi">2</span><span class="p">]</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">k</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="n">real_norm</span> <span class="o">=</span> <span class="n">re</span> <span class="o">/</span> <span class="n">s_bis</span>
+        <span class="n">imag_norm</span> <span class="o">=</span> <span class="n">im</span> <span class="o">/</span> <span class="n">s_bis</span>
+        <span class="n">pair_amp_norm</span> <span class="o">=</span> <span class="n">a</span> <span class="o">/</span> <span class="n">s_a</span>
+        <span class="n">cos_biphase</span> <span class="o">=</span> <span class="n">re</span> <span class="o">/</span> <span class="p">(</span><span class="n">a</span> <span class="o">*</span> <span class="n">b</span> <span class="o">+</span> <span class="n">eps</span><span class="p">)</span>
+        <span class="c1"># Interleave 4 columns per triad: [real_norm_j, imag_norm_j, pair_amp_norm_j, cos_biphase_j]</span>
+        <span class="n">stacked</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span><span class="n">real_norm</span><span class="p">,</span> <span class="n">imag_norm</span><span class="p">,</span> <span class="n">pair_amp_norm</span><span class="p">,</span> <span class="n">cos_biphase</span><span class="p">],</span> <span class="n">dim</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>  <span class="c1"># (B, k, 4, T)</span>
+        <span class="n">phi</span> <span class="o">=</span> <span class="n">stacked</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">x3</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="mi">4</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">k</span><span class="p">,</span> <span class="n">T</span><span class="p">)</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>  <span class="c1"># (B, T, 4 k)</span>
+        <span class="k">return</span> <span class="n">from_btk</span><span class="p">(</span><span class="n">phi</span><span class="p">,</span> <span class="n">shape</span><span class="p">,</span> <span class="n">layout</span><span class="p">)</span>
 </pre></div>
 </div>
 <p>Penalty of <code class="docutils literal notranslate"><span class="pre">BispectrumEffect</span></code> (<code class="docutils literal notranslate"><span class="pre">build_penalty_matrix</span></code>):</p>
@@ -652,7 +654,7 @@
       
     </aside>
   </div>
-</div><script src="../../_static/documentation_options.js?v=44dfd65d"></script>
+</div><script src="../../_static/documentation_options.js?v=e15882dc"></script>
     <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/scripts/furo.js?v=46bd48cc"></script>

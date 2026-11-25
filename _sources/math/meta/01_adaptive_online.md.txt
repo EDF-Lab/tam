@@ -76,3 +76,14 @@ with $F$ the standardized law of the expert. The window $\mathcal{W}_t$ holds on
 ### Equivalence with a Rolling StaticTAM
 
 Each window is normalised with the minimum and maximum of its own training rows only, and no bound fitted on the whole period is applied. The forecasts of a window are therefore those of the estimator fitted on that window's training rows and applied to its forecast rows: the adaptive model is the operational loop "refit on the last window, forecast the next rows", computed in one batch. A feature whose range moves between windows is handled as a refit would handle it.
+### Windows of a Linear Corrector in $\mathcal O(D^2)$ Each
+
+Take a Gaussian corrector made of an intercept, linear terms and categorical terms with a fixed index range. Write $\Psi\in\mathbb R^{n\times D}$ for its basis on the raw rows of a group (each linear covariate centred and scaled once for the whole group), with row $\psi_i$. A window $w$ of training rows $s_w,\dots,e_w$ renormalises each linear covariate with its own minimum and maximum, which is an affine map of the columns:
+
+$$\Phi_w=\Psi\,T_w,\qquad T_w=\operatorname{diag}(a_w)+e_{0}\,b_w^\top,$$
+
+where $e_0$ is the intercept column, $a_w$ holds the scale of every column ($1$ for the intercept and the categorical columns) and $b_w$ its shift into the intercept. The normal equations of the window then read
+
+$$\Phi_w^\top\Phi_w=T_w^\top\Bigl(\sum_{i=s_w}^{e_w}\psi_i\psi_i^\top\Bigr)T_w,\qquad \Phi_w^\top y=T_w^\top\sum_{i=s_w}^{e_w}\psi_i\,y_i .$$
+
+The sums are differences of prefix sums, $C_{e_w}-C_{s_w-1}$ with $C_t=\sum_{i\le t}\psi_i\psi_i^\top$, computed once per group, and the congruence with $T_w$ is a rank-one plus diagonal update, $\mathcal O(D^2)$. Every window therefore costs $\mathcal O(D^2)$ plus one solve of $(\Phi_w^\top\Phi_w+n\,P)\,\theta_w=\Phi_w^\top y$, instead of $\mathcal O(W D^2)$ for $W$ rows per window, with the same solution up to floating-point rounding. This applies to the Gaussian loss with unit loss weights; any other corrector (a GLM loss, a spline, a projection), and any window in which a linear covariate is constant (its column is zero and the system singular), is solved window by window.

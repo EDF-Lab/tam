@@ -7,7 +7,7 @@
         <link rel="prefetch" href="../../_static/logo.png" as="image">
 
     <!-- Generated with Sphinx 9.1.1 and Furo 2025.12.19 -->
-        <title>The Bispectrum Effect: Higher-Order Spectral Analysis &amp; Quadratic Phase Coupling - TAM 1.5.1 documentation</title>
+        <title>The Bispectrum Effect: Higher-Order Spectral Analysis &amp; Quadratic Phase Coupling - TAM 1.6.2 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=d111a655" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo-extensions.css?v=8dab3a3b" />
@@ -162,7 +162,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="../../index.html"><div class="brand">TAM 1.5.1 documentation</div></a>
+      <a href="../../index.html"><div class="brand">TAM 1.6.2 documentation</div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -186,7 +186,7 @@
     <img class="sidebar-logo" src="../../_static/logo.png" alt="Logo"/>
   </div>
   
-  <span class="sidebar-brand-text">TAM 1.5.1 documentation</span>
+  <span class="sidebar-brand-text">TAM 1.6.2 documentation</span>
   
 </a><form class="sidebar-search-container" method="get" action="../../search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
@@ -375,13 +375,13 @@
 </ul>
 <section id="foundational-theory-why-second-order-spectra-fall-short">
 <h2>Foundational Theory: Why Second-Order Spectra Fall Short<a class="headerlink" href="#foundational-theory-why-second-order-spectra-fall-short" title="Link to this heading">¶</a></h2>
-<p>Standard Fourier and autocorrelation analyses rely exclusively on the second-order power spectral density <span class="math notranslate nohighlight">\(S(\omega) = \mathbb{E}[|X(\omega)|^2]\)</span> (Wiener–Khinchin theorem). Consequently, second-order methods are completely <strong>phase-blind</strong>: they cannot distinguish a linear Gaussian process from a non-linear, phase-coupled, asymmetric, heavy-tailed process with identical power spectrum <span class="bibtex-citation" id="id1">[<a class="reference internal" href="../../bibliography.html#id174" title="David R. Brillinger. An introduction to polyspectra. The Annals of Mathematical Statistics, 36(5):1351–1374, 1965.">Brillinger, 1965</a>, <a class="reference internal" href="../../bibliography.html#id175" title="Chrysostomos L. Nikias and Jerry M. Mendel. Signal processing with higher-order spectra. IEEE Signal Processing Magazine, 10(3):10–37, 1993.">Nikias and Mendel, 1993</a>]</span>.</p>
+<p>Standard Fourier and autocorrelation analyses rely exclusively on the second-order power spectral density <span class="math notranslate nohighlight">\(S(\omega) = \mathbb{E}[|X(\omega)|^2]\)</span> (Wiener–Khinchin theorem). Consequently, second-order methods are completely <strong>phase-blind</strong>: they cannot distinguish a linear Gaussian process from a non-linear, phase-coupled, asymmetric, heavy-tailed process with identical power spectrum <span class="bibtex-citation" id="id1">[<a class="reference internal" href="../../bibliography.html#id177" title="David R. Brillinger. An introduction to polyspectra. The Annals of Mathematical Statistics, 36(5):1351–1374, 1965.">Brillinger, 1965</a>, <a class="reference internal" href="../../bibliography.html#id178" title="Chrysostomos L. Nikias and Jerry M. Mendel. Signal processing with higher-order spectra. IEEE Signal Processing Magazine, 10(3):10–37, 1993.">Nikias and Mendel, 1993</a>]</span>.</p>
 <p>In electricity grid losses, volatile wholesale power prices, and industrial loads, non-linear physical interactions generate <strong>Quadratic Phase Coupling (QPC)</strong>:</p>
 <div class="math-wrapper docutils container">
 <div class="math notranslate nohighlight">
 \[\omega_3 = \omega_1 + \omega_2, \qquad \phi_3 = \phi_1 + \phi_2\]</div>
 </div>
-<p>This coupling produces non-zero third-order cumulants, skewness, and extreme asymmetric spikes that break Gaussian and Student-<span class="math notranslate nohighlight">\(t\)</span> parametric models. By introducing the <strong>Bispectrum</strong> and <strong>Bicoherence</strong> <span class="bibtex-citation" id="id2">[<a class="reference internal" href="../../bibliography.html#id174" title="David R. Brillinger. An introduction to polyspectra. The Annals of Mathematical Statistics, 36(5):1351–1374, 1965.">Brillinger, 1965</a>, <a class="reference internal" href="../../bibliography.html#id175" title="Chrysostomos L. Nikias and Jerry M. Mendel. Signal processing with higher-order spectra. IEEE Signal Processing Magazine, 10(3):10–37, 1993.">Nikias and Mendel, 1993</a>, <a class="reference internal" href="../../bibliography.html#id177" title="Melvin J Hinich. Testing for Gaussianity and linearity of a stationary time series. Journal of Time Series Analysis, 3(3):169–176, 1982.">Hinich, 1982</a>]</span>, TAM detects phase coupling and materializes an explicit quadratic phase-coupled Primal feature map <span class="math notranslate nohighlight">\(\Phi_{\text{bispec}}\)</span>.</p>
+<p>This coupling produces non-zero third-order cumulants, skewness, and extreme asymmetric spikes that break Gaussian and Student-<span class="math notranslate nohighlight">\(t\)</span> parametric models. By introducing the <strong>Bispectrum</strong> and <strong>Bicoherence</strong> <span class="bibtex-citation" id="id2">[<a class="reference internal" href="../../bibliography.html#id177" title="David R. Brillinger. An introduction to polyspectra. The Annals of Mathematical Statistics, 36(5):1351–1374, 1965.">Brillinger, 1965</a>, <a class="reference internal" href="../../bibliography.html#id178" title="Chrysostomos L. Nikias and Jerry M. Mendel. Signal processing with higher-order spectra. IEEE Signal Processing Magazine, 10(3):10–37, 1993.">Nikias and Mendel, 1993</a>, <a class="reference internal" href="../../bibliography.html#id180" title="Melvin J Hinich. Testing for Gaussianity and linearity of a stationary time series. Journal of Time Series Analysis, 3(3):169–176, 1982.">Hinich, 1982</a>]</span>, TAM detects phase coupling and materializes an explicit quadratic phase-coupled Primal feature map <span class="math notranslate nohighlight">\(\Phi_{\text{bispec}}\)</span>.</p>
 </section>
 <section id="third-order-cumulant-and-the-bispectrum">
 <span id="1-third-order-cumulant-and-the-bispectrum"></span><h2>1. Third-Order Cumulant and the Bispectrum<a class="headerlink" href="#third-order-cumulant-and-the-bispectrum" title="Link to this heading">¶</a></h2>
@@ -390,7 +390,7 @@
 <div class="math notranslate nohighlight">
 \[C_3(\tau_1, \tau_2) = \operatorname{cum}(x_t,\, x_{t+\tau_1},\, x_{t+\tau_2}) = \mathbb{E}\big[x_t\, x_{t+\tau_1}\, x_{t+\tau_2}\big]\]</div>
 </div>
-<p>For any Gaussian process (or any symmetric linear process), <span class="math notranslate nohighlight">\(C_3(\tau_1, \tau_2) \equiv 0\)</span> identically. The <strong>Bispectrum</strong> <span class="math notranslate nohighlight">\(B(\omega_1, \omega_2) \in \mathbb{C}\)</span> is the 2D Fourier transform of <span class="math notranslate nohighlight">\(C_3(\tau_1, \tau_2)\)</span> <span class="bibtex-citation" id="id3">[<a class="reference internal" href="../../bibliography.html#id174" title="David R. Brillinger. An introduction to polyspectra. The Annals of Mathematical Statistics, 36(5):1351–1374, 1965.">Brillinger, 1965</a>, <a class="reference internal" href="../../bibliography.html#id175" title="Chrysostomos L. Nikias and Jerry M. Mendel. Signal processing with higher-order spectra. IEEE Signal Processing Magazine, 10(3):10–37, 1993.">Nikias and Mendel, 1993</a>]</span>:</p>
+<p>For any Gaussian process (or any symmetric linear process), <span class="math notranslate nohighlight">\(C_3(\tau_1, \tau_2) \equiv 0\)</span> identically. The <strong>Bispectrum</strong> <span class="math notranslate nohighlight">\(B(\omega_1, \omega_2) \in \mathbb{C}\)</span> is the 2D Fourier transform of <span class="math notranslate nohighlight">\(C_3(\tau_1, \tau_2)\)</span> <span class="bibtex-citation" id="id3">[<a class="reference internal" href="../../bibliography.html#id177" title="David R. Brillinger. An introduction to polyspectra. The Annals of Mathematical Statistics, 36(5):1351–1374, 1965.">Brillinger, 1965</a>, <a class="reference internal" href="../../bibliography.html#id178" title="Chrysostomos L. Nikias and Jerry M. Mendel. Signal processing with higher-order spectra. IEEE Signal Processing Magazine, 10(3):10–37, 1993.">Nikias and Mendel, 1993</a>]</span>:</p>
 <div class="math-wrapper docutils container">
 <div class="math notranslate nohighlight">
 \[B(\omega_1, \omega_2) = \sum_{\tau_1=-\infty}^{\infty} \sum_{\tau_2=-\infty}^{\infty} C_3(\tau_1, \tau_2)\, e^{-i(\omega_1 \tau_1 + \omega_2 \tau_2)}\]</div>
@@ -408,14 +408,14 @@
 </section>
 <section id="normalized-bicoherence-hinich-tests">
 <span id="2-normalized-bicoherence--hinich-tests"></span><h2>2. Normalized Bicoherence &amp; Hinich Tests<a class="headerlink" href="#normalized-bicoherence-hinich-tests" title="Link to this heading">¶</a></h2>
-<p>To eliminate amplitude dependence on the marginal power spectrum <span class="math notranslate nohighlight">\(P(k) = \mathbb{E}[|X(k)|^2]\)</span>, the squared <strong>Bicoherence</strong> <span class="math notranslate nohighlight">\(b^2(k_1, k_2) \in [0, 1]\)</span> is normalized via the Kim &amp; Powers / Haubrich formulation <span class="bibtex-citation" id="id4">[<a class="reference internal" href="../../bibliography.html#id177" title="Melvin J Hinich. Testing for Gaussianity and linearity of a stationary time series. Journal of Time Series Analysis, 3(3):169–176, 1982.">Hinich, 1982</a>, <a class="reference internal" href="../../bibliography.html#id176" title="Young C Kim and Edward J Powers. Digital bispectral analysis and its applications to nonlinear wave interactions. IEEE Transactions on Plasma Science, 7(2):120–131, 1979.">Kim and Powers, 1979</a>]</span>:</p>
+<p>To eliminate amplitude dependence on the marginal power spectrum <span class="math notranslate nohighlight">\(P(k) = \mathbb{E}[|X(k)|^2]\)</span>, the squared <strong>Bicoherence</strong> <span class="math notranslate nohighlight">\(b^2(k_1, k_2) \in [0, 1]\)</span> is normalized via the Kim &amp; Powers / Haubrich formulation <span class="bibtex-citation" id="id4">[<a class="reference internal" href="../../bibliography.html#id180" title="Melvin J Hinich. Testing for Gaussianity and linearity of a stationary time series. Journal of Time Series Analysis, 3(3):169–176, 1982.">Hinich, 1982</a>, <a class="reference internal" href="../../bibliography.html#id179" title="Young C Kim and Edward J Powers. Digital bispectral analysis and its applications to nonlinear wave interactions. IEEE Transactions on Plasma Science, 7(2):120–131, 1979.">Kim and Powers, 1979</a>]</span>:</p>
 <div class="math-wrapper docutils container">
 <div class="math notranslate nohighlight">
 \[b^2(k_1, k_2) = \frac{\big|\hat{B}(k_1, k_2)\big|^2}{\left( \frac{1}{M_{\text{seg}}} \sum_{m=1}^{M_{\text{seg}}} |X^{(m)}(k_1) X^{(m)}(k_2)|^2 \right) \left( \frac{1}{M_{\text{seg}}} \sum_{m=1}^{M_{\text{seg}}} |X^{(m)}(k_1 + k_2)|^2 \right) + \varepsilon}\]</div>
 </div>
 <p>By the Cauchy–Schwarz inequality, <span class="math notranslate nohighlight">\(0 \le b^2(k_1, k_2) \le 1\)</span> strictly:</p>
 <ul class="simple">
-<li><p>Under the null hypothesis of a purely linear Gaussian process, <span class="math notranslate nohighlight">\(2 M_{\text{seg}} b^2(k_1, k_2) \xrightarrow{d} \chi^2_2\)</span> asymptotically (<strong>Hinich Gaussianity Test</strong>, <span class="bibtex-citation" id="id5">[<a class="reference internal" href="../../bibliography.html#id177" title="Melvin J Hinich. Testing for Gaussianity and linearity of a stationary time series. Journal of Time Series Analysis, 3(3):169–176, 1982.">Hinich, 1982</a>]</span>).</p></li>
+<li><p>Under the null hypothesis of a purely linear Gaussian process, <span class="math notranslate nohighlight">\(2 M_{\text{seg}} b^2(k_1, k_2) \xrightarrow{d} \chi^2_2\)</span> asymptotically (<strong>Hinich Gaussianity Test</strong>, <span class="bibtex-citation" id="id5">[<a class="reference internal" href="../../bibliography.html#id180" title="Melvin J Hinich. Testing for Gaussianity and linearity of a stationary time series. Journal of Time Series Analysis, 3(3):169–176, 1982.">Hinich, 1982</a>]</span>).</p></li>
 <li><p>Under a linear non-Gaussian process, <span class="math notranslate nohighlight">\(b^2(k_1, k_2)\)</span> is approximately constant across frequencies. Spatial peaks in <span class="math notranslate nohighlight">\(b^2(k_1, k_2)\)</span> prove genuine <strong>Quadratic Phase Coupling (QPC)</strong>:</p></li>
 </ul>
 <div class="math-wrapper docutils container">
@@ -435,7 +435,7 @@
 <div class="math notranslate nohighlight">
 \[B_j(t) = z_1(t)\, z_2(t)\, \overline{z_3(t)}\]</div>
 </div>
-<p>is free of the absolute time: the phase factors <span class="math notranslate nohighlight">\(e^{-\mathrm{i}(\omega_1 + \omega_2 - \omega_3)t}\)</span> cancel because <span class="math notranslate nohighlight">\(\omega_3 = \omega_1 + \omega_2\)</span>, so <span class="math notranslate nohighlight">\(B_j(t)\)</span> only depends on the samples inside the window. When the three components are phase locked, <span class="math notranslate nohighlight">\(\varphi_1 + \varphi_2 - \varphi_3\)</span> (the biphase) is constant and <span class="math notranslate nohighlight">\(B_j\)</span> keeps a constant phase; when they are not, the phase rotates and <span class="math notranslate nohighlight">\(B_j\)</span> averages to zero <span class="bibtex-citation" id="id6">[<a class="reference internal" href="../../bibliography.html#id177" title="Melvin J Hinich. Testing for Gaussianity and linearity of a stationary time series. Journal of Time Series Analysis, 3(3):169–176, 1982.">Hinich, 1982</a>, <a class="reference internal" href="../../bibliography.html#id176" title="Young C Kim and Edward J Powers. Digital bispectral analysis and its applications to nonlinear wave interactions. IEEE Transactions on Plasma Science, 7(2):120–131, 1979.">Kim and Powers, 1979</a>]</span>.</p>
+<p>is free of the absolute time: the phase factors <span class="math notranslate nohighlight">\(e^{-\mathrm{i}(\omega_1 + \omega_2 - \omega_3)t}\)</span> cancel because <span class="math notranslate nohighlight">\(\omega_3 = \omega_1 + \omega_2\)</span>, so <span class="math notranslate nohighlight">\(B_j(t)\)</span> only depends on the samples inside the window. When the three components are phase locked, <span class="math notranslate nohighlight">\(\varphi_1 + \varphi_2 - \varphi_3\)</span> (the biphase) is constant and <span class="math notranslate nohighlight">\(B_j\)</span> keeps a constant phase; when they are not, the phase rotates and <span class="math notranslate nohighlight">\(B_j\)</span> averages to zero <span class="bibtex-citation" id="id6">[<a class="reference internal" href="../../bibliography.html#id180" title="Melvin J Hinich. Testing for Gaussianity and linearity of a stationary time series. Journal of Time Series Analysis, 3(3):169–176, 1982.">Hinich, 1982</a>, <a class="reference internal" href="../../bibliography.html#id179" title="Young C Kim and Edward J Powers. Digital bispectral analysis and its applications to nonlinear wave interactions. IEEE Transactions on Plasma Science, 7(2):120–131, 1979.">Kim and Powers, 1979</a>]</span>.</p>
 <p>The four columns of the triad are</p>
 <div class="math-wrapper docutils container">
 <div class="math notranslate nohighlight">
@@ -567,7 +567,7 @@
       
     </aside>
   </div>
-</div><script src="../../_static/documentation_options.js?v=44dfd65d"></script>
+</div><script src="../../_static/documentation_options.js?v=e15882dc"></script>
     <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/scripts/furo.js?v=46bd48cc"></script>

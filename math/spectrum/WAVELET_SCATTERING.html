@@ -7,7 +7,7 @@
         <link rel="prefetch" href="../../_static/logo.png" as="image">
 
     <!-- Generated with Sphinx 9.1.1 and Furo 2025.12.19 -->
-        <title>WAVELET_SCATTERING: Translation-Invariant, Deformation-Stable Wavelet Scattering Transform (WST) - TAM 1.5.1 documentation</title>
+        <title>WAVELET_SCATTERING: Translation-Invariant, Deformation-Stable Wavelet Scattering Transform (WST) - TAM 1.6.2 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=d111a655" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo-extensions.css?v=8dab3a3b" />
@@ -162,7 +162,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="../../index.html"><div class="brand">TAM 1.5.1 documentation</div></a>
+      <a href="../../index.html"><div class="brand">TAM 1.6.2 documentation</div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -186,7 +186,7 @@
     <img class="sidebar-logo" src="../../_static/logo.png" alt="Logo"/>
   </div>
   
-  <span class="sidebar-brand-text">TAM 1.5.1 documentation</span>
+  <span class="sidebar-brand-text">TAM 1.6.2 documentation</span>
   
 </a><form class="sidebar-search-container" method="get" action="../../search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
@@ -370,8 +370,8 @@
 <span id="wavelet_scattering-translation-invariant-deformation-stable-wavelet-scattering-transform-wst"></span><h1>WAVELET_SCATTERING: Translation-Invariant, Deformation-Stable Wavelet Scattering Transform (WST)<a class="headerlink" href="#wavelet-scattering-translation-invariant-deformation-stable-wavelet-scattering-transform-wst" title="Link to this heading">¶</a></h1>
 <section id="problem-statement-high-frequency-instability-of-standard-linear-wavelets">
 <span id="1-problem-statement-high-frequency-instability-of-standard-linear-wavelets"></span><h2>1. Problem Statement: High-Frequency Instability of Standard Linear Wavelets<a class="headerlink" href="#problem-statement-high-frequency-instability-of-standard-linear-wavelets" title="Link to this heading">¶</a></h2>
-<p>Standard Fourier and linear wavelet representations (<span class="math notranslate nohighlight">\(W x(t, s) = x * \psi_s(t)\)</span>) suffer from structural instability under small temporal warps and non-linear deformations <span class="math notranslate nohighlight">\(x_\tau(t) = x(t - \tau(t))\)</span> (<span class="bibtex-citation" id="id1">[<a class="reference internal" href="../../bibliography.html#id178" title="Stéphane Mallat. Group invariant scattering. Communications on Pure and Applied Mathematics, 65(10):1331–1398, 2012.">Mallat, 2012</a>]</span>). While translation invariance can be achieved by spatial averaging, linear averaging <span class="math notranslate nohighlight">\(\int x * \psi_s(t)\, dt = \hat{x}(0) \hat{\psi}(0) = 0\)</span> annihilates all high-frequency energy.</p>
-<p>To capture non-stationary multi-scale dynamics without losing high-frequency transient energy, Stéphane Mallat introduced the <strong>Wavelet Scattering Transform (WST)</strong> (<span class="bibtex-citation" id="id2">[<a class="reference internal" href="../../bibliography.html#id178" title="Stéphane Mallat. Group invariant scattering. Communications on Pure and Applied Mathematics, 65(10):1331–1398, 2012.">Mallat, 2012</a>]</span>, <span class="bibtex-citation" id="id3">[<a class="reference internal" href="../../bibliography.html#id179" title="Joan Bruna and Stéphane Mallat. Invariant scattering convolution networks. IEEE Transactions on Pattern Analysis and Machine Intelligence, 35(8):1872–1886, 2013.">Bruna and Mallat, 2013</a>]</span>, <span class="bibtex-citation" id="id4">[<a class="reference internal" href="../../bibliography.html#id180" title="Joakim Andén and Stéphane Mallat. Deep scattering spectrum. IEEE Transactions on Signal Processing, 62(16):4114–4128, 2014.">Andén and Mallat, 2014</a>]</span>). By cascading non-linear modulus operations <span class="math notranslate nohighlight">\(|\cdot|\)</span> with multi-scale complex wavelet filter banks and low-pass averaging <span class="math notranslate nohighlight">\(\phi_J\)</span>, the scattering transform constructs a deterministic, contractive, Lipschitz-continuous representation that is invariant to translations and stable to diffeomorphic time warps.</p>
+<p>Standard Fourier and linear wavelet representations (<span class="math notranslate nohighlight">\(W x(t, s) = x * \psi_s(t)\)</span>) suffer from structural instability under small temporal warps and non-linear deformations <span class="math notranslate nohighlight">\(x_\tau(t) = x(t - \tau(t))\)</span> (<span class="bibtex-citation" id="id1">[<a class="reference internal" href="../../bibliography.html#id181" title="Stéphane Mallat. Group invariant scattering. Communications on Pure and Applied Mathematics, 65(10):1331–1398, 2012.">Mallat, 2012</a>]</span>). While translation invariance can be achieved by spatial averaging, linear averaging <span class="math notranslate nohighlight">\(\int x * \psi_s(t)\, dt = \hat{x}(0) \hat{\psi}(0) = 0\)</span> annihilates all high-frequency energy.</p>
+<p>To capture non-stationary multi-scale dynamics without losing high-frequency transient energy, Stéphane Mallat introduced the <strong>Wavelet Scattering Transform (WST)</strong> (<span class="bibtex-citation" id="id2">[<a class="reference internal" href="../../bibliography.html#id181" title="Stéphane Mallat. Group invariant scattering. Communications on Pure and Applied Mathematics, 65(10):1331–1398, 2012.">Mallat, 2012</a>]</span>, <span class="bibtex-citation" id="id3">[<a class="reference internal" href="../../bibliography.html#id182" title="Joan Bruna and Stéphane Mallat. Invariant scattering convolution networks. IEEE Transactions on Pattern Analysis and Machine Intelligence, 35(8):1872–1886, 2013.">Bruna and Mallat, 2013</a>]</span>, <span class="bibtex-citation" id="id4">[<a class="reference internal" href="../../bibliography.html#id183" title="Joakim Andén and Stéphane Mallat. Deep scattering spectrum. IEEE Transactions on Signal Processing, 62(16):4114–4128, 2014.">Andén and Mallat, 2014</a>]</span>). By cascading non-linear modulus operations <span class="math notranslate nohighlight">\(|\cdot|\)</span> with multi-scale complex wavelet filter banks and low-pass averaging <span class="math notranslate nohighlight">\(\phi_J\)</span>, the scattering transform constructs a deterministic, contractive, Lipschitz-continuous representation that is invariant to translations and stable to diffeomorphic time warps.</p>
 </section>
 <hr class="docutils" />
 <section id="multi-scale-cascaded-wavelet-scattering-operators">
@@ -440,7 +440,7 @@ Dilated bandpass wavelets at scale <span class="math notranslate nohighlight">\(
 </section>
 <section id="what-is-new-here">
 <h2>What is new here<a class="headerlink" href="#what-is-new-here" title="Link to this heading">¶</a></h2>
-<p>The scattering transform, its stability and the Morlet cascade are those of the cited papers <span class="bibtex-citation" id="id5">[<a class="reference internal" href="../../bibliography.html#id178" title="Stéphane Mallat. Group invariant scattering. Communications on Pure and Applied Mathematics, 65(10):1331–1398, 2012.">Mallat, 2012</a>, <a class="reference internal" href="../../bibliography.html#id179" title="Joan Bruna and Stéphane Mallat. Invariant scattering convolution networks. IEEE Transactions on Pattern Analysis and Machine Intelligence, 35(8):1872–1886, 2013.">Bruna and Mallat, 2013</a>, <a class="reference internal" href="../../bibliography.html#id180" title="Joakim Andén and Stéphane Mallat. Deep scattering spectrum. IEEE Transactions on Signal Processing, 62(16):4114–4128, 2014.">Andén and Mallat, 2014</a>]</span>. What this effect adds:</p>
+<p>The scattering transform, its stability and the Morlet cascade are those of the cited papers <span class="bibtex-citation" id="id5">[<a class="reference internal" href="../../bibliography.html#id181" title="Stéphane Mallat. Group invariant scattering. Communications on Pure and Applied Mathematics, 65(10):1331–1398, 2012.">Mallat, 2012</a>, <a class="reference internal" href="../../bibliography.html#id182" title="Joan Bruna and Stéphane Mallat. Invariant scattering convolution networks. IEEE Transactions on Pattern Analysis and Machine Intelligence, 35(8):1872–1886, 2013.">Bruna and Mallat, 2013</a>, <a class="reference internal" href="../../bibliography.html#id183" title="Joakim Andén and Stéphane Mallat. Deep scattering spectrum. IEEE Transactions on Signal Processing, 62(16):4114–4128, 2014.">Andén and Mallat, 2014</a>]</span>. What this effect adds:</p>
 <ul class="simple">
 <li><p>the <strong>causal one-sided cascade with an exact finite memory</strong>, which makes the scattering coefficients a forecasting feature that can be continued past the end of the training period;</p></li>
 <li><p>the <strong>order-weighted penalty with a smoothness coupling across octaves</strong> of the first-order envelopes;</p></li>
@@ -541,7 +541,7 @@ Dilated bandpass wavelets at scale <span class="math notranslate nohighlight">\(
       
     </aside>
   </div>
-</div><script src="../../_static/documentation_options.js?v=44dfd65d"></script>
+</div><script src="../../_static/documentation_options.js?v=e15882dc"></script>
     <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/scripts/furo.js?v=46bd48cc"></script>

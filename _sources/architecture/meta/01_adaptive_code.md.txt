@@ -82,6 +82,16 @@ The forecasts are not clipped by default: a clip to the range of the *whole* per
 :caption: src/tam/model/adaptative.py (Batch Linear Resolution and OOM Handling)
 ```
 
+**Architectural Choice 4: Prefix Gram for Linear Correctors.** When the corrector is Gaussian and only holds an intercept, linear and nominal or ordinal categorical effects (`_can_use_prefix_gram`: no projection, `D <= 256`, the group Gram fits in 512 MiB, every linear covariate varies in every window), `simulation()` skips the flattened batch above. `_simulate_prefix_gram` builds the raw basis of each group once, takes the Gram matrix and right-hand side of a window as a difference of prefix sums of outer products, applies the per-window rescaling of the linear covariates as a rank-one plus diagonal congruence, and solves all windows of the group at once. The forecasts are those of the general path up to rounding; see [the theory](../../math/meta/01_adaptive_online.md).
+
+```{literalinclude} ../../../../src/tam/model/adaptative.py
+:language: python
+:start-after: "#: <prefix_gram>"
+:end-before: "#: </prefix_gram>"
+:lines: 1-43
+:caption: src/tam/model/adaptative.py (Eligibility test of the prefix Gram path)
+```
+
 ## Coordinate Descent Search Algorithm
 
 The `grid_search_fit()` method implements the "Multi-Start" hyperparameter solver described in the theory. It evaluates pairs (e.g., `training_window_periods`, default $\lambda$) sequentially, moving along a single axis at a time until local convergence is reached.

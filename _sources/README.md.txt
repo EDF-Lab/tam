@@ -2,7 +2,7 @@
 
 [🧪 `EXAMPLES`](EXAMPLES.md) | [📚 `THEORY`](THEORY.md) | [📄 `PAPER`](paper.md)
   
-**Version:** 1.5.0  
+**Version:** 1.6.2\
 **License:** LGPL-3.0-or-later.  
 **Copyright (c):** 2023-2026 EDF (Electricité De France).  
 **Copyright (c):** 2023-2025 Sorbonne Université.  
@@ -191,10 +191,10 @@ If you use these packages in your research, please cite them using their permane
 **TAM**
 ```bibtex
 @misc{tam2026package,
-  title={TAM: Time series Additive Model (v1.6.1)},
+  title={TAM: Time series Additive Model (v1.6.2)},
   author={Allioux, Yann and Goude, Yannig},
   year={2026},
-  doi={10.5281/zenodo.24340687},
+  doi={10.5281/zenodo.24469018},
   note={With foundational WeaKL research by Nathan Doumèche, and tensorisation and adaptive model contributions by Éloi Bedek}
 }
 ```

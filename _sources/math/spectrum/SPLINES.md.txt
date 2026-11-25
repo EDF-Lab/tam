@@ -54,6 +54,24 @@ A known pathology of unconstrained polynomial basis expansions is Runge's phenom
 
 Original GAM frameworks mitigated this using Natural Cubic Splines, which enforce linearity beyond the outermost boundary knots {cite:p}`hastie2017generalized`. The `SplineEffect` natively supports this operational safety protocol via its `extrapolate` parameter. When `extrapolate='linear'` is triggered, `_spline.py` utilizes PyTorch finite differences at the boundary knots to compute the exact Jacobian (gradient) of the spline surface, explicitly projecting a stable, first-order Taylor extension infinitely outward.
 
+### The edge slope of a clamped spline
+
+Take a clamped B-spline of degree $k\ge 2$ with uniform interior spacing $h$ and coefficients $\theta_1,\dots,\theta_K$. By Marsden's identity the spline reproduces a straight line $a+bx$ when $\theta_j=a+b\,\xi_j$, where $\xi_j$ is the Greville abscissa (the mean of $k$ consecutive knots) of the $j$-th function {cite:p}`de1978practical`. With clamped end knots the last abscissae are
+
+$$\xi_K=x_{\max},\qquad \xi_{K-1}=x_{\max}-\frac{h}{k},\qquad \xi_{K-2}=x_{\max}-\frac{2h}{3}\ \ (k=3),$$
+
+so the coefficients of a linear trend are spaced by $b\,h/k$ at the edge. The derivative at the edge is
+
+$$f'(x_{\max}^-)=\frac{k}{h}\,\bigl(\theta_K-\theta_{K-1}\bigr).$$
+
+The coefficient differences next to the edge are thus a fraction $1/k$ of what the interior spacing would give, while a second-order difference penalty $\Delta_2^\top\Delta_2$ {cite:p}`eilers1996flexible` treats all differences alike and, with a free end, leaves the last one larger than a straight line would. The edge derivative $f'(x_{\max}^-)$ then exceeds the secant slope of the curve over the last knot span, by a factor of order $k/2$ on the fits we measured, and an extrapolation that continues this derivative outward overshoots on a trending input.
+
+For a fit whose smoothing parameters come from the REML criterion (`auto_fit(criterion="reml")`) the outward slope used by the `linear` and `saturation` extrapolations is therefore multiplied by
+
+$$s_k=\frac{2}{k}\quad(k\ge 2,\ d\ge 2),\qquad s=1\ \text{otherwise},$$
+
+with $d$ the penalty order. Inside the range nothing changes, and a model with fixed penalty weights keeps $s=1$. A margin of a tensor product keeps $s=1$: the Kronecker penalty already bounds the edge magnitude of each margin.
+
 ## The Engineering Novelty
 
 What distinguishes the `SplineEffect` in TAM is the translation of classical statistical mathematics into a purely matrix-free, GPU-native operation. By explicitly embedding the Cox-de Boor recursion and the precise discrete $\Delta_d^\top \Delta_d$ penalty into PyTorch tensors, the framework allows exact P-splines to be assembled block-diagonally alongside deep neural features (NNGP) and physics-informed constraints, solving the entire unified spectrum simultaneously via Sparse Conjugate Gradients.

@@ -7,7 +7,7 @@
         <link rel="prefetch" href="../../_static/logo.png" as="image">
 
     <!-- Generated with Sphinx 9.1.1 and Furo 2025.12.19 -->
-        <title>Temporal Operators on an Evaluated Basis - TAM 1.5.1 documentation</title>
+        <title>Temporal Operators on an Evaluated Basis - TAM 1.6.2 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=d111a655" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo-extensions.css?v=8dab3a3b" />
@@ -162,7 +162,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="../../index.html"><div class="brand">TAM 1.5.1 documentation</div></a>
+      <a href="../../index.html"><div class="brand">TAM 1.6.2 documentation</div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -186,7 +186,7 @@
     <img class="sidebar-logo" src="../../_static/logo.png" alt="Logo"/>
   </div>
   
-  <span class="sidebar-brand-text">TAM 1.5.1 documentation</span>
+  <span class="sidebar-brand-text">TAM 1.6.2 documentation</span>
   
 </a><form class="sidebar-search-container" method="get" action="../../search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
@@ -390,21 +390,21 @@
 <h2>The three operators<a class="headerlink" href="#the-three-operators" title="Link to this heading">¶</a></h2>
 <p>Write <span class="math notranslate nohighlight">\(\Phi_t \in \mathbb{R}^{K}\)</span> for the row of the inner basis at step <span class="math notranslate nohighlight">\(t\)</span> and <span class="math notranslate nohighlight">\(d \in (0, 1)\)</span> for <code class="docutils literal notranslate"><span class="pre">decay</span></code>.</p>
 <ol class="arabic">
-<li><p><strong>Exponential random-feature attention (<code class="docutils literal notranslate"><span class="pre">attn</span></code>)</strong> <span class="bibtex-citation" id="id1">[<a class="reference internal" href="../../bibliography.html#id153" title="Krzysztof Choromanski, Valerii Likhosherstov, David Dohan, Xingyou Song, Andreea Gane, Tamás Sarlós, Peter Hawkins, Jared Davis, Afroz Mohiuddin, Lukasz Kaiser, David Belanger, Lucy Colwell, and Adrian Weller. Rethinking attention with performers. In International Conference on Learning Representations (ICLR). 2021.">Choromanski <em>et al.</em>, 2021</a>]</span>. With positive random features <span class="math notranslate nohighlight">\(\varphi_t = \exp\big(\operatorname{clip}(W^\top \Phi_t - \|\Phi_t\|^2 / (2K))\big) \in \mathbb{R}^{m}\)</span> (<span class="math notranslate nohighlight">\(W\)</span> a seeded orthogonal projection), two discounted prefix sums are carried:</p>
+<li><p><strong>Exponential random-feature attention (<code class="docutils literal notranslate"><span class="pre">attn</span></code>)</strong> <span class="bibtex-citation" id="id1">[<a class="reference internal" href="../../bibliography.html#id156" title="Krzysztof Choromanski, Valerii Likhosherstov, David Dohan, Xingyou Song, Andreea Gane, Tamás Sarlós, Peter Hawkins, Jared Davis, Afroz Mohiuddin, Lukasz Kaiser, David Belanger, Lucy Colwell, and Adrian Weller. Rethinking attention with performers. In International Conference on Learning Representations (ICLR). 2021.">Choromanski <em>et al.</em>, 2021</a>]</span>. With positive random features <span class="math notranslate nohighlight">\(\varphi_t = \exp\big(\operatorname{clip}(W^\top \Phi_t - \|\Phi_t\|^2 / (2K))\big) \in \mathbb{R}^{m}\)</span> (<span class="math notranslate nohighlight">\(W\)</span> a seeded orthogonal projection), two discounted prefix sums are carried:</p>
 <div class="math-wrapper docutils container">
 <div class="math notranslate nohighlight">
 \[S_t = d\,S_{t-1} + (1 - d)\,\varphi_t \otimes \Phi_t, \qquad Z_t = d\,Z_{t-1} + (1 - d)\,\varphi_t, \qquad \mathcal{T}_{\text{attn}}(\Phi)_t = \frac{\varphi_t^\top S_t}{\varphi_t^\top Z_t}.\]</div>
 </div>
 <p>It is a causal softmax-like attention over the past rows of the basis, with exponential forgetting, computed in linear time.</p>
 </li>
-<li><p><strong>Multi-rate exponential memory (<code class="docutils literal notranslate"><span class="pre">hippo</span></code>)</strong> <span class="bibtex-citation" id="id2">[<a class="reference internal" href="../../bibliography.html#id154" title="Albert Gu, Tri Dao, Stefano Ermon, Atri Rudra, and Christopher Ré. Hippo: recurrent memory with optimal polynomial projections. In Advances in Neural Information Processing Systems (NeurIPS), volume 33, 1474–1487. 2020.">Gu <em>et al.</em>, 2020</a>]</span>. Every column <span class="math notranslate nohighlight">\(k\)</span> of the basis has its own forgetting rate <span class="math notranslate nohighlight">\(r_k\)</span> (<span class="math notranslate nohighlight">\(r_k\)</span> equally spaced in <span class="math notranslate nohighlight">\([0.05, 0.5]\)</span>):</p>
+<li><p><strong>Multi-rate exponential memory (<code class="docutils literal notranslate"><span class="pre">hippo</span></code>)</strong> <span class="bibtex-citation" id="id2">[<a class="reference internal" href="../../bibliography.html#id157" title="Albert Gu, Tri Dao, Stefano Ermon, Atri Rudra, and Christopher Ré. Hippo: recurrent memory with optimal polynomial projections. In Advances in Neural Information Processing Systems (NeurIPS), volume 33, 1474–1487. 2020.">Gu <em>et al.</em>, 2020</a>]</span>. Every column <span class="math notranslate nohighlight">\(k\)</span> of the basis has its own forgetting rate <span class="math notranslate nohighlight">\(r_k\)</span> (<span class="math notranslate nohighlight">\(r_k\)</span> equally spaced in <span class="math notranslate nohighlight">\([0.05, 0.5]\)</span>):</p>
 <div class="math-wrapper docutils container">
 <div class="math notranslate nohighlight">
 \[h_{t,k} = (1 - r_k)\,h_{t-1,k} + r_k\,\Phi_{t,k}, \qquad \mathcal{T}_{\text{hippo}}(\Phi)_{t,k} = h_{t,k},\]</div>
 </div>
 <p>started at the first row. It is a bank of first-order low-pass filters, one per basis function; it keeps the name of the memory family it comes from, but it does not use Legendre projections (see the standalone <code class="docutils literal notranslate"><span class="pre">hippo</span></code> effect for those).</p>
 </li>
-<li><p><strong>Windowed memory (<code class="docutils literal notranslate"><span class="pre">ssa</span></code>)</strong> <span class="bibtex-citation" id="id3">[<a class="reference internal" href="../../bibliography.html#id155" title="Nina Golyandina, Vladimir Nekrutkin, and Anatoly A Zhigljavsky. Analysis of Time Series Structure: SSA and Related Techniques. Chapman &amp; Hall/CRC, 2001.">Golyandina <em>et al.</em>, 2001</a>]</span>. A weighted mean of the last <span class="math notranslate nohighlight">\(L\)</span> rows with exponentially decaying weights <span class="math notranslate nohighlight">\(w_l \propto \exp(-l / (0.35\,L))\)</span>, <span class="math notranslate nohighlight">\(\sum_l w_l = 1\)</span>:</p>
+<li><p><strong>Windowed memory (<code class="docutils literal notranslate"><span class="pre">ssa</span></code>)</strong> <span class="bibtex-citation" id="id3">[<a class="reference internal" href="../../bibliography.html#id158" title="Nina Golyandina, Vladimir Nekrutkin, and Anatoly A Zhigljavsky. Analysis of Time Series Structure: SSA and Related Techniques. Chapman &amp; Hall/CRC, 2001.">Golyandina <em>et al.</em>, 2001</a>]</span>. A weighted mean of the last <span class="math notranslate nohighlight">\(L\)</span> rows with exponentially decaying weights <span class="math notranslate nohighlight">\(w_l \propto \exp(-l / (0.35\,L))\)</span>, <span class="math notranslate nohighlight">\(\sum_l w_l = 1\)</span>:</p>
 <div class="math-wrapper docutils container">
 <div class="math notranslate nohighlight">
 \[\mathcal{T}_{\text{ssa}}(\Phi)_t = \sum_{l=0}^{L-1} w_l\,\Phi_{t-l}.\]</div>
@@ -520,7 +520,7 @@
       
     </aside>
   </div>
-</div><script src="../../_static/documentation_options.js?v=44dfd65d"></script>
+</div><script src="../../_static/documentation_options.js?v=e15882dc"></script>
     <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/scripts/furo.js?v=46bd48cc"></script>

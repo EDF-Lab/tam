@@ -7,7 +7,7 @@
         <link rel="prefetch" href="../../_static/logo.png" as="image">
 
     <!-- Generated with Sphinx 9.1.1 and Furo 2025.12.19 -->
-        <title>Adaptive Online Learning (AdaptiveTAM) - TAM 1.5.1 documentation</title>
+        <title>Adaptive Online Learning (AdaptiveTAM) - TAM 1.6.2 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=d111a655" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo-extensions.css?v=8dab3a3b" />
@@ -162,7 +162,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="../../index.html"><div class="brand">TAM 1.5.1 documentation</div></a>
+      <a href="../../index.html"><div class="brand">TAM 1.6.2 documentation</div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -186,7 +186,7 @@
     <img class="sidebar-logo" src="../../_static/logo.png" alt="Logo"/>
   </div>
   
-  <span class="sidebar-brand-text">TAM 1.5.1 documentation</span>
+  <span class="sidebar-brand-text">TAM 1.6.2 documentation</span>
   
 </a><form class="sidebar-search-container" method="get" action="../../search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
@@ -454,6 +454,20 @@
 <h3>Equivalence with a Rolling StaticTAM<a class="headerlink" href="#equivalence-with-a-rolling-statictam" title="Link to this heading">¶</a></h3>
 <p>Each window is normalised with the minimum and maximum of its own training rows only, and no bound fitted on the whole period is applied. The forecasts of a window are therefore those of the estimator fitted on that window’s training rows and applied to its forecast rows: the adaptive model is the operational loop “refit on the last window, forecast the next rows”, computed in one batch. A feature whose range moves between windows is handled as a refit would handle it.</p>
 </section>
+<section id="windows-of-a-linear-corrector-in-mathcal-o-d-2-each">
+<span id="windows-of-a-linear-corrector-in--each"></span><h3>Windows of a Linear Corrector in <span class="math notranslate nohighlight">\(\mathcal O(D^2)\)</span> Each<a class="headerlink" href="#windows-of-a-linear-corrector-in-mathcal-o-d-2-each" title="Link to this heading">¶</a></h3>
+<p>Take a Gaussian corrector made of an intercept, linear terms and categorical terms with a fixed index range. Write <span class="math notranslate nohighlight">\(\Psi\in\mathbb R^{n\times D}\)</span> for its basis on the raw rows of a group (each linear covariate centred and scaled once for the whole group), with row <span class="math notranslate nohighlight">\(\psi_i\)</span>. A window <span class="math notranslate nohighlight">\(w\)</span> of training rows <span class="math notranslate nohighlight">\(s_w,\dots,e_w\)</span> renormalises each linear covariate with its own minimum and maximum, which is an affine map of the columns:</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[\Phi_w=\Psi\,T_w,\qquad T_w=\operatorname{diag}(a_w)+e_{0}\,b_w^\top,\]</div>
+</div>
+<p>where <span class="math notranslate nohighlight">\(e_0\)</span> is the intercept column, <span class="math notranslate nohighlight">\(a_w\)</span> holds the scale of every column (<span class="math notranslate nohighlight">\(1\)</span> for the intercept and the categorical columns) and <span class="math notranslate nohighlight">\(b_w\)</span> its shift into the intercept. The normal equations of the window then read</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[\Phi_w^\top\Phi_w=T_w^\top\Bigl(\sum_{i=s_w}^{e_w}\psi_i\psi_i^\top\Bigr)T_w,\qquad \Phi_w^\top y=T_w^\top\sum_{i=s_w}^{e_w}\psi_i\,y_i .\]</div>
+</div>
+<p>The sums are differences of prefix sums, <span class="math notranslate nohighlight">\(C_{e_w}-C_{s_w-1}\)</span> with <span class="math notranslate nohighlight">\(C_t=\sum_{i\le t}\psi_i\psi_i^\top\)</span>, computed once per group, and the congruence with <span class="math notranslate nohighlight">\(T_w\)</span> is a rank-one plus diagonal update, <span class="math notranslate nohighlight">\(\mathcal O(D^2)\)</span>. Every window therefore costs <span class="math notranslate nohighlight">\(\mathcal O(D^2)\)</span> plus one solve of <span class="math notranslate nohighlight">\((\Phi_w^\top\Phi_w+n\,P)\,\theta_w=\Phi_w^\top y\)</span>, instead of <span class="math notranslate nohighlight">\(\mathcal O(W D^2)\)</span> for <span class="math notranslate nohighlight">\(W\)</span> rows per window, with the same solution up to floating-point rounding. This applies to the Gaussian loss with unit loss weights; any other corrector (a GLM loss, a spline, a projection), and any window in which a linear covariate is constant (its column is zero and the system singular), is solved window by window.</p>
+</section>
 </section>
 </section>
 
@@ -523,6 +537,7 @@
 <li><a class="reference internal" href="#corrector-on-the-link-scale-non-gaussian-expert">Corrector on the Link Scale (Non-Gaussian Expert)</a></li>
 <li><a class="reference internal" href="#online-scale-for-quantile-forecasts">Online Scale for Quantile Forecasts</a></li>
 <li><a class="reference internal" href="#equivalence-with-a-rolling-statictam">Equivalence with a Rolling StaticTAM</a></li>
+<li><a class="reference internal" href="#windows-of-a-linear-corrector-in-mathcal-o-d-2-each">Windows of a Linear Corrector in <span class="math notranslate nohighlight">\(\mathcal O(D^2)\)</span> Each</a></li>
 </ul>
 </li>
 </ul>
@@ -536,7 +551,7 @@
       
     </aside>
   </div>
-</div><script src="../../_static/documentation_options.js?v=44dfd65d"></script>
+</div><script src="../../_static/documentation_options.js?v=e15882dc"></script>
     <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/scripts/furo.js?v=46bd48cc"></script>

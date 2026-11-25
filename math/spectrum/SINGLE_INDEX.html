@@ -7,7 +7,7 @@
         <link rel="prefetch" href="../../_static/logo.png" as="image">
 
     <!-- Generated with Sphinx 9.1.1 and Furo 2025.12.19 -->
-        <title>Penalized Single-Index Distributed Lags - TAM 1.5.1 documentation</title>
+        <title>Penalized Single-Index Distributed Lags - TAM 1.6.2 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=d111a655" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo-extensions.css?v=8dab3a3b" />
@@ -162,7 +162,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="../../index.html"><div class="brand">TAM 1.5.1 documentation</div></a>
+      <a href="../../index.html"><div class="brand">TAM 1.6.2 documentation</div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -186,7 +186,7 @@
     <img class="sidebar-logo" src="../../_static/logo.png" alt="Logo"/>
   </div>
   
-  <span class="sidebar-brand-text">TAM 1.5.1 documentation</span>
+  <span class="sidebar-brand-text">TAM 1.6.2 documentation</span>
   
 </a><form class="sidebar-search-container" method="get" action="../../search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
@@ -388,7 +388,7 @@
 <p>Two forms share the same outer spline.</p>
 <ul class="simple">
 <li><p><strong>Distributed lag</strong> (<code class="docutils literal notranslate"><span class="pre">lag_window=L</span></code>, one column): the index of step <span class="math notranslate nohighlight">\(t\)</span> is <span class="math notranslate nohighlight">\(u_t = \sum_{l=0}^{L-1} \alpha_l\, x_{t-l}\)</span>, a weighted sum of the last <span class="math notranslate nohighlight">\(L\)</span> values of the series of its own group. The weights start from a smooth decay <span class="math notranslate nohighlight">\(\alpha_l \propto e^{-0.15\,l}\)</span> (or from the user’s <code class="docutils literal notranslate"><span class="pre">alpha</span></code>), normalized to unit norm with <span class="math notranslate nohighlight">\(\alpha_1 \ge 0\)</span>.</p></li>
-<li><p><strong>Multivariate block</strong> (<code class="docutils literal notranslate"><span class="pre">others=</span></code>): the covariates are standardized with the training mean and standard deviation, and <span class="math notranslate nohighlight">\(\alpha\)</span> is the leading principal direction of the standardized training block, regularized by a second-difference penalty on its entries <span class="bibtex-citation" id="id1">[<a class="reference internal" href="../../bibliography.html#id82" title="Simon N Wood. Generalized additive models: an introduction with R. chapman and hall/CRC, 2017.">Wood, 2017</a>, <a class="reference internal" href="../../bibliography.html#id146" title="Hidehiko Ichimura. Semiparametric least squares (sls) and weighted sls estimation of single-index models. Journal of Econometrics, 58(1-2):71–120, 1993.">Ichimura, 1993</a>]</span>. No time mixing: each row is read alone.</p></li>
+<li><p><strong>Multivariate block</strong> (<code class="docutils literal notranslate"><span class="pre">others=</span></code>): the covariates are standardized with the training mean and standard deviation, and <span class="math notranslate nohighlight">\(\alpha\)</span> is the leading principal direction of the standardized training block, regularized by a second-difference penalty on its entries <span class="bibtex-citation" id="id1">[<a class="reference internal" href="../../bibliography.html#id82" title="Simon N Wood. Generalized additive models: an introduction with R. chapman and hall/CRC, 2017.">Wood, 2017</a>, <a class="reference internal" href="../../bibliography.html#id149" title="Hidehiko Ichimura. Semiparametric least squares (sls) and weighted sls estimation of single-index models. Journal of Econometrics, 58(1-2):71–120, 1993.">Ichimura, 1993</a>]</span>. No time mixing: each row is read alone.</p></li>
 </ul>
 <p>The index is mapped to <span class="math notranslate nohighlight">\([-1, 1]\)</span> with the range it has on the training rows and read through a cubic B-spline with linear continuation outside the range; the spline coefficients carry the second-difference penalty above <span class="bibtex-citation" id="id2">[<a class="reference internal" href="../../bibliography.html#id30" title="Paul HC Eilers and Brian D Marx. Flexible smoothing with b-splines and penalties. Statistical science, 11(2):89–121, 1996.">Eilers and Marx, 1996</a>]</span>.</p>
 </section>
@@ -493,7 +493,7 @@
       
     </aside>
   </div>
-</div><script src="../../_static/documentation_options.js?v=44dfd65d"></script>
+</div><script src="../../_static/documentation_options.js?v=e15882dc"></script>
     <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/scripts/furo.js?v=46bd48cc"></script>

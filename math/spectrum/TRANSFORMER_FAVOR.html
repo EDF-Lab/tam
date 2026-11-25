@@ -7,7 +7,7 @@
         <link rel="prefetch" href="../../_static/logo.png" as="image">
 
     <!-- Generated with Sphinx 9.1.1 and Furo 2025.12.19 -->
-        <title>The Transformer Attention Effect (Linearized FAVOR+ Positive Orthogonal Random Features) - TAM 1.5.1 documentation</title>
+        <title>The Transformer Attention Effect (Linearized FAVOR+ Positive Orthogonal Random Features) - TAM 1.6.2 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=d111a655" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo-extensions.css?v=8dab3a3b" />
@@ -162,7 +162,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="../../index.html"><div class="brand">TAM 1.5.1 documentation</div></a>
+      <a href="../../index.html"><div class="brand">TAM 1.6.2 documentation</div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -186,7 +186,7 @@
     <img class="sidebar-logo" src="../../_static/logo.png" alt="Logo"/>
   </div>
   
-  <span class="sidebar-brand-text">TAM 1.5.1 documentation</span>
+  <span class="sidebar-brand-text">TAM 1.6.2 documentation</span>
   
 </a><form class="sidebar-search-container" method="get" action="../../search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
@@ -375,13 +375,13 @@
 </ul>
 <section id="foundational-theory-linearized-self-attention-via-kernel-factorization">
 <h2>Foundational Theory: Linearized Self-Attention via Kernel Factorization<a class="headerlink" href="#foundational-theory-linearized-self-attention-via-kernel-factorization" title="Link to this heading">¶</a></h2>
-<p>Standard Transformer self-attention <span class="bibtex-citation" id="id1">[<a class="reference internal" href="../../bibliography.html#id171" title="Ashish Vaswani, Noam Shazeer, Niki Parmar, Jakob Uszkoreit, Llion Jones, Aidan N Gomez, Łukasz Kaiser, and Illia Polosukhin. Attention is all you need. In Advances in Neural Information Processing Systems (NeurIPS), volume 30. 2017.">Vaswani <em>et al.</em>, 2017</a>]</span> calculates an explicit <span class="math notranslate nohighlight">\(T \times T\)</span> softmax attention matrix:</p>
+<p>Standard Transformer self-attention <span class="bibtex-citation" id="id1">[<a class="reference internal" href="../../bibliography.html#id174" title="Ashish Vaswani, Noam Shazeer, Niki Parmar, Jakob Uszkoreit, Llion Jones, Aidan N Gomez, Łukasz Kaiser, and Illia Polosukhin. Attention is all you need. In Advances in Neural Information Processing Systems (NeurIPS), volume 30. 2017.">Vaswani <em>et al.</em>, 2017</a>]</span> calculates an explicit <span class="math notranslate nohighlight">\(T \times T\)</span> softmax attention matrix:</p>
 <div class="math-wrapper docutils container">
 <div class="math notranslate nohighlight">
 \[A = \operatorname{softmax}\left(\frac{Q K^\top}{\sqrt{d}}\right) = \operatorname{diag}\left(\sum_{\tau=1}^T \exp\left(\frac{q_t^\top k_\tau}{\sqrt{d}}\right)\right)^{-1} \exp\left(\frac{Q K^\top}{\sqrt{d}}\right)\]</div>
 </div>
 <p>which incurs quadratic <span class="math notranslate nohighlight">\(\mathcal{O}(T^2)\)</span> computational complexity and memory footprint, and requires backpropagation to train non-linear projections. In the Generalized Additive Model context, non-linear backpropagation cannot be solved globally in closed form within the penalized weighted least-squares (P-WLS) solver.</p>
-<p>By leveraging the <strong>Performer FAVOR+ (Fast Attention Via Positive Orthogonal Random Features)</strong> kernel factorization <span class="bibtex-citation" id="id2">[<a class="reference internal" href="../../bibliography.html#id153" title="Krzysztof Choromanski, Valerii Likhosherstov, David Dohan, Xingyou Song, Andreea Gane, Tamás Sarlós, Peter Hawkins, Jared Davis, Afroz Mohiuddin, Lukasz Kaiser, David Belanger, Lucy Colwell, and Adrian Weller. Rethinking attention with performers. In International Conference on Learning Representations (ICLR). 2021.">Choromanski <em>et al.</em>, 2021</a>, <a class="reference internal" href="../../bibliography.html#id173" title="Angelos Katharopoulos, Apoorv Vyas, Nikolaos Pappas, and François Fleuret. Transformers are RNNs: fast autoregressive transformers with linear attention. In International Conference on Machine Learning (ICML), 5156–5165. 2020.">Katharopoulos <em>et al.</em>, 2020</a>]</span>, the exponential softmax kernel <span class="math notranslate nohighlight">\(K_{\text{exp}}(q, k) = \exp(q^\top k / \sqrt{d})\)</span> is decomposed into an inner product of strictly positive, finite-dimensional random feature maps:</p>
+<p>By leveraging the <strong>Performer FAVOR+ (Fast Attention Via Positive Orthogonal Random Features)</strong> kernel factorization <span class="bibtex-citation" id="id2">[<a class="reference internal" href="../../bibliography.html#id156" title="Krzysztof Choromanski, Valerii Likhosherstov, David Dohan, Xingyou Song, Andreea Gane, Tamás Sarlós, Peter Hawkins, Jared Davis, Afroz Mohiuddin, Lukasz Kaiser, David Belanger, Lucy Colwell, and Adrian Weller. Rethinking attention with performers. In International Conference on Learning Representations (ICLR). 2021.">Choromanski <em>et al.</em>, 2021</a>, <a class="reference internal" href="../../bibliography.html#id176" title="Angelos Katharopoulos, Apoorv Vyas, Nikolaos Pappas, and François Fleuret. Transformers are RNNs: fast autoregressive transformers with linear attention. In International Conference on Machine Learning (ICML), 5156–5165. 2020.">Katharopoulos <em>et al.</em>, 2020</a>]</span>, the exponential softmax kernel <span class="math notranslate nohighlight">\(K_{\text{exp}}(q, k) = \exp(q^\top k / \sqrt{d})\)</span> is decomposed into an inner product of strictly positive, finite-dimensional random feature maps:</p>
 <div class="math-wrapper docutils container">
 <div class="math notranslate nohighlight">
 \[\exp\left(\frac{q^\top k}{\sqrt{d}}\right) = \mathbb{E}\left[\phi(q)^\top \phi(k)\right]\]</div>
@@ -406,7 +406,7 @@
 <hr class="docutils" />
 <section id="orthogonal-random-features-orf-via-mezzadri-qr">
 <h2>Orthogonal Random Features (ORF) via Mezzadri QR<a class="headerlink" href="#orthogonal-random-features-orf-via-mezzadri-qr" title="Link to this heading">¶</a></h2>
-<p>To minimize the variance of the Monte Carlo kernel estimator <span class="math notranslate nohighlight">\(\langle \phi(q), \phi(k) \rangle\)</span> without inflating <span class="math notranslate nohighlight">\(m\)</span>, the random projection vectors <span class="math notranslate nohighlight">\(\{\omega_1, \dots, \omega_m\}\)</span> are generated in blocks of <span class="math notranslate nohighlight">\(d\)</span> mutually orthogonal vectors <span class="bibtex-citation" id="id3">[<a class="reference internal" href="../../bibliography.html#id153" title="Krzysztof Choromanski, Valerii Likhosherstov, David Dohan, Xingyou Song, Andreea Gane, Tamás Sarlós, Peter Hawkins, Jared Davis, Afroz Mohiuddin, Lukasz Kaiser, David Belanger, Lucy Colwell, and Adrian Weller. Rethinking attention with performers. In International Conference on Learning Representations (ICLR). 2021.">Choromanski <em>et al.</em>, 2021</a>, <a class="reference internal" href="../../bibliography.html#id172" title="Felix Xinnan X Yu, Ananda Theertha Suresh, Krzysztof M Choromanski, Daniel N Holtmann-Rice, and Sanjiv Kumar. Orthogonal random features. In Advances in Neural Information Processing Systems (NeurIPS), volume 29. 2016.">Yu <em>et al.</em>, 2016</a>]</span>.</p>
+<p>To minimize the variance of the Monte Carlo kernel estimator <span class="math notranslate nohighlight">\(\langle \phi(q), \phi(k) \rangle\)</span> without inflating <span class="math notranslate nohighlight">\(m\)</span>, the random projection vectors <span class="math notranslate nohighlight">\(\{\omega_1, \dots, \omega_m\}\)</span> are generated in blocks of <span class="math notranslate nohighlight">\(d\)</span> mutually orthogonal vectors <span class="bibtex-citation" id="id3">[<a class="reference internal" href="../../bibliography.html#id156" title="Krzysztof Choromanski, Valerii Likhosherstov, David Dohan, Xingyou Song, Andreea Gane, Tamás Sarlós, Peter Hawkins, Jared Davis, Afroz Mohiuddin, Lukasz Kaiser, David Belanger, Lucy Colwell, and Adrian Weller. Rethinking attention with performers. In International Conference on Learning Representations (ICLR). 2021.">Choromanski <em>et al.</em>, 2021</a>, <a class="reference internal" href="../../bibliography.html#id175" title="Felix Xinnan X Yu, Ananda Theertha Suresh, Krzysztof M Choromanski, Daniel N Holtmann-Rice, and Sanjiv Kumar. Orthogonal random features. In Advances in Neural Information Processing Systems (NeurIPS), volume 29. 2016.">Yu <em>et al.</em>, 2016</a>]</span>.</p>
 <p>For each block of dimension <span class="math notranslate nohighlight">\(d \times d\)</span>:</p>
 <ol class="arabic simple">
 <li><p>Sample an unstructured standard Gaussian matrix <span class="math notranslate nohighlight">\(G \sim \mathcal{N}(0, I_{d \times d})\)</span>.</p></li>
@@ -564,7 +564,7 @@
       
     </aside>
   </div>
-</div><script src="../../_static/documentation_options.js?v=44dfd65d"></script>
+</div><script src="../../_static/documentation_options.js?v=e15882dc"></script>
     <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/scripts/furo.js?v=46bd48cc"></script>

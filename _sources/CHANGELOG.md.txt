@@ -15,6 +15,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > **[0.0.6]** corresponds to the legacy `weakl` package available on PyPI.
 
 ---
+## [1.6.2] - 2026-11-23
+
+### Added
+- `reml_objective(..., compute_hess=True, hess_out=...)` returns the analytic Hessian of the REML criterion in `log(lambda)` (exact for the working system held fixed, known and unknown scale, any number of groups). `auto_fit(criterion="reml")` records `reml_stop_reason_` (`newton_ok`, `newton_bounds` or `newton_step_limit`) and `reml_iterations_` (one entry per reweighting pass for a GLM loss).
+
+### Changed
+- `auto_fit(criterion="reml")` is much faster: the search on `log(lambda)` is a few clamped fixed-point steps followed by a safeguarded Newton search with the analytic Hessian (flat and bound coordinates are set aside, the step is a modified Newton step, the search stops on the exact Newton decrement) in place of L-BFGS-B; block-wise penalty determinants, shifted trace-ratio starting points screened in one batched float64 Cholesky, reuse of the design and of the penalty basis across reweighting passes, joint refit of the dispersion for GLM losses, a unit-mean penalised-deviance line search and a safeguarded Anderson window of 3 in the warm-started reweighted passes. Fixed-penalty fits (cold start) are unchanged. Reweighted GLM fits, and the distributional and conformal quantiles built on them, can move by up to about 6e-6 of the standard deviation of the target (within the iteration tolerance); held-out errors are unchanged.
+- On a one-year hourly load extract, `auto_fit(criterion="reml")` fits five models in 0.59 s instead of 2.37 s (4.0 times faster, with the same REML criterion to 0.001 and the same smoothing parameters), and 5.4 times faster on a grid of 106 synthetic cells and 5.2 times faster on 103 published models (206 fits) than in 1.6.1; fixed-penalty `fit()` is 4.5 times faster and `predict()` takes about 0.01 s instead of 0.08 s, with predictions equal to the printed precision. The scaling of the outward slope in `linear` and `saturation` extrapolation by `2 / degree` for REML-fitted splines is the only change that moves accuracy, and lowers the held-out error of spline-based models (RMSE 1541 to 1276 for a spline model, Poisson deviance 1.52 to 0.96).
+- The Newton search ends at a stationary point of the criterion, which is not always the one L-BFGS-B reaches: on weakly identified coordinates the criterion has several. Against the converged L-BFGS-B search of the same release, 41 of the 211 REML fits of the published-model run end more than 0.5 unit apart (25 of them lower), and 8 of the 206 lose more than 0.01 of held-out D2 (worst 3.45, one count model; against 1.6.1: 8 fits, worst 0.17). No fit ends on an abnormal line-search termination (30 of 211 did with L-BFGS-B), 3 of 211 end on `newton_step_limit`.
+- Covariances are formed from a structured design (one-hot and `te(smooth, cat)` blocks), once for group-invariant effects, and in row tiles for stateless designs too large for memory; categorical and tensor margins are cached across `te()` terms; data ingestion reads columns of NumPy arrays or Polars-like frames without copying (Polars stays optional).
+- `AdaptiveTAM.simulation()` solves the windows of a Gaussian corrector made of an intercept, linear and categorical effects from prefix sums of outer products in `O(D^2)` per window instead of `O(W D^2)`. Forecasts can differ from 1.6.1 by about 1e-9 of the standard deviation of the target, from the summation order.
+- The forward maps of the HiPPO, Signature, Scattering, Attention, Temporal Operator, Bispectrum, Patch Basis, Foundation, Koopman, T-JEPA, KAN, inertia, Tree and Categorical effects are vectorised (no Python loop over time, channels or heads); their columns and penalties are unchanged.
+- `SplineEffect` evaluates its B-spline basis on the active knot span only (`O(T k^2)`, independent of the number of knots), caches knot tables per device, and contracts coefficients without building the `(G, T, K)` design (`contract_coefficients`, `contract_batched_splines`); fixed-penalty fits are unchanged. Predictions can differ from 1.6.1 by about 1e-9 of the standard deviation of the target, from the summation order.
+- REML-fitted splines scale the outward slope of `linear` and `saturation` extrapolation by `2 / degree` (Greville boundary spacing of clamped knots); in-range predictions and fixed-penalty models are unchanged.
+
+### Fixed
+- `HierarchicalOperaTAM.predict()` of a single series (no group column) now uses the same dummy group key as the fit, so the frozen forecast uses the learnt weights instead of the initial ones (`DUMMY_GROUP_COL` and `DUMMY_GROUP_VALUE` in `tam.common.utils` are the one source of the key).
+
+---
 ## [1.6.1] - 2026-11-18
 
 ### Added
@@ -406,6 +425,7 @@ This version introduced the Formula API and the first object-oriented refactorin
 ### Added
 * Initial project setup based on the original `weakl` v0.0.6 package.
 
+[1.6.2]: https://github.com/EDF-Lab/tam/releases/tag/v1.6.2
 [1.6.1]: https://github.com/EDF-Lab/tam/releases/tag/v1.6.1
 [1.6.0]: https://github.com/EDF-Lab/tam/releases/tag/v1.6.0
 [1.5.1]: https://github.com/EDF-Lab/tam/releases/tag/v1.5.1

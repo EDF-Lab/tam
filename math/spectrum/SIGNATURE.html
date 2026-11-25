@@ -7,7 +7,7 @@
         <link rel="prefetch" href="../../_static/logo.png" as="image">
 
     <!-- Generated with Sphinx 9.1.1 and Furo 2025.12.19 -->
-        <title>The Path Signature and Log-Signature Effect (Rough Path Iterated Integrals) - TAM 1.5.1 documentation</title>
+        <title>The Path Signature and Log-Signature Effect (Rough Path Iterated Integrals) - TAM 1.6.2 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=d111a655" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo-extensions.css?v=8dab3a3b" />
@@ -162,7 +162,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="../../index.html"><div class="brand">TAM 1.5.1 documentation</div></a>
+      <a href="../../index.html"><div class="brand">TAM 1.6.2 documentation</div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -186,7 +186,7 @@
     <img class="sidebar-logo" src="../../_static/logo.png" alt="Logo"/>
   </div>
   
-  <span class="sidebar-brand-text">TAM 1.5.1 documentation</span>
+  <span class="sidebar-brand-text">TAM 1.6.2 documentation</span>
   
 </a><form class="sidebar-search-container" method="get" action="../../search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
@@ -375,7 +375,7 @@
 </ul>
 <section id="foundational-theory-the-path-signature">
 <h2>Foundational Theory: The Path Signature<a class="headerlink" href="#foundational-theory-the-path-signature" title="Link to this heading">¶</a></h2>
-<p>In dynamical time-series forecasting, capturing the multi-scale trajectory and memory of exogenous covariates (such as building thermal inertia driven by weather history) traditionally requires manual engineering of exponential smoothings or distributed lags. The <strong>Path Signature</strong> <span class="bibtex-citation" id="id1">[<a class="reference internal" href="../../bibliography.html#id140" title="Kuo-Tsai Chen. Integration of paths – a faithful representation of paths by non-commutative formal power series. Transactions of the American Mathematical Society, 89(2):395–407, 1958.">Chen, 1958</a>, <a class="reference internal" href="../../bibliography.html#id141" title="Terry J Lyons, Michael Caruana, and Thierry Lévy. Differential Equations Driven by Rough Paths: Ecole d'Eté de Probabilités de Saint-Flour XXXIV-2004. Volume 1908 of Lecture Notes in Mathematics. Springer, 2007.">Lyons <em>et al.</em>, 2007</a>]</span> provides a canonical, non-parametric, linear coordinate system on the space of continuous paths of bounded variation.</p>
+<p>In dynamical time-series forecasting, capturing the multi-scale trajectory and memory of exogenous covariates (such as building thermal inertia driven by weather history) traditionally requires manual engineering of exponential smoothings or distributed lags. The <strong>Path Signature</strong> <span class="bibtex-citation" id="id1">[<a class="reference internal" href="../../bibliography.html#id143" title="Kuo-Tsai Chen. Integration of paths – a faithful representation of paths by non-commutative formal power series. Transactions of the American Mathematical Society, 89(2):395–407, 1958.">Chen, 1958</a>, <a class="reference internal" href="../../bibliography.html#id144" title="Terry J Lyons, Michael Caruana, and Thierry Lévy. Differential Equations Driven by Rough Paths: Ecole d'Eté de Probabilités de Saint-Flour XXXIV-2004. Volume 1908 of Lecture Notes in Mathematics. Springer, 2007.">Lyons <em>et al.</em>, 2007</a>]</span> provides a canonical, non-parametric, linear coordinate system on the space of continuous paths of bounded variation.</p>
 <p>Let <span class="math notranslate nohighlight">\(X: [s, t] \to \mathbb{R}^D\)</span> be a continuous path of bounded variation. The <strong>signature</strong> <span class="math notranslate nohighlight">\(S(X)_{s, t}\)</span> is the collection of all iterated integrals of <span class="math notranslate nohighlight">\(X\)</span>:</p>
 <div class="math-wrapper docutils container">
 <div class="math notranslate nohighlight">
@@ -434,7 +434,7 @@ The signature is intrinsically invariant to translation (<span class="math notra
 <hr class="docutils" />
 <section id="log-signature-free-lie-algebra-compression">
 <span id="log-signature--free-lie-algebra-compression"></span><h2>Log-Signature &amp; Free Lie Algebra Compression<a class="headerlink" href="#log-signature-free-lie-algebra-compression" title="Link to this heading">¶</a></h2>
-<p>Because signature coefficients satisfy <strong>shuffle product identities</strong> (<span class="math notranslate nohighlight">\(S^{\mathbf{I}} S^{\mathbf{J}} = \sum_{\mathbf{K} \in \mathbf{I} \sqcup\!\sqcup \mathbf{J}} S^{\mathbf{K}}\)</span>) <span class="bibtex-citation" id="id2">[<a class="reference internal" href="../../bibliography.html#id142" title="Jeremy Reizenstein and Benjamin Graham. Algorithm 1004: the iisignature library: efficient calculation of iterated-integral signatures and log signatures. ACM Transactions on Mathematical Software, 47(2):1–21, 2020.">Reizenstein and Graham, 2020</a>, <a class="reference internal" href="../../bibliography.html#id139" title="Ilya Chevyrev and Andrey Kormilitzin. A primer on the signature method in machine learning. arXiv preprint arXiv:1603.03788, 2016.">Chevyrev and Kormilitzin, 2016</a>]</span>, raw signature columns exhibit collinearity as <span class="math notranslate nohighlight">\(N\)</span> grows.</p>
+<p>Because signature coefficients satisfy <strong>shuffle product identities</strong> (<span class="math notranslate nohighlight">\(S^{\mathbf{I}} S^{\mathbf{J}} = \sum_{\mathbf{K} \in \mathbf{I} \sqcup\!\sqcup \mathbf{J}} S^{\mathbf{K}}\)</span>) <span class="bibtex-citation" id="id2">[<a class="reference internal" href="../../bibliography.html#id145" title="Jeremy Reizenstein and Benjamin Graham. Algorithm 1004: the iisignature library: efficient calculation of iterated-integral signatures and log signatures. ACM Transactions on Mathematical Software, 47(2):1–21, 2020.">Reizenstein and Graham, 2020</a>, <a class="reference internal" href="../../bibliography.html#id142" title="Ilya Chevyrev and Andrey Kormilitzin. A primer on the signature method in machine learning. arXiv preprint arXiv:1603.03788, 2016.">Chevyrev and Kormilitzin, 2016</a>]</span>, raw signature columns exhibit collinearity as <span class="math notranslate nohighlight">\(N\)</span> grows.</p>
 <p>By the Campbell–Baker–Hausdorff theorem, the signature of any path of bounded variation lies in the free nilpotent Lie group <span class="math notranslate nohighlight">\(G^N(\mathbb{R}^D) = \exp(\mathfrak{g}^N(\mathbb{R}^D))\)</span>. The <strong>Log-Signature</strong> is defined via the truncated tensor logarithm:</p>
 <div class="math-wrapper docutils container">
 <div class="math notranslate nohighlight">
@@ -455,7 +455,7 @@ The first levels are <span class="math notranslate nohighlight">\(L^1 = S^1\)</s
 <hr class="docutils" />
 <section id="levy-area-hoff-s-lead-lag-transform">
 <span id="lévy-area--hoffs-lead-lag-transform"></span><h2>Lévy Area &amp; Hoff’s Lead-Lag Transform<a class="headerlink" href="#levy-area-hoff-s-lead-lag-transform" title="Link to this heading">¶</a></h2>
-<p>At level <span class="math notranslate nohighlight">\(k = 2\)</span>, the iterated integral <span class="math notranslate nohighlight">\(S^2(X)_{i, j}\)</span> decomposes into a symmetric increment component and an antisymmetric <strong>Lévy stochastic area</strong> <span class="bibtex-citation" id="id3">[<a class="reference internal" href="../../bibliography.html#id143" title="Guy Flint, Ben Hambly, and Terry Lyons. Discretely sampled signals and the rough hoff process. Stochastic Processes and their Applications, 126(9):2593–2614, 2016.">Flint <em>et al.</em>, 2016</a>, <a class="reference internal" href="../../bibliography.html#id144" title="Adeline Fermanian. Embedding and learning with signatures. Computational Statistics &amp; Data Analysis, 157:107148, 2021.">Fermanian, 2021</a>]</span>:</p>
+<p>At level <span class="math notranslate nohighlight">\(k = 2\)</span>, the iterated integral <span class="math notranslate nohighlight">\(S^2(X)_{i, j}\)</span> decomposes into a symmetric increment component and an antisymmetric <strong>Lévy stochastic area</strong> <span class="bibtex-citation" id="id3">[<a class="reference internal" href="../../bibliography.html#id146" title="Guy Flint, Ben Hambly, and Terry Lyons. Discretely sampled signals and the rough hoff process. Stochastic Processes and their Applications, 126(9):2593–2614, 2016.">Flint <em>et al.</em>, 2016</a>, <a class="reference internal" href="../../bibliography.html#id147" title="Adeline Fermanian. Embedding and learning with signatures. Computational Statistics &amp; Data Analysis, 157:107148, 2021.">Fermanian, 2021</a>]</span>:</p>
 <div class="math-wrapper docutils container">
 <div class="math notranslate nohighlight">
 \[S^2(X)_{i, j} = \frac{1}{2} \Delta X^i \Delta X^j + A_{i, j}(X), \qquad A_{i, j}(X) = \frac{1}{2}\left( S^2(X)_{i, j} - S^2(X)_{j, i} \right)\]</div>
@@ -605,7 +605,7 @@ The first levels are <span class="math notranslate nohighlight">\(L^1 = S^1\)</s
       
     </aside>
   </div>
-</div><script src="../../_static/documentation_options.js?v=44dfd65d"></script>
+</div><script src="../../_static/documentation_options.js?v=e15882dc"></script>
     <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/scripts/furo.js?v=46bd48cc"></script>

@@ -7,7 +7,7 @@
         <link rel="prefetch" href="../../_static/logo.png" as="image">
 
     <!-- Generated with Sphinx 9.1.1 and Furo 2025.12.19 -->
-        <title>Hurst Fractional Gaussian Noise Basis - TAM 1.5.1 documentation</title>
+        <title>Hurst Fractional Gaussian Noise Basis - TAM 1.6.2 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=d111a655" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo-extensions.css?v=8dab3a3b" />
@@ -162,7 +162,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="../../index.html"><div class="brand">TAM 1.5.1 documentation</div></a>
+      <a href="../../index.html"><div class="brand">TAM 1.6.2 documentation</div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -186,7 +186,7 @@
     <img class="sidebar-logo" src="../../_static/logo.png" alt="Logo"/>
   </div>
   
-  <span class="sidebar-brand-text">TAM 1.5.1 documentation</span>
+  <span class="sidebar-brand-text">TAM 1.6.2 documentation</span>
   
 </a><form class="sidebar-search-container" method="get" action="../../search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
@@ -375,7 +375,7 @@
 </ul>
 <section id="hurst-fractional-brownian-motion-penalty">
 <h2>Hurst Fractional Brownian Motion Penalty<a class="headerlink" href="#hurst-fractional-brownian-motion-penalty" title="Link to this heading">¶</a></h2>
-<p>For a long-memory process with Hurst exponent <span class="math notranslate nohighlight">\(H \in (0, 1)\)</span> (<span class="bibtex-citation" id="id1">[<a class="reference internal" href="../../bibliography.html#id185" title="Benoit B Mandelbrot and John W Van Ness. Fractional Brownian motions, fractional noises and applications. SIAM Review, 10(4):422–437, 1968.">Mandelbrot and Van Ness, 1968</a>]</span>), fractional Gaussian noise has power spectral density <span class="math notranslate nohighlight">\(S_H(\omega) \propto |\omega|^{1 - 2H}\)</span>. The Hurst precision penalty matrix penalizes Fourier harmonics by the inverse power spectrum:</p>
+<p>For a long-memory process with Hurst exponent <span class="math notranslate nohighlight">\(H \in (0, 1)\)</span> (<span class="bibtex-citation" id="id1">[<a class="reference internal" href="../../bibliography.html#id188" title="Benoit B Mandelbrot and John W Van Ness. Fractional Brownian motions, fractional noises and applications. SIAM Review, 10(4):422–437, 1968.">Mandelbrot and Van Ness, 1968</a>]</span>), fractional Gaussian noise has power spectral density <span class="math notranslate nohighlight">\(S_H(\omega) \propto |\omega|^{1 - 2H}\)</span>. The Hurst precision penalty matrix penalizes Fourier harmonics by the inverse power spectrum:</p>
 <div class="math-wrapper docutils container">
 <div class="math notranslate nohighlight">
 \[P_{\text{hurst}} = \lambda_p\, I_2 \otimes \operatorname{diag}\big( j^{2H - 1} \big)_{j=1}^m\]</div>
@@ -398,7 +398,7 @@
 </section>
 <section id="what-is-new-here">
 <h2>What is new here<a class="headerlink" href="#what-is-new-here" title="Link to this heading">¶</a></h2>
-<p>The fractional Gaussian noise spectrum is the one of the cited paper <span class="bibtex-citation" id="id2">[<a class="reference internal" href="../../bibliography.html#id185" title="Benoit B Mandelbrot and John W Van Ness. Fractional Brownian motions, fractional noises and applications. SIAM Review, 10(4):422–437, 1968.">Mandelbrot and Van Ness, 1968</a>]</span>. What this effect adds:</p>
+<p>The fractional Gaussian noise spectrum is the one of the cited paper <span class="bibtex-citation" id="id2">[<a class="reference internal" href="../../bibliography.html#id188" title="Benoit B Mandelbrot and John W Van Ness. Fractional Brownian motions, fractional noises and applications. SIAM Review, 10(4):422–437, 1968.">Mandelbrot and Van Ness, 1968</a>]</span>. What this effect adds:</p>
 <ul class="simple">
 <li><p>the <strong>long-memory spectral prior used as a smoothness penalty on a harmonic basis of a covariate</strong>: the exponent <span class="math notranslate nohighlight">\(H\)</span> chooses how fast the penalty grows with the harmonic, interpolating between a ridge (<span class="math notranslate nohighlight">\(H = \tfrac12\)</span>) and a smoothness-promoting penalty (<span class="math notranslate nohighlight">\(H\)</span> near 1), and is estimated nowhere: it is a modelling choice;</p></li>
 <li><p>the penalty inside a <strong>closed-form penalized additive term</strong> with a smoothing parameter chosen by GCV or REML.</p></li>
@@ -485,7 +485,7 @@
       
     </aside>
   </div>
-</div><script src="../../_static/documentation_options.js?v=44dfd65d"></script>
+</div><script src="../../_static/documentation_options.js?v=e15882dc"></script>
     <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/scripts/furo.js?v=46bd48cc"></script>

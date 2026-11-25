@@ -7,7 +7,7 @@
         <link rel="prefetch" href="../../_static/logo.png" as="image">
 
     <!-- Generated with Sphinx 9.1.1 and Furo 2025.12.19 -->
-        <title>The HiPPO State Space Model Effect (Continuous-Time Polynomial Memory) - TAM 1.5.1 documentation</title>
+        <title>The HiPPO State Space Model Effect (Continuous-Time Polynomial Memory) - TAM 1.6.2 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=d111a655" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo-extensions.css?v=8dab3a3b" />
@@ -162,7 +162,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="../../index.html"><div class="brand">TAM 1.5.1 documentation</div></a>
+      <a href="../../index.html"><div class="brand">TAM 1.6.2 documentation</div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -186,7 +186,7 @@
     <img class="sidebar-logo" src="../../_static/logo.png" alt="Logo"/>
   </div>
   
-  <span class="sidebar-brand-text">TAM 1.5.1 documentation</span>
+  <span class="sidebar-brand-text">TAM 1.6.2 documentation</span>
   
 </a><form class="sidebar-search-container" method="get" action="../../search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
@@ -376,7 +376,7 @@
 <section id="foundational-theory-continuous-time-memory-polynomial-projections">
 <span id="foundational-theory-continuous-time-memory--polynomial-projections"></span><h2>Foundational Theory: Continuous-Time Memory &amp; Polynomial Projections<a class="headerlink" href="#foundational-theory-continuous-time-memory-polynomial-projections" title="Link to this heading">¶</a></h2>
 <p>In dynamical time series modeling, incorporating long-range temporal history of exogenous covariates (e.g., multi-day building thermal inertia or hydrological retention) poses severe mathematical challenges. Traditional finite autoregressive distributed lags (<span class="math notranslate nohighlight">\(x_{t-k}\)</span>) suffer from exponential parameter inflation, severe multicollinearity, and lack of temporal discretization invariance. Similarly, rolling heuristics or simple momentum features cannot capture multi-scale memory decay.</p>
-<p>To solve continuous-time memory compression within the Primal Reproducing Kernel Hilbert Space, the framework operationalizes <strong>High-Order Polynomial Projection Operators (HiPPO)</strong> <span class="bibtex-citation" id="id1">[<a class="reference internal" href="../../bibliography.html#id154" title="Albert Gu, Tri Dao, Stefano Ermon, Atri Rudra, and Christopher Ré. Hippo: recurrent memory with optimal polynomial projections. In Advances in Neural Information Processing Systems (NeurIPS), volume 33, 1474–1487. 2020.">Gu <em>et al.</em>, 2020</a>]</span> and <strong>Structured State Space Models (S4 / S4D / S5)</strong> <span class="bibtex-citation" id="id2">[<a class="reference internal" href="../../bibliography.html#id168" title="Albert Gu, Karan Goel, and Christopher Ré. Efficiently modeling long sequences with structured state spaces. In International Conference on Learning Representations (ICLR). 2022.">Gu <em>et al.</em>, 2022</a>, <a class="reference internal" href="../../bibliography.html#id169" title="Albert Gu, Ankit Gupta, Karan Goel, and Christopher Ré. On the parameterization and initialization of diagonal state space models. In Advances in Neural Information Processing Systems (NeurIPS), volume 35. 2022.">Gu <em>et al.</em>, 2022</a>, <a class="reference internal" href="../../bibliography.html#id170" title="Jimmy T H Smith, Andrew Warrington, and Scott W Linderman. Simplified state space layers for sequence modeling. In International Conference on Learning Representations (ICLR). 2023.">Smith <em>et al.</em>, 2023</a>]</span>.</p>
+<p>To solve continuous-time memory compression within the Primal Reproducing Kernel Hilbert Space, the framework operationalizes <strong>High-Order Polynomial Projection Operators (HiPPO)</strong> <span class="bibtex-citation" id="id1">[<a class="reference internal" href="../../bibliography.html#id157" title="Albert Gu, Tri Dao, Stefano Ermon, Atri Rudra, and Christopher Ré. Hippo: recurrent memory with optimal polynomial projections. In Advances in Neural Information Processing Systems (NeurIPS), volume 33, 1474–1487. 2020.">Gu <em>et al.</em>, 2020</a>]</span> and <strong>Structured State Space Models (S4 / S4D / S5)</strong> <span class="bibtex-citation" id="id2">[<a class="reference internal" href="../../bibliography.html#id171" title="Albert Gu, Karan Goel, and Christopher Ré. Efficiently modeling long sequences with structured state spaces. In International Conference on Learning Representations (ICLR). 2022.">Gu <em>et al.</em>, 2022</a>, <a class="reference internal" href="../../bibliography.html#id172" title="Albert Gu, Ankit Gupta, Karan Goel, and Christopher Ré. On the parameterization and initialization of diagonal state space models. In Advances in Neural Information Processing Systems (NeurIPS), volume 35. 2022.">Gu <em>et al.</em>, 2022</a>, <a class="reference internal" href="../../bibliography.html#id173" title="Jimmy T H Smith, Andrew Warrington, and Scott W Linderman. Simplified state space layers for sequence modeling. In International Conference on Learning Representations (ICLR). 2023.">Smith <em>et al.</em>, 2023</a>]</span>.</p>
 <p>Given an input covariate trajectory <span class="math notranslate nohighlight">\(u(t) \in \mathbb{R}\)</span>, HiPPO maintains at every continuous time <span class="math notranslate nohighlight">\(t\)</span> an <span class="math notranslate nohighlight">\(N\)</span>-dimensional state vector:</p>
 <div class="math-wrapper docutils container">
 <div class="math notranslate nohighlight">
@@ -585,7 +585,7 @@ Assumes piecewise-constant input between sampling instants. Evaluated via Van Lo
       
     </aside>
   </div>
-</div><script src="../../_static/documentation_options.js?v=44dfd65d"></script>
+</div><script src="../../_static/documentation_options.js?v=e15882dc"></script>
     <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/scripts/furo.js?v=46bd48cc"></script>

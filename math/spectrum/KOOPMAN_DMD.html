@@ -7,7 +7,7 @@
         <link rel="prefetch" href="../../_static/logo.png" as="image">
 
     <!-- Generated with Sphinx 9.1.1 and Furo 2025.12.19 -->
-        <title>KOOPMAN_DMD: Global Linearization of Non-linear Dynamical Systems via Kernel / Extended Dynamic Mode Decomposition (EDMD / kDMD) - TAM 1.5.1 documentation</title>
+        <title>KOOPMAN_DMD: Global Linearization of Non-linear Dynamical Systems via Kernel / Extended Dynamic Mode Decomposition (EDMD / kDMD) - TAM 1.6.2 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=d111a655" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo-extensions.css?v=8dab3a3b" />
@@ -162,7 +162,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="../../index.html"><div class="brand">TAM 1.5.1 documentation</div></a>
+      <a href="../../index.html"><div class="brand">TAM 1.6.2 documentation</div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -186,7 +186,7 @@
     <img class="sidebar-logo" src="../../_static/logo.png" alt="Logo"/>
   </div>
   
-  <span class="sidebar-brand-text">TAM 1.5.1 documentation</span>
+  <span class="sidebar-brand-text">TAM 1.6.2 documentation</span>
   
 </a><form class="sidebar-search-container" method="get" action="../../search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
@@ -371,7 +371,7 @@
 <section id="the-koopman-operator-and-spectral-decomposition">
 <span id="1-the-koopman-operator-and-spectral-decomposition"></span><h2>1. The Koopman Operator and Spectral Decomposition<a class="headerlink" href="#the-koopman-operator-and-spectral-decomposition" title="Link to this heading">¶</a></h2>
 <p>Let <span class="math notranslate nohighlight">\(x_{t+1} = F(x_t)\)</span> be a discrete-time autonomous dynamical system evolving on a state manifold <span class="math notranslate nohighlight">\(\mathcal{M} \subseteq \mathbb{R}^d\)</span>. Standard linear models and local Taylor expansions fail far from equilibrium points.</p>
-<p>By Bernard Koopman’s operator theory (<span class="bibtex-citation" id="id1">[<a class="reference internal" href="../../bibliography.html#id160" title="Bernard O Koopman. Hamiltonian systems and transformation in hilbert space. Proceedings of the National Academy of Sciences, 17(5):315–318, 1931.">Koopman, 1931</a>]</span>, <span class="bibtex-citation" id="id2">[<a class="reference internal" href="../../bibliography.html#id162" title="Igor Mezić. Spectral properties of dynamical systems, model reduction and decompositions. Nonlinear Dynamics, 41(1):309–325, 2005.">Mezić, 2005</a>]</span>), any finite-dimensional non-linear dynamical system <span class="math notranslate nohighlight">\(x_{t+1} = F(x_t)\)</span> induces an exact infinite-dimensional linear composition operator <span class="math notranslate nohighlight">\(\mathcal{K}\)</span> acting on the Hilbert space of observable functions <span class="math notranslate nohighlight">\(g: \mathcal{M} \to \mathbb{C}\)</span>:</p>
+<p>By Bernard Koopman’s operator theory (<span class="bibtex-citation" id="id1">[<a class="reference internal" href="../../bibliography.html#id163" title="Bernard O Koopman. Hamiltonian systems and transformation in hilbert space. Proceedings of the National Academy of Sciences, 17(5):315–318, 1931.">Koopman, 1931</a>]</span>, <span class="bibtex-citation" id="id2">[<a class="reference internal" href="../../bibliography.html#id165" title="Igor Mezić. Spectral properties of dynamical systems, model reduction and decompositions. Nonlinear Dynamics, 41(1):309–325, 2005.">Mezić, 2005</a>]</span>), any finite-dimensional non-linear dynamical system <span class="math notranslate nohighlight">\(x_{t+1} = F(x_t)\)</span> induces an exact infinite-dimensional linear composition operator <span class="math notranslate nohighlight">\(\mathcal{K}\)</span> acting on the Hilbert space of observable functions <span class="math notranslate nohighlight">\(g: \mathcal{M} \to \mathbb{C}\)</span>:</p>
 <div class="math-wrapper docutils container">
 <div class="math notranslate nohighlight">
 \[(\mathcal{K} g)(x_t) = (g \circ F)(x_t) = g(x_{t+1})\]</div>
@@ -386,12 +386,12 @@
 <div class="math notranslate nohighlight">
 \[g(x_t) = \sum_{k=1}^K v_k\, \varphi_k(x_t) = \sum_{k=1}^K v_k\, \mu_k^t\, \varphi_k(x_0)\]</div>
 </div>
-<p>where <span class="math notranslate nohighlight">\(v_k\)</span> are the Koopman modes solved in the TAM Primal linear framework as <span class="math notranslate nohighlight">\(\theta_{\text{koopman}}\)</span> via P-WLS (<span class="bibtex-citation" id="id3">[<a class="reference internal" href="../../bibliography.html#id164" title="J Nathan Kutz, Steven L Brunton, Bingni W Brunton, and Joshua L Proctor. Dynamic Mode Decomposition: Data-Driven Modeling of Complex Systems. SIAM, 2016.">Kutz <em>et al.</em>, 2016</a>]</span>).</p>
+<p>where <span class="math notranslate nohighlight">\(v_k\)</span> are the Koopman modes solved in the TAM Primal linear framework as <span class="math notranslate nohighlight">\(\theta_{\text{koopman}}\)</span> via P-WLS (<span class="bibtex-citation" id="id3">[<a class="reference internal" href="../../bibliography.html#id167" title="J Nathan Kutz, Steven L Brunton, Bingni W Brunton, and Joshua L Proctor. Dynamic Mode Decomposition: Data-Driven Modeling of Complex Systems. SIAM, 2016.">Kutz <em>et al.</em>, 2016</a>]</span>).</p>
 </section>
 <hr class="docutils" />
 <section id="extended-and-kernel-dynamic-mode-decomposition-edmd-kdmd">
 <span id="2-extended-and-kernel-dynamic-mode-decomposition-edmd--kdmd"></span><h2>2. Extended and Kernel Dynamic Mode Decomposition (EDMD / kDMD)<a class="headerlink" href="#extended-and-kernel-dynamic-mode-decomposition-edmd-kdmd" title="Link to this heading">¶</a></h2>
-<p>To compute empirical Koopman eigenfunctions from finite observational data, we introduce a dictionary of lifting observables <span class="math notranslate nohighlight">\(\psi(x) = [\psi_1(x), \dots, \psi_M(x)]^\top \in \mathbb{R}^M\)</span> (<span class="bibtex-citation" id="id4">[<a class="reference internal" href="../../bibliography.html#id161" title="Matthew O Williams, Ioannis G Kevrekidis, and Clarence W Rowley. A data-driven approximation of the koopman operator: extending dynamic mode decomposition. Journal of Nonlinear Science, 25(6):1307–1346, 2015.">Williams <em>et al.</em>, 2015</a>]</span>, <span class="bibtex-citation" id="id5">[<a class="reference internal" href="../../bibliography.html#id163" title="Matthew O Williams, Clarence W Rowley, and Ioannis G Kevrekidis. A kernel-based method for data-driven Koopman spectral analysis. Journal of Computational Dynamics, 2(2):247–265, 2015.">Williams <em>et al.</em>, 2015</a>]</span>).</p>
+<p>To compute empirical Koopman eigenfunctions from finite observational data, we introduce a dictionary of lifting observables <span class="math notranslate nohighlight">\(\psi(x) = [\psi_1(x), \dots, \psi_M(x)]^\top \in \mathbb{R}^M\)</span> (<span class="bibtex-citation" id="id4">[<a class="reference internal" href="../../bibliography.html#id164" title="Matthew O Williams, Ioannis G Kevrekidis, and Clarence W Rowley. A data-driven approximation of the koopman operator: extending dynamic mode decomposition. Journal of Nonlinear Science, 25(6):1307–1346, 2015.">Williams <em>et al.</em>, 2015</a>]</span>, <span class="bibtex-citation" id="id5">[<a class="reference internal" href="../../bibliography.html#id166" title="Matthew O Williams, Clarence W Rowley, and Ioannis G Kevrekidis. A kernel-based method for data-driven Koopman spectral analysis. Journal of Computational Dynamics, 2(2):247–265, 2015.">Williams <em>et al.</em>, 2015</a>]</span>).</p>
 <section id="causal-time-delay-hankel-embedding">
 <span id="21-causal-time-delay-hankel-embedding"></span><h3>2.1 Causal Time-Delay Hankel Embedding<a class="headerlink" href="#causal-time-delay-hankel-embedding" title="Link to this heading">¶</a></h3>
 <p>For a scalar or low-dimensional time series <span class="math notranslate nohighlight">\(x_t \in \mathbb{R}^d\)</span>, Takens’ delay embedding theorem reconstructs the full attractor via causal Hankel delay embedding of dimension <span class="math notranslate nohighlight">\(d_H\)</span>:</p>
@@ -443,7 +443,7 @@
 </section>
 <section id="residual-dynamic-mode-decomposition-resdmd-penalty">
 <span id="32-residual-dynamic-mode-decomposition-resdmd-penalty"></span><h3>3.2 Residual Dynamic Mode Decomposition (ResDMD) Penalty<a class="headerlink" href="#residual-dynamic-mode-decomposition-resdmd-penalty" title="Link to this heading">¶</a></h3>
-<p>To eliminate spurious modes and numerical artifacts arising from finite dictionary truncation (<span class="bibtex-citation" id="id6">[<a class="reference internal" href="../../bibliography.html#id165" title="Matthew J Colbrook and Alex Townsend. Rigorous data-driven computation of spectral properties of Koopman operators for dynamical systems. Communications on Pure and Applied Mathematics, 77(1):221–283, 2024.">Colbrook and Townsend, 2024</a>]</span>), each mode is evaluated by its Koopman operator residual norm:</p>
+<p>To eliminate spurious modes and numerical artifacts arising from finite dictionary truncation (<span class="bibtex-citation" id="id6">[<a class="reference internal" href="../../bibliography.html#id168" title="Matthew J Colbrook and Alex Townsend. Rigorous data-driven computation of spectral properties of Koopman operators for dynamical systems. Communications on Pure and Applied Mathematics, 77(1):221–283, 2024.">Colbrook and Townsend, 2024</a>]</span>), each mode is evaluated by its Koopman operator residual norm:</p>
 <div class="math-wrapper docutils container">
 <div class="math notranslate nohighlight">
 \[\text{res}_j^2 = \frac{\|\Psi_Y w_j - \mu_j \Psi_X w_j\|_2^2}{\|\Psi_X w_j\|_2^2 + \varepsilon}\]</div>
@@ -575,7 +575,7 @@
       
     </aside>
   </div>
-</div><script src="../../_static/documentation_options.js?v=44dfd65d"></script>
+</div><script src="../../_static/documentation_options.js?v=e15882dc"></script>
     <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/scripts/furo.js?v=46bd48cc"></script>

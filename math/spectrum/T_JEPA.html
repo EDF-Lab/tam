@@ -7,7 +7,7 @@
         <link rel="prefetch" href="../../_static/logo.png" as="image">
 
     <!-- Generated with Sphinx 9.1.1 and Furo 2025.12.19 -->
-        <title>T_JEPA: Self-Supervised Temporal Joint-Embedding Predictive Architecture for Exogenous Covariates - TAM 1.5.1 documentation</title>
+        <title>T_JEPA: Self-Supervised Temporal Joint-Embedding Predictive Architecture for Exogenous Covariates - TAM 1.6.2 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=d111a655" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo-extensions.css?v=8dab3a3b" />
@@ -162,7 +162,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="../../index.html"><div class="brand">TAM 1.5.1 documentation</div></a>
+      <a href="../../index.html"><div class="brand">TAM 1.6.2 documentation</div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -186,7 +186,7 @@
     <img class="sidebar-logo" src="../../_static/logo.png" alt="Logo"/>
   </div>
   
-  <span class="sidebar-brand-text">TAM 1.5.1 documentation</span>
+  <span class="sidebar-brand-text">TAM 1.6.2 documentation</span>
   
 </a><form class="sidebar-search-container" method="get" action="../../search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
@@ -371,7 +371,7 @@
 <section id="problem-statement-high-frequency-noise-in-exogenous-streams">
 <span id="1-problem-statement-high-frequency-noise-in-exogenous-streams"></span><h2>1. Problem Statement: High-Frequency Noise in Exogenous Streams<a class="headerlink" href="#problem-statement-high-frequency-noise-in-exogenous-streams" title="Link to this heading">¶</a></h2>
 <p>When TAM models ingest multi-channel, noisy exogenous covariate streams <span class="math notranslate nohighlight">\(X_t \in \mathbb{R}^D\)</span> (e.g. multi-station weather observations, distributed sensor arrays, grid telemetry), classical generative reconstruction models (Autoencoders, PCA) waste representation capacity reconstructing unpredictable high-frequency observation noise <span class="math notranslate nohighlight">\(\epsilon_t\)</span> in data space. Conversely, static random neural projections cannot discern temporally coherent dynamical signals from uninformative high-variance sensor noise prior to linear P-WLS fitting.</p>
-<p>Following the <strong>Joint-Embedding Predictive Architecture (JEPA)</strong> <span class="bibtex-citation" id="id1">[<a class="reference internal" href="../../bibliography.html#id182" title="Mahmoud Assran, Quentin Duval, Ishan Misra, Piotr Bojanowski, Pascal Vincent, Michael Rabbat, Yann LeCun, and Nicolas Ballas. Self-supervised learning from images with a joint-embedding predictive architecture. In IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR), 15619–15629. 2023.">Assran <em>et al.</em>, 2023</a>]</span> and <strong>VICReg</strong> <span class="bibtex-citation" id="id2">[<a class="reference internal" href="../../bibliography.html#id181" title="Adrien Bardes, Jean Ponce, and Yann LeCun. VICReg: variance-invariance-covariance regularization for self-supervised learning. International Conference on Learning Representations (ICLR), 2022.">Bardes <em>et al.</em>, 2022</a>]</span>, <strong>Temporal JEPA (T-JEPA)</strong> eliminates data-space reconstruction by predicting <em>purely in latent representation space</em>. Because uncorrelated observation noise across temporal horizon <span class="math notranslate nohighlight">\(\Delta\)</span> is statistically unpredictable, the self-supervised objective drives the encoder to project out the noise and capture only the predictable underlying dynamical manifold.</p>
+<p>Following the <strong>Joint-Embedding Predictive Architecture (JEPA)</strong> <span class="bibtex-citation" id="id1">[<a class="reference internal" href="../../bibliography.html#id185" title="Mahmoud Assran, Quentin Duval, Ishan Misra, Piotr Bojanowski, Pascal Vincent, Michael Rabbat, Yann LeCun, and Nicolas Ballas. Self-supervised learning from images with a joint-embedding predictive architecture. In IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR), 15619–15629. 2023.">Assran <em>et al.</em>, 2023</a>]</span> and <strong>VICReg</strong> <span class="bibtex-citation" id="id2">[<a class="reference internal" href="../../bibliography.html#id184" title="Adrien Bardes, Jean Ponce, and Yann LeCun. VICReg: variance-invariance-covariance regularization for self-supervised learning. International Conference on Learning Representations (ICLR), 2022.">Bardes <em>et al.</em>, 2022</a>]</span>, <strong>Temporal JEPA (T-JEPA)</strong> eliminates data-space reconstruction by predicting <em>purely in latent representation space</em>. Because uncorrelated observation noise across temporal horizon <span class="math notranslate nohighlight">\(\Delta\)</span> is statistically unpredictable, the self-supervised objective drives the encoder to project out the noise and capture only the predictable underlying dynamical manifold.</p>
 </section>
 <hr class="docutils" />
 <section id="joint-embedding-predictive-architecture-in-latent-space">
@@ -392,7 +392,7 @@
 <hr class="docutils" />
 <section id="anti-collapse-regularization-via-vicreg">
 <span id="3-anti-collapse-regularization-via-vicreg"></span><h2>3. Anti-Collapse Regularization via VICReg<a class="headerlink" href="#anti-collapse-regularization-via-vicreg" title="Link to this heading">¶</a></h2>
-<p>To prevent representation collapse to constant trivial embeddings (<span class="math notranslate nohighlight">\(s_x \equiv c\)</span>), the objective balances the latent predictive loss with <strong>Variance-Invariance-Covariance Regularization (VICReg)</strong> (<span class="bibtex-citation" id="id3">[<a class="reference internal" href="../../bibliography.html#id181" title="Adrien Bardes, Jean Ponce, and Yann LeCun. VICReg: variance-invariance-covariance regularization for self-supervised learning. International Conference on Learning Representations (ICLR), 2022.">Bardes <em>et al.</em>, 2022</a>]</span>):</p>
+<p>To prevent representation collapse to constant trivial embeddings (<span class="math notranslate nohighlight">\(s_x \equiv c\)</span>), the objective balances the latent predictive loss with <strong>Variance-Invariance-Covariance Regularization (VICReg)</strong> (<span class="bibtex-citation" id="id3">[<a class="reference internal" href="../../bibliography.html#id184" title="Adrien Bardes, Jean Ponce, and Yann LeCun. VICReg: variance-invariance-covariance regularization for self-supervised learning. International Conference on Learning Representations (ICLR), 2022.">Bardes <em>et al.</em>, 2022</a>]</span>):</p>
 <div class="math-wrapper docutils container">
 <div class="math notranslate nohighlight">
 \[\mathcal{L}_{\text{T-JEPA}}(\vartheta, \varphi) = \frac{1}{B} \sum_{i=1}^B \big\| P_\varphi(s_{x, i}) - s_{y, i} \big\|_2^2 + \alpha_{\text{var}} \mathcal{L}_{\text{var}}(S_x) + \beta_{\text{cov}} \mathcal{L}_{\text{cov}}(S_x)\]</div>
@@ -568,7 +568,7 @@
       
     </aside>
   </div>
-</div><script src="../../_static/documentation_options.js?v=44dfd65d"></script>
+</div><script src="../../_static/documentation_options.js?v=e15882dc"></script>
     <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/scripts/furo.js?v=46bd48cc"></script>

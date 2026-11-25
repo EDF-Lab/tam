@@ -7,7 +7,7 @@
         <link rel="prefetch" href="../../_static/logo.png" as="image">
 
     <!-- Generated with Sphinx 9.1.1 and Furo 2025.12.19 -->
-        <title>Caputo Fractional Physics Penalties - TAM 1.5.1 documentation</title>
+        <title>Caputo Fractional Physics Penalties - TAM 1.6.2 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=d111a655" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo-extensions.css?v=8dab3a3b" />
@@ -162,7 +162,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="../../index.html"><div class="brand">TAM 1.5.1 documentation</div></a>
+      <a href="../../index.html"><div class="brand">TAM 1.6.2 documentation</div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -186,7 +186,7 @@
     <img class="sidebar-logo" src="../../_static/logo.png" alt="Logo"/>
   </div>
   
-  <span class="sidebar-brand-text">TAM 1.5.1 documentation</span>
+  <span class="sidebar-brand-text">TAM 1.6.2 documentation</span>
   
 </a><form class="sidebar-search-container" method="get" action="../../search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
@@ -377,7 +377,7 @@
 <h2>Caputo Fractional Derivative Penalties<a class="headerlink" href="#caputo-fractional-derivative-penalties" title="Link to this heading">¶</a></h2>
 <section id="continuous-caputo-operator">
 <h3>Continuous Caputo operator<a class="headerlink" href="#continuous-caputo-operator" title="Link to this heading">¶</a></h3>
-<p>For fractional order <span class="math notranslate nohighlight">\(\alpha \in (0, 2)\)</span>, the continuous Caputo fractional derivative of a function <span class="math notranslate nohighlight">\(f(t)\)</span> is defined by (<span class="bibtex-citation" id="id1">[<a class="reference internal" href="../../bibliography.html#id186" title="Michele Caputo. Linear models of dissipation whose Q is almost frequency independent–II. Geophysical Journal International, 13(5):529–539, 1967.">Caputo, 1967</a>]</span>, <span class="bibtex-citation" id="id2">[<a class="reference internal" href="../../bibliography.html#id187" title="Igor Podlubny. Fractional Differential Equations: An Introduction to Fractional Derivatives, Fractional Differential Equations, to Methods of Their Solution and Some of Their Applications. Volume 198. Academic Press, 1999.">Podlubny, 1999</a>]</span>):</p>
+<p>For fractional order <span class="math notranslate nohighlight">\(\alpha \in (0, 2)\)</span>, the continuous Caputo fractional derivative of a function <span class="math notranslate nohighlight">\(f(t)\)</span> is defined by (<span class="bibtex-citation" id="id1">[<a class="reference internal" href="../../bibliography.html#id189" title="Michele Caputo. Linear models of dissipation whose Q is almost frequency independent–II. Geophysical Journal International, 13(5):529–539, 1967.">Caputo, 1967</a>]</span>, <span class="bibtex-citation" id="id2">[<a class="reference internal" href="../../bibliography.html#id190" title="Igor Podlubny. Fractional Differential Equations: An Introduction to Fractional Derivatives, Fractional Differential Equations, to Methods of Their Solution and Some of Their Applications. Volume 198. Academic Press, 1999.">Podlubny, 1999</a>]</span>):</p>
 <div class="math-wrapper docutils container">
 <div class="math notranslate nohighlight">
 \[{}^C D_t^\alpha f(t) = \frac{1}{\Gamma(n - \alpha)} \int_0^t \frac{f^{(n)}(\tau)}{(t - \tau)^{\alpha - n + 1}}\, d\tau, \qquad n = \lceil \alpha \rceil\]</div>
@@ -409,7 +409,7 @@
 </section>
 <section id="what-is-new-here">
 <h2>What is new here<a class="headerlink" href="#what-is-new-here" title="Link to this heading">¶</a></h2>
-<p>The Caputo derivative and the Grünwald–Letnikov discretization are those of the cited references <span class="bibtex-citation" id="id3">[<a class="reference internal" href="../../bibliography.html#id186" title="Michele Caputo. Linear models of dissipation whose Q is almost frequency independent–II. Geophysical Journal International, 13(5):529–539, 1967.">Caputo, 1967</a>, <a class="reference internal" href="../../bibliography.html#id187" title="Igor Podlubny. Fractional Differential Equations: An Introduction to Fractional Derivatives, Fractional Differential Equations, to Methods of Their Solution and Some of Their Applications. Volume 198. Academic Press, 1999.">Podlubny, 1999</a>]</span>. What this adds to the physics-informed penalty of <code class="docutils literal notranslate"><span class="pre">phys()</span></code>:</p>
+<p>The Caputo derivative and the Grünwald–Letnikov discretization are those of the cited references <span class="bibtex-citation" id="id3">[<a class="reference internal" href="../../bibliography.html#id189" title="Michele Caputo. Linear models of dissipation whose Q is almost frequency independent–II. Geophysical Journal International, 13(5):529–539, 1967.">Caputo, 1967</a>, <a class="reference internal" href="../../bibliography.html#id190" title="Igor Podlubny. Fractional Differential Equations: An Introduction to Fractional Derivatives, Fractional Differential Equations, to Methods of Their Solution and Some of Their Applications. Volume 198. Academic Press, 1999.">Podlubny, 1999</a>]</span>. What this adds to the physics-informed penalty of <code class="docutils literal notranslate"><span class="pre">phys()</span></code>:</p>
 <ul class="simple">
 <li><p><strong>fractional derivative orders in the linear differential operator of the penalty</strong>, so that the smoothness constraint can sit between a ridge and a curvature penalty;</p></li>
 <li><p>the discretization on the <strong>spline and Fourier bases of the framework</strong>, with the constant function in the null space.</p></li>
@@ -501,7 +501,7 @@
       
     </aside>
   </div>
-</div><script src="../../_static/documentation_options.js?v=44dfd65d"></script>
+</div><script src="../../_static/documentation_options.js?v=e15882dc"></script>
     <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/scripts/furo.js?v=46bd48cc"></script>

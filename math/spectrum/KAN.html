@@ -7,7 +7,7 @@
         <link rel="prefetch" href="../../_static/logo.png" as="image">
 
     <!-- Generated with Sphinx 9.1.1 and Furo 2025.12.19 -->
-        <title>Kolmogorov-Arnold Network Edge Splines - TAM 1.5.1 documentation</title>
+        <title>Kolmogorov-Arnold Network Edge Splines - TAM 1.6.2 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=d111a655" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo-extensions.css?v=8dab3a3b" />
@@ -162,7 +162,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="../../index.html"><div class="brand">TAM 1.5.1 documentation</div></a>
+      <a href="../../index.html"><div class="brand">TAM 1.6.2 documentation</div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -186,7 +186,7 @@
     <img class="sidebar-logo" src="../../_static/logo.png" alt="Logo"/>
   </div>
   
-  <span class="sidebar-brand-text">TAM 1.5.1 documentation</span>
+  <span class="sidebar-brand-text">TAM 1.6.2 documentation</span>
   
 </a><form class="sidebar-search-container" method="get" action="../../search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
@@ -377,12 +377,12 @@
 <h2>Kolmogorov–Arnold Network Edge Spline Basis<a class="headerlink" href="#kolmogorovarnold-network-edge-spline-basis" title="Link to this heading">¶</a></h2>
 <section id="theoretical-foundation">
 <h3>Theoretical foundation<a class="headerlink" href="#theoretical-foundation" title="Link to this heading">¶</a></h3>
-<p>By the Kolmogorov–Arnold Representation Theorem (<span class="bibtex-citation" id="id1">[<a class="reference internal" href="../../bibliography.html#id147" title="Andrei Nikolaevich Kolmogorov. On the representation of continuous functions of many variables by superposition of continuous functions of one variable and addition. Doklady Akademii Nauk SSSR, 114:953–956, 1957.">Kolmogorov, 1957</a>]</span>), any multivariate continuous function <span class="math notranslate nohighlight">\(f: [0, 1]^d \to \mathbb{R}\)</span> can be expressed as:</p>
+<p>By the Kolmogorov–Arnold Representation Theorem (<span class="bibtex-citation" id="id1">[<a class="reference internal" href="../../bibliography.html#id150" title="Andrei Nikolaevich Kolmogorov. On the representation of continuous functions of many variables by superposition of continuous functions of one variable and addition. Doklady Akademii Nauk SSSR, 114:953–956, 1957.">Kolmogorov, 1957</a>]</span>), any multivariate continuous function <span class="math notranslate nohighlight">\(f: [0, 1]^d \to \mathbb{R}\)</span> can be expressed as:</p>
 <div class="math-wrapper docutils container">
 <div class="math notranslate nohighlight">
 \[f(x_1, \dots, x_d) = \sum_{q=1}^{Q} \Phi_q\!\left( \sum_{p=1}^{d} \psi_{q,p}(x_p) \right)\]</div>
 </div>
-<p>Following Liu et al. (<span class="bibtex-citation" id="id2">[<a class="reference internal" href="../../bibliography.html#id148" title="Ziming Liu, Yixuan Wang, Sachin Vaidya, Fabian Ruehle, James Halverson, Marin Soljačić, Thomas Y Hou, and Max Tegmark. KAN: kolmogorov-arnold networks. arXiv preprint arXiv:2404.19756, 2024.">Liu <em>et al.</em>, 2024</a>]</span>), inner edge functions <span class="math notranslate nohighlight">\(\psi_{q,p}\)</span> combine residual SiLU activation with univariate B-spline expansions:</p>
+<p>Following Liu et al. (<span class="bibtex-citation" id="id2">[<a class="reference internal" href="../../bibliography.html#id151" title="Ziming Liu, Yixuan Wang, Sachin Vaidya, Fabian Ruehle, James Halverson, Marin Soljačić, Thomas Y Hou, and Max Tegmark. KAN: kolmogorov-arnold networks. arXiv preprint arXiv:2404.19756, 2024.">Liu <em>et al.</em>, 2024</a>]</span>), inner edge functions <span class="math notranslate nohighlight">\(\psi_{q,p}\)</span> combine residual SiLU activation with univariate B-spline expansions:</p>
 <div class="math-wrapper docutils container">
 <div class="math notranslate nohighlight">
 \[\psi_{q,p}(x_p) = w_{q,p}^{(b)}\, \operatorname{silu}(x_p) + \sum_{m=1}^{k_{\text{in}}} c_{q,p,m}\, B_m(x_p)\]</div>
@@ -420,7 +420,7 @@
 </section>
 <section id="what-is-new-here">
 <h2>What is new here<a class="headerlink" href="#what-is-new-here" title="Link to this heading">¶</a></h2>
-<p>The representation theorem and the edge-spline network are the ones of the cited papers <span class="bibtex-citation" id="id3">[<a class="reference internal" href="../../bibliography.html#id147" title="Andrei Nikolaevich Kolmogorov. On the representation of continuous functions of many variables by superposition of continuous functions of one variable and addition. Doklady Akademii Nauk SSSR, 114:953–956, 1957.">Kolmogorov, 1957</a>, <a class="reference internal" href="../../bibliography.html#id148" title="Ziming Liu, Yixuan Wang, Sachin Vaidya, Fabian Ruehle, James Halverson, Marin Soljačić, Thomas Y Hou, and Max Tegmark. KAN: kolmogorov-arnold networks. arXiv preprint arXiv:2404.19756, 2024.">Liu <em>et al.</em>, 2024</a>]</span>. What this effect adds:</p>
+<p>The representation theorem and the edge-spline network are the ones of the cited papers <span class="bibtex-citation" id="id3">[<a class="reference internal" href="../../bibliography.html#id150" title="Andrei Nikolaevich Kolmogorov. On the representation of continuous functions of many variables by superposition of continuous functions of one variable and addition. Doklady Akademii Nauk SSSR, 114:953–956, 1957.">Kolmogorov, 1957</a>, <a class="reference internal" href="../../bibliography.html#id151" title="Ziming Liu, Yixuan Wang, Sachin Vaidya, Fabian Ruehle, James Halverson, Marin Soljačić, Thomas Y Hou, and Max Tegmark. KAN: kolmogorov-arnold networks. arXiv preprint arXiv:2404.19756, 2024.">Liu <em>et al.</em>, 2024</a>]</span>. What this effect adds:</p>
 <ul class="simple">
 <li><p><strong>fixed random inner edges with an outer layer solved in closed form</strong>: the Kolmogorov–Arnold structure is used as a dimension-reducing feature map (<span class="math notranslate nohighlight">\(Q\,k_{\text{out}}\)</span> columns instead of <span class="math notranslate nohighlight">\(k^d\)</span>), not as a network trained by gradient descent;</p></li>
 <li><p>the <strong>edge-roughness-weighted penalty</strong> that makes the node whose inner edges are rough more expensive to use;</p></li>
@@ -515,7 +515,7 @@
       
     </aside>
   </div>
-</div><script src="../../_static/documentation_options.js?v=44dfd65d"></script>
+</div><script src="../../_static/documentation_options.js?v=e15882dc"></script>
     <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/scripts/furo.js?v=46bd48cc"></script>

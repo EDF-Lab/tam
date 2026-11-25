@@ -7,7 +7,7 @@
         <link rel="prefetch" href="../../_static/logo.png" as="image">
 
     <!-- Generated with Sphinx 9.1.1 and Furo 2025.12.19 -->
-        <title>Causal Patch Basis - TAM 1.5.1 documentation</title>
+        <title>Causal Patch Basis - TAM 1.6.2 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=d111a655" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo-extensions.css?v=8dab3a3b" />
@@ -162,7 +162,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="../../index.html"><div class="brand">TAM 1.5.1 documentation</div></a>
+      <a href="../../index.html"><div class="brand">TAM 1.6.2 documentation</div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -186,7 +186,7 @@
     <img class="sidebar-logo" src="../../_static/logo.png" alt="Logo"/>
   </div>
   
-  <span class="sidebar-brand-text">TAM 1.5.1 documentation</span>
+  <span class="sidebar-brand-text">TAM 1.6.2 documentation</span>
   
 </a><form class="sidebar-search-container" method="get" action="../../search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
@@ -375,12 +375,12 @@
 </ul>
 <section id="patch-tokens-with-causal-instance-statistics">
 <h2>Patch tokens with causal instance statistics<a class="headerlink" href="#patch-tokens-with-causal-instance-statistics" title="Link to this heading">¶</a></h2>
-<p>For each step <span class="math notranslate nohighlight">\(t\)</span> the patch is the last <span class="math notranslate nohighlight">\(P\)</span> values of the primary series, <span class="math notranslate nohighlight">\(p_t = (x_{t-P+1}, \dots, x_t)\)</span>. Its own mean and standard deviation <span class="math notranslate nohighlight">\((\hat\mu_t, \hat\sigma_t)\)</span>, computed on the patch only, remove the local level and scale (reversible instance normalization <span class="bibtex-citation" id="id1">[<a class="reference internal" href="../../bibliography.html#id157" title="Taesung Kim, Jinhee Kim, Yunwon Tae, Cheonbok Park, Jang-Ho Choi, and Jaegul Choo. Reversible instance normalization for accurate time-series forecasting against distribution shift. In International Conference on Learning Representations (ICLR). 2022.">Kim <em>et al.</em>, 2022</a>]</span>):</p>
+<p>For each step <span class="math notranslate nohighlight">\(t\)</span> the patch is the last <span class="math notranslate nohighlight">\(P\)</span> values of the primary series, <span class="math notranslate nohighlight">\(p_t = (x_{t-P+1}, \dots, x_t)\)</span>. Its own mean and standard deviation <span class="math notranslate nohighlight">\((\hat\mu_t, \hat\sigma_t)\)</span>, computed on the patch only, remove the local level and scale (reversible instance normalization <span class="bibtex-citation" id="id1">[<a class="reference internal" href="../../bibliography.html#id160" title="Taesung Kim, Jinhee Kim, Yunwon Tae, Cheonbok Park, Jang-Ho Choi, and Jaegul Choo. Reversible instance normalization for accurate time-series forecasting against distribution shift. In International Conference on Learning Representations (ICLR). 2022.">Kim <em>et al.</em>, 2022</a>]</span>):</p>
 <div class="math-wrapper docutils container">
 <div class="math notranslate nohighlight">
 \[\tilde p_t = \frac{p_t - \hat\mu_t}{\sqrt{\hat\sigma_t^2 + 10^{-6}}}.\]</div>
 </div>
-<p>The normalized patch is projected on <span class="math notranslate nohighlight">\(M\)</span> fixed orthogonal directions with a random phase, a random-feature map of a Gaussian kernel on patches <span class="bibtex-citation" id="id2">[<a class="reference internal" href="../../bibliography.html#id62" title="Ali Rahimi and Benjamin Recht. Random features for large-scale kernel machines. In J. Platt, D. Koller, Y. Singer, and S. Roweis, editors, Advances in Neural Information Processing Systems, volume 20. Curran Associates, Inc., 2007. URL: https://proceedings.neurips.cc/paper_files/paper/2007/file/013a006f03dbc5392effeb8f18fda755-Paper.pdf.">Rahimi and Recht, 2007</a>]</span>, in the spirit of patch tokens of long-horizon forecasters <span class="bibtex-citation" id="id3">[<a class="reference internal" href="../../bibliography.html#id156" title="Yuqi Nie, Nam H Nguyen, Phanwadee Sinthong, and Jayant Kalagnanam. A time series is worth 64 words: long-term forecasting with transformers. In International Conference on Learning Representations (ICLR). 2023.">Nie <em>et al.</em>, 2023</a>]</span>:</p>
+<p>The normalized patch is projected on <span class="math notranslate nohighlight">\(M\)</span> fixed orthogonal directions with a random phase, a random-feature map of a Gaussian kernel on patches <span class="bibtex-citation" id="id2">[<a class="reference internal" href="../../bibliography.html#id62" title="Ali Rahimi and Benjamin Recht. Random features for large-scale kernel machines. In J. Platt, D. Koller, Y. Singer, and S. Roweis, editors, Advances in Neural Information Processing Systems, volume 20. Curran Associates, Inc., 2007. URL: https://proceedings.neurips.cc/paper_files/paper/2007/file/013a006f03dbc5392effeb8f18fda755-Paper.pdf.">Rahimi and Recht, 2007</a>]</span>, in the spirit of patch tokens of long-horizon forecasters <span class="bibtex-citation" id="id3">[<a class="reference internal" href="../../bibliography.html#id159" title="Yuqi Nie, Nam H Nguyen, Phanwadee Sinthong, and Jayant Kalagnanam. A time series is worth 64 words: long-term forecasting with transformers. In International Conference on Learning Representations (ICLR). 2023.">Nie <em>et al.</em>, 2023</a>]</span>:</p>
 <div class="math-wrapper docutils container">
 <div class="math notranslate nohighlight">
 \[\phi_{t,m} = \sqrt{2/M}\,\cos\big(w_m^\top \tilde p_t + b_m\big), \qquad m = 1, \dots, M,\]</div>
@@ -394,7 +394,7 @@
 <div class="math notranslate nohighlight">
 \[A_t^{(a,b)} = \tfrac12\,\overline{\big(\bar u^{(a)}\,\Delta u^{(b)} - \bar u^{(b)}\,\Delta u^{(a)}\big)}, \qquad \phi = \tanh A_t^{(a,b)},\]</div>
 </div>
-<p>the signed area enclosed by the pair of paths <span class="bibtex-citation" id="id4">[<a class="reference internal" href="../../bibliography.html#id145" title="Terry J Lyons. Differential equations driven by rough signals. Revista Matemática Iberoamericana, 14(2):215–310, 1998.">Lyons, 1998</a>]</span>, a measure of which channel leads. With one channel, the area between the path and its own one-step lag (rising versus falling loop) plays that role. The columns are <span class="math notranslate nohighlight">\(M + 2 + n_{\text{levy}}\)</span> in all.</p>
+<p>the signed area enclosed by the pair of paths <span class="bibtex-citation" id="id4">[<a class="reference internal" href="../../bibliography.html#id148" title="Terry J Lyons. Differential equations driven by rough signals. Revista Matemática Iberoamericana, 14(2):215–310, 1998.">Lyons, 1998</a>]</span>, a measure of which channel leads. With one channel, the area between the path and its own one-step lag (rising versus falling loop) plays that role. The columns are <span class="math notranslate nohighlight">\(M + 2 + n_{\text{levy}}\)</span> in all.</p>
 </section>
 <section id="penalty">
 <h2>Penalty<a class="headerlink" href="#penalty" title="Link to this heading">¶</a></h2>
@@ -504,7 +504,7 @@
       
     </aside>
   </div>
-</div><script src="../../_static/documentation_options.js?v=44dfd65d"></script>
+</div><script src="../../_static/documentation_options.js?v=e15882dc"></script>
     <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/scripts/furo.js?v=46bd48cc"></script>

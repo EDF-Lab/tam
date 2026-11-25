@@ -7,7 +7,7 @@
         <link rel="prefetch" href="../../_static/logo.png" as="image">
 
     <!-- Generated with Sphinx 9.1.1 and Furo 2025.12.19 -->
-        <title>Fourier Neural Operator - TAM 1.5.1 documentation</title>
+        <title>Fourier Neural Operator - TAM 1.6.2 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=d111a655" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo-extensions.css?v=8dab3a3b" />
@@ -162,7 +162,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="../../index.html"><div class="brand">TAM 1.5.1 documentation</div></a>
+      <a href="../../index.html"><div class="brand">TAM 1.6.2 documentation</div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -186,7 +186,7 @@
     <img class="sidebar-logo" src="../../_static/logo.png" alt="Logo"/>
   </div>
   
-  <span class="sidebar-brand-text">TAM 1.5.1 documentation</span>
+  <span class="sidebar-brand-text">TAM 1.6.2 documentation</span>
   
 </a><form class="sidebar-search-container" method="get" action="../../search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
@@ -377,7 +377,7 @@
 <h2>Fourier Neural Operator Basis<a class="headerlink" href="#fourier-neural-operator-basis" title="Link to this heading">¶</a></h2>
 <section id="theoretical-formulation">
 <h3>Theoretical formulation<a class="headerlink" href="#theoretical-formulation" title="Link to this heading">¶</a></h3>
-<p>Following Li et al. (<span class="bibtex-citation" id="id1">[<a class="reference internal" href="../../bibliography.html#id183" title="Zongyi Li, Nikola Kovachki, Kamyar Azizzadenesheli, Burigede Liu, Kaushik Bhattacharya, Andrew Stuart, and Anima Anandkumar. Fourier neural operator for parametric partial differential equations. International Conference on Learning Representations (ICLR), 2021.">Li <em>et al.</em>, 2021</a>]</span>), an FNO layer transforms an input function <span class="math notranslate nohighlight">\(v(t)\)</span> by combining a local linear transform with a non-local spectral convolution truncated at the lowest <span class="math notranslate nohighlight">\(k_{\max}\)</span> Fourier modes:</p>
+<p>Following Li et al. (<span class="bibtex-citation" id="id1">[<a class="reference internal" href="../../bibliography.html#id186" title="Zongyi Li, Nikola Kovachki, Kamyar Azizzadenesheli, Burigede Liu, Kaushik Bhattacharya, Andrew Stuart, and Anima Anandkumar. Fourier neural operator for parametric partial differential equations. International Conference on Learning Representations (ICLR), 2021.">Li <em>et al.</em>, 2021</a>]</span>), an FNO layer transforms an input function <span class="math notranslate nohighlight">\(v(t)\)</span> by combining a local linear transform with a non-local spectral convolution truncated at the lowest <span class="math notranslate nohighlight">\(k_{\max}\)</span> Fourier modes:</p>
 <div class="math-wrapper docutils container">
 <div class="math notranslate nohighlight">
 \[u_m(t) = \operatorname{GELU}\Big( w_m v(t) + \mathcal{F}^{-1}\big( R_m(\omega) \cdot \mathcal{F}(v)(\omega) \big)(t) \Big)\]</div>
@@ -414,7 +414,7 @@
 </section>
 <section id="what-is-new-here">
 <h2>What is new here<a class="headerlink" href="#what-is-new-here" title="Link to this heading">¶</a></h2>
-<p>The Fourier neural operator and its resolution invariance are those of the cited papers <span class="bibtex-citation" id="id2">[<a class="reference internal" href="../../bibliography.html#id183" title="Zongyi Li, Nikola Kovachki, Kamyar Azizzadenesheli, Burigede Liu, Kaushik Bhattacharya, Andrew Stuart, and Anima Anandkumar. Fourier neural operator for parametric partial differential equations. International Conference on Learning Representations (ICLR), 2021.">Li <em>et al.</em>, 2021</a>, <a class="reference internal" href="../../bibliography.html#id184" title="Nikola Kovachki, Zongyi Li, Burigede Liu, Kamyar Azizzadenesheli, Kaushik Bhattacharya, Andrew Stuart, and Anima Anandkumar. Neural operator: learning maps between function spaces with applications to PDEs. Journal of Machine Learning Research, 24(89):1–97, 2023.">Kovachki <em>et al.</em>, 2023</a>]</span>. What this effect adds:</p>
+<p>The Fourier neural operator and its resolution invariance are those of the cited papers <span class="bibtex-citation" id="id2">[<a class="reference internal" href="../../bibliography.html#id186" title="Zongyi Li, Nikola Kovachki, Kamyar Azizzadenesheli, Burigede Liu, Kaushik Bhattacharya, Andrew Stuart, and Anima Anandkumar. Fourier neural operator for parametric partial differential equations. International Conference on Learning Representations (ICLR), 2021.">Li <em>et al.</em>, 2021</a>, <a class="reference internal" href="../../bibliography.html#id187" title="Nikola Kovachki, Zongyi Li, Burigede Liu, Kamyar Azizzadenesheli, Kaushik Bhattacharya, Andrew Stuart, and Anima Anandkumar. Neural operator: learning maps between function spaces with applications to PDEs. Journal of Machine Learning Research, 24(89):1–97, 2023.">Kovachki <em>et al.</em>, 2023</a>]</span>. What this effect adds:</p>
 <ul class="simple">
 <li><p>the <strong>fixed random spectral operator as a feature map</strong>: the <code class="docutils literal notranslate"><span class="pre">width</span></code> channels are the columns of an additive term solved in closed form, with a penalty that grows with the spectral energy of the multipliers at high modes;</p></li>
 <li><p>the <strong>causal sliding-window form</strong> of the operator, so that it can be used for forecasting and continued from the training period;</p></li>
@@ -507,7 +507,7 @@
       
     </aside>
   </div>
-</div><script src="../../_static/documentation_options.js?v=44dfd65d"></script>
+</div><script src="../../_static/documentation_options.js?v=e15882dc"></script>
     <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/scripts/furo.js?v=46bd48cc"></script>

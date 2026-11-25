@@ -7,7 +7,7 @@
         <link rel="prefetch" href="../../_static/logo.png" as="image">
 
     <!-- Generated with Sphinx 9.1.1 and Furo 2025.12.19 -->
-        <title>PyTorch Math Dispatcher &amp; Matrix-Free Solvers - TAM 1.5.1 documentation</title>
+        <title>PyTorch Math Dispatcher &amp; Matrix-Free Solvers - TAM 1.6.2 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=d111a655" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo-extensions.css?v=8dab3a3b" />
@@ -162,7 +162,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="../../index.html"><div class="brand">TAM 1.5.1 documentation</div></a>
+      <a href="../../index.html"><div class="brand">TAM 1.6.2 documentation</div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -186,7 +186,7 @@
     <img class="sidebar-logo" src="../../_static/logo.png" alt="Logo"/>
   </div>
   
-  <span class="sidebar-brand-text">TAM 1.5.1 documentation</span>
+  <span class="sidebar-brand-text">TAM 1.6.2 documentation</span>
   
 </a><form class="sidebar-search-container" method="get" action="../../search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
@@ -412,31 +412,99 @@
 
     <span class="c1"># Cast y_data to match phi's dtype</span>
     <span class="n">y_data_aligned</span> <span class="o">=</span> <span class="n">y_data</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">phi</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+    <span class="n">is_unit_loss</span> <span class="o">=</span> <span class="n">loss_L_star_L</span><span class="o">.</span><span class="n">shape</span> <span class="o">==</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">float</span><span class="p">(</span><span class="n">loss_L_star_L</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">])</span> <span class="o">==</span> <span class="mf">1.0</span>
+
+    <span class="c1"># L2-cache-tiled Gram accumulation avoids full (G, T, D) weighted copies on large series.</span>
+    <span class="k">if</span> <span class="n">sample_weights</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">is_unit_loss</span> <span class="ow">and</span> <span class="n">phi</span><span class="o">.</span><span class="n">dim</span><span class="p">()</span> <span class="o">==</span> <span class="mi">3</span> <span class="ow">and</span> <span class="n">phi</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mi">4096</span><span class="p">:</span>
+        <span class="n">n_groups</span><span class="p">,</span> <span class="n">n_samples</span><span class="p">,</span> <span class="n">n_coeffs</span> <span class="o">=</span> <span class="n">phi</span><span class="o">.</span><span class="n">shape</span>
+        <span class="n">cov_X</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">n_groups</span><span class="p">,</span> <span class="n">n_coeffs</span><span class="p">,</span> <span class="n">n_coeffs</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">phi</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">TORCH_DEVICE</span><span class="p">)</span>
+        <span class="n">cov_XY</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">n_groups</span><span class="p">,</span> <span class="n">n_coeffs</span><span class="p">,</span> <span class="n">y_data_aligned</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">phi</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">TORCH_DEVICE</span><span class="p">)</span>
+        <span class="n">w_dev</span> <span class="o">=</span> <span class="n">sample_weights</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="o">=</span><span class="n">TORCH_DEVICE</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">phi</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">s0</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">n_samples</span><span class="p">,</span> <span class="mi">4096</span><span class="p">):</span>
+            <span class="n">s1</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">s0</span> <span class="o">+</span> <span class="mi">4096</span><span class="p">,</span> <span class="n">n_samples</span><span class="p">)</span>
+            <span class="n">root_w</span> <span class="o">=</span> <span class="n">w_dev</span><span class="o">.</span><span class="n">narrow</span><span class="p">(</span><span class="o">-</span><span class="mi">2</span><span class="p">,</span> <span class="n">s0</span><span class="p">,</span> <span class="n">s1</span> <span class="o">-</span> <span class="n">s0</span><span class="p">)</span><span class="o">.</span><span class="n">clamp_min</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">sqrt</span><span class="p">()</span>
+            <span class="n">phi_w</span> <span class="o">=</span> <span class="n">phi</span><span class="p">[:,</span> <span class="n">s0</span><span class="p">:</span><span class="n">s1</span><span class="p">,</span> <span class="p">:]</span> <span class="o">*</span> <span class="n">root_w</span>
+            <span class="n">y_w</span> <span class="o">=</span> <span class="n">y_data_aligned</span><span class="p">[:,</span> <span class="n">s0</span><span class="p">:</span><span class="n">s1</span><span class="p">,</span> <span class="p">:]</span> <span class="o">*</span> <span class="n">root_w</span>
+            <span class="n">phi_w_T</span> <span class="o">=</span> <span class="n">phi_w</span><span class="o">.</span><span class="n">mT</span>
+            <span class="n">cov_X</span><span class="o">.</span><span class="n">baddbmm_</span><span class="p">(</span><span class="n">phi_w_T</span><span class="p">,</span> <span class="n">phi_w</span><span class="p">,</span> <span class="n">beta</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">1.0</span><span class="p">)</span>
+            <span class="n">cov_XY</span><span class="o">.</span><span class="n">baddbmm_</span><span class="p">(</span><span class="n">phi_w_T</span><span class="p">,</span> <span class="n">y_w</span><span class="p">,</span> <span class="n">beta</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">1.0</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">cov_X</span><span class="p">,</span> <span class="n">cov_XY</span>
 
     <span class="k">if</span> <span class="n">sample_weights</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
         <span class="n">root_w</span> <span class="o">=</span> <span class="n">sample_weights</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="o">=</span><span class="n">TORCH_DEVICE</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">phi</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span><span class="o">.</span><span class="n">clamp_min</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">sqrt</span><span class="p">()</span>
         <span class="n">phi</span> <span class="o">=</span> <span class="n">phi</span> <span class="o">*</span> <span class="n">root_w</span>
         <span class="n">y_data_aligned</span> <span class="o">=</span> <span class="n">y_data_aligned</span> <span class="o">*</span> <span class="n">root_w</span>
 
-    <span class="c1">#  Compute Weighted Y</span>
-    <span class="c1"># y_weighted shape: (..., n_samples, d_out)</span>
-    <span class="n">y_weighted</span> <span class="o">=</span> <span class="n">y_data_aligned</span> <span class="o">@</span> <span class="n">loss_L_star_L</span>
-
-    <span class="c1">#  Compute RHS: cov_XY = Phi^H @ Y_weighted</span>
-    <span class="n">cov_XY</span> <span class="o">=</span> <span class="n">phi</span><span class="o">.</span><span class="n">mT</span> <span class="o">@</span> <span class="n">y_weighted</span>
-
-    <span class="c1">#  Compute LHS: cov_X</span>
-    <span class="c1"># Note: Current implementation treats single-target and multi-target differently</span>
-    <span class="k">if</span> <span class="n">loss_L_star_L</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
-        <span class="c1"># Single-target: Apply scalar weight via square root</span>
-        <span class="n">L_sqrt</span> <span class="o">=</span> <span class="n">loss_L_star_L</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">sqrt</span><span class="p">()</span>
-        <span class="n">phi_weighted</span> <span class="o">=</span> <span class="n">phi</span> <span class="o">*</span> <span class="n">L_sqrt</span>
-        <span class="n">cov_X</span> <span class="o">=</span> <span class="n">phi_weighted</span><span class="o">.</span><span class="n">mT</span> <span class="o">@</span> <span class="n">phi_weighted</span>
-    <span class="k">else</span><span class="p">:</span>
-        <span class="c1"># Multi-target: Currently defaulting to unweighted feature covariance</span>
-        <span class="c1"># (Phi^H @ Phi) for stability in hierarchical cases.</span>
+    <span class="k">if</span> <span class="n">is_unit_loss</span><span class="p">:</span>
+        <span class="n">cov_XY</span> <span class="o">=</span> <span class="n">phi</span><span class="o">.</span><span class="n">mT</span> <span class="o">@</span> <span class="n">y_data_aligned</span>
         <span class="n">cov_X</span> <span class="o">=</span> <span class="n">phi</span><span class="o">.</span><span class="n">mT</span> <span class="o">@</span> <span class="n">phi</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">y_weighted</span> <span class="o">=</span> <span class="n">y_data_aligned</span> <span class="o">@</span> <span class="n">loss_L_star_L</span>
+        <span class="n">cov_XY</span> <span class="o">=</span> <span class="n">phi</span><span class="o">.</span><span class="n">mT</span> <span class="o">@</span> <span class="n">y_weighted</span>
+        <span class="k">if</span> <span class="n">loss_L_star_L</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">L_sqrt</span> <span class="o">=</span> <span class="n">loss_L_star_L</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">sqrt</span><span class="p">()</span>
+            <span class="n">phi_weighted</span> <span class="o">=</span> <span class="n">phi</span> <span class="o">*</span> <span class="n">L_sqrt</span>
+            <span class="n">cov_X</span> <span class="o">=</span> <span class="n">phi_weighted</span><span class="o">.</span><span class="n">mT</span> <span class="o">@</span> <span class="n">phi_weighted</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">cov_X</span> <span class="o">=</span> <span class="n">phi</span><span class="o">.</span><span class="n">mT</span> <span class="o">@</span> <span class="n">phi</span>
 
+    <span class="k">return</span> <span class="n">cov_X</span><span class="p">,</span> <span class="n">cov_XY</span>
+
+
+</pre></div>
+</div>
+</section>
+<section id="structured-designs-and-streaming-covariances">
+<h2>Structured Designs and Streaming Covariances<a class="headerlink" href="#structured-designs-and-streaming-covariances" title="Link to this heading">¶</a></h2>
+<p>Most of the columns of a large model are not dense: a categorical effect is a one-hot block, <code class="docutils literal notranslate"><span class="pre">te(smooth,</span> <span class="pre">cat)</span></code> repeats a smooth basis per level. <code class="docutils literal notranslate"><span class="pre">_StructuredDesign</span></code> (used when at least half of the columns are of these kinds and <code class="docutils literal notranslate"><span class="pre">D</span> <span class="pre">&gt;=</span> <span class="pre">40</span></code>) keeps such a model as its dense columns plus the row index of each sparse block, and returns the exact <code class="docutils literal notranslate"><span class="pre">cov_X</span></code>, <code class="docutils literal notranslate"><span class="pre">cov_XY</span></code> and <code class="docutils literal notranslate"><span class="pre">y_sq</span></code> (and the linear predictor) from <code class="docutils literal notranslate"><span class="pre">bincount</span></code>-style contractions, so the <code class="docutils literal notranslate"><span class="pre">T</span> <span class="pre">x</span> <span class="pre">D</span></code> matrix is never formed. <code class="docutils literal notranslate"><span class="pre">try_build</span></code> returns <code class="docutils literal notranslate"><span class="pre">None</span></code> for any model it cannot represent exactly, and the dense path above is used.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">_StructuredDesign</span><span class="p">:</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">"""Exact block-sparse design representation separating dense, one-hot categorical, and ``te(smooth, cat)`` blocks."""</span>
+</pre></div>
+</div>
+<p>When the model has several groups, <code class="docutils literal notranslate"><span class="pre">_try_group_split_covariances</span></code> evaluates the effects that do not depend on the group once on the first group instead of <code class="docutils literal notranslate"><span class="pre">G</span></code> times (<code class="docutils literal notranslate"><span class="pre">G</span> <span class="pre">&gt;=</span> <span class="pre">2</span></code>), and <code class="docutils literal notranslate"><span class="pre">_streamed_weighted_covariances</span></code> accumulates <code class="docutils literal notranslate"><span class="pre">Phi'</span> <span class="pre">W</span> <span class="pre">Phi</span></code> over row tiles of 4096 for row-wise stateless designs (every effect evaluates each row on its own, checked by <code class="docutils literal notranslate"><span class="pre">_is_rowwise_stateless_effects</span></code>) when the dense design would not fit.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">def</span><span class="w"> </span><span class="nf">_streamed_weighted_covariances</span><span class="p">(</span>
+    <span class="n">x_data</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+    <span class="n">y_data</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+    <span class="n">effects_list</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">BaseEffect</span><span class="p">],</span>
+    <span class="n">loss_L_star_L</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+    <span class="n">sample_weights</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">feature_columns</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">tile_size</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">4096</span><span class="p">,</span>
+    <span class="n">dtype</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">dtype</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">return_y_sq</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">:</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">"""Flash-style tiled basis evaluation + L2-resident weighted Gram accumulation without materializing full Phi."""</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">.spectrum._factory</span><span class="w"> </span><span class="kn">import</span> <span class="n">build_phi_from_effects</span>
+
+    <span class="n">target_dtype</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">get_default_dtype</span><span class="p">()</span> <span class="k">if</span> <span class="n">dtype</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">dtype</span>
+    <span class="n">n_groups</span><span class="p">,</span> <span class="n">n_samples</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">x_data</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span> <span class="nb">int</span><span class="p">(</span><span class="n">x_data</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+    <span class="n">total_d</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="n">e</span><span class="o">.</span><span class="n">get_n_coeffs</span><span class="p">()</span> <span class="k">for</span> <span class="n">e</span> <span class="ow">in</span> <span class="n">effects_list</span><span class="p">)</span>
+    <span class="n">d_out</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">y_data</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+    <span class="n">loss_scalar</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">loss_L_star_L</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">])</span>
+
+    <span class="n">cov_X</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">n_groups</span><span class="p">,</span> <span class="n">total_d</span><span class="p">,</span> <span class="n">total_d</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">target_dtype</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">TORCH_DEVICE</span><span class="p">)</span>
+    <span class="n">cov_XY</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">n_groups</span><span class="p">,</span> <span class="n">total_d</span><span class="p">,</span> <span class="n">d_out</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">target_dtype</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">TORCH_DEVICE</span><span class="p">)</span>
+    <span class="n">y_sq</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">n_groups</span><span class="p">,),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">target_dtype</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">TORCH_DEVICE</span><span class="p">)</span> <span class="k">if</span> <span class="n">return_y_sq</span> <span class="k">else</span> <span class="kc">None</span>
+
+    <span class="k">for</span> <span class="n">s0</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">n_samples</span><span class="p">,</span> <span class="n">tile_size</span><span class="p">):</span>
+        <span class="n">s1</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">s0</span> <span class="o">+</span> <span class="n">tile_size</span><span class="p">,</span> <span class="n">n_samples</span><span class="p">)</span>
+        <span class="n">x_tile</span> <span class="o">=</span> <span class="n">x_data</span><span class="p">[:,</span> <span class="n">s0</span><span class="p">:</span><span class="n">s1</span><span class="p">,</span> <span class="p">:]</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">TORCH_DEVICE</span><span class="p">)</span>
+        <span class="n">y_tile</span> <span class="o">=</span> <span class="n">y_data</span><span class="p">[:,</span> <span class="n">s0</span><span class="p">:</span><span class="n">s1</span><span class="p">,</span> <span class="p">:]</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="o">=</span><span class="n">TORCH_DEVICE</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">target_dtype</span><span class="p">)</span>
+        <span class="n">phi_tile</span> <span class="o">=</span> <span class="n">build_phi_from_effects</span><span class="p">(</span><span class="n">x_tile</span><span class="p">,</span> <span class="n">effects_list</span><span class="p">,</span> <span class="n">feature_columns</span><span class="o">=</span><span class="n">feature_columns</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span>
+            <span class="n">device</span><span class="o">=</span><span class="n">TORCH_DEVICE</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">target_dtype</span>
+        <span class="p">)</span>
+        <span class="k">if</span> <span class="n">sample_weights</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">root_w</span> <span class="o">=</span> <span class="n">sample_weights</span><span class="p">[:,</span> <span class="n">s0</span><span class="p">:</span><span class="n">s1</span><span class="p">,</span> <span class="p">:]</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="o">=</span><span class="n">TORCH_DEVICE</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">target_dtype</span><span class="p">)</span><span class="o">.</span><span class="n">clamp_min</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">sqrt</span><span class="p">()</span>
+            <span class="n">phi_tile</span> <span class="o">=</span> <span class="n">phi_tile</span> <span class="o">*</span> <span class="n">root_w</span>
+            <span class="n">y_tile</span> <span class="o">=</span> <span class="n">y_tile</span> <span class="o">*</span> <span class="n">root_w</span>
+        <span class="n">phi_T</span> <span class="o">=</span> <span class="n">phi_tile</span><span class="o">.</span><span class="n">mT</span>
+        <span class="n">cov_X</span><span class="o">.</span><span class="n">baddbmm_</span><span class="p">(</span><span class="n">phi_T</span><span class="p">,</span> <span class="n">phi_tile</span><span class="p">,</span> <span class="n">beta</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="n">loss_scalar</span><span class="p">)</span>
+        <span class="n">cov_XY</span><span class="o">.</span><span class="n">baddbmm_</span><span class="p">(</span><span class="n">phi_T</span><span class="p">,</span> <span class="n">y_tile</span><span class="p">,</span> <span class="n">beta</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="n">loss_scalar</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">return_y_sq</span><span class="p">:</span>
+            <span class="n">y_sq</span><span class="o">.</span><span class="n">add_</span><span class="p">((</span><span class="n">y_tile</span> <span class="o">*</span> <span class="n">y_tile</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">))</span> <span class="o">*</span> <span class="n">loss_scalar</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">return_y_sq</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">cov_X</span><span class="p">,</span> <span class="n">cov_XY</span><span class="p">,</span> <span class="n">y_sq</span>
     <span class="k">return</span> <span class="n">cov_X</span><span class="p">,</span> <span class="n">cov_XY</span>
 </pre></div>
 </div>
@@ -484,13 +552,20 @@
     <span class="n">matrix_to_invert</span> <span class="o">=</span> <span class="n">cov_X</span> <span class="o">+</span> <span class="n">regularization_term</span>
     
     <span class="c1"># Ridge floor for numerical stability (shared with compute_gcv_score)</span>
-    <span class="n">jitter</span> <span class="o">=</span> <span class="n">_ridge_floor</span><span class="p">(</span><span class="n">n_samples</span><span class="p">,</span> <span class="n">matrix_to_invert</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">matrix_to_invert</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span> <span class="n">TORCH_DEVICE</span><span class="p">)</span>
+    <span class="n">jitter</span> <span class="o">=</span> <span class="n">_ridge_floor</span><span class="p">(</span><span class="n">n_samples</span><span class="p">,</span> <span class="n">matrix_to_invert</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">matrix_to_invert</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span> <span class="n">matrix_to_invert</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
     <span class="n">matrix_to_invert</span> <span class="o">+=</span> <span class="n">jitter</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="o">*</span><span class="p">([</span><span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="n">dims_to_add</span><span class="p">),</span> <span class="o">*</span><span class="n">jitter</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
 
-    <span class="c1"># Solve system: A^-1 @ B</span>
-    <span class="n">coeffs_list</span> <span class="o">=</span> <span class="n">hw</span><span class="o">.</span><span class="n">safe_solve</span><span class="p">(</span><span class="n">matrix_to_invert</span><span class="p">,</span> <span class="n">cov_XY</span><span class="p">)</span>
+    <span class="c1"># Solve large symmetric positive definite normal systems via Cholesky when real and SPD</span>
+    <span class="k">if</span> <span class="n">matrix_to_invert</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">&gt;=</span> <span class="mi">192</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">matrix_to_invert</span><span class="o">.</span><span class="n">is_complex</span><span class="p">()</span> <span class="ow">and</span> <span class="n">hw</span><span class="o">.</span><span class="n">supports_linalg</span><span class="p">:</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">l_chol</span><span class="p">,</span> <span class="n">info</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">cholesky_ex</span><span class="p">(</span><span class="n">matrix_to_invert</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">info</span><span class="o">.</span><span class="n">numel</span><span class="p">()</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">or</span> <span class="nb">int</span><span class="p">(</span><span class="n">info</span><span class="o">.</span><span class="n">max</span><span class="p">()</span><span class="o">.</span><span class="n">item</span><span class="p">())</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">cholesky_solve</span><span class="p">(</span><span class="n">cov_XY</span><span class="p">,</span> <span class="n">l_chol</span><span class="p">)</span>
+        <span class="k">except</span> <span class="p">(</span><span class="ne">RuntimeError</span><span class="p">,</span> <span class="ne">NotImplementedError</span><span class="p">):</span>
+            <span class="k">pass</span>
 
-    <span class="k">return</span> <span class="n">coeffs_list</span>
+    <span class="c1"># Fallback solve: A^-1 @ B</span>
+    <span class="k">return</span> <span class="n">hw</span><span class="o">.</span><span class="n">safe_solve</span><span class="p">(</span><span class="n">matrix_to_invert</span><span class="p">,</span> <span class="n">cov_XY</span><span class="p">)</span>
 </pre></div>
 </div>
 </section>
@@ -604,10 +679,7 @@
 <span class="sd">    weighted / reweighted (GLM, expectile, robust) solve; None is the plain path.</span>
 <span class="sd">    """</span>
     <span class="n">run_device</span> <span class="o">=</span> <span class="n">x_data</span><span class="o">.</span><span class="n">device</span>
-    <span class="n">dummy_x</span> <span class="o">=</span> <span class="n">x_data</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">:</span><span class="mi">1</span><span class="p">,</span> <span class="p">:]</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">run_device</span><span class="p">)</span>
-    <span class="n">dummy_phi</span> <span class="o">=</span> <span class="n">build_phi_from_effects</span><span class="p">(</span><span class="n">dummy_x</span><span class="p">,</span> <span class="n">effects_list</span><span class="p">)</span>
-    <span class="n">total_d</span> <span class="o">=</span> <span class="n">dummy_phi</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
-    <span class="k">del</span> <span class="n">dummy_x</span><span class="p">,</span> <span class="n">dummy_phi</span>
+    <span class="n">total_d</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">penalty_matrix</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
 
     <span class="n">is_safe_for_direct_inversion</span> <span class="o">=</span> <span class="n">can_fit_dense_matrix</span><span class="p">(</span><span class="n">total_d</span><span class="p">,</span> <span class="n">run_device</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
 
@@ -683,6 +755,7 @@
             <ul>
 <li><a class="reference internal" href="#">PyTorch Math Dispatcher &amp; Matrix-Free Solvers</a><ul>
 <li><a class="reference internal" href="#covariance-accumulation">Covariance Accumulation</a></li>
+<li><a class="reference internal" href="#structured-designs-and-streaming-covariances">Structured Designs and Streaming Covariances</a></li>
 <li><a class="reference internal" href="#direct-solvers-and-the-jitter-application">Direct Solvers and the Jitter Application</a></li>
 <li><a class="reference internal" href="#the-matrix-free-conjugate-gradient">The Matrix-Free Conjugate Gradient</a></li>
 <li><a class="reference internal" href="#the-dispatcher-routing-logic">The Dispatcher Routing Logic</a></li>
@@ -697,7 +770,7 @@
       
     </aside>
   </div>
-</div><script src="../../_static/documentation_options.js?v=44dfd65d"></script>
+</div><script src="../../_static/documentation_options.js?v=e15882dc"></script>
     <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/scripts/furo.js?v=46bd48cc"></script>
