@@ -429,11 +429,17 @@ def _balance_groups(
         return mask.reset_index(drop=True), balanced_df.reset_index(drop=True)
 #: </balance>
 
+#: The group column and the value that stand for "one series" when the user gives no group column. One definition: the fit and the frozen
+#: forecast of the aggregators must read and write the weights under the same key.
+DUMMY_GROUP_COL = "__dummy_group__"
+DUMMY_GROUP_VALUE = "global_group"
+
+
 def _ensure_dummies(df: pd.DataFrame, group_col: str, date_col: str) -> pd.DataFrame:
     r"""Injects dummy grouping and temporal columns if they are absent."""
     df_out = df.copy()
-    if group_col == "__dummy_group__" and "__dummy_group__" not in df_out.columns:
-        df_out["__dummy_group__"] = "global_group"
+    if group_col == DUMMY_GROUP_COL and DUMMY_GROUP_COL not in df_out.columns:
+        df_out[DUMMY_GROUP_COL] = DUMMY_GROUP_VALUE
     if date_col == "__dummy_date__" and "__dummy_date__" not in df_out.columns:
         # Second-spaced (not daily) so large row counts can't overflow the pandas
         # datetime bound (year 2262): daily spacing overflows past ~95k rows.
