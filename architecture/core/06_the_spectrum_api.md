@@ -480,3 +480,22 @@ Constructs the block-diagonal encapsulation of the anisotropic sparsity-adaptive
 :end-before: "#: </penalty_matrix>"
 
 ```
+
+---
+
+## Vectorised Forward Maps
+
+The feature maps of the temporal and learned effects are written as batched tensor operations over `(B, T, ...)`, with no Python loop over time steps, channels or heads. The columns they return are the ones of the earlier implementations (the tests compare them), and the penalties are unchanged; only the way the columns are computed differs.
+
+* **HiPPO** (`hippo`): the impulse response of the discretised state-space system is built by doubling (`O(log T)` matrix products) and applied as a causal FFT convolution; the spectrum and the matrix powers are cached per length and device.
+* **Signature** (`sig`): the truncated exponential and the Chen product are written for levels up to 4 without `einsum`, and the sliding-window signature uses block prefix and suffix products, so a window costs a constant number of products.
+* **Scattering** (`wst`): the wavelet filters are packed once and applied as one batched convolution.
+* **Attention** (`attn`) and **temporal operator** (`temporal_operator`): all heads share one projection product, and the causal running sums and the normaliser are carried by one recurrence.
+* **Bispectrum** (`bispec`), **patch basis** (`patch_basis`), **foundation** (`foundation`), **Koopman** (`koopman`), **T-JEPA** (`tjepa`), **KAN** (`kan`) and the inertia family (`inertia`): the per-triad, per-channel, per-patch and per-alpha loops are batched, Koopman subsamples the snapshots that fit the dictionary above 20 000 rows, and T-JEPA takes the thin QR before the singular value decomposition.
+* **Tree** (`tree`) and **categorical** (`cat`): the design is written into a preallocated buffer by indexing instead of materialising a one-hot matrix.
+
+```{literalinclude} ../../../../src/tam/model/spectrum/_hippo.py
+:language: python
+:pyobject: HiPPOEffect._impulse_fft_and_powers
+:caption: src/tam/model/spectrum/_hippo.py (impulse response by doubling)
+```

@@ -111,7 +111,7 @@ class PatchBasisEffect(BaseEffect):
 
         w_patch = self._w_patch.to(device=device, dtype=dtype)  # (M, P)
         b_patch = self._b_patch.to(device=device, dtype=dtype)  # (M,)
-        proj = torch.einsum("btp,mp->btm", patches_norm, w_patch) + b_patch.view(1, 1, -1)
+        proj = torch.matmul(patches_norm, w_patch.T) + b_patch.view(1, 1, -1)
         phi_tokens = math.sqrt(2.0 / float(self.n_tokens)) * torch.cos(proj)  # (B, T, M)
 
         revin_tokens = torch.cat([
@@ -122,17 +122,17 @@ class PatchBasisEffect(BaseEffect):
         parts = [phi_tokens, revin_tokens]
 
         if self.n_levy > 0:
-            # Windows across all D channels: (B, T, D, P)
-            all_patches = padded.unfold(dimension=1, size=P, step=1)
-            # Local center each channel over the patch
-            all_centered = all_patches - torch.mean(all_patches, dim=-1, keepdim=True)
-            all_std = torch.sqrt(torch.mean(all_centered ** 2, dim=-1, keepdim=True) + 1e-6)
-            u_path = all_centered / all_std  # (B, T, D, P)
-            du = u_path[..., 1:] - u_path[..., :-1]  # (B, T, D, P-1)
-            u_mid = 0.5 * (u_path[..., 1:] + u_path[..., :-1]) - u_path[..., :1]  # (B, T, D, P-1)
-
             levy_list = []
             if D >= 2:
+                # Windows across all D channels: (B, T, D, P)
+                all_patches = padded.unfold(dimension=1, size=P, step=1)
+                # Local center each channel over the patch
+                all_centered = all_patches - torch.mean(all_patches, dim=-1, keepdim=True)
+                all_std = torch.sqrt(torch.mean(all_centered ** 2, dim=-1, keepdim=True) + 1e-6)
+                u_path = all_centered / all_std  # (B, T, D, P)
+                du = u_path[..., 1:] - u_path[..., :-1]  # (B, T, D, P-1)
+                u_mid = 0.5 * (u_path[..., 1:] + u_path[..., :-1]) - u_path[..., :1]  # (B, T, D, P-1)
+
                 for a in range(D):
                     for b in range(a + 1, D):
                         area_ab = 0.5 * torch.mean(
@@ -142,9 +142,9 @@ class PatchBasisEffect(BaseEffect):
                         )
                         levy_list.append(torch.tanh(area_ab))
             else:
-                # Hoff Lead-Lag self-hysteresis area between x_s and its 1-step delayed path
-                u_lead = u_path[:, :, 0, 1:]
-                u_lag = u_path[:, :, 0, :-1]
+                # Hoff Lead-Lag self-hysteresis area between x_s and its 1-step delayed path (reuse patches_norm)
+                u_lead = patches_norm[:, :, 1:]
+                u_lag = patches_norm[:, :, :-1]
                 du_lead = u_lead[..., 1:] - u_lead[..., :-1]
                 du_lag = u_lag[..., 1:] - u_lag[..., :-1]
                 mid_lead = 0.5 * (u_lead[..., 1:] + u_lead[..., :-1]) - u_lead[..., :1]

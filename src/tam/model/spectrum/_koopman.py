@@ -192,24 +192,27 @@ class KoopmanEffect(BaseEffect):
             self._x_std = None
 
         self._triu_i = None
-        psi = self._lift(x_h)
-        M = psi.shape[-1]
-        if self.k > M:
-            raise ValueError(f"koopman: k={self.k} is larger than the lifted dictionary ({M} observables); raise n_lift or lower k")
         device, dtype = x_cols.device, x_cols.dtype
 
-        B, T, _ = psi.shape
+        B, T, d_h = x_h.shape
         if T < 3:
-            self._fallback(M, device, dtype)
+            psi = self._lift(x_h)
+            self._fallback(psi.shape[-1], device, dtype)
             return
-        psi_X = psi[:, :-1, :].reshape(-1, M)
-        psi_Y = psi[:, 1:, :].reshape(-1, M)
+        x_h_X = x_h[:, :-1, :].reshape(-1, d_h)
+        x_h_Y = x_h[:, 1:, :].reshape(-1, d_h)
 
-        # Subsample snapshots if dataset is very large (> 20000) to keep SVD fast
-        if psi_X.shape[0] > 20000:
-            step = psi_X.shape[0] // 20000
-            psi_X = psi_X[::step]
-            psi_Y = psi_Y[::step]
+        # Subsample snapshots before lifting when dataset is large (> 20000) to avoid redundant dictionary evaluation
+        if x_h_X.shape[0] > 20000:
+            step = x_h_X.shape[0] // 20000
+            x_h_X = x_h_X[::step]
+            x_h_Y = x_h_Y[::step]
+
+        psi_X = self._lift(x_h_X)
+        psi_Y = self._lift(x_h_Y)
+        M = psi_X.shape[-1]
+        if self.k > M:
+            raise ValueError(f"koopman: k={self.k} is larger than the lifted dictionary ({M} observables); raise n_lift or lower k")
 
         try:
             U, S, Vh = torch.linalg.svd(psi_X, full_matrices=False)
@@ -232,44 +235,45 @@ class KoopmanEffect(BaseEffect):
             scaled_evecs = inv_S * evecs
             W_complex = V_r.to(scaled_evecs.dtype) @ scaled_evecs
 
-            psi_X_c = psi_X.to(W_complex.dtype)
-            psi_Y_c = psi_Y.to(W_complex.dtype)
+            # Batched real BLAS projection replaces per-mode psi_X_c @ w calls
+            W_re = torch.real(W_complex).to(psi_X.dtype)
+            W_im = torch.imag(W_complex).to(psi_X.dtype)
+            W_cat = torch.cat([W_re, W_im], dim=1)
+            PX_re, PX_im = torch.split(psi_X @ W_cat, r, dim=1)
+            PY_re, PY_im = torch.split(psi_Y @ W_cat, r, dim=1)
 
+            evals_list = evals.detach().cpu().tolist()
             units = []   # (residual, |mu|, [columns]): a real mode has one column, a conjugate pair its real and imaginary parts
             visited_conjugates = set()
 
             for j in range(r):
                 if j in visited_conjugates:
                     continue
-                mu = evals[j]
-                w = W_complex[:, j]
-
-                pw_x = psi_X_c @ w
-                pw_y = psi_Y_c @ w
-                res_vec = pw_y - mu * pw_x
-                denom = torch.real(torch.vdot(pw_x, pw_x)).item() + 1e-8
+                mu = evals_list[j]
+                pw_x = torch.complex(PX_re[:, j], PX_im[:, j])
+                pw_y = torch.complex(PY_re[:, j], PY_im[:, j])
+                res_vec = pw_y - evals[j] * pw_x
+                denom = float(torch.real(torch.vdot(pw_x, pw_x)).item()) + 1e-8
                 res_sq = float(torch.real(torch.vdot(res_vec, res_vec)).item() / denom)
-                mu_mag = float(torch.abs(mu).item())
+                mu_mag = float(abs(mu))
 
                 if abs(float(mu.imag)) > 1e-4:
                     conj_idx = None
+                    mu_conj = mu.conjugate()
                     for m in range(j + 1, r):
-                        if m not in visited_conjugates and abs(float((evals[m] - torch.conj(mu)).abs().item())) < 1e-4:
+                        if m not in visited_conjugates and abs(evals_list[m] - mu_conj) < 1e-4:
                             conj_idx = m
                             break
 
-                    w_re = torch.real(w)
-                    w_im = torch.imag(w)
-                    norm_re = torch.norm(psi_X @ w_re) + 1e-8
-                    norm_im = torch.norm(psi_X @ w_im) + 1e-8
-                    units.append((res_sq, mu_mag, [(w_re / norm_re).to(dtype), (w_im / norm_im).to(dtype)]))
+                    norm_re = torch.norm(PX_re[:, j]) + 1e-8
+                    norm_im = torch.norm(PX_im[:, j]) + 1e-8
+                    units.append((res_sq, mu_mag, [(W_re[:, j] / norm_re).to(dtype), (W_im[:, j] / norm_im).to(dtype)]))
 
                     if conj_idx is not None:
                         visited_conjugates.add(conj_idx)
                 else:
-                    w_re = torch.real(w)
-                    norm_re = torch.norm(psi_X @ w_re) + 1e-8
-                    units.append((res_sq, mu_mag, [(w_re / norm_re).to(dtype)]))
+                    norm_re = torch.norm(PX_re[:, j]) + 1e-8
+                    units.append((res_sq, mu_mag, [(W_re[:, j] / norm_re).to(dtype)]))
 
             units.sort(key=lambda item: item[0])
 

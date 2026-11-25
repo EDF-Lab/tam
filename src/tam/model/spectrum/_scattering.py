@@ -12,6 +12,7 @@ time-warping deformations and translation invariance.
 
 from typing import Any, Dict, List, Optional, Tuple
 import math
+from scipy.fft import next_fast_len
 import torch
 import torch.nn.functional as F
 
@@ -67,7 +68,21 @@ class ScatteringEffect(BaseEffect):
         self._n_coeffs = 1 + self.N1 + self.n_order2
 
         self._max_filter_len = 0
-        self._filter_cache: Dict[Tuple[str, str], Tuple[torch.Tensor, List[torch.Tensor], List[torch.Tensor]]] = {}
+        self._filter_cache: Dict[
+            Tuple[str, str],
+            Tuple[torch.Tensor, List[torch.Tensor], List[torch.Tensor]],
+        ] = {}
+        self._batched_filter_cache: Dict[
+            Tuple[str, str],
+            Tuple[torch.Tensor, torch.Tensor, List[torch.Tensor]],
+        ] = {}
+        self._order2_col: Dict[Tuple[int, int], int] = {}
+        if self.max_order >= 2:
+            col = 1 + self.N1
+            for j1 in range(self.N1):
+                for j2 in range(j1 + 1, self.N1):
+                    self._order2_col[(j1, j2)] = col
+                    col += 1
 
         self._build_filters()
         # Causal memory of the cascade: the low-pass filter, plus one wavelet per scattering order
@@ -151,6 +166,23 @@ class ScatteringEffect(BaseEffect):
             self._filter_cache[key] = (phi, re, im)
         return self._filter_cache[key]
 
+    def _batched_filters(self, device: torch.device, dtype: torch.dtype) -> Tuple[torch.Tensor, torch.Tensor, List[torch.Tensor]]:
+        """Pre-packed batched wavelet filters for fast convolution in ``build_feature_map``."""
+        key = (str(device), str(dtype))
+        if key not in self._batched_filter_cache:
+            phi, re, im = self._filters(device, dtype)
+            max_psi = max(f.shape[0] for f in re) if self.N1 > 0 else 1
+            psi_bank = torch.zeros(2 * self.N1, 1, max_psi, device=device, dtype=dtype)
+            psi_pairs: List[torch.Tensor] = []
+            for j in range(self.N1):
+                k_j = re[j].shape[0]
+                psi_pairs.append(torch.stack([re[j], im[j]], dim=0).unsqueeze(1))
+                off = (max_psi - k_j) if self.causal else ((max_psi - k_j) // 2)
+                psi_bank[2 * j, 0, off : off + k_j] = re[j]
+                psi_bank[2 * j + 1, 0, off : off + k_j] = im[j]
+            self._batched_filter_cache[key] = (phi, psi_bank, psi_pairs)
+        return self._batched_filter_cache[key]
+
     def _causal_convolve(self, x: torch.Tensor, h: torch.Tensor) -> torch.Tensor:
         """Causal convolution of every row of ``x`` ``(B, L)`` with the FIR filter ``h``: y[t] depends on x[s], s <= t."""
         k_len = h.shape[0]
@@ -182,41 +214,68 @@ class ScatteringEffect(BaseEffect):
         x3, shape, layout = to_btd(x, False)
         if x3.shape[-1] != 1:
             raise ValueError(f"wst reads one column, got {x3.shape[-1]}")
-        T = x3.shape[1]
-        phi_f, psi_re, psi_im = self._filters(x3.device, x3.dtype)
+        B, T, _ = x3.shape
+        if T == 0:
+            return from_btk(torch.zeros(B, 0, self._n_coeffs, dtype=x3.dtype, device=x3.device), shape, layout)
+        phi_f, psi_bank, psi_pairs = self._batched_filters(x3.device, x3.dtype)
 
         if self.causal:
             x_full3 = causal_history(x3, self._n_hist, state_in)
             self._state_out = {"hist": tail_state(x_full3, self._n_hist)}
         else:
             x_full3 = x3
-        x_full = x_full3[..., 0]                    # (B, n_hist + T)
+        x_full = x_full3[..., 0]                    # (B, L)
+        L = x_full.shape[1]
 
-        channels: List[torch.Tensor] = []
+        all_ch = torch.empty(B, self._n_coeffs, L, device=x3.device, dtype=x3.dtype)
+        all_ch[:, 0, :] = x_full
 
-        # Order 0: S_0 x = x * phi_J
-        channels.append(self._crop_causal_tail(self._conv1d(x_full, phi_f), T))
+        if self.N1 > 0:
+            x_in1 = x_full.unsqueeze(1)
+            m_len = psi_bank.shape[-1]
+            if self.causal:
+                w1 = F.conv1d(F.pad(x_in1, (m_len - 1, 0), mode="replicate"), psi_bank, padding=0)
+            else:
+                w1 = F.conv1d(x_in1, psi_bank, padding=m_len // 2)[..., :L]
+            w1 = w1.view(B, self.N1, 2, L)
+            u1 = torch.sqrt(w1[:, :, 0].square() + w1[:, :, 1].square() + 1e-10)
+            all_ch[:, 1 : 1 + self.N1, :] = u1
 
-        # Order 1: the modulus of each wavelet response, smoothed by the low-pass filter (see the math page)
-        u1_envelopes: List[torch.Tensor] = []
-        for j in range(self.N1):
-            re = self._conv1d(x_full, psi_re[j])
-            im = self._conv1d(x_full, psi_im[j])
-            mod = torch.sqrt(re**2 + im**2 + 1e-10)
-            u1_envelopes.append(mod)
-            channels.append(self._crop_causal_tail(self._conv1d(mod, phi_f), T))
+            if self.max_order >= 2 and self.N1 >= 2:
+                for j2 in range(1, self.N1):
+                    pair_w = psi_pairs[j2]
+                    k2 = pair_w.shape[-1]
+                    u1_sub = u1[:, :j2, :].reshape(B * j2, 1, L)
+                    if self.causal:
+                        w2 = F.conv1d(F.pad(u1_sub, (k2 - 1, 0), mode="replicate"), pair_w, padding=0)
+                    else:
+                        w2 = F.conv1d(u1_sub, pair_w, padding=k2 // 2)[..., :L]
+                    w2 = w2.view(B, j2, 2, L)
+                    mod2 = torch.sqrt(w2[:, :, 0].square() + w2[:, :, 1].square() + 1e-10)
+                    for j1 in range(j2):
+                        all_ch[:, self._order2_col[(j1, j2)], :] = mod2[:, j1, :]
 
-        # Order 2: S_2 x = ||x * psi_j1| * psi_j2| * phi_J for j2 > j1 (coarser scales)
-        if self.max_order >= 2:
-            for j1 in range(self.N1):
-                mod1 = u1_envelopes[j1]
-                for j2 in range(j1 + 1, self.N1):
-                    re2 = self._conv1d(mod1, psi_re[j2])
-                    im2 = self._conv1d(mod1, psi_im[j2])
-                    mod2 = torch.sqrt(re2**2 + im2**2 + 1e-10)
-                    channels.append(self._crop_causal_tail(self._conv1d(mod2, phi_f), T))
+        k_phi = phi_f.shape[0]
+        if self.causal:
+            need = T + k_phi - 1
+            inp_g = all_ch[:, :, L - need :] if L >= need else F.pad(all_ch, (need - L, 0), mode="replicate")
+            out_slice_start = k_phi - 1
+            pad_conv = 0
+        else:
+            inp_g = all_ch
+            out_slice_start = k_phi // 2
+            pad_conv = k_phi // 2
 
-        phi_cat = torch.stack(channels, dim=-1)
+        if k_phi >= 32 and T >= 256:
+            n_fft = int(next_fast_len(inp_g.shape[-1] + k_phi - 1, real=True))
+            phi_spec = torch.fft.rfft(phi_f.flip(-1), n=n_fft).view(1, 1, -1)
+            out = torch.fft.irfft(
+                torch.fft.rfft(inp_g, n=n_fft, dim=-1) * phi_spec, n=n_fft, dim=-1
+            )[..., out_slice_start : out_slice_start + T]
+        else:
+            phi_g = phi_f.view(1, 1, k_phi).expand(self._n_coeffs, 1, k_phi).contiguous()
+            out = F.conv1d(inp_g, phi_g, padding=pad_conv, groups=self._n_coeffs)[..., :T]
+        phi_cat = out.transpose(1, 2)
         return from_btk(phi_cat, shape, layout)
 #: </wst_feature_map>
 

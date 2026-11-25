@@ -78,17 +78,34 @@ class CategoricalEffect(BaseEffect):
         centroid of each level from the training tensor (level, coordinates...) and the Laplacian of the k nearest."""
         if self.topology == 'fourier':
             return
+        if self.topology != 'graph' and self.unseen != 'mean':
+            return
+        if self._level_weights is not None and (self.topology != 'graph' or self._laplacian is not None):
+            return
         n = self.n_categories
-        flat = x_cols.reshape(-1, x_cols.shape[-1]).detach().to(torch.get_default_dtype()).cpu()
-        index = torch.round((flat[:, 0] + 1.0) / 2.0 * (n - 1)).long() if n > 1 else torch.zeros(flat.shape[0], dtype=torch.long)
-        valid = (index >= 0) & (index < n)
-        if self._level_weights is None and bool(valid.any()):
-            shares = torch.bincount(index[valid], minlength=n).to(torch.get_default_dtype())
-            self._level_weights = shares / shares.sum()
+        target_dtype = torch.get_default_dtype()
+        flat = x_cols.reshape(-1, x_cols.shape[-1]).detach()
+        if flat.dtype != target_dtype or flat.device.type != 'cpu':
+            flat = flat.to(device='cpu', dtype=target_dtype)
+        col0 = flat[:, 0]
+        index = torch.round((col0 + 1.0) / 2.0 * (n - 1)).long() if n > 1 else torch.zeros(flat.shape[0], dtype=torch.long)
+        if index.numel() > 0 and int(index.min()) >= 0 and int(index.max()) < n:
+            if self._level_weights is None:
+                shares = torch.bincount(index, minlength=n).to(target_dtype)
+                self._level_weights = shares / shares.sum()
+            valid_index = index
+            valid_coords = flat[:, 1:] if self.topology == 'graph' else None
+        else:
+            valid = (index >= 0) & (index < n)
+            valid_index = index[valid]
+            if self._level_weights is None and valid_index.numel() > 0:
+                shares = torch.bincount(valid_index, minlength=n).to(target_dtype)
+                self._level_weights = shares / shares.sum()
+            valid_coords = flat[valid, 1:] if self.topology == 'graph' else None
         if self.topology != 'graph' or self._laplacian is not None:
             return
-        coordinates = flat[valid, 1:]
-        index = index[valid]
+        coordinates = valid_coords
+        index = valid_index
         sums = torch.zeros(n, coordinates.shape[1], dtype=coordinates.dtype)
         counts = torch.zeros(n, dtype=coordinates.dtype)
         sums.index_add_(0, index, coordinates)
@@ -126,10 +143,12 @@ class CategoricalEffect(BaseEffect):
             else:
                 known = (x_indices >= 0) & (x_indices <= self.n_categories - 1)
             x_safe = torch.clamp(x_indices, 0, self.n_categories - 1)
-            phi = torch.nn.functional.one_hot(x_safe, num_classes=self.n_categories)
-            if self.unseen != 'edge':
-                phi = phi * known.unsqueeze(-1).to(phi.dtype)  # a code outside the levels is not any level
-            phi = phi.to(device=TORCH_DEVICE, dtype=torch.get_default_dtype())
+            target_dtype = torch.get_default_dtype()
+            phi = torch.zeros((*x_safe.shape, self.n_categories), device=TORCH_DEVICE, dtype=target_dtype)
+            if self.unseen == 'edge':
+                phi.scatter_(-1, x_safe.to(device=TORCH_DEVICE).unsqueeze(-1), 1.0)
+            else:
+                phi.scatter_(-1, x_safe.to(device=TORCH_DEVICE).unsqueeze(-1), known.to(device=TORCH_DEVICE, dtype=target_dtype).unsqueeze(-1))
             if self.unseen == 'mean' and self._level_weights is not None:
                 # ... and takes the mean effect of the levels, weighted by their training rows (unseen='zero': the zero row)
                 mean_row = self._level_weights.to(device=phi.device, dtype=phi.dtype)

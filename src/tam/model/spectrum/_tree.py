@@ -96,6 +96,7 @@ class TreeEffect(BaseEffect):
         
         # Pre-computed bit-shift multipliers for fast binary leaf indexing
         self.depth_multipliers = None
+        self._tree_offsets = None
 
     def initialize(self, x_cols: torch.Tensor) -> None:
         r"""Sets split features, thresholds and leaf counts from the full training tensor (..., n_features)."""
@@ -262,9 +263,9 @@ class TreeEffect(BaseEffect):
         # one count per leaf in the same (tree, leaf) order as the design matrix columns. bincount instead of a
         # one-hot sum: the whole training set is counted, so memory must stay O(rows x trees).
         flat_leaves = leaf_indices.reshape(-1, self.n_trees)
-        tree_offsets = torch.arange(self.n_trees, device=flat_leaves.device) * self.leaves_per_tree
+        self._tree_offsets = torch.arange(self.n_trees, device=flat_leaves.device, dtype=torch.long) * self.leaves_per_tree
         self.empirical_counts = torch.bincount(
-            (flat_leaves + tree_offsets).reshape(-1), minlength=self.total_leaves
+            (flat_leaves + self._tree_offsets).reshape(-1), minlength=self.total_leaves
         )
 #: </init_tree>
 
@@ -312,46 +313,25 @@ class TreeEffect(BaseEffect):
                 device=x_in.device, dtype=torch.get_default_dtype()
             )
 
-        # 3. Vectorized Evaluation
-        x_expanded = x_in.unsqueeze(-2).unsqueeze(-2)
+        # 3. Direct indexing + fused scatter_ into dense output buffer (avoids int64 one_hot allocation)
+        dev = x_in.device
+        split_features = self.split_features if self.split_features.device == dev else self.split_features.to(dev)
+        split_thresholds = self.split_thresholds.to(device=dev, dtype=x_in.dtype)
 
         if self.is_oblivious_binary:
-            index_shape = batch_shape + [self.n_trees, self.max_depth, 1]
-            split_feat_expanded = self.split_features.view(
-                *([1] * len(batch_shape)), self.n_trees, self.max_depth, 1
-            ).expand(*index_shape)
-
-            input_expanded = x_expanded.expand(
-                *batch_shape, self.n_trees, self.max_depth, x_in.shape[-1]
-            )
-            x_splits = torch.gather(input_expanded, dim=-1, index=split_feat_expanded).squeeze(-1)
-            split_decisions = (x_splits > self.split_thresholds).to(torch.long)
-            leaf_indices = torch.sum(split_decisions * self.depth_multipliers, dim=-1)
-
+            depth_mult = self.depth_multipliers if self.depth_multipliers.device == dev else self.depth_multipliers.to(dev)
+            x_splits = x_in[..., split_features]
+            leaf_indices = torch.sum((x_splits > split_thresholds).to(torch.long) * depth_mult, dim=-1)
         else:
-            index_shape = batch_shape + [self.n_trees, 1, 1]
-            split_feat_expanded = self.split_features.view(
-                *([1] * len(batch_shape)), self.n_trees, 1, 1
-            ).expand(*index_shape)
+            x_splits = x_in[..., split_features.squeeze(-1)]
+            thresh_expand = split_thresholds.view(*([1] * len(batch_shape)), self.n_trees, self.n_splits_per_tree)
+            leaf_indices = torch.sum((x_splits.unsqueeze(-1) > thresh_expand).to(torch.long), dim=-1)
 
-            input_expanded = x_expanded.expand(
-                *batch_shape, self.n_trees, 1, x_in.shape[-1]
-            )
-            x_splits = torch.gather(input_expanded, dim=-1, index=split_feat_expanded).squeeze(-1).squeeze(-1)
-            
-            x_splits_expand = x_splits.unsqueeze(-1)
-            thresh_expand = self.split_thresholds.view(*([1] * len(batch_shape)), self.n_trees, self.n_splits_per_tree)
-            leaf_indices = torch.sum((x_splits_expand > thresh_expand).to(torch.long), dim=-1)
+        if self._tree_offsets is None or self._tree_offsets.device != dev:
+            self._tree_offsets = torch.arange(self.n_trees, device=dev, dtype=torch.long) * self.leaves_per_tree
 
-        one_hot_bins = torch.nn.functional.one_hot(leaf_indices, num_classes=self.leaves_per_tree)
-
-        # 4. Final Output Tensor
-        # Output shape perfectly matches the required Basis Tensor format [*batch_shape, Leaves]
-        phi_tensor = one_hot_bins.view(*batch_shape, self.total_leaves).to(torch.float64)
-
-        # Apply the RKHS normalization bound IN-PLACE
-        phi_tensor.mul_(self.scale)
-        
+        phi_tensor = torch.zeros(*batch_shape, self.total_leaves, device=dev, dtype=torch.float64)
+        phi_tensor.scatter_(-1, leaf_indices + self._tree_offsets, self.scale)
         return phi_tensor
 #: </feature_map>
 

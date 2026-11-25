@@ -299,11 +299,17 @@ class TransformerEffect(BaseEffect):
         m = self.m_features
         h = self.n_heads
 
-        # Rescale queries and keys by d^{1/4}
+        # Rescale queries and keys by d^{1/4}; compute all H heads' PRFs in one GEMM.
         scale_factor = float(d_in) ** 0.25
         u_scaled = u_3d / scale_factor
         v = u_3d  # Values
         eps = 1e-6
+
+        omega_all = self._get_omega(d_in).to(device=u_3d.device, dtype=u_3d.dtype).reshape(h * m, d_in)
+        proj_all = u_scaled @ omega_all.T
+        norm_sq = torch.sum(u_scaled * u_scaled, dim=-1, keepdim=True)
+        arg_all = torch.clamp(proj_all - 0.5 * norm_sq, max=80.0)
+        phi_all = torch.clamp(torch.exp(arg_all) / np.sqrt(float(m)), min=1e-12).reshape(b_dim, t_len, h, m)
 
         head_outputs = []
         term_m_list = []
@@ -311,36 +317,35 @@ class TransformerEffect(BaseEffect):
         primary: Optional[torch.Tensor] = None
 
         for head_idx in range(h):
-            # Positive random feature representation of this head: (B, T, m)
-            phi = self._compute_prf(u_scaled, d=d_in, head=head_idx)
+            phi = phi_all[:, :, head_idx, :]  # (B, T, m)
 
             if not self.causal:
                 # Bidirectional full-sequence attention
-                m_total = torch.einsum("btm,btd->bmd", phi, v)  # (B, m, d)
+                m_total = torch.matmul(phi.transpose(-2, -1), v)  # (B, m, d)
                 z_total = torch.sum(phi, dim=1)  # (B, m)
-                d_norm = torch.einsum("btm,bm->bt", phi, z_total).unsqueeze(-1) + eps  # (B, T, 1)
-                c_h = torch.einsum("btm,bmd->btd", phi, m_total) / d_norm
+                d_norm = torch.matmul(phi, z_total.unsqueeze(-1)) + eps  # (B, T, 1)
+                c_h = torch.matmul(phi, m_total) / d_norm
                 if head_idx == 0 and self.mode == "bilinear":
-                    primary = torch.einsum("btm,bmd->btmd", phi / d_norm, m_total).reshape(b_dim, t_len, m * d_in)
+                    primary = ((phi / d_norm).unsqueeze(-1) * m_total.unsqueeze(1)).reshape(b_dim, t_len, m * d_in)
                 head_outputs.append(c_h)
                 term_m_list.append(m_total)
                 term_z_list.append(z_total)
                 continue
 
-            # Causal linear attention: two discounted running sums (features times values, and features), solved as linear recurrences along time
+            # Causal linear attention: fuse outer (B, T, m*d) and normalizer phi (B, T, m) into one recurrence.
             gamma = float(self.decay[head_idx])
             init_m_h = None if initial_m is None else initial_m[:, head_idx].reshape(b_dim, m * d_in)
             init_z_h = None if initial_z is None else initial_z[:, head_idx]
-            outer = (phi.unsqueeze(-1) * v.unsqueeze(-2)).reshape(b_dim, t_len, m * d_in)  # (B, T, m * d)
-            m_seq = causal_linear_recurrence(outer, gamma, 1.0, init_m_h).reshape(b_dim, t_len, m, d_in)
-            z_seq = causal_linear_recurrence(phi, gamma, 1.0, init_z_h)  # (B, T, m)
+            init_comb = None if (init_m_h is None or init_z_h is None) else torch.cat([init_m_h, init_z_h], dim=-1)
+            outer = (phi.unsqueeze(-1) * v.unsqueeze(-2)).reshape(b_dim, t_len, m * d_in)
+            comb_seq = causal_linear_recurrence(torch.cat([outer, phi], dim=-1), gamma, 1.0, init_comb)
+            m_seq = comb_seq[:, :, : m * d_in].reshape(b_dim, t_len, m, d_in)
+            z_seq = comb_seq[:, :, m * d_in :]
 
-            num = torch.einsum("btm,btmd->btd", phi, m_seq)  # (B, T, d)
+            num = torch.matmul(phi.unsqueeze(-2), m_seq).squeeze(-2)  # (B, T, d)
             d_norm = torch.sum(phi * z_seq, dim=-1, keepdim=True) + eps  # (B, T, 1)
             c_h = num / d_norm
             if head_idx == 0 and self.mode == "bilinear":
-                # In bilinear mode, use the primary head's strictly causal running state sequence:
-                # (phi_t / D_t) * M_t, shape (B, T, m, d) -> (B, T, m * d)
                 primary = (phi.unsqueeze(-1) * m_seq / d_norm.unsqueeze(-1)).reshape(b_dim, t_len, m * d_in)
             head_outputs.append(c_h)
             term_m_list.append(m_seq[:, -1])

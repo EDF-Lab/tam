@@ -191,18 +191,20 @@ class TemporalOperatorEffect(CoordinatePenaltyMixin, BaseEffect):
             norm_sq = 0.5 * torch.sum(u_norm * u_norm, dim=-1, keepdim=True) / max(float(K), 1.0)
             phi_rf = torch.exp(torch.clamp(proj - norm_sq, min=-10.0, max=6.0))  # (B, T, M)
 
-            # Causal discounted prefix accumulators (the random-feature products and their normalizer), solved as linear recurrences along time
+            # Fused causal discounted prefix accumulators solved in a single linear recurrence pass.
             M = self.n_random_features
             S_prev = carried("S", (B, M, K))
             Z_prev = carried("Z", (B, M))
-            kv_outer = torch.einsum("btm,btk->btmk", phi_rf, phi_base)  # (B, T, M, K)
-            S_seq = causal_linear_recurrence(
-                kv_outer.reshape(B, T, M * K), self.decay, 1.0 - self.decay, None if S_prev is None else S_prev.reshape(B, M * K)
-            ).reshape(B, T, M, K)
-            Z_seq = causal_linear_recurrence(phi_rf, self.decay, 1.0 - self.decay, Z_prev)
+            kv_outer = (phi_rf.unsqueeze(-1) * phi_base.unsqueeze(-2)).reshape(B, T, M * K)
+            init_comb = None if (S_prev is None or Z_prev is None) else torch.cat([S_prev.reshape(B, M * K), Z_prev], dim=-1)
+            comb_seq = causal_linear_recurrence(
+                torch.cat([kv_outer, phi_rf], dim=-1), self.decay, 1.0 - self.decay, init_comb
+            )
+            S_seq = comb_seq[:, :, : M * K].reshape(B, T, M, K)
+            Z_seq = comb_seq[:, :, M * K :]
 
-            num = torch.einsum("btm,btmk->btk", phi_rf, S_seq)
-            den = torch.clamp(torch.einsum("btm,btm->bt", phi_rf, Z_seq).unsqueeze(-1), min=1e-8)
+            num = torch.matmul(phi_rf.unsqueeze(-2), S_seq).squeeze(-2)
+            den = torch.clamp(torch.sum(phi_rf * Z_seq, dim=-1, keepdim=True), min=1e-8)
             phi_mixed = num / den
             self._state_out = {"S": S_seq[:, -1].detach().clone(), "Z": Z_seq[:, -1].detach().clone()}
 
@@ -219,7 +221,7 @@ class TemporalOperatorEffect(CoordinatePenaltyMixin, BaseEffect):
             w_ssa = self._ssa_weights.to(device=device, dtype=dtype)  # (W,)
             x_hist = causal_history(phi_base, W - 1, state_in, key="hist")
             windows = causal_window_unfold(x_hist, W, t_len=T)  # (B, T, W, K), oldest step first
-            phi_mixed = torch.einsum("btwk,w->btk", torch.flip(windows, dims=[2]), w_ssa)   # lag 0 weighs w_ssa[0]
+            phi_mixed = torch.matmul(windows.transpose(-2, -1), w_ssa.flip(0))   # lag 0 weighs w_ssa[0]
             self._state_out = {"hist": tail_state(x_hist, W - 1)}
 
         out = torch.cat([phi_base, phi_mixed], dim=-1)  # (B, T, 2*K)

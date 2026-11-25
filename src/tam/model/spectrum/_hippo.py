@@ -10,8 +10,9 @@ performed via Bilinear (Tustin) or Zero-Order Hold (ZOH) transforms and evaluate
 via causal FFT convolutions.
 """
 
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional, Tuple
 import numpy as np
+from scipy.fft import next_fast_len
 import torch
 
 from tam.common.utils import TORCH_DEVICE
@@ -144,6 +145,7 @@ class HiPPOEffect(BaseEffect):
 
         self._a64 = a_bar_64
         self._b64 = b_bar_64
+        self._fft_cache: Dict[Tuple[str, int], Tuple[int, torch.Tensor, List[torch.Tensor]]] = {}
         self._check_temporal_extrapolate()
 
     def initialize(self, x_col: torch.Tensor) -> None:
@@ -165,6 +167,42 @@ class HiPPOEffect(BaseEffect):
             f"disc='{self.discretization}', DegreePen(p={self.degree_pen})"
         )
 
+    def _impulse_fft_and_powers(
+        self, t_len: int, device: torch.device, need_powers: bool
+    ) -> Tuple[int, torch.Tensor, List[torch.Tensor]]:
+        """Builds impulse spectrum and binary transition matrix powers ``(A^T)^(2^p)`` via O(log T) doubling."""
+        key = (str(device), t_len)
+        cached = self._fft_cache.get(key)
+        if cached is not None:
+            n_fft, k_fft, p_pows = cached
+            if (not need_powers) or p_pows:
+                return n_fft, k_fft, p_pows
+
+        work = torch.float64
+        a_bar = self._a64.to(device=device, dtype=work)
+        b_bar = self._b64.to(device=device, dtype=work)
+        a_t = a_bar.T.contiguous()
+
+        k_mat = torch.empty(t_len, self.k, dtype=work, device=device)
+        k_mat[0] = b_bar
+        p_pow = a_t
+        p_pows: List[torch.Tensor] = []
+        filled = 1
+        while filled < t_len:
+            step = min(filled, t_len - filled)
+            torch.mm(k_mat[:step], p_pow, out=k_mat[filled : filled + step])
+            filled += step
+            p_pows.append(p_pow)
+            if filled < t_len:
+                p_pow = torch.mm(p_pow, p_pow)
+
+        n_fft = int(next_fast_len(2 * t_len - 1, real=True))
+        k_fft = torch.fft.rfft(k_mat.T.contiguous(), n=n_fft, dim=-1)  # (k, n_fft // 2 + 1)
+        if len(self._fft_cache) >= 8:
+            self._fft_cache.clear()
+        self._fft_cache[key] = (n_fft, k_fft, p_pows)
+        return n_fft, k_fft, p_pows
+
     def _compute_ssm_states(
         self,
         x_2d: torch.Tensor,
@@ -175,45 +213,44 @@ class HiPPOEffect(BaseEffect):
         b_dim, t_len = x_2d.shape
         k = self.k
         out_dtype = x_2d.dtype
+        if t_len == 0:
+            return torch.zeros(b_dim, 0, k, dtype=out_dtype, device=x_2d.device)
         work = torch.float64                                   # the transition matrix is applied up to T times: float64
         x_w = x_2d.to(work)
 
-        a_bar = self._a64.to(device=x_2d.device, dtype=work)
-        b_bar = self._b64.to(device=x_2d.device, dtype=work)
         init_s = None if initial_state is None else initial_state.to(device=x_2d.device, dtype=work)
 
         # Sequential recurrence for short sequences
         if not use_fft or t_len < 64:
+            a_bar = self._a64.to(device=x_2d.device, dtype=work)
+            b_bar = self._b64.to(device=x_2d.device, dtype=work)
             s = torch.zeros(b_dim, t_len, k, dtype=work, device=x_2d.device)
             curr_s = init_s if init_s is not None else torch.zeros(b_dim, k, dtype=work, device=x_2d.device)
             b_vec = b_bar.unsqueeze(0)
+            a_t = a_bar.T
             for t in range(t_len):
-                curr_s = curr_s @ a_bar.T + x_w[:, t : t + 1] @ b_vec
+                curr_s = curr_s @ a_t + x_w[:, t : t + 1] @ b_vec
                 s[:, t, :] = curr_s
             return s.to(out_dtype)
 
-        # Causal FFT convolution for T >= 64
-        # 1. Compute impulse response kernel K of shape (T, k)
-        k_mat = torch.zeros(t_len, k, dtype=work, device=x_2d.device)
-        curr_k = b_bar.clone()
-        k_mat[0] = curr_k
-        for t in range(1, t_len):
-            curr_k = curr_k @ a_bar.T
-            k_mat[t] = curr_k
+        # Causal O(T log T) FFT convolution with O(log T) binary power doubling for T >= 64
+        n_fft, k_fft, p_pows = self._impulse_fft_and_powers(t_len, x_2d.device, need_powers=(init_s is not None))
+        u_fft = torch.fft.rfft(x_w.contiguous(), n=n_fft, dim=-1)  # (B, n_fft // 2 + 1)
+        prod = u_fft.unsqueeze(1) * k_fft.unsqueeze(0)             # (B, k, n_fft // 2 + 1)
+        s_fft = torch.fft.irfft(prod, n=n_fft, dim=-1)[..., :t_len].transpose(1, 2)
 
-        # 2. Causal 2T zero-padded FFT
-        u_fft = torch.fft.rfft(x_w, n=2 * t_len, dim=-1)  # (B, T + 1)
-        k_fft = torch.fft.rfft(k_mat, n=2 * t_len, dim=0)  # (T + 1, k)
-
-        prod = u_fft.unsqueeze(-1) * k_fft.unsqueeze(0)  # (B, T + 1, k)
-        s_fft = torch.fft.irfft(prod, n=2 * t_len, dim=-2)[:, :t_len, :]
-
-        # 3. Add the unforced response of the initial state: s_t += A^(t+1) s_0
+        # Add unforced response of the initial state via binary power doubling: s_t += s_0 (A^T)^(t+1)
         if init_s is not None:
-            curr = init_s
-            for t in range(t_len):
-                curr = curr @ a_bar.T
-                s_fft[:, t, :] = s_fft[:, t, :] + curr
+            hom = torch.empty(b_dim, t_len, k, dtype=work, device=x_2d.device)
+            hom[:, 0, :] = torch.mm(init_s, p_pows[0])
+            h_filled = 1
+            p_idx = 0
+            while h_filled < t_len:
+                step = min(h_filled, t_len - h_filled)
+                hom[:, h_filled : h_filled + step, :] = torch.matmul(hom[:, :step, :], p_pows[p_idx])
+                h_filled += step
+                p_idx += 1
+            s_fft = s_fft + hom
 
         return s_fft.to(out_dtype)
 

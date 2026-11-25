@@ -17,6 +17,7 @@ from scipy.stats import t
 
 from tam.common.utils import TORCH_DEVICE
 from ._base_effects import BaseEffect
+from ._temporal_utils import eval_1d_dedup
 
 
 def _van_der_corput_sequence(n: int, base: int) -> np.ndarray:
@@ -251,14 +252,18 @@ class PriorSpectralEffect(BaseEffect):
                 x_expanded = x_col
 
         freqs = self.frequencies.to(device=x_col.device, dtype=x_col.dtype)
-        theta = torch.matmul(x_expanded, freqs.T)
-
-        cos_features = torch.cos(theta)
-        sin_features = torch.sin(theta)
-        phi = torch.cat([cos_features, sin_features], dim=-1)
-
         scale = 1.0 / math.sqrt(self.m_freqs)
-        return phi * scale
+        if d == 1:
+            freqs_t = freqs.T
+
+            def _eval_1d(xv: torch.Tensor) -> torch.Tensor:
+                theta = torch.matmul(xv.unsqueeze(-1), freqs_t)
+                return torch.cat([torch.cos(theta), torch.sin(theta)], dim=-1) * scale
+
+            return eval_1d_dedup(x_expanded.squeeze(-1), _eval_1d)
+
+        theta = torch.matmul(x_expanded, freqs.T)
+        return torch.cat([torch.cos(theta), torch.sin(theta)], dim=-1) * scale
 #: </pspec_feature_map>
 
 #: <pspec_penalty_matrix>

@@ -20,6 +20,7 @@ from typing import List, Optional
 
 from tam.common.utils import TORCH_DEVICE
 from ._base_effects import BaseEffect
+from ._temporal_utils import eval_1d_dedup
 
 #: <init_rbf>
 class RBFEffect(BaseEffect):
@@ -351,6 +352,15 @@ class RBFEffect(BaseEffect):
 
         # Align centers with current chunk compute device
         c = self._align_device(x_in, c)
+
+        if x_in.shape[-1] == 1 and not is_dummy:
+            def _eval_1d(xv: torch.Tensor) -> torch.Tensor:
+                dists_1d = torch.cdist(xv.reshape(-1, 1), c, p=2.0).view(*xv.shape, c.shape[0])
+                if self.nu is not None:
+                    return self._matern_kernel(dists_1d, g)
+                return torch.exp(-g * (dists_1d ** 2))
+
+            return eval_1d_dedup(x_in[..., 0], _eval_1d)
 
         # Flatten to (Total_Samples, D) for highly optimized torch.cdist compatibility
         x_flat = x_in.reshape(-1, x_in.shape[-1])
